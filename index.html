@@ -96,9 +96,11 @@ input:focus,select:focus,textarea:focus{border-color:#993556;box-shadow:0 0 0 3p
 .cal-header .month-label{font-size:18px;font-weight:500;flex:1;text-align:center}
 .cal-nav{padding:6px 12px;border-radius:8px;border:1px solid #d5d3ce;cursor:pointer;background:#fff;font-size:18px;color:#1a1a1a;line-height:1}
 .cal-nav:hover{background:#f0eeea}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);border-radius:10px;overflow:hidden;border:1px solid #d5d3ce;background:#d5d3ce;gap:1px;position:relative}
-.cal-dow{background:#f0eeea;text-align:center;padding:7px 2px;font-size:11px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.04em}
-.cal-cell{background:#fff;min-height:120px;position:relative;cursor:pointer;padding:4px 4px 4px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-radius:10px;overflow:hidden;border:1px solid #d5d3ce;background:#fff;position:relative}
+.cal-dow{background:#f0eeea;text-align:center;padding:7px 2px;font-size:11px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.04em;border-right:1px solid #d5d3ce;border-bottom:1px solid #d5d3ce}
+.cal-dow:nth-child(7n){border-right:none}
+.cal-cell{background:#fff;min-height:120px;position:relative;cursor:pointer;padding:4px 4px 4px;border-right:1px solid #e5e3de;border-bottom:1px solid #e5e3de}
+.cal-cell:nth-child(7n){border-right:none}
 .cal-cell:hover{background:#faf9f7}
 .cal-cell.other{background:#f8f7f4;opacity:.75}
 .cal-cell.today{outline:2px solid #993556;outline-offset:-2px;z-index:1}
@@ -1093,18 +1095,19 @@ function renderPrestaDetailAdmin(p){
   if(!p)return'';
   if(p.flatRate){
     const evs=D.reservations.filter(r=>r.status!=='annulé'&&(p.domaines||[]).includes(r.domaine)).sort((a,b)=>(b.dateDepart||'').localeCompare(a.dateDepart||''));
-    const total=evs.length*p.flatRate,paid=evs.filter(r=>r.menagePaid).length*p.flatRate;
+    const amts=evs.map(r=>(getMenageInfo(r)||{}).montant||0);
+    const total=amts.reduce((a,x)=>a+x,0),paid=evs.reduce((a,r,i)=>a+(r.menagePaid?amts[i]:0),0);
     return`<div style="margin-top:16px;background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
-      <div class="sec-hdr"><h2>🧹 Suivi de ${p.name} — forfait ${money(p.flatRate)}/vacation</h2></div>
+      <div class="sec-hdr"><h2>🧹 Suivi de ${p.name} — forfait de base ${money(p.flatRate)}/vacation (modifiable au cas par cas)</h2></div>
       <div class="g3" style="margin-bottom:14px">
         <div class="metric"><span class="lbl">Total dû</span><span class="val">${money(total)}</span></div>
         <div class="metric"><span class="lbl">Réglé</span><span class="val" style="color:#27500A">${money(paid)}</span></div>
         <div class="metric"><span class="lbl">Reste à régler</span><span class="val" style="color:#A32D2D">${money(total-paid)}</span></div>
       </div>
       ${evs.length===0?'<div class="empty">Aucune vacation enregistrée.</div>':''}
-      ${evs.map(r=>{const dom=gDom(r.domaine);return`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #e5e3de;font-size:13px">
+      ${evs.map((r,i)=>{const dom=gDom(r.domaine);return`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #e5e3de;font-size:13px;gap:8px">
         <span><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span>${ds(r.dateArrivee)} → ${ds(r.dateDepart)} <span style="color:#888">(${displayClientName(r)||'—'})</span></span>
-        <span><strong>${money(p.flatRate)}</strong> <span class="pill" style="background:${r.menagePaid?'#E8F3E0':'#FCEBEB'};color:${r.menagePaid?'#27500A':'#791F1F'};cursor:pointer" onclick="toggleMenagePaid('${r.id}')">${r.menagePaid?'✓ Réglé':'✗ Régler'}</span></span>
+        <span style="display:flex;align-items:center;gap:6px;flex-shrink:0"><input type="number" value="${amts[i]}" onchange="updMenageMontant('${r.id}',this.value)" style="width:70px;font-weight:600;font-size:13px;padding:3px 5px"> <span class="pill" style="background:${r.menagePaid?'#E8F3E0':'#FCEBEB'};color:${r.menagePaid?'#27500A':'#791F1F'};cursor:pointer" onclick="toggleMenagePaid('${r.id}')">${r.menagePaid?'✓ Réglé':'✗ Régler'}</span></span>
       </div>`;}).join('')}
     </div>`;
   }
@@ -1144,9 +1147,9 @@ function renderPrestaDetailAdmin(p){
           <div class="metric"><span class="lbl">Reste à régler</span><span class="val" style="color:#A32D2D">${money(menageTotal-menagePaid)}</span></div>
         </div>
         ${menageRows.length===0?'<div class="empty">Aucun forfait ménage.</div>':''}
-        ${menageRows.map(({r,mi})=>{const dom=gDom(r.domaine);return`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #e5e3de;font-size:13px">
+        ${menageRows.map(({r,mi})=>{const dom=gDom(r.domaine);return`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #e5e3de;font-size:13px;gap:8px">
           <span><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span>${ds(r.dateArrivee)} → ${ds(r.dateDepart)} <span style="color:#888">(${displayClientName(r)||'—'})</span></span>
-          <span><strong>${money(mi.montant)}</strong> <span class="pill" style="background:${r.menagePaid?'#E8F3E0':'#FCEBEB'};color:${r.menagePaid?'#27500A':'#791F1F'};cursor:pointer" onclick="toggleMenagePaid('${r.id}')">${r.menagePaid?'✓ Réglé':'✗ Régler'}</span></span>
+          <span style="display:flex;align-items:center;gap:6px;flex-shrink:0"><input type="number" value="${mi.montant}" onchange="updMenageMontant('${r.id}',this.value)" style="width:70px;font-weight:600;font-size:13px;padding:3px 5px"> <span class="pill" style="background:${r.menagePaid?'#E8F3E0':'#FCEBEB'};color:${r.menagePaid?'#27500A':'#791F1F'};cursor:pointer" onclick="toggleMenagePaid('${r.id}')">${r.menagePaid?'✓ Réglé':'✗ Régler'}</span></span>
         </div>`;}).join('')}
       </div>
       <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
