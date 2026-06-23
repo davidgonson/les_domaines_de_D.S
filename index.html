@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Les Domaines de DS</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Domaines DS">
+<meta name="theme-color" content="#993556">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='32' fill='%23993556'/%3E%3Ctext x='90' y='118' font-family='-apple-system,Helvetica,Arial,sans-serif' font-size='74' font-weight='700' fill='white' text-anchor='middle'%3EDS%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='32' fill='%23993556'/%3E%3Ctext x='90' y='118' font-family='-apple-system,Helvetica,Arial,sans-serif' font-size='74' font-weight='700' fill='white' text-anchor='middle'%3EDS%3C/text%3E%3C/svg%3E">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a;background:#f5f4f1;font-size:14px;min-height:100vh}
+.app{max-width:920px;margin:0 auto;padding:1rem}
+.topbar{display:flex;align-items:center;gap:8px;padding:10px 0 14px;border-bottom:1px solid #e5e3de;margin-bottom:14px}
+.topbar h1{font-size:16px;font-weight:500;flex:1}
+.badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500}
+.ba{background:#FBEAF0;color:#72243E}.bp{background:#E1F5EE;color:#085041}
+.btn{padding:7px 14px;border-radius:8px;border:1px solid #d5d3ce;font-size:12px;cursor:pointer;font-family:inherit;background:#fff;color:#1a1a1a;transition:background .15s}
+.btn:hover{background:#f0eeea}
+.btn-primary{background:#993556;color:#fff;border-color:#993556}.btn-primary:hover{background:#72243E;border-color:#72243E}
+.btn-resa{background:#3C2A6B;color:#fff;border-color:#3C2A6B}.btn-resa:hover{background:#2C1F4F;border-color:#2C1F4F}
+.btn-visite{background:#EEEDFE;color:#534AB7;border-color:#CECBF6}.btn-visite:hover{background:#E3E1FC}
+.btn-prestation{background:#E6F1FB;color:#185FA5;border-color:#B5D4F4}.btn-prestation:hover{background:#D8EAF8}
+.btn-sm{padding:4px 10px;font-size:12px}.btn-xs{padding:2px 7px;font-size:11px}
+.btn-danger{color:#A32D2D;border-color:#F7C1C1;background:#fff}.btn-danger:hover{background:#FCEBEB}
+.tabs{display:flex;gap:3px;margin-bottom:14px;background:#ebe9e4;border-radius:8px;padding:3px}
+.dom-picker{display:flex;gap:8px}
+.dom-box{flex:1;text-align:center;padding:12px 6px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s;user-select:none}
+.dom-box.sel{opacity:1;box-shadow:0 0 0 2px rgba(0,0,0,.3) inset}
+.dom-box.fade{opacity:.3}
+.tab{flex:1;padding:7px 4px;text-align:center;border-radius:6px;cursor:pointer;font-size:12px;border:none;background:transparent;color:#666;font-family:inherit;transition:background .15s}
+.tab.active{background:#fff;color:#1a1a1a;font-weight:500;border:1px solid #d5d3ce}
+input,select,textarea{width:100%;padding:7px 10px;border:1px solid #d5d3ce;border-radius:8px;font-size:13px;font-family:inherit;background:#fff;color:#1a1a1a;outline:none;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:#993556;box-shadow:0 0 0 3px rgba(153,53,86,.1)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;color:#666;font-weight:500;text-transform:uppercase;letter-spacing:.03em}
+.pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
+.p0{background:#FBEAF0;color:#72243E}.p1{background:#FFF8E6;color:#7A5800}.p2{background:#EAF3DE;color:#27500A}.p3{background:#EEEDFE;color:#3C3489}.p4{background:#E6F1FB;color:#0C447C}
+.status{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
+.s-confirmé{background:#EAF3DE;color:#27500A}.s-option{background:#FAEEDA;color:#633806}.s-annulé{background:#FCEBEB;color:#791F1F}
+.pay-full{background:#EAF3DE;color:#27500A;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:500}
+.pay-part{background:#FAEEDA;color:#633806;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:500}
+.pay-none{background:#FCEBEB;color:#791F1F;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:500}
+.alert{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:12px}
+.alert-ok{background:#EAF3DE;color:#27500A}.alert-info{background:#E6F1FB;color:#0C447C}
+.metric{background:#fff;border:1px solid #e5e3de;border-radius:10px;padding:.85rem;text-align:center}
+.metric .val{font-size:20px;font-weight:500;display:block;margin-top:3px}
+.metric .lbl{font-size:11px;color:#666}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-start;justify-content:center;padding-top:40px;z-index:100;overflow-y:auto}
+.modal{background:#fff;border-radius:14px;padding:1.5rem;width:96%;max-width:560px;border:1px solid #e5e3de;margin-bottom:40px}
+.modal h3{font-size:15px;font-weight:500;margin-bottom:14px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.comment-item{border:1px solid #e5e3de;border-radius:8px;padding:9px 12px;margin-bottom:6px;font-size:13px}
+.comment-item .meta{font-size:11px;color:#666;margin-bottom:4px;display:flex;justify-content:space-between}
+.link-box{display:flex;align-items:center;gap:8px;background:#f5f4f1;border-radius:8px;padding:8px 12px;font-size:11px;font-family:monospace;word-break:break-all;border:1px solid #e5e3de}
+.wa-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:8px;background:#25D366;color:#fff;font-size:12px;font-weight:500;text-decoration:none;border:none;cursor:pointer;font-family:inherit;white-space:nowrap}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.sec-hdr h2{font-size:15px;font-weight:500}
+.empty{text-align:center;padding:2.5rem;color:#666;font-size:13px}
+.note-box{background:#f5f4f1;border-radius:6px;padding:8px 12px;font-size:12px;color:#555;border-left:3px solid #ED93B1;margin-top:6px}
+.ev-card{border:1px solid #e5e3de;border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fff}
+.list-tbl{width:100%;border-collapse:collapse;font-size:13px}
+.list-tbl th{text-align:left;padding:7px 9px;font-size:11px;font-weight:500;color:#666;border-bottom:1px solid #e5e3de;text-transform:uppercase;letter-spacing:.03em}
+.list-tbl td{padding:8px 9px;border-bottom:1px solid #e5e3de;vertical-align:middle}
+.list-tbl tr:last-child td{border-bottom:none}
+.list-tbl tr:hover td{background:#faf9f7;cursor:pointer}
+.panel-wrap{display:flex;gap:14px;align-items:flex-start}
+.cal-side{flex:1;min-width:0}
+.detail-panel{width:280px;flex-shrink:0;background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem;position:sticky;top:10px}
+.dp-section{border-top:1px solid #e5e3de;padding-top:10px;margin-top:10px}
+.dp-section label{font-size:10px;color:#666;font-weight:500;display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+
+/* LOGIN */
+.login-wrap{max-width:360px;margin:4rem auto;text-align:center;background:#fff;border-radius:16px;padding:2.5rem;border:1px solid #e5e3de}
+.login-wrap .logo{font-size:40px;margin-bottom:16px}
+.login-wrap h2{font-size:22px;font-weight:500;margin-bottom:6px}
+.login-wrap p{color:#666;font-size:13px;margin:6px 0 24px}
+.pin-in{text-align:center;font-size:24px;letter-spacing:8px;font-weight:500}
+
+/* CALENDRIER */
+.cal-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.cal-header .month-label{font-size:18px;font-weight:500;flex:1;text-align:center}
+.cal-nav{padding:6px 12px;border-radius:8px;border:1px solid #d5d3ce;cursor:pointer;background:#fff;font-size:18px;color:#1a1a1a;line-height:1}
+.cal-nav:hover{background:#f0eeea}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);border-radius:10px;overflow:hidden;border:1px solid #d5d3ce;background:#d5d3ce;gap:1px;position:relative}
+.cal-dow{background:#f0eeea;text-align:center;padding:7px 2px;font-size:11px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.04em}
+.cal-cell{background:#fff;min-height:120px;position:relative;cursor:pointer;padding:4px 4px 4px}
+.cal-cell:hover{background:#faf9f7}
+.cal-cell.other{background:#f8f7f4;opacity:.75}
+.cal-cell.today{outline:2px solid #993556;outline-offset:-2px;z-index:1}
+.cal-cell.vac-mid{background:#F3F0FF}
+.cal-cell.vac-mid.other{background:#EEE9F8}
+.cal-cell.vac-edge{background:#DDD6F8}
+.cal-cell.vac-edge.other{background:#D5CDF0}
+.cal-cell.pont{background:#E2DBF3}
+.cal-cell.pont.other{background:#DAD2EC}
+.cal-cell.ferie{background:#D2C7F0}
+.cal-cell.ferie.other{background:#C7BAEA}
+.day-num-wrap{display:flex;align-items:baseline;justify-content:space-between;padding:0 2px;margin-bottom:3px}
+.day-num{font-size:12px;font-weight:500;color:#666}
+.cal-cell.today .day-num{color:#993556;font-weight:700}
+.cal-cell.other .day-num{color:#bbb}
+.cal-cell.vac-edge .day-num,.cal-cell.ferie .day-num{color:#3C3489;font-weight:700}
+.day-tag{font-size:9px;font-weight:600;color:#534AB7;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;line-height:1.2}
+.bands-area{position:absolute;left:0;right:0;top:24px;bottom:2px;pointer-events:none}
+.band{position:absolute;height:26px;font-size:9px;font-weight:600;cursor:pointer;pointer-events:all;z-index:2;padding:1px 4px;text-align:left;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;gap:1px;overflow:hidden}
+.band .b-top{font-weight:800;font-size:9.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left;line-height:13px}
+.band .b-bottom{display:flex;justify-content:space-between;font-size:8px;font-weight:700;opacity:.95;line-height:10px}
+.band-start{border-radius:5px 0 0 5px}
+.band-end{border-radius:0 5px 5px 0}
+.band-startend{border-radius:5px;padding:0 5px}
+.band-mid{border-radius:0}
+.band.option{color:#fff!important}
+.band.paid.b0f,.band.paid.b0l{box-shadow:inset 0 0 0 2px #5C1530}
+.band.paid.b1f,.band.paid.b1l{box-shadow:inset 0 0 0 2px #7A5800}
+.band.paid.b2f,.band.paid.b2l{box-shadow:inset 0 0 0 2px #1C3A07}
+.band.paid.b3f,.band.paid.b3l{box-shadow:inset 0 0 0 2px #2A2566}
+.band.paid.b4f,.band.paid.b4l{box-shadow:inset 0 0 0 2px #07335C}
+.b0f{background:#F4C0D1;color:#72243E}
+.b0l{background:#FBEAF0;color:#993556;border:1px dashed #F4C0D1}
+.b1f{background:#F5D98B;color:#7A5800}
+.b1l{background:#FFF8E6;color:#BA8800;border:1px dashed #F5D98B}
+.b2f{background:#C0DD97;color:#27500A}
+.b2l{background:#EAF3DE;color:#3B6D11;border:1px dashed #C0DD97}
+.b3f{background:#CECBF6;color:#3C3489}
+.b3l{background:#EEEDFE;color:#534AB7;border:1px dashed #CECBF6}
+.b4f{background:#B5D4F4;color:#0C447C}
+.b4l{background:#E6F1FB;color:#185FA5;border:1px dashed #B5D4F4}
+.leg{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px;align-items:center}
+.leg-item{display:flex;align-items:center;gap:4px;font-size:11px;color:#555}
+.leg-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+@media(max-width:640px){
+  .panel-wrap{flex-direction:column}
+  .detail-panel{width:100%;position:static}
+  .g3{grid-template-columns:1fr 1fr}
+  .g2{grid-template-columns:1fr}
+  .list-tbl th:nth-child(5),.list-tbl td:nth-child(5){display:none}
+}
+</style>
+</head>
+<body>
+<div class="app" id="root"></div>
+<script>
+const SK='domnoрm_prod_v1';
+const PILL=['p0','p1','p2','p3','p4'];
+const MONTHS_FR=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const PRESTA_CATS=['Animation','Traiteur','Décoration','Logistique','Autre'];
+const EVENT_TYPES=['Mariage','Anniversaire','Séminaire','Famille / Cousinade','EVJF / EVG','Séjour amis','Autre'];
+const LEG_BG=['#F4C0D1','#F5D98B','#C0DD97','#CECBF6','#B5D4F4'];
+const BAND_FULL=['b0f','b1f','b2f','b3f','b4f'];
+const BAND_LIGHT=['b0l','b1l','b2l','b3l','b4l'];
+const MAX_SLOTS=5;
+
+const DEF={
+  domaines:[
+    {id:'d1',name:'La Désirée',color:0},
+    {id:'d2',name:'Les Déesses',color:1},
+    {id:'d3',name:'Les Lions',color:2}
+  ],
+  prestataires:[
+    {id:'p1',name:'Misha',role:'Gardien & Traiteur ou Service',tel:'',domaines:['d1'],accessMode:'domaine',autoAssign:true,inputMode:'notes',noteRows:6,token:'tok_misha_dsr1'},
+    {id:'p2',name:'Sasha',role:'Gardien & Décoration ou Service',tel:'',domaines:['d2'],accessMode:'domaine',autoAssign:true,inputMode:'notes',noteRows:3,token:'tok_sasha_dss2'},
+    {id:'p3',name:'Pascaline',role:'Ménage',tel:'',domaines:['d3'],accessMode:'horaires',inputMode:'notes',noteRows:2,token:'tok_pascaline_lns3'},
+    {id:'p4',name:'Dominique',role:'Jardinage',tel:'',domaines:['d1','d2','d3'],accessMode:'occupation',inputMode:'none',token:'tok_dominique_jrd4'},
+    {id:'p5',name:'Sébastien',role:'Sécurité',tel:'',domaines:['d1'],accessMode:'manuel',inputMode:'garde',token:'tok_sebastien_sec5'},
+    {id:'p6',name:'Mathilde',role:'Sécurité',tel:'',domaines:['d2'],accessMode:'manuel',inputMode:'garde',token:'tok_mathilde_sec6'}
+  ],
+  visites:[],
+  activityLog:[],
+  adminLastSeen:{},
+  prestaLastSeen:{},
+  reservations:[],
+  admins:[
+    {id:'a1',name:'David',pin:'1984'},
+    {id:'a2',name:'Svitlana',pin:'2024'}
+  ]
+};
+
+let D=loadD();
+if(!D.visites)D.visites=[];
+if(!D.activityLog)D.activityLog=[];
+if(!D.adminLastSeen)D.adminLastSeen={};
+if(!D.prestaLastSeen)D.prestaLastSeen={};
+(D.admins||[]).forEach(a=>{if(a.name==='Gestionnaire')a.name='Svitlana';});
+(function migratePrestataires(){
+  const defByID={};DEF.prestataires.forEach(p=>defByID[p.id]=p);
+  (D.prestataires||[]).forEach(p=>{
+    const ref=defByID[p.id];
+    if(!ref)return;
+    if(p.inputMode===undefined)p.inputMode=ref.inputMode;
+    if(p.noteRows===undefined&&ref.noteRows!==undefined)p.noteRows=ref.noteRows;
+    if(p.accessMode===undefined)p.accessMode=ref.accessMode;
+    if(p.autoAssign===undefined&&ref.autoAssign!==undefined)p.autoAssign=ref.autoAssign;
+    if(p.role==='Sécurité soirées')p.role='Sécurité';
+    if(p.role==='Gardien & Traiteur')p.role='Gardien & Traiteur ou Service';
+    if(p.role==='Gardien & Décoration')p.role='Gardien & Décoration ou Service';
+  });
+  saveD();
+})();
+let S={view:'login',admin:null,presta:null,tab:'calendrier',prestaTab:'calendrier',modal:null,msg:null,selResa:null,calYear:2026,calMonth:5,bilanYear:2026,bilanMonth:5,listeYear:2026,listeMonth:5,visiteYear:2026,visiteMonth:5};
+
+function loadD(){try{const r=localStorage.getItem(SK);if(r)return JSON.parse(r);}catch(e){}return JSON.parse(JSON.stringify(DEF));}
+function saveD(){try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}}
+function gDom(id){return D.domaines.find(d=>d.id===id)||{name:'—',color:0};}
+function gPre(id){return D.prestataires.find(p=>p.id===id)||{name:'—',role:''};}
+function gid(){return 'x'+Math.random().toString(36).slice(2,9);}
+function logActivity(action,domaine,label){
+  if(!D.activityLog)D.activityLog=[];
+  D.activityLog.push({id:gid(),ts:Date.now(),authorId:S.admin?S.admin.id:null,authorName:S.admin?S.admin.name:'Système',domaine,action,label});
+  if(D.activityLog.length>200)D.activityLog=D.activityLog.slice(-200);
+}
+function dismissAdminNotifs(){if(!S.admin)return;D.adminLastSeen=D.adminLastSeen||{};D.adminLastSeen[S.admin.id]=Date.now();saveD();render();}
+function dismissPrestaNotifs(){if(!S.presta)return;D.prestaLastSeen=D.prestaLastSeen||{};D.prestaLastSeen[S.presta.id]=Date.now();saveD();render();}
+function renderNotifBanner(items,dismissFnName){
+  if(!items.length)return'';
+  return`<div class="alert alert-info" style="margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+      <div style="flex:1">
+        <div style="font-weight:600;margin-bottom:4px">🔔 ${items.length} mise${items.length>1?'s':''} à jour</div>
+        ${items.slice(0,8).map(it=>`<div style="font-size:12px">${it.authorName?it.authorName+' — ':''}${it.label}</div>`).join('')}
+        ${items.length>8?`<div style="font-size:11px;color:#888;margin-top:2px">… et ${items.length-8} autre(s)</div>`:''}
+      </div>
+      <button class="btn btn-xs" onclick="${dismissFnName}()">Marquer comme lu</button>
+    </div>
+  </div>`;
+}
+function dstr(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function capWords(s){
+  if(!s)return s;
+  return s.split(' ').map(w=>w?w.charAt(0).toUpperCase()+w.slice(1):w).join(' ');
+}
+function fmtHeureCourt(h){
+  if(!h)return'';
+  const parts=h.split(':');const hh=parseInt(parts[0],10);const mm=parts[1]||'00';
+  return mm==='00'?`${hh}h`:`${hh}h${mm}`;
+}
+function shortName(client){
+  if(!client)return'';
+  const parts=client.trim().split(/\s+/);
+  const last=parts[parts.length-1]||'';
+  return last.charAt(0).toUpperCase()+last.slice(1);
+}
+function isValidPhone(tel){
+  if(!tel)return true;
+  const t=tel.trim();
+  if(t.startsWith('+')||t.startsWith('00'))return true;
+  const digits=t.replace(/[\s.\-]/g,'');
+  return/^0[1-9]\d{8}$/.test(digits);
+}
+function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x;}
+function ds(d){if(!d)return'';const[y,m,day]=d.split('-');return`${parseInt(day)} ${['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'][parseInt(m)-1]}`;}
+function fmt(d){if(!d)return'';const[y,m,day]=d.split('-');return`${parseInt(day)} ${['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'][parseInt(m)-1]} ${y}`;}
+function dn(d){if(!d)return'';return['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'][new Date(d+'T12:00:00').getDay()];}
+function money(n){return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(Math.round(n||0));}
+function totPay(r){return(r.paiements||[]).reduce((a,p)=>a+(p.montant||0),0);}
+function payStatus(r){const t=totPay(r),m=r.montant||0;if(m===0)return'none';if(t>=m)return'full';if(t>0)return'part';return'none';}
+function payBadge(r){const s=payStatus(r),t=totPay(r),m=r.montant||0;if(s==='full')return'<span class="pay-full">Soldé ✓</span>';if(s==='part')return`<span class="pay-part">${money(t)} / ${money(m)}</span>`;return`<span class="pay-none">${money(t)} / ${money(m)}</span>`;}
+function initials(n){return n.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);}
+const AVB=['#F4C0D1','#F5D98B','#C0DD97','#CECBF6','#B5D4F4'];
+const AVT=['#72243E','#7A5800','#27500A','#3C3489','#0C447C'];
+
+function easter(y){const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),mo=Math.floor((h+l-7*m+114)/31),dy=((h+l-7*m+114)%31)+1;return new Date(y,mo-1,dy);}
+function getFeries(y){
+  const e=easter(y),res={};
+  [[1,1,"Jour de l'An"],[5,1,'Fête du Travail'],[5,8,'Victoire 45'],[7,14,'Fête Nationale'],[8,15,'Assomption'],[11,1,'Toussaint'],[11,11,'Armistice'],[12,25,'Noël']].forEach(([m,d,n])=>{res[dstr(new Date(y,m-1,d))]=n;});
+  res[dstr(addDays(e,1))]='Lundi de Pâques';res[dstr(addDays(e,39))]='Ascension';res[dstr(addDays(e,50))]='Lundi de Pentecôte';
+  return res;
+}
+function getPonts(y){
+  const f=getFeries(y),p={};
+  Object.keys(f).forEach(fs=>{const d=new Date(fs+'T12:00:00'),dow=d.getDay();
+    if(dow===2){const s=dstr(addDays(d,-1));if(!f[s])p[s]='Pont';}
+    if(dow===4){const s=dstr(addDays(d,1));if(!f[s])p[s]='Pont';}
+  });return p;
+}
+const VAC=[
+  ['2025-10-18','2025-11-02','Toussaint'],['2025-12-20','2026-01-04','Noël'],
+  ['2026-02-21','2026-03-08','Hiver'],['2026-04-18','2026-05-03','Printemps'],
+  ['2026-07-04','2026-08-31','Été'],['2026-10-17','2026-11-01','Toussaint'],
+  ['2026-12-19','2027-01-03','Noël'],['2027-02-06','2027-02-21','Hiver'],
+  ['2027-04-03','2027-04-18','Printemps'],['2027-07-03','2027-08-31','Été'],
+];
+const VAC_LABEL={'Été':"d'été",'Hiver':"d'hiver",'Printemps':"de printemps",'Toussaint':"de Toussaint",'Noël':"de Noël"};
+function buildVac(){
+  const mid={},edge={};
+  VAC.forEach(([s,e,n])=>{
+    const sd=new Date(s+'T12:00:00'),ed=new Date(e+'T12:00:00');
+    const lbl=VAC_LABEL[n]||('de '+n);
+    edge[dstr(sd)]='Début vacances '+lbl;
+    edge[dstr(ed)]='Fin vacances '+lbl;
+    let c=addDays(sd,1);while(c<ed){mid[dstr(c)]=n;c=addDays(c,1);}
+  });return{mid,edge};
+}
+const{mid:VM,edge:VE}=buildVac();
+const AF=Object.assign({},...Array.from({length:11},(_,i)=>getFeries(2025+i)));
+const AP=Object.assign({},...Array.from({length:11},(_,i)=>getPonts(2025+i)));
+
+function dayCls(d){if(AF[d])return'ferie';if(VE[d])return'vac-edge';if(AP[d])return'pont';if(VM[d])return'vac-mid';return'';}
+function dayTag(d){if(AF[d])return AF[d];if(VE[d])return VE[d];if(AP[d])return'Pont';return'';}
+
+function buildDateCellMap(y,m){
+  const fd=new Date(y,m,1);let sd=fd.getDay();sd=sd===0?6:sd-1;
+  const dim=new Date(y,m+1,0).getDate(),dip=new Date(y,m,0).getDate();
+  const tc=Math.ceil((sd+dim)/7)*7;
+  const dtc={};
+  for(let i=0;i<tc;i++){
+    let day,mo=m,yr=y;
+    if(i<sd){day=dip-sd+i+1;mo=m-1;if(mo<0){mo=11;yr=y-1;}}
+    else if(i>=sd+dim){day=i-sd-dim+1;mo=m+1;if(mo>11){mo=0;yr=y+1;}}
+    else day=i-sd+1;
+    dtc[`${yr}-${String(mo+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`]={ci:i,col:i%7,row:Math.floor(i/7)};
+  }
+  return{dtc,tc,sd,dim,dip};
+}
+function buildBands(y,m){
+  const{dtc,tc,sd,dim,dip}=buildDateCellMap(y,m);
+  const domIdx={};D.domaines.forEach((d,i)=>domIdx[d.id]=i);
+  const sorted=[...D.reservations].filter(r=>r.status!=='annulé').sort((a,b)=>(a.dateArrivee||a.date).localeCompare(b.dateArrivee||b.date));
+  const bands=[];
+  sorted.forEach(r=>{
+    const as=r.dateArrivee||r.date,ds2=r.dateDepart||r.dateArrivee||r.date;
+    const isJ=as===ds2;
+    const dom=gDom(r.domaine);const c=dom.color||0;
+    const bc=isJ?BAND_LIGHT[c]:BAND_FULL[c];
+    const oc=r.status==='option'?' option':'';
+    const cu=[];let cur=new Date(as+'T12:00:00');const fin=new Date(ds2+'T12:00:00');
+    while(cur<=fin){const s=dstr(cur);if(dtc[s])cu.push({ds:s,ci:dtc[s].ci,row:dtc[s].row,col:dtc[s].col});cur=addDays(cur,1);}
+    if(!cu.length)return;
+    /* Ligne fixe par domaine : La Désirée toujours en 1ère ligne réservation, Les Déesses en 2e, Les Lions en 3e.
+       On part du principe qu'il n'y a pas de recoupement de réservations sur un même domaine. */
+    const slot=domIdx[r.domaine]||0;
+    const rows={};cu.forEach(cell=>{if(!rows[cell.row])rows[cell.row]=[];rows[cell.row].push(cell);});
+    Object.values(rows).forEach(rc=>{
+      rc.sort((a,b)=>a.ci-b.ci);
+      const fc=rc[0],lc=rc[rc.length-1];
+      const ifr=fc.ds===as,ilr=lc.ds===ds2;
+      let sc='band-mid';
+      if(ifr&&ilr)sc='band-startend';else if(ifr)sc='band-start';else if(ilr)sc='band-end';
+      /* Données brutes du label : l'arbitrage selon la largeur réelle se fait dans injectBands */
+      const mainParts=[];
+      if(ifr){
+        if(r.nbSoiree)mainParts.push(r.nbSoiree+' inv.');
+        if(r.typeEvenement)mainParts.push(r.typeEvenement);
+      }
+      const mainLine=mainParts.join(' · ');
+      const nameTxt=(ifr&&r.client)?shortName(r.client):'';
+      const timeArr=ifr?(r.heureArrivee||''):'';
+      const timeDep=ilr?(r.heureDepart||''):'';
+      /* Heures pour position proportionnelle (fenêtre 8h-22h) */
+      const hArr=ifr?(parseInt((r.heureArrivee||'12:00').split(':')[0])+(parseInt((r.heureArrivee||'12:00').split(':')[1]||0)/60)):8;
+      const hDep=ilr?(parseInt((r.heureDepart||'12:00').split(':')[0])+(parseInt((r.heureDepart||'12:00').split(':')[1]||0)/60)):22;
+      bands.push({rid:r.id,slot,row:fc.row,colStart:fc.col,spanCols:lc.col-fc.col+1,shapeClass:sc,nameTxt,timeArr,timeDep,mainLine,bandCls:bc,optCls:oc,isJ,isPaid:payStatus(r)==='full',isFirstRow:ifr,isLastRow:ilr,hA:hArr,hD:hDep});
+    });
+  });
+  return{bands,tc,sd,dim,dip};
+}
+
+function syncNb(srcId,tgtId){
+  const src=document.getElementById(srcId),tgt=document.getElementById(tgtId);
+  if(!src||!tgt)return;
+  if(src.value&&!tgt.value)tgt.value=src.value;
+}
+function autoCheckGardien(domaineId){
+  D.prestataires.forEach(p=>{
+    if(p.autoAssign&&(p.domaines||[]).includes(domaineId)){
+      const cb=document.querySelector(`#root input[type=checkbox][value="${p.id}"]`);
+      if(cb)cb.checked=true;
+    }
+  });
+}
+function pickDomaine(hiddenId,pickerId,el){
+  document.getElementById(hiddenId).value=el.dataset.id;
+  document.querySelectorAll('#'+pickerId+' .dom-box').forEach(b=>{
+    if(b===el){b.classList.add('sel');b.classList.remove('fade');}
+    else{b.classList.remove('sel');b.classList.add('fade');}
+  });
+  if(hiddenId==='m-domaine')autoCheckGardien(el.dataset.id);
+}
+function nightsList(arr,dep){
+  if(!arr)return[];
+  if(!dep||dep===arr)return[arr];
+  const nights=[];let cur=new Date(arr+'T12:00:00');const fin=new Date(dep+'T12:00:00');
+  while(cur<fin){nights.push(dstr(cur));cur=addDays(cur,1);}
+  return nights;
+}
+function gardNightsHtmlFor(pid,nights,state){
+  if(!nights.length)return'<div style="font-size:12px;color:#888">Renseignez les dates du séjour pour choisir les nuits.</div>';
+  return nights.map(n=>{
+    const checked=!!state[n];const val=state[n]||'longue';
+    return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;flex:1;cursor:pointer">
+        <input type="checkbox" class="gard-chk" data-presta="${pid}" data-date="${n}" ${checked?'checked':''} style="width:auto" onchange="onGardChkChange(this)">
+        Nuit du ${dn(n)} ${ds(n)}
+      </label>
+      <select class="gard-sel" data-presta="${pid}" data-date="${n}" ${checked?'':'disabled'} style="width:160px;font-size:12px">
+        <option value="courte" ${val==='courte'?'selected':''}>Courte — 22h à 2h</option>
+        <option value="longue" ${val==='longue'?'selected':''}>Longue — 22h à 4h</option>
+      </select>
+    </div>`;
+  }).join('');
+}
+function onGardChkChange(chk){
+  const sel=document.querySelector(`.gard-sel[data-presta="${chk.dataset.presta}"][data-date="${chk.dataset.date}"]`);
+  if(sel)sel.disabled=!chk.checked;
+}
+function refreshAllGardNights(){
+  const arrEl=document.getElementById('m-arr-date'),depEl=document.getElementById('m-dep-date');
+  if(!arrEl||!depEl)return;
+  const nights=nightsList(arrEl.value,depEl.value);
+  document.querySelectorAll('[id^="pgnights-"]').forEach(wrap=>{
+    const pid=wrap.id.replace('pgnights-','');
+    const state={};
+    document.querySelectorAll(`.gard-chk[data-presta="${pid}"]`).forEach(chk=>{
+      if(chk.checked){const sel=document.querySelector(`.gard-sel[data-presta="${pid}"][data-date="${chk.dataset.date}"]`);state[chk.dataset.date]=sel?sel.value:'longue';}
+    });
+    wrap.innerHTML=gardNightsHtmlFor(pid,nights,state);
+  });
+}
+function checkToken(){
+  const p=new URLSearchParams(window.location.search),t=p.get('t')||window.location.hash.replace('#','');
+  if(t){const pr=D.prestataires.find(x=>x.token===t);if(pr){S.view='presta';S.presta=pr;const now=new Date();S.calYear=now.getFullYear();S.calMonth=now.getMonth();S.listeYear=now.getFullYear();S.listeMonth=now.getMonth();S.visiteYear=now.getFullYear();S.visiteMonth=now.getMonth();return true;}}return false;
+}
+
+function render(){const r=document.getElementById('root');if(S.view==='login')r.innerHTML=renderLogin();else if(S.view==='admin')r.innerHTML=renderAdmin();else if(S.view==='presta')r.innerHTML=renderPresta();injectBands();injectVisiteMarkers();}
+function injectBands(){
+  const inCalView=(S.view==='admin'&&S.tab==='calendrier')||(S.view==='presta'&&S.prestaTab==='calendrier');
+  if(!inCalView)return;
+  const grid=document.getElementById('cal-grid-main');if(!grid)return;
+  const cells=grid.querySelectorAll('.cal-cell');if(!cells.length)return;
+  const{bands}=buildBands(S.calYear,S.calMonth);
+  const gridRect=grid.getBoundingClientRect();
+  const dayFrac=h=>Math.max(0,Math.min(1,(h-8)/14));
+  bands.forEach(b=>{
+    const startIdx=b.row*7+b.colStart,endIdx=b.row*7+b.colStart+b.spanCols-1;
+    const startCell=cells[startIdx],endCell=cells[endIdx];
+    if(!startCell||!endCell)return;
+    const sRect=startCell.getBoundingClientRect(),eRect=endCell.getBoundingClientRect();
+    const cellW=sRect.width;
+    let leftPx,widthPx;
+    /* Positionnement proportionnel continu sur la largeur réelle (en pixels) de la grille :
+       - la journée visible va de 8h à 22h (14h) — pas d'horaires avant 8h ni après 22h
+       - case arrivée : part de hArr, s'étire jusqu'au bord droit de la DERNIÈRE case du segment
+       - cases milieu : pleine largeur du segment
+       - case départ : part du bord gauche du segment, finit à hDep
+       - case unique (startend) : de hArr à hDep dans la même case */
+    if(b.shapeClass==='band-startend'){
+      leftPx=(sRect.left-gridRect.left)+dayFrac(b.hA)*cellW;
+      const rightPx=(eRect.left-gridRect.left)+dayFrac(b.hD)*cellW;
+      widthPx=Math.max(rightPx-leftPx,6);
+    } else if(b.shapeClass==='band-start'){
+      leftPx=(sRect.left-gridRect.left)+dayFrac(b.hA)*cellW;
+      widthPx=(eRect.left+eRect.width-gridRect.left)-leftPx;
+    } else if(b.shapeClass==='band-end'){
+      leftPx=(sRect.left-gridRect.left);
+      const rightPx=(eRect.left-gridRect.left)+dayFrac(b.hD)*cellW;
+      widthPx=Math.max(rightPx-leftPx,6);
+    } else {
+      leftPx=(sRect.left-gridRect.left);
+      widthPx=(eRect.left+eRect.width-gridRect.left)-leftPx;
+    }
+    const topPx=(sRect.top-gridRect.top)+24+(b.slot*28);
+    const div=document.createElement('div');
+    div.className=`band ${b.shapeClass} ${b.bandCls}${b.optCls}${b.isPaid?' paid':''}`;
+    div.style.position='absolute';
+    div.style.top=topPx+'px';
+    div.style.left=leftPx+'px';
+    div.style.width=widthPx+'px';
+    const timeArrF=fmtHeureCourt(b.timeArr),timeDepF=fmtHeureCourt(b.timeDep);
+    const topParts=[];
+    if(b.nameTxt)topParts.push('<b>'+b.nameTxt+'</b>');
+    if(b.mainLine)topParts.push(b.mainLine);
+    const topLine=topParts.join(' · ');
+    const label=(topLine||timeArrF||timeDepF)?`<div class="b-top">${topLine}</div><div class="b-bottom"><span>${timeArrF}</span><span>${timeDepF}</span></div>`:'';
+    div.innerHTML=label;
+    div.title=label.replace(/<\/(div|span)>/g,' ').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim()+' — cliquer pour détail';
+    div.onclick=ev=>{ev.stopPropagation();selectResa(b.rid,ev);};
+    grid.appendChild(div);
+  });
+}
+
+function injectVisiteMarkers(){
+  const inCalView=(S.view==='admin'&&S.tab==='calendrier')||(S.view==='presta'&&S.prestaTab==='calendrier');
+  if(!inCalView)return;
+  const grid=document.getElementById('cal-grid-main');if(!grid)return;
+  const cells=grid.querySelectorAll('.cal-cell');if(!cells.length)return;
+  const{dtc}=buildDateCellMap(S.calYear,S.calMonth);
+  const domIdx={};D.domaines.forEach((d,i)=>domIdx[d.id]=i);
+  const gridRect=grid.getBoundingClientRect();
+  const dayFrac=h=>Math.max(0,Math.min(1,(h-8)/14));
+  const dotColors=['#72243E','#F5D98B','#27500A','#3C3489','#0C447C']; /* jaune éclairci à la demande */
+  /* Bandes déjà posées par injectBands, pour éviter de superposer une visite sur une réservation */
+  const existingBands=Array.from(grid.querySelectorAll('.band')).map(el=>({left:parseFloat(el.style.left),width:parseFloat(el.style.width),top:parseFloat(el.style.top)}));
+  D.visites.forEach(v=>{
+    if(!v.date||!dtc[v.date])return;
+    const cellInfo=dtc[v.date];const cell=cells[cellInfo.ci];if(!cell)return;
+    const slot=domIdx[v.domaine]||0;
+    const cRect=cell.getBoundingClientRect();
+    const cellLeft=cRect.left-gridRect.left;
+    const hh=v.heure?(parseInt(v.heure.split(':')[0])+(parseInt(v.heure.split(':')[1]||0)/60)):15;
+    let leftPx=cellLeft+dayFrac(hh)*cRect.width;
+    const rowTopPx=(cRect.top-gridRect.top)+24+(slot*28);
+    /* Anti-collision : si une bande de réservation occupe déjà cet endroit sur cette ligne, on décale */
+    const collide=existingBands.find(b=>Math.abs(b.top-rowTopPx)<4&&leftPx>=b.left-7&&leftPx<=b.left+b.width+7);
+    if(collide){
+      const proposedRight=collide.left+collide.width+5;
+      leftPx=(proposedRight<cellLeft+cRect.width-6)?proposedRight:Math.max(cellLeft+2,collide.left-9);
+    }
+    const dom=gDom(v.domaine);const c=dom.color||0;
+    const cancelled=v.status==='annulée';
+    const heureLbl=fmtHeureCourt(v.heure);
+    const div=document.createElement('div');
+    div.style.position='absolute';div.style.left=Math.max(0,leftPx-5)+'px';div.style.top=(rowTopPx+1)+'px';div.style.zIndex='4';div.style.cursor='pointer';
+    div.style.width='12px';div.style.height='28px';
+    div.title=`Visite — ${v.client||''} ${v.heure||''}${cancelled?' (annulée)':''}`;
+    div.onclick=ev=>{ev.stopPropagation();openM('editVisite',v.id);};
+    div.innerHTML=`<div style="width:12px;height:28px;border-radius:6px;background:#fff;border:1.4px solid ${dotColors[c]};display:flex;align-items:center;justify-content:center;overflow:hidden;${cancelled?'opacity:.55':''}">
+      <span style="font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:8.5px;font-weight:600;letter-spacing:.2px;color:${dotColors[c]};transform:rotate(-90deg);white-space:nowrap;${cancelled?'text-decoration:line-through':''}">${heureLbl}</span>
+    </div>`;
+    grid.appendChild(div);
+  });
+}
+
+function renderLogin(){
+  return`<div class="login-wrap">
+  <div class="logo">🏡</div>
+  <h2>Les Domaines de DS</h2>
+  <p>Connexion administrateur</p>
+  <div class="field" style="margin-bottom:14px"><input type="password" id="pin-in" class="pin-in" placeholder="••••" maxlength="8" autocomplete="off"></div>
+  <button class="btn btn-primary" style="width:100%;padding:10px" onclick="doLogin()">Connexion</button>
+  <p style="margin-top:18px;font-size:12px;color:#888">Prestataire ? Utilisez le lien reçu par WhatsApp.</p>
+  </div>`;
+}
+function doLogin(){
+  const pin=document.getElementById('pin-in').value;
+  const a=D.admins.find(x=>x.pin===pin);
+  if(a){S.view='admin';S.admin=a;const now=new Date();S.calYear=now.getFullYear();S.calMonth=now.getMonth();S.bilanYear=now.getFullYear();S.bilanMonth=now.getMonth();S.listeYear=now.getFullYear();S.listeMonth=now.getMonth();S.visiteYear=now.getFullYear();S.visiteMonth=now.getMonth();render();}
+  else{const el=document.getElementById('pin-in');el.value='';el.style.borderColor='#E24B4A';el.placeholder='Code incorrect';}
+}
+
+function renderAdmin(){
+  const tabs=[['calendrier','📅 Calendrier'],['liste','📋 Événements'],['visites','🚶 Visites'],['prestataires','👥 Prestataires'],['bilan','💰 Bilan'],['domaines','🏡 Domaines'],['liens','🔗 Liens WhatsApp']];
+  let content='';
+  if(S.tab==='calendrier')content=renderCalendrier();
+  else if(S.tab==='liste')content=renderListe();
+  else if(S.tab==='visites')content=renderVisiteList();
+  else if(S.tab==='prestataires')content=renderPrestaList();
+  else if(S.tab==='bilan')content=renderBilan();
+  else if(S.tab==='domaines')content=renderDomaineList();
+  else if(S.tab==='liens')content=renderLiens();
+  const lastSeen=(D.adminLastSeen||{})[S.admin.id]||0;
+  const notifs=(D.activityLog||[]).filter(it=>it.authorId&&it.authorId!==S.admin.id&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
+  return`<div class="topbar"><div style="font-size:20px">🏡</div><h1>Les Domaines de DS</h1><span class="badge ba">Admin — ${S.admin.name}</span><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}${renderNotifBanner(notifs,'dismissAdminNotifs')}<div class="tabs">${tabs.map(([k,l])=>`<button class="tab ${S.tab===k?'active':''}" onclick="setTab('${k}')">${l}</button>`).join('')}</div>${content}${S.modal?renderModalWrap():''}`;
+}
+
+function renderCalendrier(){
+  const readOnly=S.view!=='admin';
+  const MONTHS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const DAYS=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+  const y=S.calYear,m=S.calMonth,todayStr=dstr(new Date());
+  const{tc,sd,dim,dip}=buildBands(y,m);
+  let gridHtml=DAYS.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  for(let ci=0;ci<tc;ci++){
+    let day,mo=m,yr=y,isO=false;
+    if(ci<sd){day=dip-sd+ci+1;mo=m-1;if(mo<0){mo=11;yr=y-1;}isO=true;}
+    else if(ci>=sd+dim){day=ci-sd-dim+1;mo=m+1;if(mo>11){mo=0;yr=y+1;}isO=true;}
+    else day=ci-sd+1;
+    const ds3=`${yr}-${String(mo+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const dc=dayCls(ds3),tag=dayTag(ds3);
+    let cls='cal-cell';if(isO)cls+=' other';if(ds3===todayStr)cls+=' today';if(dc)cls+=` ${dc}`;
+    const cellClick=readOnly?'':` onclick="openDayMenu('${ds3}')"`;
+    gridHtml+=`<div class="${cls}"${cellClick}><div class="day-num-wrap"><span class="day-num">${day}</span>${tag?`<span class="day-tag">${tag}</span>`:''}</div><div class="bands-area"></div></div>`;
+  }
+  const selR=S.selResa?D.reservations.find(x=>x.id===S.selResa):null;
+  return`<div class="panel-wrap">
+    <div class="cal-side">
+      <div class="cal-header">
+        <button class="cal-nav" onclick="calNav(-1)">‹</button>
+        <span class="month-label">${MONTHS[m]} ${y}</span>
+        <button class="cal-nav" onclick="calNav(1)">›</button>
+        ${readOnly?'':`<button class="btn btn-resa btn-sm" onclick="openM('newResa')">+ Réservation</button>
+        <button class="btn btn-visite btn-sm" onclick="openM('newVisite')">+ Visite</button>
+        <button class="btn btn-prestation btn-sm" onclick="openM('pickPrestationResa')">+ Prestation</button>`}
+      </div>
+      <div class="leg">
+        ${D.domaines.map(d=>`<span class="leg-item"><span class="leg-dot" style="background:${LEG_BG[d.color||0]}"></span>${d.name}</span>`).join('')}
+        <span class="leg-item"><span class="leg-dot" style="background:#D2C7F0;border:1px solid #AFA9EC"></span>Férié / début vac.</span>
+        <span class="leg-item"><span class="leg-dot" style="background:#E2DBF3;border:1px solid #CECBF6"></span>Pont / vac. scolaires</span>
+      </div>
+      <div class="cal-grid" id="cal-grid-main">${gridHtml}</div>
+      <div style="margin-top:8px;font-size:11px;color:#888">${readOnly?'Clic sur une bande colorée = détail (lecture seule)':'Clic sur une case vide = nouvelle réservation · Clic sur une bande colorée = détail'}</div>
+    </div>
+    ${selR?renderDetailPanel(selR):'<div style="width:280px;flex-shrink:0"></div>'}
+  </div>`;
+}
+
+function renderDetailPanel(r){
+  const readOnly=S.view!=='admin';
+  const dom=gDom(r.domaine);const c=dom.color||0;
+  const prs=(r.prestataires||[]).map(pid=>{const p=gPre(pid);return p.name?`<span class="pill ${PILL[c]}" style="margin-right:4px">${p.name}</span>`:''}).join('');
+  const pays=r.paiements||[];const tot=totPay(r);const solde=(r.montant||0)-tot;
+  const comms=(readOnly?(r.commentaires||[]).filter(cm=>cm.visible):(r.commentaires||[]));
+  const isJ=r.dateArrivee===r.dateDepart;
+  return`<div class="detail-panel">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
+      <div><div style="font-size:16px;font-weight:500">${r.client||'—'}</div>${r.tel?`<div style="font-size:12px;color:#888;margin-top:2px">${r.tel}</div>`:''}<div style="margin-top:4px"><span class="pill ${PILL[c]}">${dom.name}</span> <span class="status s-${r.status}" style="margin-left:4px">${r.status}</span></div></div>
+      <button class="btn btn-xs" onclick="closePanel()">✕</button>
+    </div>
+    <div style="background:#f5f4f1;border-radius:8px;padding:10px;margin-bottom:10px">
+      <div style="display:flex;gap:12px;justify-content:space-between">
+        <div><div style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.04em">Arrivée</div><div style="font-size:14px;font-weight:500;margin-top:2px">${dn(r.dateArrivee)} ${ds(r.dateArrivee)}</div><div style="font-size:13px;color:#993556;font-weight:500">${r.heureArrivee||'—'}</div></div>
+        <div style="font-size:20px;color:#ccc;align-self:center">${isJ?'◆':'→'}</div>
+        ${!isJ?`<div style="text-align:right"><div style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.04em">Départ</div><div style="font-size:14px;font-weight:500;margin-top:2px">${dn(r.dateDepart)} ${ds(r.dateDepart)}</div><div style="font-size:13px;color:#993556;font-weight:500">${r.heureDepart||'—'}</div></div>`:''}
+      </div>
+    </div>
+    ${(r.nbPersonnes||r.nbSoiree)?`<div style="font-size:12px;color:#555;margin-bottom:8px;display:flex;gap:16px">${r.nbPersonnes?'<span>🛏 <strong>'+r.nbPersonnes+'</strong> couchages</span>':''} ${r.nbSoiree?'<span>🥂 <strong>'+r.nbSoiree+'</strong> invités soirée</span>':''}</div>`:''}
+    ${Object.keys(r.prestaGarde||{}).length?Object.entries(r.prestaGarde).map(([pid,pg])=>{const who=gPre(pid);return`<div style="margin-bottom:8px"><div style="font-size:11px;color:#888;margin-bottom:3px">🛡 ${who.name||'—'}</div>${Object.entries(pg.nights||{}).sort((a,b)=>a[0].localeCompare(b[0])).map(([d,v])=>`<span class="pill" style="background:#FCEBEB;color:#791F1F;margin-right:4px;margin-bottom:4px;display:inline-block">Nuit du ${ds(d)} — ${v==='courte'?'22h-2h':'22h-4h'}</span>`).join('')}</div>`;}).join(''):''}
+    ${(!readOnly&&r.noteInterne)?`<div class="note-box" style="margin-bottom:8px">${r.noteInterne}</div>`:''}
+    <div class="dp-section"><label>Prestataires</label><div>${prs||'<span style="font-size:12px;color:#888">Aucun assigné</span>'}</div></div>
+    ${readOnly?'':`<div class="dp-section"><label>Paiements</label><div style="margin-bottom:6px">${payBadge(r)}</div>
+      ${pays.map(pa=>`<div style="display:flex;gap:4px;font-size:12px;padding:4px 0;border-bottom:1px solid #e5e3de"><span style="flex:1;color:#666">${fmt(pa.date)}</span><span style="font-weight:500">${money(pa.montant)}</span><span style="color:#666;margin-left:4px">${pa.type||pa.note||''}${pa.comment?' — '+pa.comment:''}</span></div>`).join('')}
+      ${pays.length>0?`<div style="font-size:11px;margin-top:5px;display:flex;justify-content:space-between"><span style="color:#666">Total ${money(r.montant||0)}</span><span style="font-weight:600;color:${solde>0?'#A32D2D':'#27500A'}">Solde ${money(solde)}</span></div>`:''}
+    </div>`}
+    ${comms.length>0?`<div class="dp-section"><label>Notes (${comms.length})</label>${comms.map(c=>`<div style="font-size:12px;padding:5px 0;border-bottom:1px solid #e5e3de"><div style="color:#666;font-size:10px;margin-bottom:2px">${c.auteurNom} · ${fmt(c.date)} ${c.visible?'· <span style="color:#27500A">visible</span>':''}</div><div>${c.texte}</div></div>`).join('')}</div>`:''}
+    ${readOnly?'':`<div style="margin-top:12px;display:flex;gap:8px"><button class="btn btn-primary btn-sm" style="flex:1" onclick="openM('editResa','${r.id}')">✏️ Modifier</button><button class="btn btn-sm btn-danger" onclick="delResa('${r.id}')">Suppr.</button></div>`}
+  </div>`;
+}
+
+function renderListe(){
+  const readOnly=S.view!=='admin';
+  const y=S.listeYear,m=S.listeMonth;
+  const inMonth=r=>{const d=r.dateArrivee||r.date;if(!d)return false;const[ry,rm]=d.split('-').map(Number);return ry===y&&rm===(m+1);};
+  const list=D.reservations.filter(inMonth).sort((a,b)=>(a.dateArrivee||a.date).localeCompare(b.dateArrivee||b.date));
+  const totalCA=list.reduce((a,r)=>a+(r.montant||0),0),totalPaid=list.reduce((a,r)=>a+totPay(r),0);
+  const rows=list.map(r=>{const dom=gDom(r.domaine);const isJ=r.dateArrivee===r.dateDepart;
+    return`<tr ${readOnly?'':`onclick="selectAndGoCal('${r.id}')"`}><td><div style="font-weight:500">${r.client||'—'}</div>${r.tel?`<div style="font-size:11px;color:#888">${r.tel}</div>`:''}${r.typeEvenement?`<div style="font-size:11px;color:#993556">${r.typeEvenement}</div>`:''}</td><td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td>
+    <td>${dn(r.dateArrivee||r.date)} ${ds(r.dateArrivee||r.date)}<br><span style="font-size:11px;color:#888">${r.heureArrivee||''}</span></td>
+    <td>${isJ?'<span style="font-size:11px;color:#888">Journée</span>':`${dn(r.dateDepart)} ${ds(r.dateDepart)}<br><span style="font-size:11px;color:#888">${r.heureDepart||''}</span>`}</td>
+    <td style="text-align:center">${r.nbPersonnes||'—'}</td><td style="text-align:center">${r.nbSoiree||'—'}</td><td><span class="status s-${r.status}">${r.status}</span></td>${readOnly?'':`<td>${payBadge(r)}</td>
+    <td><button class="btn btn-xs" onclick="event.stopPropagation();openM('editResa','${r.id}')">Détail</button></td>`}</tr>`;}).join('');
+  return`<div class="cal-header" style="margin-bottom:10px">
+    <button class="cal-nav" onclick="listeNav(-1)">‹</button>
+    <span class="month-label">${MONTHS_FR[m]} ${y}</span>
+    <button class="cal-nav" onclick="listeNav(1)">›</button>
+    ${readOnly?'':`<button class="btn btn-primary btn-sm" onclick="openM('newResa')">+ Ajouter</button>`}
+  </div>
+  ${readOnly?'':`<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;font-size:12px">
+    <span style="color:#666">CA total : <strong>${money(totalCA)}</strong></span>
+    <span style="color:#27500A">Encaissé : <strong>${money(totalPaid)}</strong></span>
+    <span style="color:${totalCA-totalPaid>0?'#A32D2D':'#27500A'}">Solde restant : <strong>${money(totalCA-totalPaid)}</strong></span>
+  </div>`}
+  <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
+    ${list.length===0?'<div class="empty">Aucune réservation ce mois-ci.</div>':''}
+    <div style="overflow-x:auto"><table class="list-tbl">
+      ${list.length>0?`<thead><tr><th>Client</th><th>Domaine</th><th>Arrivée</th><th>Départ</th><th>🛏 Couchages</th><th>🥂 Soirée</th><th>Statut</th>${readOnly?'':'<th>Paiement</th><th></th>'}</tr></thead>
+      <tbody>${rows}</tbody>`:''}
+    </table></div>
+  </div>`;
+}
+function listeNav(d){S.listeMonth+=d;if(S.listeMonth>11){S.listeMonth=0;S.listeYear++;}if(S.listeMonth<0){S.listeMonth=11;S.listeYear--;}render();}
+
+const ARR_DEFAULT_HOUR={0:'18:00',1:'10:00',2:'10:00',3:'10:00',4:'10:00',5:'16:00',6:'16:00'};
+const DEP_DEFAULT_HOUR={0:'18:00',1:'18:00',2:'18:00',3:'18:00',4:'18:00',5:'11:00',6:'11:00'};
+function defaultArrHeure(dateStr){
+  if(!dateStr)return;
+  const el=document.getElementById('m-arr-heure');
+  if(el&&!el.value){const dow=new Date(dateStr+'T12:00:00').getDay();el.value=ARR_DEFAULT_HOUR[dow]||'';}
+}
+function defaultDepHeure(dateStr){
+  if(!dateStr)return;
+  const el=document.getElementById('m-dep-heure');
+  if(el&&!el.value){const dow=new Date(dateStr+'T12:00:00').getDay();el.value=DEP_DEFAULT_HOUR[dow]||'';}
+}
+function heureOptions(sel){
+  const opts=[''].concat(Array.from({length:29},(_,i)=>`${String(Math.floor(i/2)+8).padStart(2,'0')}:${i%2===0?'00':'30'}`));
+  return opts.map(t=>t===''?`<option value="">— heure —</option>`:`<option value="${t}" ${sel===t?'selected':''}>${t}</option>`).join('');
+}
+
+function renderVisiteList(){
+  const readOnly=S.view!=='admin';
+  const y=S.visiteYear,m=S.visiteMonth;
+  const inMonth=v=>{if(!v.date)return false;const[vy,vm]=v.date.split('-').map(Number);return vy===y&&vm===(m+1);};
+  const list=D.visites.filter(inMonth).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  return`<div class="cal-header" style="margin-bottom:10px">
+    <button class="cal-nav" onclick="visiteNav(-1)">‹</button>
+    <span class="month-label">${MONTHS_FR[m]} ${y}</span>
+    <button class="cal-nav" onclick="visiteNav(1)">›</button>
+    ${readOnly?'':`<button class="btn btn-primary btn-sm" onclick="openM('newVisite')">+ Ajouter</button>`}
+  </div>
+  <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
+    ${list.length===0?'<div class="empty">Aucune visite ce mois-ci.</div>':''}
+    <div style="overflow-x:auto"><table class="list-tbl">
+      ${list.length>0?`<thead><tr><th>Client</th><th>Domaine</th><th>Date</th><th>Heure</th><th>Statut</th>${readOnly?'':'<th></th>'}</tr></thead>
+      <tbody>${list.map(v=>{const dom=gDom(v.domaine);const stCls=v.status==='annulée'?'annulé':'option';
+        return`<tr ${readOnly?'':`onclick="openM('editVisite','${v.id}')"`}><td><div style="font-weight:500">${v.client||'—'}</div>${v.tel?`<div style="font-size:11px;color:#888">${v.tel}</div>`:''}${v.typeEvenement?`<div style="font-size:11px;color:#993556">${v.typeEvenement}</div>`:''}${v.noteInterne?`<div style="font-size:11px;color:#555;font-style:italic;margin-top:2px">${v.noteInterne}</div>`:''}</td><td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td>
+        <td>${dn(v.date)} ${ds(v.date)}</td><td>${v.heure||'—'}</td><td><span class="status s-${stCls}">${v.status||'prévue'}</span></td>${readOnly?'':`<td><button class="btn btn-xs btn-danger" onclick="event.stopPropagation();delVisite('${v.id}')">✕</button></td>`}</tr>`;}).join('')}</tbody>`:''}
+    </table></div>
+  </div>`;
+}
+function visiteNav(d){S.visiteMonth+=d;if(S.visiteMonth>11){S.visiteMonth=0;S.visiteYear++;}if(S.visiteMonth<0){S.visiteMonth=11;S.visiteYear--;}render();}
+
+function saveVisite(id){
+  const domaine=document.getElementById('v-domaine').value,date=document.getElementById('v-date').value,heure=document.getElementById('v-heure').value,status=document.getElementById('v-status').value,client=capWords(document.getElementById('v-client').value.trim()),typeEvenement=document.getElementById('v-evt').value,tel=document.getElementById('v-tel').value.trim(),email=document.getElementById('v-email').value.trim(),noteInterne=document.getElementById('v-note').value;
+  const missing=[];
+  if(!domaine)missing.push('le domaine');
+  if(!date)missing.push('la date');
+  if(!heure)missing.push("l'heure");
+  if(!client)missing.push('le nom de la personne');
+  if(!tel)missing.push('le téléphone');
+  if(missing.length){alert('Champs obligatoires manquants : '+missing.join(', ')+'.');return;}
+  if(!isValidPhone(tel)){alert("Numéro de téléphone invalide. En France : 10 chiffres commençant par 0 (ex. 06 12 34 56 78). À l'étranger : commencez par + ou 00 suivi de l'indicatif.");return;}
+  const isNew=!id;
+  if(id){const v=D.visites.find(x=>x.id===id);Object.assign(v,{domaine,date,heure,status,client,typeEvenement,tel,email,noteInterne});}
+  else D.visites.push({id:gid(),domaine,date,heure,status,client,typeEvenement,tel,email,noteInterne});
+  logActivity(isNew?'créée':(status==='annulée'?'annulée':'modifiée'),domaine,`Visite ${isNew?'créée':(status==='annulée'?'annulée':'modifiée')} — ${client||'—'} (${fmt(date)})`);
+  saveD();S.modal=null;S.tab='visites';showMsg('Visite enregistrée ✓');
+}
+function delVisite(id){if(!confirm('Supprimer cette visite ?'))return;const v=D.visites.find(x=>x.id===id);if(v)logActivity('supprimée',v.domaine,`Visite supprimée — ${v.client||'—'} (${fmt(v.date)})`);D.visites=D.visites.filter(x=>x.id!==id);saveD();render();}
+
+function bilanNav(d){S.bilanMonth+=d;if(S.bilanMonth>11){S.bilanMonth=0;S.bilanYear++;}if(S.bilanMonth<0){S.bilanMonth=11;S.bilanYear--;}render();}
+
+function nightsByMonth(r){
+  const as=r.dateArrivee||r.date,ds2=r.dateDepart||r.dateArrivee||r.date;
+  const isJ=as===ds2;
+  const counts={};
+  if(isJ){
+    counts[as.slice(0,7)]=1;
+  } else {
+    let cur=new Date(as+'T12:00:00');const fin=new Date(ds2+'T12:00:00');
+    while(cur<fin){const key=dstr(cur).slice(0,7);counts[key]=(counts[key]||0)+1;cur=addDays(cur,1);}
+  }
+  return counts;
+}
+function montantForMonth(r,y,m){
+  const counts=nightsByMonth(r);
+  const total=Object.values(counts).reduce((a,b)=>a+b,0)||1;
+  const key=`${y}-${String(m+1).padStart(2,'0')}`;
+  const inMonth=counts[key]||0;
+  return(r.montant||0)*(inMonth/total);
+}
+function paidForMonth(r,y,m){
+  const counts=nightsByMonth(r);
+  const total=Object.values(counts).reduce((a,b)=>a+b,0)||1;
+  const key=`${y}-${String(m+1).padStart(2,'0')}`;
+  const inMonth=counts[key]||0;
+  return totPay(r)*(inMonth/total);
+}
+function renderBilan(){
+  const y=S.bilanYear,m=S.bilanMonth;
+  const inMonth=r=>{const d=r.dateArrivee||r.date;if(!d)return false;const[ry,rm]=d.split('-').map(Number);return ry===y&&rm===(m+1);};
+  const evs=D.reservations.filter(r=>r.status!=='annulé'&&inMonth(r)&&r.prestaNotes&&Object.keys(r.prestaNotes).length>0);
+  const byP={};let totalGeneral=0;
+  evs.forEach(r=>Object.entries(r.prestaNotes).forEach(([pid,pn])=>{
+    totalGeneral+=pn.montant||0;
+    if(!byP[pid])byP[pid]={total:0,count:0};
+    byP[pid].total+=pn.montant||0;
+    byP[pid].count++;
+  }));
+  const rows=Object.entries(byP).sort((a,b)=>b[1].total-a[1].total);
+  const revByDom={};let revTotal=0,paidTotal=0;
+  D.reservations.filter(r=>r.status!=='annulé').forEach(r=>{
+    const amt=montantForMonth(r,y,m),paid=paidForMonth(r,y,m);
+    if(amt>0||paid>0){
+      if(!revByDom[r.domaine])revByDom[r.domaine]={loc:0,paid:0};
+      revByDom[r.domaine].loc+=amt;revByDom[r.domaine].paid+=paid;
+      revTotal+=amt;paidTotal+=paid;
+    }
+  });
+  const revRows=D.domaines.map(d=>({d,...(revByDom[d.id]||{loc:0,paid:0})})).filter(x=>x.loc>0||x.paid>0);
+  return`<div class="cal-header" style="margin-bottom:14px">
+    <button class="cal-nav" onclick="bilanNav(-1)">‹</button>
+    <span class="month-label">${MONTHS_FR[m]} ${y}</span>
+    <button class="cal-nav" onclick="bilanNav(1)">›</button>
+  </div>
+  <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
+    <div class="sec-hdr"><h2>💶 Performance de location</h2></div>
+    <div style="font-size:11px;color:#888;margin-bottom:10px">Les séjours à cheval sur deux mois sont répartis au prorata du nombre de nuits dans chaque mois (location et paiements).</div>
+    ${revRows.length===0?'<div class="empty">Aucune location ce mois-ci.</div>':''}
+    ${revRows.length>0?`<table class="list-tbl"><thead><tr><th>Domaine</th><th>Montant location</th><th>Payé</th><th>Reste à payer</th></tr></thead>
+    <tbody>${revRows.map(({d,loc,paid})=>`<tr><td><span class="pill ${PILL[d.color||0]}">${d.name}</span></td><td style="font-weight:500">${money(loc)}</td><td style="color:#27500A">${money(paid)}</td><td style="color:${loc-paid>0?'#A32D2D':'#27500A'}">${money(loc-paid)}</td></tr>`).join('')}
+    <tr><td style="font-weight:600">Total</td><td style="font-weight:600">${money(revTotal)}</td><td style="font-weight:600;color:#27500A">${money(paidTotal)}</td><td style="font-weight:600;color:${revTotal-paidTotal>0?'#A32D2D':'#27500A'}">${money(revTotal-paidTotal)}</td></tr></tbody></table>`:''}
+  </div>
+  <div class="g3" style="margin-bottom:14px">
+    <div class="metric"><span class="lbl">Total prestations</span><span class="val">${money(totalGeneral)}</span></div>
+    <div class="metric"><span class="lbl">Ta commission (10%)</span><span class="val" style="color:#27500A">${money(totalGeneral*0.1)}</span></div>
+    <div class="metric"><span class="lbl">Événements concernés</span><span class="val">${evs.length}</span></div>
+  </div>
+  <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
+    <div class="sec-hdr"><h2>Par prestataire</h2></div>
+    ${rows.length===0?'<div class="empty">Aucune prestation enregistrée ce mois-ci.</div>':''}
+    ${rows.length>0?`<table class="list-tbl"><thead><tr><th>Prestataire</th><th>Nb prestations</th><th>Total</th><th>Commission (10%)</th></tr></thead>
+    <tbody>${rows.map(([pid,v])=>{const p=gPre(pid);return`<tr><td>${p.name||'—'}</td><td style="text-align:center">${v.count}</td><td style="font-weight:500">${money(v.total)}</td><td style="color:#27500A">${money(v.total*0.1)}</td></tr>`;}).join('')}</tbody></table>`:''}
+  </div>
+  <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
+    <div class="sec-hdr"><h2>Détail par événement</h2></div>
+    ${evs.length===0?'<div class="empty">Aucun détail ce mois-ci.</div>':''}
+    ${evs.map(r=>{const dom=gDom(r.domaine);return`<div style="padding:8px 0;border-bottom:1px solid #e5e3de">
+      <div style="font-weight:500;font-size:13px">${r.client||dom.name} — <span class="pill ${PILL[dom.color||0]}">${dom.name}</span> · ${ds(r.dateArrivee)}</div>
+      ${Object.entries(r.prestaNotes).map(([pid,pn])=>{const who=gPre(pid);return`<div style="font-size:12px;color:#666;margin-top:3px">${who.name||'—'} : <strong>${money(pn.montant)}</strong>${pn.notes?' — '+pn.notes:''}</div>`;}).join('')}
+    </div>`;}).join('')}
+  </div>`;
+}
+
+function renderPrestaList(){
+  return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
+    <div class="sec-hdr"><h2>Prestataires</h2><button class="btn btn-primary btn-sm" onclick="openM('newPresta')">+ Ajouter</button></div>
+    ${D.prestataires.length===0?'<div class="empty">Aucun prestataire — ajoutez-en un !</div>':''}
+    ${D.prestataires.map((p,i)=>{const doms=(p.domaines||[]).map(did=>{const d=gDom(did);return`<span class="pill ${PILL[d.color||0]}" style="margin-right:4px">${d.name}</span>`;}).join('');
+      const modeLbl={domaine:'🔓 Accès complet',horaires:'🕐 Horaires seuls',occupation:'📅 Occupation seule',manuel:'☑️ Sur assignation'}[p.accessMode||'manuel'];
+      const ci=p.name==='Mathilde'?4:i;
+      return`<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #e5e3de">
+        <div style="width:36px;height:36px;border-radius:50%;background:${AVB[ci%5]};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:${AVT[ci%5]};flex-shrink:0">${initials(p.name)}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:500;font-size:14px">${p.name} <span style="color:#888;font-weight:400;font-size:12px">${p.role}</span></div>
+          <div style="font-size:12px;color:#888;margin-top:2px">${p.tel||'Pas de WhatsApp'} · ${doms||'Aucun domaine'} · ${modeLbl}</div>
+        </div>
+        <button class="btn btn-xs" onclick="openM('editPresta','${p.id}')">Modifier</button>
+        <button class="btn btn-xs btn-danger" onclick="delPresta('${p.id}')">✕</button>
+      </div>`;}).join('')}
+  </div>`;
+}
+
+function renderDomaineList(){
+  return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
+    <div class="sec-hdr"><h2>Domaines</h2><button class="btn btn-primary btn-sm" onclick="openM('newDomaine')">+ Ajouter</button></div>
+    ${D.domaines.map(d=>`<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #e5e3de">
+      <span class="pill ${PILL[d.color||0]}" style="font-size:13px;padding:5px 14px">${d.name}</span>
+      <span style="flex:1;font-size:13px;color:#888">${D.reservations.filter(r=>r.domaine===d.id).length} réservation(s)</span>
+      <button class="btn btn-xs" onclick="openM('editDomaine','${d.id}')">Modifier</button>
+      <button class="btn btn-xs btn-danger" onclick="delDomaine('${d.id}')">✕</button>
+    </div>`).join('')}
+  </div>`;
+}
+
+function renderLiens(){
+  const base=window.location.origin+window.location.pathname;
+  return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
+    <div class="alert alert-info" style="margin-bottom:16px">📲 Envoyez le lien WhatsApp à chaque prestataire. Il voit uniquement ses interventions — aucun montant, aucune info client confidentielle.</div>
+    ${D.prestataires.length===0?'<div class="empty">Ajoutez d\'abord des prestataires dans l\'onglet Prestataires.</div>':''}
+    ${D.prestataires.map(p=>{
+      const url=`${base}?t=${p.token}`;
+      const prenom=p.name.split(' ')[0];
+      const hasTel=!!(p.tel&&p.tel.trim());
+      const wa=hasTel?`https://wa.me/${(p.tel||'').replace(/\D/g,'')}?text=${encodeURIComponent('Bonjour '+prenom+' 👋\n\nVoici votre lien pour consulter vos interventions sur les domaines :\n'+url+'\n\nIl suffit de l\'ouvrir — pas de mot de passe nécessaire.')}`:null;
+      return`<div style="margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid #e5e3de">
+        <div style="font-weight:500;font-size:14px;margin-bottom:8px">${p.name} <span style="color:#888;font-weight:400;font-size:12px">${p.role}</span></div>
+        <div class="link-box" style="margin-bottom:8px">
+          <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px">${url}</span>
+          <button class="btn btn-xs" onclick="copyL('${url}',this)">Copier</button>
+        </div>
+        ${wa?`<a class="wa-btn" href="${wa}" target="_blank">💬 Envoyer sur WhatsApp à ${prenom}</a>`:`<div style="font-size:12px;color:#888">Pas de WhatsApp pour ${prenom} — copiez le lien ci-dessus et transmettez-le autrement (email, SMS…)</div>`}
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+function copyL(url,btn){navigator.clipboard.writeText(url).then(()=>{btn.textContent='✓ Copié';setTimeout(()=>btn.textContent='Copier',2000);});}
+
+function renderModalWrap(){return`<div class="overlay" onclick="if(event.target===this)closeM()"><div class="modal">${renderModalContent()}</div></div>`;}
+function renderModalContent(){
+  const{type,id,prefDate}=S.modal;
+  if(type==='newResa'||type==='editResa'){
+    const r=type==='editResa'?D.reservations.find(x=>x.id===id)||{}:{};
+    const iA=r.dateArrivee||prefDate||'',iD=r.dateDepart||prefDate||'';
+    const initArrHeure=r.heureArrivee||(iA?(ARR_DEFAULT_HOUR[new Date(iA+'T12:00:00').getDay()]||''):'');
+    const initDepHeure=r.heureDepart||(iD?(DEP_DEFAULT_HOUR[new Date(iD+'T12:00:00').getDay()]||''):'');
+    const sO=['confirmé','option','annulé'].map(s=>`<option ${r.status===s?'selected':''}>${s}</option>`).join('');
+    const defDomaine=r.domaine||'';
+    const initNights=nightsList(iA,iD);
+    const pC=D.prestataires.map(p=>{
+      const checked=(r.prestataires||[]).includes(p.id)||(type==='newResa'&&p.autoAssign&&(p.domaines||[]).includes(defDomaine));
+      const dispRole=(p.role||'').replace(/^Gardien\s*&\s*/i,'')||p.role;
+      let encart='';
+      if(p.inputMode==='notes'){
+        const pn=(r.prestaNotes||{})[p.id]||{};
+        encart=`<div class="presta-encart" id="penc-${p.id}" style="display:${checked?'block':'none'};margin:4px 0 10px 24px;padding:10px;background:#f5f4f1;border-radius:8px">
+          <textarea id="pnotes-${p.id}" rows="${p.noteRows||3}" placeholder="Détails, instructions, ce qui est prévu…" style="resize:vertical;margin-bottom:6px">${pn.notes||''}</textarea>
+          <div class="field"><label>Montant (€)</label><input type="number" id="pamt-${p.id}" value="${pn.montant||''}" placeholder="0"></div>
+        </div>`;
+      } else if(p.inputMode==='garde'){
+        const pg=(r.prestaGarde||{})[p.id]||{};
+        const gDomaine=pg.domaine||(p.domaines&&p.domaines[0])||defDomaine;
+        const dOptsG=D.domaines.map(d=>`<option value="${d.id}" ${gDomaine===d.id?'selected':''}>${d.name}</option>`).join('');
+        encart=`<div class="presta-encart" id="penc-${p.id}" style="display:${checked?'block':'none'};margin:4px 0 10px 24px;padding:10px;background:#f5f4f1;border-radius:8px">
+          <div class="field" style="margin-bottom:8px"><label>Lieu</label><select id="pgdom-${p.id}">${dOptsG}</select></div>
+          <div id="pgnights-${p.id}">${gardNightsHtmlFor(p.id,initNights,pg.nights||{})}</div>
+        </div>`;
+      }
+      return`<div><label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="checkbox" value="${p.id}" ${checked?'checked':''} style="width:auto" onchange="const _e=document.getElementById('penc-${p.id}');if(_e)_e.style.display=this.checked?'block':'none';"> ${p.name} <span style="color:#888">(${dispRole})</span></label>${encart}</div>`;
+    }).join('');
+    const pays=r.paiements||[];const tot=totPay(r);
+    const pR=pays.map(pa=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:13px;padding:5px;background:#f5f4f1;border-radius:6px">
+      <span style="color:#666;flex:1">${fmt(pa.date)}</span><span style="font-weight:500">${money(pa.montant)}</span><span style="color:#888">${pa.type||pa.note||''}${pa.comment?' — '+pa.comment:''}</span>
+      <button class="btn btn-xs btn-danger" onclick="delPay('${r.id||''}','${pa.id}')">✕</button></div>`).join('');
+    const comms=r.commentaires||[];
+    return`<h3>${type==='newResa'?'➕ Nouvelle réservation':'✏️ Modifier — '+(r.client||fmt(r.dateArrivee||''))}</h3>
+    <div class="field" style="margin-bottom:12px"><label>Domaine *</label>
+      <input type="hidden" id="m-domaine" value="${defDomaine}">
+      <div class="dom-picker" id="dom-picker-m">${D.domaines.map(d=>`<div class="dom-box ${PILL[d.color||0]} ${defDomaine?(defDomaine===d.id?'sel':'fade'):''}" data-id="${d.id}" onclick="pickDomaine('m-domaine','dom-picker-m',this)">${d.name}</div>`).join('')}</div>
+    </div>
+    <div class="field" style="margin-bottom:12px"><label>Statut</label><select id="m-status">${sO}</select></div>
+    <div class="g2" style="margin-bottom:12px">
+      <div class="field"><label>🛏 Nb de couchages nécessaires *</label><input type="number" id="m-nbp" value="${r.nbPersonnes||''}" placeholder="0" min="0" onchange="syncNb('m-nbp','m-nbs')"></div>
+      <div class="field"><label>🥂 Nb d'invités soirée</label><input type="number" id="m-nbs" value="${r.nbSoiree||''}" placeholder="0" min="0" onchange="syncNb('m-nbs','m-nbp')"></div>
+    </div>
+    <div class="g2" style="margin-bottom:12px">
+      <div class="field"><label>Nom du client / groupe *</label><input type="text" id="m-client" value="${r.client||''}" placeholder="Famille Dupont…"></div>
+      <div class="field"><label>Téléphone</label><input type="tel" id="m-tel" value="${r.tel||''}" placeholder="06 XX XX XX XX"></div>
+    </div>
+    <div class="g2" style="margin-bottom:12px">
+      <div class="field"><label>Type d’événement *</label>
+        <select id="m-evt">
+          <option value="">&#8212; Choisir —</option>
+          ${EVENT_TYPES.map(ev=>`<option value="${ev}" ${r.typeEvenement===ev?'selected':''}>${ev}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="g2" style="margin-bottom:12px">
+      <div class="field"><label>Date d'arrivée *</label><input type="date" id="m-arr-date" value="${iA}" onchange="refreshAllGardNights();defaultArrHeure(this.value)"></div>
+      <div class="field"><label>Heure d'arrivée *</label><select id="m-arr-heure">${heureOptions(initArrHeure)}</select></div>
+    </div>
+    <div class="g2" style="margin-bottom:12px">
+      <div class="field"><label>Date de départ *</label><input type="date" id="m-dep-date" value="${iD}" onchange="refreshAllGardNights();defaultDepHeure(this.value)"></div>
+      <div class="field"><label>Heure de départ *</label><select id="m-dep-heure">${heureOptions(initDepHeure)}</select></div>
+    </div>
+    <div class="field" style="margin-bottom:12px"><label>Montant de la réservation (€) *</label><input type="number" id="m-montant" value="${r.montant||''}" placeholder="0"></div>
+    <div class="field" style="margin-bottom:12px"><label>Note interne (admin uniquement — invisible prestataires)</label><textarea id="m-noteI" rows="2" style="resize:none">${r.noteInterne||''}</textarea></div>
+    <div class="field" style="margin-bottom:12px"><label>Prestataires — cochez puis détaillez (notes + montant, ou gardiennage)</label><div style="padding:4px 0">${pC||'<span style="font-size:12px;color:#888">Aucun prestataire créé</span>'}</div></div>
+    ${type==='editResa'?`
+    <hr style="border:none;border-top:1px solid #e5e3de;margin:14px 0">
+    <div style="font-size:13px;font-weight:500;margin-bottom:8px">💳 Paiements — Encaissé : <span style="color:#27500A">${money(tot)}</span> · Solde : <span style="color:${(r.montant||0)-tot>0?'#A32D2D':'#27500A'}">${money((r.montant||0)-tot)}</span></div>
+    ${pR}
+    <div style="display:flex;gap:8px;margin-bottom:12px;align-items:flex-end;flex-wrap:wrap">
+      <div class="field" style="flex:1;min-width:90px"><label>Date</label><input type="date" id="pay-date" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="field" style="flex:1;min-width:75px"><label>Montant (€)</label><input type="number" id="pay-amt" placeholder="0"></div>
+      <div class="field" style="flex:1;min-width:100px"><label>Type</label><select id="pay-type"><option value="Acompte">Acompte</option><option value="Intermédiaire">Intermédiaire</option><option value="Solde">Solde</option><option value="Autre">Autre</option></select></div>
+      <div class="field" style="flex:2;min-width:110px"><label>Commentaire</label><input type="text" id="pay-comment" placeholder="Optionnel…"></div>
+      <button class="btn btn-sm btn-primary" style="white-space:nowrap;align-self:flex-end;margin-bottom:1px" onclick="addPay('${r.id}')">+ Ajouter</button>
+    </div>
+    <hr style="border:none;border-top:1px solid #e5e3de;margin:14px 0">
+    <div style="font-size:13px;font-weight:500;margin-bottom:8px">💬 Commentaires (${comms.length})</div>
+    ${comms.map(c=>`<div class="comment-item"><div class="meta"><span>${c.auteurNom} · ${fmt(c.date)}</span><span style="color:${c.visible?'#27500A':'#888'}">${c.visible?'✓ Visible prestataire':'Admin seul'}</span></div><div>${c.texte}</div></div>`).join('')}
+    <textarea id="com-txt" rows="2" placeholder="Nouveau commentaire ou instruction…" style="resize:none;margin-bottom:8px"></textarea>
+    <div style="display:flex;align-items:center;gap:10px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="com-vis" style="width:auto"> Visible par le(s) prestataire(s)</label>
+      <button class="btn btn-sm btn-primary" style="margin-left:auto" onclick="addComment('${r.id}')">+ Commentaire</button>
+    </div>`:`<p style="font-size:12px;color:#888;margin-top:4px">💡 Après enregistrement, vous pourrez saisir les paiements et commentaires.</p>`}
+    <div class="modal-actions"><button class="btn" onclick="closeM()">Fermer</button>${type==='editResa'?`<button class="btn btn-danger" onclick="cancelResa('${id}')">🚫 Annuler la réservation</button>`:''}<button class="btn btn-primary" onclick="saveResa('${id||''}')">Enregistrer</button></div>`;
+  }
+  if(type==='dayMenu'){
+    const date=prefDate;
+    const evs=D.reservations.filter(r=>r.status!=='annulé'&&date>=(r.dateArrivee||r.date)&&date<=(r.dateDepart||r.dateArrivee||r.date));
+    const vis=D.visites.filter(v=>v.date===date&&v.status!=='annulée');
+    return`<h3>📅 ${dn(date)} ${fmt(date)}</h3>
+    ${(evs.length||vis.length)?`<div style="margin-bottom:14px">
+      <div style="font-size:12px;color:#888;margin-bottom:6px">Sur cette date :</div>
+      ${evs.map(r=>{const dom=gDom(r.domaine);return`<div style="padding:8px 10px;border:1px solid #e5e3de;border-radius:8px;margin-bottom:6px;cursor:pointer" onclick="openM('editResa','${r.id}')"><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span><strong>${r.client||'—'}</strong> <span style="color:#888;font-size:12px">${r.typeEvenement||''}</span></div>`;}).join('')}
+      ${vis.map(v=>{const dom=gDom(v.domaine);return`<div style="padding:8px 10px;border:1px dashed #d5d3ce;border-radius:8px;margin-bottom:6px;cursor:pointer" onclick="openM('editVisite','${v.id}')">👀 <span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span><strong>${v.client||'—'}</strong> <span style="color:#888;font-size:12px">${v.heure||''}</span></div>`;}).join('')}
+    </div>`:'<div class="empty" style="margin-bottom:14px">Rien de prévu ce jour-là.</div>'}
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-resa btn-sm" onclick="openM('newResa',null,{prefDate:'${date}'})">+ Réservation</button>
+      <button class="btn btn-visite btn-sm" onclick="openM('newVisite',null,{prefDate:'${date}'})">+ Visite</button>
+      <button class="btn btn-prestation btn-sm" onclick="openM('pickPrestationResa')">+ Prestation</button>
+    </div>
+    <div class="modal-actions"><button class="btn" onclick="closeM()">Fermer</button></div>`;
+  }
+  if(type==='pickPrestationResa'){
+    const sorted=[...D.reservations].filter(r=>r.status!=='annulé').sort((a,b)=>(a.dateArrivee||a.date).localeCompare(b.dateArrivee||b.date));
+    return`<h3>➕ Attribuer une prestation — choisir l'événement</h3>
+    <div style="font-size:12px;color:#888;margin-bottom:10px">Une prestation est toujours liée à un événement. Choisissez celui concerné ci-dessous (faites défiler), vous pourrez ensuite cocher le prestataire et détailler.</div>
+    <div style="max-height:380px;overflow-y:auto;border:1px solid #e5e3de;border-radius:8px">
+    ${sorted.length===0?'<div class="empty">Aucun événement enregistré.</div>':''}
+    ${sorted.map(r=>{const dom=gDom(r.domaine);return`<div style="padding:9px 12px;border-bottom:1px solid #e5e3de;cursor:pointer" onclick="openM('editResa','${r.id}')">
+      <span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span><strong>${r.client||'—'}</strong>
+      <span style="color:#888;font-size:12px;margin-left:6px">${ds(r.dateArrivee)} → ${ds(r.dateDepart)}</span>
+    </div>`;}).join('')}
+    </div>
+    <div class="modal-actions"><button class="btn" onclick="closeM()">Annuler</button></div>`;
+  }
+  if(type==='newVisite'||type==='editVisite'){
+    const v=type==='editVisite'?D.visites.find(x=>x.id===id)||{}:{};
+    const vDefDomaine=v.domaine||'';
+    const sO=['prévue','annulée'].map(s=>`<option ${(v.status||'prévue')===s?'selected':''}>${s}</option>`).join('');
+    return`<h3>${type==='newVisite'?'➕ Nouvelle visite':'✏️ Modifier la visite — '+(v.client||'')}</h3>
+    <div class="field" style="margin-bottom:12px"><label>Domaine *</label>
+      <input type="hidden" id="v-domaine" value="${vDefDomaine}">
+      <div class="dom-picker" id="dom-picker-v">${D.domaines.map(d=>`<div class="dom-box ${PILL[d.color||0]} ${vDefDomaine?(vDefDomaine===d.id?'sel':'fade'):''}" data-id="${d.id}" onclick="pickDomaine('v-domaine','dom-picker-v',this)">${d.name}</div>`).join('')}</div>
+    </div>
+    <div class="field" style="margin-bottom:12px"><label>Statut</label><select id="v-status">${sO}</select></div>
+    <div class="g2" style="margin-bottom:12px">
+      <div class="field"><label>Date de la visite *</label><input type="date" id="v-date" value="${v.date||prefDate||''}"></div>
+      <div class="field"><label>Heure *</label><select id="v-heure">${heureOptions(v.heure)}</select></div>
+    </div>
+    <div class="g2" style="margin-bottom:12px">
+      <div class="field"><label>Nom du client / couple *</label><input type="text" id="v-client" value="${v.client||''}" placeholder="Couple Martin…"></div>
+      <div class="field"><label>Type d'événement envisagé</label>
+        <select id="v-evt">
+          <option value="">&#8212; Choisir —</option>
+          ${EVENT_TYPES.map(ev=>`<option value="${ev}" ${v.typeEvenement===ev?'selected':''}>${ev}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="g2" style="margin-bottom:12px">
+      <div class="field"><label>Téléphone *</label><input type="tel" id="v-tel" value="${v.tel||''}" placeholder="06 XX XX XX XX"></div>
+      <div class="field"><label>Email</label><input type="email" id="v-email" value="${v.email||''}" placeholder="nom@email.com"></div>
+    </div>
+    <div class="field" style="margin-bottom:14px"><label>Note</label><textarea id="v-note" rows="2" style="resize:none">${v.noteInterne||''}</textarea></div>
+    <div class="modal-actions"><button class="btn" onclick="closeM()">Annuler</button><button class="btn btn-primary" onclick="saveVisite('${id||''}')">Enregistrer</button></div>`;
+  }
+  if(type==='newPresta'||type==='editPresta'){
+    const p=type==='editPresta'?D.prestataires.find(x=>x.id===id)||{}:{};
+    const dC=D.domaines.map(d=>`<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="checkbox" value="${d.id}" ${(p.domaines||[]).includes(d.id)?'checked':''} style="width:auto"><span class="pill ${PILL[d.color||0]}">${d.name}</span></label>`).join('');
+    return`<h3>${type==='newPresta'?'➕ Nouveau prestataire':'✏️ Modifier — '+p.name}</h3>
+    <div class="g2" style="margin-bottom:12px"><div class="field"><label>Nom complet</label><input type="text" id="m-pname" value="${p.name||''}"></div><div class="field"><label>Rôle / Métier</label><input type="text" id="m-prole" value="${p.role||''}" placeholder="Ménage, Traiteur, Jardinage…"></div></div>
+    <div class="field" style="margin-bottom:12px"><label>Téléphone WhatsApp (laisser vide si pas de WhatsApp)</label><input type="tel" id="m-ptel" value="${p.tel||''}" placeholder="06 XX XX XX XX"></div>
+    <div class="field" style="margin-bottom:12px"><label>Mode d'accès</label>
+      <select id="m-pmode">
+        <option value="manuel" ${(p.accessMode||'manuel')==='manuel'?'selected':''}>Sur assignation — voit seulement les événements où il est coché</option>
+        <option value="domaine" ${p.accessMode==='domaine'?'selected':''}>Accès complet automatique — voit tout sur son/ses domaine(s) (gardien, ménage)</option>
+        <option value="horaires" ${p.accessMode==='horaires'?'selected':''}>Horaires uniquement — voit juste les heures d'arrivée/départ, sans détail</option>
+        <option value="occupation" ${p.accessMode==='occupation'?'selected':''}>Occupation uniquement — voit juste les jours occupés, sans détail</option>
+      </select>
+    </div>
+    <div class="field" style="margin-bottom:14px"><label>Domaines (pour l'accès complet ou l'occupation)</label><div style="padding:4px 0">${dC}</div></div>
+    <div class="modal-actions"><button class="btn" onclick="closeM()">Annuler</button><button class="btn btn-primary" onclick="savePresta('${id||''}')">Enregistrer</button></div>`;
+  }
+  if(type==='newDomaine'||type==='editDomaine'){
+    const d=type==='editDomaine'?D.domaines.find(x=>x.id===id)||{}:{};
+    const cO=[0,1,2,3,4].map(c=>`<option value="${c}" ${(d.color||0)===c?'selected':''}>${['🌸 Rose (La Désirée)','✨ Or (Les Déesses)','🌿 Vert (Les Lions)','💜 Violet','💙 Bleu'][c]}</option>`).join('');
+    return`<h3>${type==='newDomaine'?'➕ Nouveau domaine':'✏️ Modifier — '+d.name}</h3>
+    <div class="g2" style="margin-bottom:12px"><div class="field"><label>Nom du domaine</label><input type="text" id="m-dname" value="${d.name||''}"></div><div class="field"><label>Couleur</label><select id="m-dcolor">${cO}</select></div></div>
+    <div class="modal-actions"><button class="btn" onclick="closeM()">Annuler</button><button class="btn btn-primary" onclick="saveDomaine('${id||''}')">Enregistrer</button></div>`;
+  }
+  return'';
+}
+
+function otherPrestaNames(r,excludeId){
+  const names=new Set();
+  (r.prestataires||[]).forEach(pid=>{if(pid!==excludeId){const pr=gPre(pid);if(pr.name)names.add(`${pr.name}${pr.role?' ('+pr.role+')':''}`);}});
+  return Array.from(names);
+}
+function visiteAsItem(v){
+  return{id:v.id,_isVisite:true,domaine:v.domaine,dateArrivee:v.date,dateDepart:v.date,heureArrivee:v.heure,heureDepart:v.heure,client:v.client||'Visite',typeEvenement:v.typeEvenement||'',status:v.status==='annulée'?'annulé':'confirmé',nbPersonnes:0,nbSoiree:0,prestataires:[],prestaGarde:{},commentaires:[]};
+}
+function renderPrestaFull(p){
+  const tab=S.prestaTab||'calendrier';
+  const tabs=[['calendrier','📅 Calendrier'],['liste','📋 Événements'],['visites','🚶 Visites']];
+  let content='';
+  if(tab==='calendrier')content=renderCalendrier();
+  else if(tab==='liste')content=renderListe();
+  else if(tab==='visites')content=renderVisiteList();
+  const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
+  const notifs=(D.activityLog||[]).filter(it=>(p.domaines||[]).includes(it.domaine)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
+  return`<div class="topbar"><div style="font-size:20px">🏡</div><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
+  ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
+  ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
+  <div class="tabs">${tabs.map(([k,l])=>`<button class="tab ${tab===k?'active':''}" onclick="setPrestaTab('${k}')">${l}</button>`).join('')}</div>
+  ${content}${S.modal?renderModalWrap():''}`;
+}
+function setPrestaTab(t){S.prestaTab=t;S.selResa=null;S.modal=null;render();}
+function renderPresta(){
+  const p=S.presta,today=new Date().toISOString().slice(0,10),mode=p.accessMode||'manuel';
+  if(mode==='occupation')return renderPrestaOccupation(p);
+  if(mode==='horaires')return renderPrestaHoraires(p);
+  if(mode==='domaine')return renderPrestaFull(p);
+  let myR=D.reservations.filter(r=>r.status!=='annulé'&&(r.prestataires||[]).includes(p.id));
+  myR=myR.sort((a,b)=>(a.dateArrivee||a.date).localeCompare(b.dateArrivee||b.date));
+  const future=myR.filter(r=>(r.dateDepart||r.dateArrivee||r.date)>=today);
+  const past=myR.filter(r=>(r.dateDepart||r.dateArrivee||r.date)<today);
+  return`<div class="topbar"><div style="font-size:20px">🏡</div><h1>Mes interventions</h1><span class="badge bp">${p.name}</span></div>
+  ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
+  ${future.length===0?`<div class="ev-card"><div class="empty">Aucune intervention à venir pour l'instant.</div></div>`:''}
+  ${future.map(r=>{const dom=gDom(r.domaine);
+    if(r._isVisite){
+      return`<div class="ev-card" style="border-style:dashed">
+      <div style="font-size:17px;font-weight:500;margin-bottom:2px">👀 Visite — ${r.client||'—'}</div>
+      ${r.typeEvenement?`<div style="font-size:13px;color:#993556;font-weight:600;margin-bottom:6px">${r.typeEvenement}</div>`:''}
+      <div style="margin-bottom:10px"><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></div>
+      <div style="background:#f5f4f1;border-radius:10px;padding:12px">
+        <div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.04em">Visite prévue</div>
+        <div style="font-size:16px;font-weight:500;margin-top:3px">${dn(r.dateArrivee)} ${ds(r.dateArrivee)}</div>
+        <div style="font-size:15px;color:#993556;font-weight:600">${r.heureArrivee||'—'}</div>
+      </div>
+    </div>`;
+    }
+    const comms=(r.commentaires||[]).filter(c=>c.visible);const isJ=r.dateArrivee===r.dateDepart;const others=otherPrestaNames(r,p.id);
+    return`<div class="ev-card">
+      <div style="font-size:17px;font-weight:500;margin-bottom:2px">${r.client||dom.name}</div>
+      ${r.typeEvenement?`<div style="font-size:13px;color:#993556;font-weight:600;margin-bottom:6px">${r.typeEvenement}</div>`:''}
+      <div style="margin-bottom:10px"><span class="pill ${PILL[dom.color||0]}">${dom.name}</span> <span class="status s-${r.status}" style="margin-left:5px">${r.status}</span>${r.nbPersonnes?` <span style="font-size:13px;color:#666;margin-left:8px">🛏 ${r.nbPersonnes} couchages</span>`:''} ${(r.nbSoiree||0)>0?` <span style="font-size:13px;color:#666;margin-left:4px">🥂 ${r.nbSoiree} invités soirée</span>`:''}</div>
+      ${(r.prestaGarde&&r.prestaGarde[p.id]&&Object.keys(r.prestaGarde[p.id].nights||{}).length)?`<div style="margin-bottom:10px">${Object.entries(r.prestaGarde[p.id].nights).sort((a,b)=>a[0].localeCompare(b[0])).map(([d,v])=>`<span class="pill" style="background:#FCEBEB;color:#791F1F;margin-right:4px;margin-bottom:4px;display:inline-block">🛡 Nuit du ${ds(d)} — ${v==='courte'?'22h à 2h':'22h à 4h'}</span>`).join('')}</div>`:''}
+      <div style="background:#f5f4f1;border-radius:10px;padding:12px;margin-bottom:10px">
+        <div style="display:flex;gap:20px;flex-wrap:wrap">
+          <div><div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.04em">Arrivée client</div><div style="font-size:16px;font-weight:500;margin-top:3px">${dn(r.dateArrivee)} ${ds(r.dateArrivee)}</div><div style="font-size:15px;color:#993556;font-weight:600">${r.heureArrivee||'—'}</div></div>
+          ${!isJ?`<div><div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.04em">Départ client</div><div style="font-size:16px;font-weight:500;margin-top:3px">${dn(r.dateDepart)} ${ds(r.dateDepart)}</div><div style="font-size:15px;color:#993556;font-weight:600">${r.heureDepart||'—'}</div></div>`:''}
+        </div>
+      </div>
+      ${others.length?`<div style="font-size:12px;color:#666;margin-bottom:10px">👥 Autres prestataires sur cet événement : ${others.join(', ')}</div>`:''}
+      ${(r.prestaNotes&&r.prestaNotes[p.id]&&r.prestaNotes[p.id].montant)?`<div style="font-size:13px;color:#27500A;font-weight:600;margin-bottom:10px">💶 Votre montant pour cet événement : ${money(r.prestaNotes[p.id].montant)}</div>`:''}
+      ${comms.length>0?comms.map(c=>`<div class="note-box">${c.texte}</div>`).join(''):'<div style="font-size:12px;color:#aaa;font-style:italic">Aucune instruction spécifique pour l\'instant.</div>'}
+      <div style="margin-top:12px;border-top:1px solid #e5e3de;padding-top:10px">
+        <div style="font-size:12px;color:#666;margin-bottom:7px">Envoyer une note ou une question :</div>
+        <div style="display:flex;gap:8px"><input type="text" id="pnote-${r.id}" placeholder="Votre message…" style="flex:1"><button class="btn btn-sm btn-primary" onclick="addPrestaComment('${r.id}')">Envoyer</button></div>
+      </div>
+    </div>`;}).join('')}
+  ${past.length>0?`<div style="margin-top:20px;border-top:1px solid #e5e3de;padding-top:14px">
+    <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Interventions passées</div>
+    ${past.slice(-5).reverse().map(r=>{const dom=gDom(r.domaine);return`<div class="ev-card" style="opacity:.5"><div style="font-weight:500">${r._isVisite?'👀 ':''}${r.client||dom.name} — <span class="pill ${PILL[dom.color||0]}">${dom.name}</span></div><div style="font-size:12px;color:#888;margin-top:4px">Arr. ${ds(r.dateArrivee)} ${r.heureArrivee||''} · Dép. ${ds(r.dateDepart)} ${r.heureDepart||''}</div></div>`;}).join('')}
+  </div>`:''}`;
+}
+
+function renderPrestaHoraires(p){
+  const today=new Date().toISOString().slice(0,10);
+  const doms=p.domaines||[];
+  const occ=D.reservations.filter(r=>r.status!=='annulé'&&doms.includes(r.domaine)).sort((a,b)=>(a.dateArrivee||a.date).localeCompare(b.dateArrivee||b.date));
+  const future=occ.filter(r=>(r.dateDepart||r.dateArrivee||r.date)>=today);
+  const past=occ.filter(r=>(r.dateDepart||r.dateArrivee||r.date)<today);
+  const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
+  const notifs=(D.activityLog||[]).filter(it=>doms.includes(it.domaine)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
+  return`<div class="topbar"><div style="font-size:20px">🏡</div><h1>Arrivées / départs</h1><span class="badge bp">${p.name}</span></div>
+  ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
+  ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
+  ${future.length===0?`<div class="ev-card"><div class="empty">Aucune arrivée/départ à venir pour l'instant.</div></div>`:''}
+  ${future.map(r=>{const dom=gDom(r.domaine);const isJ=r.dateArrivee===r.dateDepart;
+    return`<div class="ev-card">
+      <span class="pill ${PILL[dom.color||0]}">${dom.name}</span>
+      <div style="background:#f5f4f1;border-radius:10px;padding:12px;margin-top:8px">
+        <div style="display:flex;gap:20px;flex-wrap:wrap">
+          <div><div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.04em">Arrivée</div><div style="font-size:16px;font-weight:500;margin-top:3px">${dn(r.dateArrivee)} ${ds(r.dateArrivee)}</div><div style="font-size:15px;color:#993556;font-weight:600">${r.heureArrivee||'—'}</div></div>
+          ${!isJ?`<div><div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.04em">Départ</div><div style="font-size:16px;font-weight:500;margin-top:3px">${dn(r.dateDepart)} ${ds(r.dateDepart)}</div><div style="font-size:15px;color:#993556;font-weight:600">${r.heureDepart||'—'}</div></div>`:''}
+        </div>
+      </div>
+    </div>`;}).join('')}
+  ${past.length>0?`<div style="margin-top:20px;border-top:1px solid #e5e3de;padding-top:14px">
+    <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Passés</div>
+    ${past.slice(-8).reverse().map(r=>{const dom=gDom(r.domaine);return`<div class="ev-card" style="opacity:.5"><span class="pill ${PILL[dom.color||0]}">${dom.name}</span><div style="font-size:12px;color:#888;margin-top:4px">Arr. ${ds(r.dateArrivee)} ${r.heureArrivee||''} · Dép. ${ds(r.dateDepart)} ${r.heureDepart||''}</div></div>`;}).join('')}
+  </div>`:''}`;
+}
+
+function renderPrestaOccupation(p){
+  const today=new Date().toISOString().slice(0,10);
+  const doms=p.domaines||[];
+  const occ=D.reservations.filter(r=>r.status!=='annulé'&&doms.includes(r.domaine)).sort((a,b)=>(a.dateArrivee||a.date).localeCompare(b.dateArrivee||b.date));
+  const future=occ.filter(r=>(r.dateDepart||r.dateArrivee||r.date)>=today);
+  const past=occ.filter(r=>(r.dateDepart||r.dateArrivee||r.date)<today);
+  return`<div class="topbar"><div style="font-size:20px">🏡</div><h1>Jours occupés</h1><span class="badge bp">${p.name}</span></div>
+  ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
+  ${future.length===0?`<div class="ev-card"><div class="empty">Aucun jour occupé à venir pour l'instant.</div></div>`:''}
+  ${future.map(r=>{const dom=gDom(r.domaine);const isJ=r.dateArrivee===r.dateDepart;
+    return`<div class="ev-card">
+      <span class="pill ${PILL[dom.color||0]}">${dom.name}</span>
+      <div style="font-size:16px;font-weight:500;margin-top:8px">${isJ?`${dn(r.dateArrivee)} ${fmt(r.dateArrivee)}`:`Du ${dn(r.dateArrivee)} ${fmt(r.dateArrivee)} au ${dn(r.dateDepart)} ${fmt(r.dateDepart)}`}</div>
+    </div>`;}).join('')}
+  ${past.length>0?`<div style="margin-top:20px;border-top:1px solid #e5e3de;padding-top:14px">
+    <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Jours passés</div>
+    ${past.slice(-8).reverse().map(r=>{const dom=gDom(r.domaine);const isJ=r.dateArrivee===r.dateDepart;return`<div class="ev-card" style="opacity:.5"><span class="pill ${PILL[dom.color||0]}">${dom.name}</span><div style="font-size:13px;margin-top:6px">${isJ?fmt(r.dateArrivee):`Du ${fmt(r.dateArrivee)} au ${fmt(r.dateDepart)}`}</div></div>`;}).join('')}
+  </div>`:''}`;
+}
+
+function setTab(t){S.tab=t;S.msg=null;S.selResa=null;render();}
+function logout(){S.view='login';S.admin=null;S.msg=null;S.selResa=null;render();}
+function openM(type,id,extra){S.modal={type,id,...(extra||{})};render();}
+function closeM(){S.modal=null;render();}
+function closePanel(){S.selResa=null;render();}
+function showMsg(m){S.msg=m;render();setTimeout(()=>{S.msg=null;render();},3000);}
+function calNav(d){S.calMonth+=d;if(S.calMonth>11){S.calMonth=0;S.calYear++;}if(S.calMonth<0){S.calMonth=11;S.calYear--;}S.selResa=null;render();}
+function selectResa(rid,e){if(e)e.stopPropagation();S.selResa=rid;render();}
+function openNewResaOnDate(date){openM('newResa',null,{prefDate:date});}
+function openDayMenu(date){openM('dayMenu',null,{prefDate:date});}
+function selectAndGoCal(rid){const r=D.reservations.find(x=>x.id===rid);if(!r)return;const d=r.dateArrivee||r.date;const[y,m]=d.split('-');S.calYear=parseInt(y);S.calMonth=parseInt(m)-1;S.selResa=rid;S.tab='calendrier';render();}
+function addPay(rid){const r=D.reservations.find(x=>x.id===rid);if(!r)return;const d=document.getElementById('pay-date').value,a=parseFloat(document.getElementById('pay-amt').value),ty=document.getElementById('pay-type').value,cm=(document.getElementById('pay-comment').value||'').trim();if(!d||!a)return;if(!r.paiements)r.paiements=[];r.paiements.push({id:gid(),date:d,montant:a,type:ty,comment:cm});saveD();S.modal={type:'editResa',id:rid};render();}
+function delPay(rid,pid){if(!rid)return;const r=D.reservations.find(x=>x.id===rid);if(!r)return;r.paiements=(r.paiements||[]).filter(p=>p.id!==pid);saveD();S.modal={type:'editResa',id:rid};render();}
+
+function addComment(rid){const r=D.reservations.find(x=>x.id===rid);if(!r)return;const txt=document.getElementById('com-txt').value.trim(),vis=document.getElementById('com-vis').checked;if(!txt)return;if(!r.commentaires)r.commentaires=[];r.commentaires.push({id:gid(),auteur:'admin',auteurNom:S.admin.name,date:new Date().toISOString().slice(0,10),texte:txt,visible:vis});saveD();S.modal={type:'editResa',id:rid};render();}
+function addPrestaComment(rid){const el=document.getElementById('pnote-'+rid);if(!el||!el.value.trim())return;const r=D.reservations.find(x=>x.id===rid);if(!r)return;if(!r.commentaires)r.commentaires=[];r.commentaires.push({id:gid(),auteur:'presta',auteurNom:S.presta.name,date:new Date().toISOString().slice(0,10),texte:el.value.trim(),visible:true});saveD();showMsg('Note envoyée ✓');}
+function saveResa(id){
+  const domaine=document.getElementById('m-domaine').value,dateArrivee=document.getElementById('m-arr-date').value,heureArrivee=document.getElementById('m-arr-heure').value,dateDepart=document.getElementById('m-dep-date').value,heureDepart=document.getElementById('m-dep-heure').value,status=document.getElementById('m-status').value,client=capWords(document.getElementById('m-client').value.trim()),tel=document.getElementById('m-tel').value.trim(),typeEvenement=(document.getElementById('m-evt')||{}).value||'',nbPersonnes=parseInt(document.getElementById('m-nbp').value)||0,noteInterne=document.getElementById('m-noteI').value,montant=parseFloat(document.getElementById('m-montant').value)||0;
+  const nbSoiree=parseInt(document.getElementById('m-nbs').value)||0;
+  const cbs=document.querySelectorAll('#root input[type=checkbox]');const prestataires=Array.from(cbs).filter(c=>c.checked).map(c=>c.value);
+  const prestaNotes={},prestaGarde={};
+  D.prestataires.forEach(p=>{
+    if(!prestataires.includes(p.id))return;
+    if(p.inputMode==='notes'){
+      const ta=document.getElementById('pnotes-'+p.id),am=document.getElementById('pamt-'+p.id);
+      if(ta){const notes=ta.value.trim(),amt=parseFloat((am&&am.value)||'')||0;if(notes||amt)prestaNotes[p.id]={notes,montant:amt};}
+    } else if(p.inputMode==='garde'){
+      const domSel=document.getElementById('pgdom-'+p.id);
+      const nights={};
+      document.querySelectorAll(`.gard-chk[data-presta="${p.id}"]`).forEach(chk=>{
+        if(chk.checked){const sel=document.querySelector(`.gard-sel[data-presta="${p.id}"][data-date="${chk.dataset.date}"]`);nights[chk.dataset.date]=sel?sel.value:'longue';}
+      });
+      if(domSel&&Object.keys(nights).length)prestaGarde[p.id]={domaine:domSel.value,nights};
+    }
+  });
+  const missing=[];
+  if(!domaine)missing.push('le domaine');
+  if(!dateArrivee)missing.push("la date d'arrivée");
+  if(!dateDepart)missing.push('la date de départ');
+  if(!heureArrivee)missing.push("l'heure d'arrivée");
+  if(!heureDepart)missing.push("l'heure de départ");
+  if(!client)missing.push('le nom du client');
+  if(!typeEvenement)missing.push("le type d'événement");
+  if(!nbPersonnes)missing.push('le nombre de personnes');
+  if(!montant)missing.push('le montant');
+  if(missing.length){alert('Champs obligatoires manquants : '+missing.join(', ')+'.');return;}
+  if(!isValidPhone(tel)){alert("Numéro de téléphone invalide. En France : 10 chiffres commençant par 0 (ex. 06 12 34 56 78). À l'étranger : commencez par + ou 00 suivi de l'indicatif.");return;}
+  const dep=dateDepart||dateArrivee;
+  const isNew=!id;
+  if(id){const r=D.reservations.find(x=>x.id===id);Object.assign(r,{domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,tel,typeEvenement,nbPersonnes,nbSoiree,prestaNotes,prestaGarde,noteInterne,montant,prestataires});}
+  else D.reservations.push({id:gid(),domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,tel,typeEvenement,nbPersonnes,nbSoiree,prestaNotes,prestaGarde,noteInterne,montant,paiements:[],prestataires,commentaires:[]});
+  logActivity(isNew?'créée':'modifiée',domaine,`Réservation ${isNew?'créée':'modifiée'} — ${client||'—'} (${fmt(dateArrivee)})`);
+  const[y,m]=dateArrivee.split('-');S.calYear=parseInt(y);S.calMonth=parseInt(m)-1;
+  saveD();S.modal=null;S.tab='calendrier';showMsg('Réservation enregistrée ✓');
+}
+function delResa(id){if(!confirm('Supprimer définitivement cette réservation ?'))return;const r=D.reservations.find(x=>x.id===id);if(r)logActivity('supprimée',r.domaine,`Réservation supprimée — ${r.client||'—'} (${fmt(r.dateArrivee)})`);D.reservations=D.reservations.filter(x=>x.id!==id);S.selResa=null;saveD();render();}
+function cancelResa(id){if(!confirm('Annuler cette réservation ? Elle restera enregistrée mais marquée annulée.'))return;const r=D.reservations.find(x=>x.id===id);if(!r)return;r.status='annulé';logActivity('annulée',r.domaine,`Réservation annulée — ${r.client||'—'} (${fmt(r.dateArrivee)})`);saveD();S.modal=null;showMsg('Réservation annulée ✓');}
+function savePresta(id){
+  const name=document.getElementById('m-pname').value.trim(),role=document.getElementById('m-prole').value.trim(),tel=document.getElementById('m-ptel').value.trim(),accessMode=document.getElementById('m-pmode').value;
+  const cbs=document.querySelectorAll('#root input[type=checkbox]');const domaines=Array.from(cbs).filter(c=>c.checked).map(c=>c.value);
+  if(!name){alert('Le nom est obligatoire.');return;}
+  if(!isValidPhone(tel)){alert("Numéro de téléphone invalide. En France : 10 chiffres commençant par 0 (ex. 06 12 34 56 78). À l'étranger : commencez par + ou 00 suivi de l'indicatif.");return;}
+  if(id){const p=D.prestataires.find(x=>x.id===id);Object.assign(p,{name,role,tel,domaines,accessMode});}
+  else D.prestataires.push({id:gid(),name,role,tel,domaines,accessMode,token:'tok_'+name.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'')+'_'+Math.random().toString(36).slice(2,7)});
+  saveD();S.modal=null;showMsg('Prestataire enregistré ✓');
+}
+function delPresta(id){if(!confirm('Supprimer ce prestataire ?'))return;D.prestataires=D.prestataires.filter(x=>x.id!==id);D.reservations.forEach(r=>{r.prestataires=(r.prestataires||[]).filter(p=>p!==id);});saveD();render();}
+function saveDomaine(id){const name=document.getElementById('m-dname').value.trim(),color=parseInt(document.getElementById('m-dcolor').value);if(!name){alert('Le nom est obligatoire.');return;}if(id){const d=D.domaines.find(x=>x.id===id);Object.assign(d,{name,color});}else D.domaines.push({id:gid(),name,color});saveD();S.modal=null;showMsg('Domaine enregistré ✓');}
+function delDomaine(id){if(!confirm('Supprimer ce domaine ?'))return;D.domaines=D.domaines.filter(x=>x.id!==id);saveD();render();}
+
+document.addEventListener('keydown',e=>{if(e.key==='Enter'){const el=document.getElementById('pin-in');if(el&&document.activeElement===el)doLogin();}});
+window.addEventListener('resize',()=>injectBands());
+if(!checkToken())render();else render();
+</script>
+</body>
+</html>
