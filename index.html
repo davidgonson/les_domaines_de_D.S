@@ -184,7 +184,7 @@ const DOMAIN_LOGOS={
 const PILL=['p0','p1','p2','p3','p4'];
 const MONTHS_FR=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 const PRESTA_CATS=['Animation','Traiteur','Décoration','Logistique','Autre'];
-const EVENT_TYPES=['Mariage','Anniversaire','Séminaire','Famille / Cousinade','EVJF / EVG','Séjour amis','Autre'];
+const EVENT_TYPES=['Mariage','Anniversaire','Séminaire','Famille / Cousinade','EVJF / EVG','Séjour amis','Airbnb','Abritel','Booking','Autre'];
 const DOMINIQUE_RATES={d1:120,d2:150,d3:120};
 const LEG_BG=['#F4C0D1','#F5D98B','#C0DD97','#CECBF6','#B5D4F4'];
 const BAND_FULL=['b0f','b1f','b2f','b3f','b4f'];
@@ -431,6 +431,18 @@ function buildBands(y,m){
   return{bands,tc,sd,dim,dip};
 }
 
+function nbFieldsHtml(domaine,r){
+  if(domaine==='d3'){
+    return`<div class="g2" style="margin-bottom:4px">
+      <div class="field"><label>🧑 Nombre d'adultes</label><input type="number" id="m-adultes" value="${r.nbAdultes||''}" placeholder="0" min="0" onchange="syncNb('m-adultes','m-enfants')"></div>
+      <div class="field"><label>🧒 Nombre d'enfants</label><input type="number" id="m-enfants" value="${r.nbEnfants||''}" placeholder="0" min="0" onchange="syncNb('m-enfants','m-adultes')"></div>
+    </div>`;
+  }
+  return`<div class="g2" style="margin-bottom:4px">
+    <div class="field"><label>🛏 Nb de couchages nécessaires</label><input type="number" id="m-nbp" value="${r.nbPersonnes||''}" placeholder="0" min="0" onchange="syncNb('m-nbp','m-nbs')"></div>
+    <div class="field"><label>🥂 Nb d'invités soirée</label><input type="number" id="m-nbs" value="${r.nbSoiree||''}" placeholder="0" min="0" onchange="syncNb('m-nbs','m-nbp')"></div>
+  </div>`;
+}
 function syncNb(srcId,tgtId){
   const src=document.getElementById(srcId),tgt=document.getElementById(tgtId);
   if(!src||!tgt)return;
@@ -450,7 +462,11 @@ function pickDomaine(hiddenId,pickerId,el){
     if(b===el){b.classList.add('sel');b.classList.remove('fade');}
     else{b.classList.remove('sel');b.classList.add('fade');}
   });
-  if(hiddenId==='m-domaine')autoCheckGardien(el.dataset.id);
+  if(hiddenId==='m-domaine'){
+    autoCheckGardien(el.dataset.id);
+    const wrap=document.getElementById('nb-fields-wrap');
+    if(wrap)wrap.innerHTML=nbFieldsHtml(el.dataset.id,{});
+  }
 }
 function pickTypeClient(el){
   document.getElementById('m-typeclient').value=el.dataset.id;
@@ -1311,10 +1327,7 @@ function renderModalContent(){
       <div class="field"><label>Téléphone *</label><input type="tel" id="m-tel" value="${r.tel||''}" placeholder="06 XX XX XX XX"></div>
       <div class="field"><label>Email</label><input type="email" id="m-email" value="${r.email||''}" placeholder="nom@email.com"></div>
     </div>
-    <div class="g2" style="margin-bottom:4px">
-      <div class="field"><label>🛏 Nb de couchages nécessaires</label><input type="number" id="m-nbp" value="${r.nbPersonnes||''}" placeholder="0" min="0" onchange="syncNb('m-nbp','m-nbs')"></div>
-      <div class="field"><label>🥂 Nb d'invités soirée</label><input type="number" id="m-nbs" value="${r.nbSoiree||''}" placeholder="0" min="0" onchange="syncNb('m-nbs','m-nbp')"></div>
-    </div>
+    <div id="nb-fields-wrap">${nbFieldsHtml(defDomaine,r)}</div>
     <div style="font-size:11px;color:#888;margin-bottom:12px">* Au moins un des deux nombres est obligatoire</div>
     <div class="g2-compact" style="margin-bottom:12px">
       <div class="field"><label>Date d'arrivée *</label><input type="date" id="m-arr-date" value="${iA}" onchange="refreshAllGardNights();defaultArrHeure(this.value)"></div>
@@ -1843,8 +1856,16 @@ function addPrestaComment(rid){
 }
 function addPrestaComment(rid){const el=document.getElementById('pnote-'+rid);if(!el||!el.value.trim())return;const r=D.reservations.find(x=>x.id===rid);if(!r)return;if(!r.commentaires)r.commentaires=[];r.commentaires.push({id:gid(),auteur:'presta',auteurNom:S.presta.name,date:new Date().toISOString().slice(0,10),texte:el.value.trim(),visible:true});saveD();showMsg('Note envoyée ✓');}
 function saveResa(id){
-  const domaine=document.getElementById('m-domaine').value,dateArrivee=document.getElementById('m-arr-date').value,heureArrivee=document.getElementById('m-arr-heure').value,dateDepart=document.getElementById('m-dep-date').value,heureDepart=document.getElementById('m-dep-heure').value,status=document.getElementById('m-status').value,client=capWords(document.getElementById('m-client').value.trim()),tel=document.getElementById('m-tel').value.trim(),email=document.getElementById('m-email').value.trim(),typeClient=document.getElementById('m-typeclient').value,societe=capWords(document.getElementById('m-societe').value.trim()),typeEvenement=(document.getElementById('m-evt')||{}).value||'',nbPersonnes=parseInt(document.getElementById('m-nbp').value)||0,noteInterne=document.getElementById('m-noteI').value,montant=parseFloat(document.getElementById('m-montant').value)||0;
-  const nbSoiree=parseInt(document.getElementById('m-nbs').value)||0;
+  const domaine=document.getElementById('m-domaine').value,dateArrivee=document.getElementById('m-arr-date').value,heureArrivee=document.getElementById('m-arr-heure').value,dateDepart=document.getElementById('m-dep-date').value,heureDepart=document.getElementById('m-dep-heure').value,status=document.getElementById('m-status').value,client=capWords(document.getElementById('m-client').value.trim()),tel=document.getElementById('m-tel').value.trim(),email=document.getElementById('m-email').value.trim(),typeClient=document.getElementById('m-typeclient').value,societe=capWords(document.getElementById('m-societe').value.trim()),typeEvenement=(document.getElementById('m-evt')||{}).value||'',noteInterne=document.getElementById('m-noteI').value,montant=parseFloat(document.getElementById('m-montant').value)||0;
+  const elAdultes=document.getElementById('m-adultes'),elEnfants=document.getElementById('m-enfants');
+  let nbPersonnes,nbSoiree,nbAdultes=0,nbEnfants=0;
+  if(domaine==='d3'&&elAdultes){
+    nbAdultes=parseInt(elAdultes.value)||0;nbEnfants=parseInt((elEnfants&&elEnfants.value))||0;
+    nbPersonnes=nbAdultes+nbEnfants;nbSoiree=nbPersonnes;
+  } else {
+    nbPersonnes=parseInt((document.getElementById('m-nbp')||{}).value)||0;
+    nbSoiree=parseInt((document.getElementById('m-nbs')||{}).value)||0;
+  }
   const cbs=document.querySelectorAll('#root input[type=checkbox]');const prestataires=Array.from(cbs).filter(c=>c.checked).map(c=>c.value);
   const origR=id?D.reservations.find(x=>x.id===id):null;
   const prestaGarde={};
@@ -1880,8 +1901,8 @@ function saveResa(id){
   if(!isValidPhone(tel)){alert("Numéro de téléphone invalide. En France : 10 chiffres commençant par 0 (ex. 06 12 34 56 78). À l'étranger : commencez par + ou 00 suivi de l'indicatif.");return;}
   const dep=dateDepart||dateArrivee;
   const isNew=!id;
-  if(id){const r=D.reservations.find(x=>x.id===id);Object.assign(r,{domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,tel,email,typeClient,societe,typeEvenement,nbPersonnes,nbSoiree,prestaGarde,noteInterne,montant,prestataires});}
-  else D.reservations.push({id:gid(),domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,tel,email,typeClient,societe,typeEvenement,nbPersonnes,nbSoiree,prestaLines:{},prestaGarde,noteInterne,montant,paiements:[],prestataires,commentaires:[]});
+  if(id){const r=D.reservations.find(x=>x.id===id);Object.assign(r,{domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,tel,email,typeClient,societe,typeEvenement,nbPersonnes,nbSoiree,nbAdultes,nbEnfants,prestaGarde,noteInterne,montant,prestataires});}
+  else D.reservations.push({id:gid(),domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,tel,email,typeClient,societe,typeEvenement,nbPersonnes,nbSoiree,nbAdultes,nbEnfants,prestaLines:{},prestaGarde,noteInterne,montant,paiements:[],prestataires,commentaires:[]});
   logActivity(isNew?'créée':'modifiée',domaine,`Réservation ${isNew?'créée':'modifiée'} — ${(typeClient==='entreprise'&&societe)?societe:client||'—'} (${fmt(dateArrivee)})`);
   Object.keys(prestaGarde).forEach(pid=>{
     logActivity(isNew?'créée':'modifiée',domaine,`Gardiennage ${isNew?'ajouté':'mis à jour'} — ${(typeClient==='entreprise'&&societe)?societe:client||'—'} (${fmt(dateArrivee)})`,[pid]);
