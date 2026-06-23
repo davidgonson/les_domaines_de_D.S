@@ -321,10 +321,13 @@ function totPay(r){return(r.paiements||[]).reduce((a,p)=>a+(p.montant||0),0);}
 function isCash(pa){return/cash/i.test(pa.comment||pa.note||'');}
 function payStatus(r){const t=totPay(r),m=r.montant||0;if(m===0)return'none';if(t>=m)return'full';if(t>0)return'part';return'none';}
 function getMenageInfo(r){
-  if(r.domaine==='d1')return{pid:'p1',name:'Misha',montant:450};
-  if(r.domaine==='d2'){const n=r.nbPersonnes||r.nbSoiree||0;return{pid:'p2',name:'Sasha',montant:n>=40?500:400};}
-  if(r.domaine==='d3')return{pid:'p3',name:'Pascaline',montant:250};
-  return null;
+  let info=null;
+  if(r.domaine==='d1')info={pid:'p1',name:'Misha',montant:450};
+  else if(r.domaine==='d2'){const n=r.nbPersonnes||r.nbSoiree||0;info={pid:'p2',name:'Sasha',montant:n>=40?500:400};}
+  else if(r.domaine==='d3')info={pid:'p3',name:'Pascaline',montant:250};
+  if(!info)return null;
+  if(r.menageMontant!==undefined&&r.menageMontant!==null&&r.menageMontant!=='')info.montant=parseFloat(r.menageMontant);
+  return info;
 }
 function gardeRate(duree){return duree==='longue'?110:75;}
 function payBadge(r){const s=payStatus(r),t=totPay(r),m=r.montant||0;if(s==='full')return'<span class="pay-full">Soldé ✓</span>';if(s==='part')return`<span class="pay-part">${money(t)} / ${money(m)}</span>`;return`<span class="pay-none">${money(t)} / ${money(m)}</span>`;}
@@ -394,7 +397,7 @@ function buildBands(y,m){
     const as=r.dateArrivee||r.date,ds2=r.dateDepart||r.dateArrivee||r.date;
     const isJ=as===ds2;
     const dom=gDom(r.domaine);const c=dom.color||0;
-    const bc=isJ?BAND_LIGHT[c]:BAND_FULL[c];
+    const bc=BAND_FULL[c];
     const oc=r.status==='option'?' option':'';
     const cu=[];let cur=new Date(as+'T12:00:00');const fin=new Date(ds2+'T12:00:00');
     while(cur<=fin){const s=dstr(cur);if(dtc[s])cu.push({ds:s,ci:dtc[s].ci,row:dtc[s].row,col:dtc[s].col});cur=addDays(cur,1);}
@@ -1226,7 +1229,10 @@ function renderModalContent(){
       if(p.inputMode==='notes'){
         const lines=(r.prestaLines||{})[p.id]||[];
         const linesHtml=lines.map((l,li)=>`<div style="padding:8px 0;${li>0?'border-top:1px solid #ddd9d0;margin-top:6px':''}">
-          <input type="text" value="${l.label||''}" placeholder="Intitulé (Traiteur, Ménage…)" onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','label',this.value)" style="width:100%;font-size:13px;font-weight:500;padding:5px 6px;margin-bottom:5px;box-sizing:border-box">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
+            <input type="text" value="${l.label||''}" placeholder="Intitulé (Traiteur, Ménage…)" onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','label',this.value)" style="flex:1;font-size:13px;font-weight:500;padding:5px 6px;box-sizing:border-box">
+            <button class="btn btn-xs btn-danger" onclick="delPrestaLine('${id||''}','${p.id}','${l.id}')">✕</button>
+          </div>
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
             <input type="number" value="${l.montant||''}" placeholder="Montant" onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','montant',this.value)" style="width:70px;font-size:12px;padding:4px 6px;font-weight:500">
             <select onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','paidDirect',this.value)" style="font-size:11px;padding:4px 5px">
@@ -1234,7 +1240,6 @@ function renderModalContent(){
               <option value="1" ${l.paidDirect?'selected':''}>Payé direct au presta</option>
             </select>
             <input type="text" value="${l.notes||''}" placeholder="Note" onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','notes',this.value)" style="flex:1;min-width:90px;font-size:12px;padding:4px 6px">
-            <button class="btn btn-xs btn-danger" onclick="delPrestaLine('${id||''}','${p.id}','${l.id}')">✕</button>
           </div>
         </div>`).join('');
         encart=`<div class="presta-encart" id="penc-${p.id}" style="display:${checked?'block':'none'};margin:4px 0 10px 24px;padding:10px;background:#f5f4f1;border-radius:8px">
@@ -1322,7 +1327,7 @@ function renderModalContent(){
     <div class="field" style="margin-bottom:12px"><label>Montant de la réservation (€) *</label><input type="number" id="m-montant" value="${r.montant||''}" placeholder="0"></div>
     ${(()=>{if(!id)return'';const mi=getMenageInfo(r);if(!mi)return'';return`<div class="field" style="margin-bottom:12px"><label>🧹 Forfait ménage (${mi.name})</label>
       <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#f5f4f1;border-radius:8px">
-        <span style="font-weight:600">${money(mi.montant)}</span>
+        <input type="number" value="${mi.montant}" onchange="updMenageMontant('${id}',this.value)" style="width:80px;font-weight:600;font-size:13px;padding:4px 6px">
         <span class="pill" style="background:${r.menagePaid?'#E8F3E0':'#FCEBEB'};color:${r.menagePaid?'#27500A':'#791F1F'};cursor:pointer" onclick="toggleMenagePaid('${id}')">${r.menagePaid?'✓ Payé':'✗ Non payé'}</span>
       </div></div>`;})()}
     <div class="field" style="margin-bottom:12px"><label>Note interne (admin uniquement — invisible prestataires)</label><input type="text" id="m-noteI" value="${r.noteInterne||''}" placeholder="Note rapide…"></div>
@@ -1894,6 +1899,11 @@ function toggleGardeNightPaid(rid,pid,date){
 function toggleMenagePaid(rid){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
   r.menagePaid=!r.menagePaid;
+  saveD();render();
+}
+function updMenageMontant(rid,value){
+  const r=D.reservations.find(x=>x.id===rid);if(!r)return;
+  r.menageMontant=parseFloat(value)||0;
   saveD();render();
 }
 function savePresta(id){
