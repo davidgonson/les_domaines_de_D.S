@@ -419,7 +419,7 @@ function buildBands(y,m){
         if(r.typeEvenement)mainParts.push(r.typeEvenement);
       }
       const mainLine=mainParts.join(' · ');
-      const nameTxt=(ifr&&displayClientName(r))?shortName(displayClientName(r)):'';
+      const nameTxt=displayClientName(r)?shortName(displayClientName(r)):'';
       const timeArr=ifr?(r.heureArrivee||''):'';
       const timeDep=ilr?(r.heureDepart||''):'';
       /* Heures pour position proportionnelle (fenêtre 8h-22h) */
@@ -1284,18 +1284,18 @@ function renderModalContent(){
       return`<div><label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="checkbox" value="${p.id}" ${checked?'checked':''} style="width:auto" onchange="const _e=document.getElementById('penc-${p.id}');if(_e)_e.style.display=this.checked?'block':'none';${id?`togglePrestataireChecked('${id}','${p.id}',this.checked);`:''}"> ${p.name} <span style="color:#888">(${dispRole})</span></label>${encart}</div>`;
     }).join('');
     const pays=r.paiements||[];const tot=pays.reduce((a,p)=>a+(p.montant||0),0);
-    const pR=pays.map(pa=>{const cash=isCash(pa);return`<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:13px;padding:5px;background:${cash?'#FFF6E0':'#f5f4f1'};border-radius:6px">
+    const pR=pays.map(pa=>{const cash=isCash(pa);return`<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:13px;padding:5px;background:${cash?'#FFF6E0':'#f5f4f1'};border-radius:6px;flex-wrap:wrap">
       ${cash?'<span title="Paiement en espèces">💵</span>':''}
-      <input type="date" class="pay-inline" value="${pa.date||''}" onchange="updPay('${r.id}','${pa.id}','date',this.value)">
-      <input type="number" class="pay-inline" value="${pa.montant||''}" onchange="updPay('${r.id}','${pa.id}','montant',this.value)" style="width:60px;font-weight:500">
-      <select class="pay-inline" onchange="updPay('${r.id}','${pa.id}','type',this.value)" style="width:95px">
+      <input type="date" class="pay-inline" value="${pa.date||''}" onchange="updPay('${r.id}','${pa.id}','date',this.value)" style="width:120px;flex-shrink:0">
+      <input type="number" class="pay-inline" value="${pa.montant||''}" onchange="updPay('${r.id}','${pa.id}','montant',this.value)" style="width:65px;font-weight:500;flex-shrink:0">
+      <select class="pay-inline" onchange="updPay('${r.id}','${pa.id}','type',this.value)" style="width:100px;flex-shrink:0">
         <option ${(pa.type||pa.note)==='Acompte'?'selected':''}>Acompte</option>
         <option ${pa.type==='Intermédiaire'?'selected':''}>Intermédiaire</option>
         <option ${pa.type==='Solde'?'selected':''}>Solde</option>
         <option ${pa.type==='Autre'?'selected':''}>Autre</option>
       </select>
-      <input type="text" class="pay-inline" value="${pa.comment||''}" placeholder="Commentaire (ex. cash)" onchange="updPay('${r.id}','${pa.id}','comment',this.value)" style="flex:1;color:#888">
-      <button class="btn btn-xs btn-danger" onclick="delPay('${r.id||''}','${pa.id}')">✕</button></div>`;}).join('');
+      <input type="text" class="pay-inline" value="${pa.comment||''}" placeholder="Commentaire (ex. cash)" onchange="updPay('${r.id}','${pa.id}','comment',this.value)" style="flex:1 1 130px;min-width:130px;color:#888">
+      <button class="btn btn-xs btn-danger" onclick="delPay('${r.id||''}','${pa.id}')" style="flex-shrink:0">✕</button></div>`;}).join('');
     const comms=r.commentaires||[];
     return`<h3>${type==='newResa'?'➕ Nouvelle réservation':'✏️ Modifier — '+(displayClientName(r)||fmt(r.dateArrivee||''))}</h3>
     <div class="modal-actions" style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #e5e3de"><button class="btn" onclick="closeM()">Fermer</button>${type==='editResa'?`<button class="btn btn-danger" onclick="cancelResa('${id}')">🚫 Annuler la réservation</button>`:''}<button class="btn btn-primary" onclick="saveResa('${id||''}')">Enregistrer</button></div>
