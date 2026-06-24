@@ -31,8 +31,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1
 .dom-box{flex:1;text-align:center;padding:12px 6px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s;user-select:none}
 .dom-box.sel{opacity:1;box-shadow:0 0 0 2px rgba(0,0,0,.3) inset}
 .dom-box.fade{opacity:.3}
-.tab{flex:1;padding:8px 4px;text-align:center;border-radius:6px;cursor:pointer;font-size:12px;border:none;background:transparent;color:#666;font-family:inherit;transition:background .15s;display:flex;flex-direction:column;align-items:center;gap:2px}
-.tab .tab-ic{font-size:17px;line-height:1}
+.tab{flex:1;padding:6px 2px;text-align:center;border-radius:6px;cursor:pointer;font-size:12px;border:none;background:transparent;color:#666;font-family:inherit;transition:background .15s;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0}
+.tab .tab-ic{font-size:14px;line-height:1}
 .tab .tab-lbl{font-weight:500;text-transform:uppercase;font-size:9.5px;letter-spacing:.03em;line-height:1.1}
 .tab.active{background:#fff;color:#1a1a1a;font-weight:500;border:1px solid #d5d3ce}
 input,select,textarea{width:100%;padding:7px 10px;border:1px solid #d5d3ce;border-radius:8px;font-size:13px;font-family:inherit;background:#fff;color:#1a1a1a;outline:none;transition:border-color .15s}
@@ -83,7 +83,8 @@ input:focus,select:focus,textarea:focus{border-color:#993556;box-shadow:0 0 0 3p
 .list-tbl tr:hover td{background:#faf9f7;cursor:pointer}
 .panel-wrap{display:flex;gap:14px;align-items:flex-start}
 .cal-side{flex:1;min-width:0}
-.detail-panel{width:280px;flex-shrink:0;background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem;position:sticky;top:10px}
+.detail-panel{width:340px;max-width:92vw;flex-shrink:0;background:#fff;border-left:1px solid #e5e3de;padding:1rem;position:fixed;top:0;right:0;bottom:0;z-index:60;overflow-y:auto;box-shadow:-6px 0 24px rgba(0,0,0,.18)}
+.dp-backdrop{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(20,18,14,.35);z-index:55}
 .dp-section{border-top:1px solid #e5e3de;padding-top:10px;margin-top:10px}
 .dp-section label{font-size:10px;color:#666;font-weight:500;display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
 
@@ -164,8 +165,7 @@ input:focus,select:focus,textarea:focus{border-color:#993556;box-shadow:0 0 0 3p
 .leg-item{display:flex;align-items:center;gap:4px;font-size:11px;color:#555}
 .leg-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
 @media(max-width:640px){
-  .panel-wrap{flex-direction:column}
-  .detail-panel{width:100%;position:static}
+  .detail-panel{width:100%;max-width:100vw}
   .g3{grid-template-columns:1fr 1fr}
   .g2{grid-template-columns:1fr}
   .list-tbl th:nth-child(5),.list-tbl td:nth-child(5){display:none}
@@ -284,7 +284,7 @@ function runMigrations(){
   (D.dominiqueSchedule||[]).forEach(x=>{if(x.paid===undefined)x.paid=false;if(x.comment===undefined)x.comment='';});
   (D.gardeSchedule||[]).forEach(x=>{if(x.payMethod===undefined)x.payMethod='cash';if(x.comment===undefined)x.comment='';});
 }
-let S={view:'login',admin:null,presta:null,tab:'calendrier',prestaTab:'calendrier',modal:null,msg:null,selResa:null,selectedPresta:null,calYear:2026,calMonth:5,bilanYear:2026,bilanMonth:5,listeYear:2026,listeMonth:5,visiteYear:2026,visiteMonth:5,prestaBilanYear:2026,prestaBilanMonth:5};
+let S={view:'login',admin:null,presta:null,tab:'calendrier',prestaTab:'calendrier',modal:null,msg:null,selResa:null,selectedPresta:null,hiddenDomains:[],calYear:2026,calMonth:5,bilanYear:2026,bilanMonth:5,listeYear:2026,listeMonth:5,visiteYear:2026,visiteMonth:5,prestaBilanYear:2026,prestaBilanMonth:5};
 
 function loadD(){try{const r=localStorage.getItem(SK);if(r)return JSON.parse(r);}catch(e){}return JSON.parse(JSON.stringify(DEF));}
 function saveD(){try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}pushRemoteD(D);}
@@ -300,13 +300,11 @@ function dismissAdminNotifs(){if(!S.admin)return;D.adminLastSeen=D.adminLastSeen
 function dismissPrestaNotifs(){if(!S.presta)return;D.prestaLastSeen=D.prestaLastSeen||{};D.prestaLastSeen[S.presta.id]=Date.now();saveD();render();}
 function renderMessagesPanel(pid,pname){
   const thread=(D.messages||[]).filter(msg=>msg.fromId===pid||msg.toId===pid).sort((a,b)=>a.ts-b.ts);
-  return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:10px;padding:0.6rem 0.75rem;margin-bottom:12px">
-    <div style="font-weight:600;font-size:12px;margin-bottom:5px">💬 Message avec ${pname}</div>
-    <div style="max-height:100px;overflow-y:auto;margin-bottom:6px;display:flex;flex-direction:column;gap:4px">
+  return`<div style="max-height:80px;overflow-y:auto;margin-bottom:5px;display:flex;flex-direction:column;gap:3px">
       ${thread.length===0?'<div style="font-size:11px;color:#888">Aucun message échangé.</div>':''}
-      ${thread.map(msg=>{const isFromPresta=msg.fromId===pid;return`<div style="padding:4px 6px;border-radius:6px;background:${isFromPresta?'#f0eee8':'#E8F0FB'};max-width:90%;${isFromPresta?'align-self:flex-start':'align-self:flex-end'}">
+      ${thread.map(msg=>{const isFromPresta=msg.fromId===pid;return`<div style="padding:3px 6px;border-radius:6px;background:${isFromPresta?'#f0eee8':'#E8F0FB'};max-width:90%;${isFromPresta?'align-self:flex-start':'align-self:flex-end'}">
         <div style="font-size:9px;color:#888;display:flex;justify-content:space-between;gap:8px"><span>${msg.fromName}</span><span>${fmt(msg.date)}</span></div>
-        <div style="font-size:11.5px;margin:2px 0;word-break:break-word">${msg.text}</div>
+        <div style="font-size:11.5px;margin:1px 0;word-break:break-word">${msg.text}</div>
         <div style="display:flex;gap:4px;align-items:center">
           <span class="pill" style="background:${msg.read?'#E8F3E0':'#FCEBEB'};color:${msg.read?'#27500A':'#791F1F'};cursor:pointer;font-size:8.5px;padding:1px 5px" onclick="toggleMessageRead('${msg.id}')">${msg.read?'✓ Lu':'✗ Non lu'}</span>
           <button class="btn btn-xs btn-danger" style="font-size:9px;padding:1px 5px" onclick="delMessage('${msg.id}')">✕</button>
@@ -314,22 +312,21 @@ function renderMessagesPanel(pid,pname){
       </div>`;}).join('')}
     </div>
     <div style="display:flex;gap:5px">
-      <input type="text" id="msg-input-${pid}" placeholder="Message à ${pname}…" style="flex:1;font-size:12px;padding:4px 6px">
+      <input type="text" id="msg-input-${pid}" placeholder="Message à ${pname}…" style="flex:1;font-size:12px;padding:3px 5px">
       <button class="btn btn-xs btn-primary" onclick="sendMessageToPresta('${pid}','${pname}')">Envoyer</button>
-    </div>
-  </div>`;
+    </div>`;
 }
 function renderMessagesPanelPresta(){
   if(!S.presta)return'';
   const pid=S.presta.id,pname=S.presta.name;
   const thread=(D.messages||[]).filter(msg=>msg.fromId===pid||msg.toId===pid).sort((a,b)=>a.ts-b.ts);
-  return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:10px;padding:0.6rem 0.75rem;margin-bottom:12px">
-    <div style="font-weight:600;font-size:12px;margin-bottom:5px">💬 Message avec David et Svitlana</div>
-    <div style="max-height:100px;overflow-y:auto;margin-bottom:6px;display:flex;flex-direction:column;gap:4px">
+  return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:10px;padding:0.45rem 0.65rem;margin-bottom:10px">
+    <div style="font-weight:600;font-size:11.5px;margin-bottom:4px">💬 Message avec David et Svitlana</div>
+    <div style="max-height:80px;overflow-y:auto;margin-bottom:5px;display:flex;flex-direction:column;gap:3px">
       ${thread.length===0?'<div style="font-size:11px;color:#888">Aucun message échangé.</div>':''}
-      ${thread.map(msg=>{const isMine=msg.fromId===pid;return`<div style="padding:4px 6px;border-radius:6px;background:${isMine?'#E8F0FB':'#f0eee8'};max-width:90%;${isMine?'align-self:flex-end':'align-self:flex-start'}">
+      ${thread.map(msg=>{const isMine=msg.fromId===pid;return`<div style="padding:3px 6px;border-radius:6px;background:${isMine?'#E8F0FB':'#f0eee8'};max-width:90%;${isMine?'align-self:flex-end':'align-self:flex-start'}">
         <div style="font-size:9px;color:#888;display:flex;justify-content:space-between;gap:8px"><span>${msg.fromName}</span><span>${fmt(msg.date)}</span></div>
-        <div style="font-size:11.5px;margin:2px 0;word-break:break-word">${msg.text}</div>
+        <div style="font-size:11.5px;margin:1px 0;word-break:break-word">${msg.text}</div>
         <div style="display:flex;gap:4px;align-items:center">
           <span class="pill" style="background:${msg.read?'#E8F3E0':'#FCEBEB'};color:${msg.read?'#27500A':'#791F1F'};cursor:pointer;font-size:8.5px;padding:1px 5px" onclick="toggleMessageRead('${msg.id}')">${msg.read?'✓ Lu':'✗ Non lu'}</span>
           <button class="btn btn-xs btn-danger" style="font-size:9px;padding:1px 5px" onclick="delMessage('${msg.id}')">✕</button>
@@ -337,7 +334,7 @@ function renderMessagesPanelPresta(){
       </div>`;}).join('')}
     </div>
     <div style="display:flex;gap:5px">
-      <input type="text" id="msg-input-presta" placeholder="Écrire un message…" style="flex:1;font-size:12px;padding:4px 6px">
+      <input type="text" id="msg-input-presta" placeholder="Écrire un message…" style="flex:1;font-size:12px;padding:3px 5px">
       <button class="btn btn-xs btn-primary" onclick="sendMessageFromPresta()">Envoyer</button>
     </div>
   </div>`;
@@ -477,7 +474,7 @@ function buildDateCellMap(y,m){
 function buildBands(y,m){
   const{dtc,tc,sd,dim,dip}=buildDateCellMap(y,m);
   const domIdx={};D.domaines.forEach((d,i)=>domIdx[d.id]=i);
-  const sorted=[...D.reservations].filter(r=>r.status!=='annulé'&&(!CAL_DOMAIN_FILTER||CAL_DOMAIN_FILTER.includes(r.domaine))).sort((a,b)=>(a.dateArrivee||a.date).localeCompare(b.dateArrivee||b.date));
+  const sorted=[...D.reservations].filter(r=>r.status!=='annulé'&&(!CAL_DOMAIN_FILTER||CAL_DOMAIN_FILTER.includes(r.domaine))&&!(S.hiddenDomains||[]).includes(r.domaine)).sort((a,b)=>(a.dateArrivee||a.date).localeCompare(b.dateArrivee||b.date));
   const bands=[];
   sorted.forEach(r=>{
     const as=r.dateArrivee||r.date,ds2=r.dateDepart||r.dateArrivee||r.date;
@@ -722,7 +719,7 @@ function injectVisiteMarkers(){
   const dotColors=['#72243E','#F5D98B','#27500A','#3C3489','#0C447C']; /* jaune éclairci à la demande */
   /* Bandes déjà posées par injectBands, pour éviter de superposer une visite sur une réservation */
   const existingBands=Array.from(grid.querySelectorAll('.band')).map(el=>({left:parseFloat(el.style.left),width:parseFloat(el.style.width),top:parseFloat(el.style.top)}));
-  D.visites.filter(v=>!CAL_DOMAIN_FILTER||CAL_DOMAIN_FILTER.includes(v.domaine)).forEach(v=>{
+  D.visites.filter(v=>(!CAL_DOMAIN_FILTER||CAL_DOMAIN_FILTER.includes(v.domaine))&&!(S.hiddenDomains||[]).includes(v.domaine)).forEach(v=>{
     if(!v.date||!dtc[v.date])return;
     const cellInfo=dtc[v.date];const cell=cells[cellInfo.ci];if(!cell)return;
     const slot=domIdx[v.domaine]||0;
@@ -754,7 +751,7 @@ function injectVisiteMarkers(){
 
 function renderLogin(){
   return`<div class="login-wrap">
-  <div class="logo">🏡</div>
+  <div class="logo" style="font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;color:#993556;border:2px solid #993556;border-radius:50%;width:64px;height:64px;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto">D.S</div>
   <h2>Les Domaines de DS</h2>
   <p>Connexion administrateur</p>
   <div class="field" style="margin-bottom:14px"><input type="password" id="pin-in" class="pin-in" placeholder="••••" maxlength="8" autocomplete="off"></div>
@@ -770,7 +767,7 @@ function doLogin(){
 }
 
 function renderAdmin(){
-  const tabs=[['calendrier','📅','Calendrier'],['liste','🎉','Événements'],['visites','👀','Visites'],['prestataires','🧑‍🔧','Prestataires'],['bilan','📊','Bilan']];
+  const tabs=[['calendrier','📅','Calendrier'],['liste','🎉','Événements'],['visites','👀','Visites'],['prestataires','🧑‍🔧','Équipe<br>Domaines'],['bilan','📊','Bilan']];
   let content='';
   if(S.tab==='calendrier')content=renderCalendrier();
   else if(S.tab==='liste')content=renderListe();
@@ -779,7 +776,7 @@ function renderAdmin(){
   else if(S.tab==='bilan')content=renderBilan();
   const lastSeen=(D.adminLastSeen||{})[S.admin.id]||0;
   const notifs=(D.activityLog||[]).filter(it=>((it.authorId&&it.authorId!==S.admin.id)||it.forAdmin)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
-  return`<div class="topbar"><div style="font-size:20px">🏡</div><h1>Les Domaines de DS</h1><span class="badge ba">Admin — ${S.admin.name}</span><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}${renderNotifBanner(notifs,'dismissAdminNotifs')}${renderMessagesHub()}<div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${S.tab===k?'active':''}" onclick="setTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>${content}${S.modal?renderModalWrap():''}`;
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge ba">Admin — ${S.admin.name}</span><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}${renderNotifBanner(notifs,'dismissAdminNotifs')}${renderMessagesHub()}<div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${S.tab===k?'active':''}" onclick="setTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>${content}${S.modal?renderModalWrap():''}`;
 }
 
 function renderCalendrier(){
@@ -812,12 +809,12 @@ function renderCalendrier(){
         </div>`}
       </div>
       <div class="leg">
-        ${D.domaines.filter(d=>!CAL_DOMAIN_FILTER||CAL_DOMAIN_FILTER.includes(d.id)).map(d=>`<span class="leg-item"><span class="leg-dot" style="background:${LEG_BG[d.color||0]}"></span>${d.name}</span>`).join('')}
+        ${D.domaines.filter(d=>!CAL_DOMAIN_FILTER||CAL_DOMAIN_FILTER.includes(d.id)).map(d=>{const hidden=(S.hiddenDomains||[]).includes(d.id);return`<span class="leg-item" style="cursor:pointer" onclick="toggleHiddenDomaine('${d.id}')" title="${hidden?'Cliquer pour afficher':'Cliquer pour masquer'} ${d.name}"><span class="leg-dot" style="background:${LEG_BG[d.color||0]};position:relative;display:inline-flex;align-items:center;justify-content:center">${hidden?'<span style="color:#000;font-size:9px;font-weight:800;line-height:1">✕</span>':''}</span>${d.name}</span>`;}).join('')}
       </div>
       <div class="cal-grid" id="cal-grid-main">${gridHtml}</div>
       <div style="margin-top:8px;font-size:11px;color:#888">${readOnly?'Clic sur une bande colorée = détail (lecture seule)':'Clic sur une case vide = nouvelle réservation · Clic sur une bande colorée = détail'}</div>
     </div>
-    ${selR?renderDetailPanel(selR):'<div style="width:280px;flex-shrink:0"></div>'}
+    ${selR?`<div class="dp-backdrop" onclick="closePanel()"></div>${renderDetailPanel(selR)}`:''}
   </div>`;
 }
 
@@ -830,9 +827,12 @@ function renderDetailPanel(r){
   const isJ=r.dateArrivee===r.dateDepart;
   const myLines=(readOnly&&S.presta&&S.presta.inputMode==='notes')?((r.prestaLines||{})[S.presta.id]||[]):[];
   return`<div class="detail-panel">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
-      <div><div style="font-size:16px;font-weight:700">${displayClientName(r)||'—'}</div>${r.tel?`<div style="font-size:12px;color:#888;margin-top:2px">${r.tel}</div>`:''}<div style="margin-top:4px"><span class="pill ${PILL[c]}">${dom.name}</span> <span class="status s-${r.status}" style="margin-left:4px">${r.status}</span></div></div>
-      <button class="btn btn-xs" onclick="closePanel()">✕</button>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;gap:8px">
+      <div style="min-width:0"><div style="font-size:16px;font-weight:700">${displayClientName(r)||'—'}</div>${r.tel?`<div style="font-size:12px;color:#888;margin-top:2px">${r.tel}</div>`:''}<div style="margin-top:4px"><span class="pill ${PILL[c]}">${dom.name}</span> <span class="status s-${r.status}" style="margin-left:4px">${r.status}</span></div></div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        ${readOnly?'':`<button class="btn btn-xs btn-primary" onclick="openM('editResa','${r.id}')" title="Modifier">✏️</button><button class="btn btn-xs btn-danger" onclick="delResa('${r.id}')" title="Supprimer">🗑️</button>`}
+        <button class="btn btn-xs" onclick="closePanel()" title="Fermer">✕</button>
+      </div>
     </div>
     <div style="background:#f5f4f1;border-radius:8px;padding:10px;margin-bottom:10px">
       <div style="display:flex;gap:12px;justify-content:space-between">
@@ -866,7 +866,7 @@ function renderDetailPanel(r){
       <textarea id="dp-presta-com" rows="2" placeholder="Écrire un message…" style="resize:none;width:100%;box-sizing:border-box;margin-bottom:6px"></textarea>
       <button class="btn btn-sm btn-primary" onclick="addPrestaComment('${r.id}')">Envoyer</button>
     </div>`:''}
-    ${readOnly?'':`<div style="margin-top:12px;display:flex;gap:8px"><button class="btn btn-primary btn-sm" style="flex:1" onclick="openM('editResa','${r.id}')">✏️ Modifier</button><button class="btn btn-sm btn-danger" onclick="delResa('${r.id}')">Suppr.</button></div>`}
+    ${readOnly?'':`<div style="margin-top:12px;display:flex;gap:8px"><button class="btn btn-primary btn-sm" style="flex:1" onclick="openM('editResa','${r.id}')">✏️ Modifier</button><button class="btn btn-sm btn-danger" onclick="delResa('${r.id}')">Suppr.</button><button class="btn btn-sm" onclick="closePanel()">Fermer</button></div>`}
   </div>`;
 }
 
@@ -1037,6 +1037,12 @@ function setBilanViewMode(mode){S.bilanViewMode=mode;render();}
 function setListeSortBy(v){S.listeSortBy=v;render();}
 function selectPresta(pid){S.selectedPresta=(S.selectedPresta===pid)?null:pid;render();}
 function setMsgSelectedPid(pid){S.msgSelectedPid=pid;render();}
+function toggleHiddenDomaine(did){
+  if(!S.hiddenDomains)S.hiddenDomains=[];
+  if(S.hiddenDomains.includes(did))S.hiddenDomains=S.hiddenDomains.filter(x=>x!==did);
+  else S.hiddenDomains.push(did);
+  render();
+}
 
 function nightsByMonth(r){
   const as=r.dateArrivee||r.date,ds2=r.dateDepart||r.dateArrivee||r.date;
@@ -1223,13 +1229,14 @@ function renderBilan(){
 }
 
 function renderMessagesHub(){
-  const msgPid=S.msgSelectedPid||(D.prestataires[0]&&D.prestataires[0].id)||'';
-  const msgP=D.prestataires.find(x=>x.id===msgPid);
   if(!D.prestataires.length)return'';
-  return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:10px;padding:0.6rem 0.75rem;margin-bottom:12px">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-      <span style="font-weight:600;font-size:12px;white-space:nowrap">💬 Écrire à</span>
-      <select onchange="setMsgSelectedPid(this.value)" style="font-size:12px;flex:1;padding:4px 6px">
+  const msgPid=S.msgSelectedPid||'';
+  const msgP=D.prestataires.find(x=>x.id===msgPid);
+  return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:10px;padding:0.45rem 0.65rem;margin-bottom:10px">
+    <div style="display:flex;align-items:center;gap:6px;${msgP?'margin-bottom:5px':''}">
+      <span style="font-weight:600;font-size:11.5px;white-space:nowrap">💬 Écrire à</span>
+      <select onchange="setMsgSelectedPid(this.value)" style="font-size:11.5px;flex:1;padding:3px 5px">
+        <option value="">— Choisir —</option>
         ${D.prestataires.map(x=>`<option value="${x.id}" ${x.id===msgPid?'selected':''}>${x.name}</option>`).join('')}
       </select>
     </div>
@@ -1265,7 +1272,8 @@ function renderPrestaList(){
       <button class="btn btn-xs" onclick="copyL('${url}',this)">Copier</button>
     </div>`;}).join('')}
   </div>
-  ${sel?renderPrestaDetailAdmin(D.prestataires.find(x=>x.id===sel)):''}`;
+  ${sel?renderPrestaDetailAdmin(D.prestataires.find(x=>x.id===sel)):''}
+  ${renderDomaineList()}`;
 }
 
 function renderPrestaDetailAdmin(p){
@@ -1390,7 +1398,7 @@ function renderPrestaDetailAdmin(p){
 }
 
 function renderDomaineList(){
-  return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
+  return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-top:14px">
     <div class="sec-hdr"><h2>Domaines</h2><button class="btn btn-primary btn-sm" onclick="openM('newDomaine')">+ Ajouter</button></div>
     ${D.domaines.map(d=>`<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #e5e3de">
       ${DOMAIN_LOGOS[d.id]?`<img src="${DOMAIN_LOGOS[d.id]}" alt="" style="width:42px;height:42px;object-fit:contain;flex-shrink:0">`:''}
@@ -1809,7 +1817,7 @@ function renderPrestaCalendrierSeul(p){
   const doms=p.domaines||[];
   const notifs=(D.activityLog||[]).filter(it=>doms.includes(it.domaine)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
   const content=tab==='monbilan'?renderPrestaMonBilanFlat(p):renderCalendrier();
-  return`<div class="topbar"><div style="font-size:20px">🏡</div><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
   ${renderMessagesPanelPresta()}
@@ -1830,7 +1838,7 @@ function renderPrestaFull(p){
   else if(tab==='monbilan')content=renderPrestaMonBilan(p);
   const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
   const notifs=(D.activityLog||[]).filter(it=>(p.domaines||[]).includes(it.domaine)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
-  return`<div class="topbar"><div style="font-size:20px">🏡</div><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
   ${renderMessagesPanelPresta()}
@@ -1849,7 +1857,7 @@ function renderPresta(){
   myR=myR.sort((a,b)=>(a.dateArrivee||a.date).localeCompare(b.dateArrivee||b.date));
   const future=myR.filter(r=>(r.dateDepart||r.dateArrivee||r.date)>=today);
   const past=myR.filter(r=>(r.dateDepart||r.dateArrivee||r.date)<today);
-  return`<div class="topbar"><div style="font-size:20px">🏡</div><h1>Mes interventions</h1><span class="badge bp">${p.name}</span></div>
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Mes interventions</h1><span class="badge bp">${p.name}</span></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${future.length===0?`<div class="ev-card"><div class="empty">Aucune intervention à venir pour l'instant.</div></div>`:''}
   ${future.map(r=>{const dom=gDom(r.domaine);
@@ -1898,7 +1906,7 @@ function renderPrestaHoraires(p){
     const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
     const doms0=p.domaines||[];
     const notifs0=(D.activityLog||[]).filter(it=>doms0.includes(it.domaine)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
-    return`<div class="topbar"><div style="font-size:20px">🏡</div><h1>Arrivées / départs</h1><span class="badge bp">${p.name}</span></div>
+    return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Arrivées / départs</h1><span class="badge bp">${p.name}</span></div>
     ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
     ${renderNotifBanner(notifs0,'dismissPrestaNotifs')}
     <div class="tabs"><button class="tab" onclick="setPrestaTab('horaires')"><span class="tab-ic">🕐</span><span class="tab-lbl">Horaires</span></button><button class="tab active" onclick="setPrestaTab('monbilan')"><span class="tab-ic">💰</span><span class="tab-lbl">Mon Bilan</span></button></div>
@@ -1911,7 +1919,7 @@ function renderPrestaHoraires(p){
   const past=occ.filter(r=>(r.dateDepart||r.dateArrivee||r.date)<today);
   const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
   const notifs=(D.activityLog||[]).filter(it=>doms.includes(it.domaine)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
-  return`<div class="topbar"><div style="font-size:20px">🏡</div><h1>Arrivées / départs</h1><span class="badge bp">${p.name}</span></div>
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Arrivées / départs</h1><span class="badge bp">${p.name}</span></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
   ${renderMessagesPanelPresta()}
@@ -1961,7 +1969,7 @@ function renderPrestaDominique(p){
       </div>`;}).join('')}
     </div>`;
   } else content=renderCalendrier();
-  return`<div class="topbar"><div style="font-size:20px">🏡</div><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
   ${renderMessagesPanelPresta()}
@@ -2042,7 +2050,7 @@ function renderPrestaGardePersonnel(p){
       </div>
     </div>`:''}`;
   }
-  return`<div class="topbar"><div style="font-size:20px">🏡</div><h1>Mes gardiennages</h1><span class="badge bp">${p.name}</span></div>
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Mes gardiennages</h1><span class="badge bp">${p.name}</span></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
   ${renderMessagesPanelPresta()}
@@ -2058,7 +2066,7 @@ function renderPrestaOccupation(p){
   const occ=D.reservations.filter(r=>r.status!=='annulé'&&doms.includes(r.domaine)).sort((a,b)=>(a.dateArrivee||a.date).localeCompare(b.dateArrivee||b.date));
   const future=occ.filter(r=>(r.dateDepart||r.dateArrivee||r.date)>=today);
   const past=occ.filter(r=>(r.dateDepart||r.dateArrivee||r.date)<today);
-  return`<div class="topbar"><div style="font-size:20px">🏡</div><h1>Jours occupés</h1><span class="badge bp">${p.name}</span></div>
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Jours occupés</h1><span class="badge bp">${p.name}</span></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${future.length===0?`<div class="ev-card"><div class="empty">Aucun jour occupé à venir pour l'instant.</div></div>`:''}
   ${future.map(r=>{const dom=gDom(r.domaine);const isJ=r.dateArrivee===r.dateDepart;
