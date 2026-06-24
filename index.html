@@ -829,7 +829,7 @@ function renderDetailPanel(r){
   const myLines=(readOnly&&S.presta&&S.presta.inputMode==='notes')?((r.prestaLines||{})[S.presta.id]||[]):[];
   return`<div class="detail-panel">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
-      <div><div style="font-size:16px;font-weight:500">${displayClientName(r)||'—'}</div>${r.tel?`<div style="font-size:12px;color:#888;margin-top:2px">${r.tel}</div>`:''}<div style="margin-top:4px"><span class="pill ${PILL[c]}">${dom.name}</span> <span class="status s-${r.status}" style="margin-left:4px">${r.status}</span></div></div>
+      <div><div style="font-size:16px;font-weight:700">${displayClientName(r)||'—'}</div>${r.tel?`<div style="font-size:12px;color:#888;margin-top:2px">${r.tel}</div>`:''}<div style="margin-top:4px"><span class="pill ${PILL[c]}">${dom.name}</span> <span class="status s-${r.status}" style="margin-left:4px">${r.status}</span></div></div>
       <button class="btn btn-xs" onclick="closePanel()">✕</button>
     </div>
     <div style="background:#f5f4f1;border-radius:8px;padding:10px;margin-bottom:10px">
@@ -852,10 +852,14 @@ function renderDetailPanel(r){
     <div class="dp-section"><label>Prestataires</label><div>${prs||'<span style="font-size:12px;color:#888">Aucun assigné</span>'}</div></div>
     ${readOnly?'':`<div class="dp-section"><label>Paiements</label><div style="margin-bottom:6px">${payBadge(r)}</div>
       ${pays.map(pa=>`<div style="display:flex;gap:4px;font-size:12px;padding:4px 0;border-bottom:1px solid #e5e3de"><span style="flex:1;color:#666">${fmt(pa.date)}</span><span style="font-weight:500">${money(pa.montant)}</span><span style="color:#666;margin-left:4px">${pa.type||pa.note||''}${pa.comment?' — '+pa.comment:''}</span></div>`).join('')}
-      ${pays.length>0?`<div style="font-size:11px;margin-top:5px;display:flex;justify-content:space-between"><span style="color:#666">Total ${money(r.montant||0)}</span><span style="font-weight:600;color:${solde>0?'#A32D2D':'#27500A'}">Solde ${money(solde)}</span></div>`:''}
+      ${pays.length>0?`<div style="font-size:11px;margin-top:5px;display:flex;justify-content:space-between"><span style="color:#666;font-weight:700">Total ${money(r.montant||0)}</span><span style="font-weight:600;color:${solde>0?'#A32D2D':'#27500A'}">Solde ${money(solde)}</span></div>`:''}
     </div>`}
     ${comms.length>0?`<div class="dp-section"><label>Notes (${comms.length})</label>${comms.map(c=>`<div style="font-size:12px;padding:5px 0;border-bottom:1px solid #e5e3de"><div style="color:#666;font-size:10px;margin-bottom:2px">${c.auteurNom}${c.auteur==='presta'?' (prestataire)':''} · ${fmt(c.date)}</div><div>${c.texte}</div></div>`).join('')}</div>`:''}
-    ${readOnly&&S.presta?`<div class="dp-section"><label>💬 Commentaire du prestataire</label>
+    ${(!readOnly)?(()=>{const ct=getMenageInfo(r);if(!ct)return'';return`<div class="dp-section"><label>💬 Commentaire pour ${ct.name}</label>
+      <textarea id="dp-admin-com" rows="2" placeholder="Une précision pour ${ct.name}…" style="resize:none;width:100%;box-sizing:border-box;margin-bottom:6px"></textarea>
+      <button class="btn btn-sm btn-primary" onclick="addAdminQuickComment('${r.id}')">Envoyer</button>
+    </div>`;})():''}
+    ${readOnly&&S.presta?`<div class="dp-section"><label>💬 Commentaire de ${S.presta.name} à David / Svitlana</label>
       <textarea id="dp-presta-com" rows="2" placeholder="Une question, une précision pour David…" style="resize:none;width:100%;box-sizing:border-box;margin-bottom:6px"></textarea>
       <button class="btn btn-sm btn-primary" onclick="addPrestaComment('${r.id}')">Envoyer</button>
     </div>`:''}
@@ -1508,8 +1512,10 @@ function renderModalContent(){
       <div class="field"><label>Date de départ *</label><input type="date" id="m-dep-date" value="${iD}" onchange="refreshAllGardNights();defaultDepHeure(this.value)"></div>
       <div class="field"><label>Heure de départ *</label><select id="m-dep-heure">${heureOptions(initDepHeure)}</select></div>
     </div>
-    <div class="field" style="margin-bottom:12px"><label style="color:#111;font-weight:700">Montant de la réservation (€) *</label><input type="number" id="m-montant" value="${r.montant||''}" placeholder="0"></div>
-    <div class="field" style="margin-bottom:12px"><label style="display:flex;align-items:center;gap:6px;white-space:nowrap">Note interne <span style="background:#ECE9E2;color:#666;font-size:9.5px;font-weight:600;padding:2px 6px;border-radius:4px;text-transform:none;letter-spacing:0">🔒 admin uniquement</span></label><input type="text" id="m-noteI" value="${r.noteInterne||''}" placeholder="Note rapide…"></div>
+    <div class="g2" style="margin-bottom:12px">
+      <div class="field"><label style="color:#111;font-weight:700">Montant de la réservation (€) *</label><input type="number" id="m-montant" value="${r.montant||''}" placeholder="0" style="font-weight:700"></div>
+      <div class="field"><label style="display:flex;align-items:center;gap:6px;white-space:nowrap">Note interne <span style="background:#ECE9E2;color:#666;font-size:9.5px;font-weight:600;padding:2px 6px;border-radius:4px;text-transform:none;letter-spacing:0">🔒 admin uniquement</span></label><input type="text" id="m-noteI" value="${r.noteInterne||''}" placeholder="Note rapide…"></div>
+    </div>
     <hr style="border:none;border-top:1px solid #e5e3de;margin:14px 0">
     ${type==='editResa'?`
     <div style="font-size:13px;font-weight:500;margin-bottom:8px">💳 Paiements — Encaissé : <span style="color:#27500A">${money(tot)}</span> · Solde : <span style="color:${(r.montant||0)-tot>0?'#A32D2D':'#27500A'}">${money((r.montant||0)-tot)}</span></div>
@@ -1522,7 +1528,7 @@ function renderModalContent(){
       <button class="btn btn-sm btn-primary" style="white-space:nowrap;align-self:flex-end;margin-bottom:1px" onclick="addPay('${id}')">+ Ajouter</button>
     </div>
     <hr style="border:none;border-top:1px solid #e5e3de;margin:14px 0">
-    <div style="font-size:13px;font-weight:500;margin-bottom:8px">💬 Commentaires visibles par les prestataires (${comms.length})</div>
+    <div style="font-size:13px;font-weight:500;margin-bottom:8px">💬 ${(()=>{const ct=getMenageInfo(r);return ct?`Commentaire visible par ${ct.name}`:'Commentaires visibles par les prestataires';})()} (${comms.length})</div>
     ${comms.map(c=>`<div class="comment-item"><div class="meta"><span>${c.auteurNom} · ${fmt(c.date)}</span></div><div>${c.texte}</div></div>`).join('')}
     <textarea id="com-txt" rows="2" placeholder="Nouveau commentaire ou instruction…" style="resize:none;margin-bottom:8px"></textarea>
     <div style="display:flex;align-items:center;gap:10px">
@@ -2071,13 +2077,22 @@ function updPrestaLine(rid,pid,lineId,field,value){
 function addPrestaLine(rid,pid){const r=D.reservations.find(x=>x.id===rid);if(!r)return;const lab=(document.getElementById('pline-label-'+pid).value||'').trim(),amt=parseFloat(document.getElementById('pline-amt-'+pid).value)||0,nt=(document.getElementById('pline-notes-'+pid).value||'').trim(),pd=document.getElementById('pline-paid-'+pid).value==='1';if(!lab&&!amt)return;if(!r.prestaLines)r.prestaLines={};if(!r.prestaLines[pid])r.prestaLines[pid]=[];r.prestaLines[pid].push({id:gid(),label:lab,montant:amt,notes:nt,paidDirect:pd,date:r.dateArrivee||''});saveD();S.modal={type:'editResa',id:rid};render();}
 function delPrestaLine(rid,pid,lineId){if(!rid)return;const r=D.reservations.find(x=>x.id===rid);if(!r||!r.prestaLines||!r.prestaLines[pid])return;r.prestaLines[pid]=r.prestaLines[pid].filter(l=>l.id!==lineId);saveD();render();}
 
-function addComment(rid){const r=D.reservations.find(x=>x.id===rid);if(!r)return;const txt=document.getElementById('com-txt').value.trim();if(!txt)return;if(!r.commentaires)r.commentaires=[];r.commentaires.push({id:gid(),auteur:'admin',auteurNom:S.admin.name,date:new Date().toISOString().slice(0,10),texte:txt,visible:true});saveD();S.modal={type:'editResa',id:rid};render();}
+function addComment(rid){const r=D.reservations.find(x=>x.id===rid);if(!r)return;const txt=document.getElementById('com-txt').value.trim();if(!txt)return;if(!r.commentaires)r.commentaires=[];r.commentaires.push({id:gid(),auteur:'admin',auteurNom:S.admin.name,date:new Date().toISOString().slice(0,10),texte:txt,visible:true});const ct=getMenageInfo(r);if(ct)logActivity('commentaire',r.domaine,`💬 ${S.admin.name} → ${ct.name} : « ${txt} » — ${displayClientName(r)||'—'} (${fmt(r.dateArrivee)})`,[ct.pid]);saveD();S.modal={type:'editResa',id:rid};render();}
 function addPrestaComment(rid){
   const r=D.reservations.find(x=>x.id===rid);if(!r||!S.presta)return;
   const el=document.getElementById('dp-presta-com');const txt=(el&&el.value||'').trim();if(!txt)return;
   if(!r.commentaires)r.commentaires=[];
   r.commentaires.push({id:gid(),auteur:'presta',auteurNom:S.presta.name,date:new Date().toISOString().slice(0,10),texte:txt,visible:true});
   logActivity('commentaire',r.domaine,`💬 ${S.presta.name} : « ${txt} » — ${displayClientName(r)||'—'} (${fmt(r.dateArrivee)})`,[],true);
+  saveD();showMsg('Commentaire envoyé ✓');render();
+}
+function addAdminQuickComment(rid){
+  const r=D.reservations.find(x=>x.id===rid);if(!r||!S.admin)return;
+  const el=document.getElementById('dp-admin-com');const txt=(el&&el.value||'').trim();if(!txt)return;
+  const ct=getMenageInfo(r);
+  if(!r.commentaires)r.commentaires=[];
+  r.commentaires.push({id:gid(),auteur:'admin',auteurNom:S.admin.name,date:new Date().toISOString().slice(0,10),texte:txt,visible:true});
+  if(ct)logActivity('commentaire',r.domaine,`💬 ${S.admin.name} → ${ct.name} : « ${txt} » — ${displayClientName(r)||'—'} (${fmt(r.dateArrivee)})`,[ct.pid]);
   saveD();showMsg('Commentaire envoyé ✓');render();
 }
 function saveResa(id){
