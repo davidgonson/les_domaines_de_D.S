@@ -241,6 +241,7 @@ function runMigrations(){
   if(!D.prestaLastSeen)D.prestaLastSeen={};
   if(!D.dominiqueSchedule)D.dominiqueSchedule=[];
   if(!D.gardeSchedule)D.gardeSchedule=[];
+  if(!D.messages)D.messages=[];
   (D.admins||[]).forEach(a=>{if(a.name==='Gestionnaire')a.name='Svitlana';});
   if(!D.admins)D.admins=[];
   if(!D.admins.some(a=>a.name==='Svitlana')&&!D.admins.some(a=>a.id==='a2'))D.admins.push({id:'a2',name:'Svitlana',pin:'2024',tel:'0630868569'});
@@ -290,6 +291,67 @@ function logActivity(action,domaine,label,concernsPresta,forAdmin){
 }
 function dismissAdminNotifs(){if(!S.admin)return;D.adminLastSeen=D.adminLastSeen||{};D.adminLastSeen[S.admin.id]=Date.now();saveD();render();}
 function dismissPrestaNotifs(){if(!S.presta)return;D.prestaLastSeen=D.prestaLastSeen||{};D.prestaLastSeen[S.presta.id]=Date.now();saveD();render();}
+function renderMessagesPanel(pid,pname){
+  const thread=(D.messages||[]).filter(msg=>msg.fromId===pid||msg.toId===pid).sort((a,b)=>a.ts-b.ts);
+  return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
+    <div class="sec-hdr"><h2>💬 Message avec ${pname}</h2></div>
+    <div style="max-height:220px;overflow-y:auto;margin-bottom:10px;display:flex;flex-direction:column;gap:6px">
+      ${thread.length===0?'<div class="empty">Aucun message échangé.</div>':''}
+      ${thread.map(msg=>{const isFromPresta=msg.fromId===pid;return`<div style="padding:6px 8px;border-radius:8px;background:${isFromPresta?'#f0eee8':'#E8F0FB'};max-width:90%;${isFromPresta?'align-self:flex-start':'align-self:flex-end'}">
+        <div style="font-size:10px;color:#888;display:flex;justify-content:space-between;gap:10px"><span>${msg.fromName}</span><span>${fmt(msg.date)}</span></div>
+        <div style="font-size:13px;margin:3px 0;word-break:break-word">${msg.text}</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span class="pill" style="background:${msg.read?'#E8F3E0':'#FCEBEB'};color:${msg.read?'#27500A':'#791F1F'};cursor:pointer;font-size:9.5px" onclick="toggleMessageRead('${msg.id}')">${msg.read?'✓ Lu':'✗ Non lu'}</span>
+          <button class="btn btn-xs btn-danger" onclick="delMessage('${msg.id}')">✕</button>
+        </div>
+      </div>`;}).join('')}
+    </div>
+    <div style="display:flex;gap:6px">
+      <input type="text" id="msg-input-${pid}" placeholder="Écrire un message à ${pname}…" style="flex:1">
+      <button class="btn btn-sm btn-primary" onclick="sendMessageToPresta('${pid}','${pname}')">Envoyer</button>
+    </div>
+  </div>`;
+}
+function renderMessagesPanelPresta(){
+  if(!S.presta)return'';
+  const pid=S.presta.id,pname=S.presta.name;
+  const thread=(D.messages||[]).filter(msg=>msg.fromId===pid||msg.toId===pid).sort((a,b)=>a.ts-b.ts);
+  return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
+    <div class="sec-hdr"><h2>💬 Message avec l'administration</h2></div>
+    <div style="max-height:220px;overflow-y:auto;margin-bottom:10px;display:flex;flex-direction:column;gap:6px">
+      ${thread.length===0?'<div class="empty">Aucun message échangé.</div>':''}
+      ${thread.map(msg=>{const isMine=msg.fromId===pid;return`<div style="padding:6px 8px;border-radius:8px;background:${isMine?'#E8F0FB':'#f0eee8'};max-width:90%;${isMine?'align-self:flex-end':'align-self:flex-start'}">
+        <div style="font-size:10px;color:#888;display:flex;justify-content:space-between;gap:10px"><span>${msg.fromName}</span><span>${fmt(msg.date)}</span></div>
+        <div style="font-size:13px;margin:3px 0;word-break:break-word">${msg.text}</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span class="pill" style="background:${msg.read?'#E8F3E0':'#FCEBEB'};color:${msg.read?'#27500A':'#791F1F'};cursor:pointer;font-size:9.5px" onclick="toggleMessageRead('${msg.id}')">${msg.read?'✓ Lu':'✗ Non lu'}</span>
+          <button class="btn btn-xs btn-danger" onclick="delMessage('${msg.id}')">✕</button>
+        </div>
+      </div>`;}).join('')}
+    </div>
+    <div style="display:flex;gap:6px">
+      <input type="text" id="msg-input-presta" placeholder="Écrire un message…" style="flex:1">
+      <button class="btn btn-sm btn-primary" onclick="sendMessageFromPresta()">Envoyer</button>
+    </div>
+  </div>`;
+}
+function sendMessageToPresta(pid,pname){
+  const el=document.getElementById('msg-input-'+pid);const txt=(el&&el.value||'').trim();if(!txt)return;
+  if(!D.messages)D.messages=[];
+  D.messages.push({id:gid(),fromId:S.admin.id,fromName:S.admin.name,toId:pid,toName:pname,text:txt,date:new Date().toISOString().slice(0,10),ts:Date.now(),read:false});
+  logActivity('message',null,`💬 Message de ${S.admin.name} : « ${txt} »`,[pid],false);
+  saveD();render();
+}
+function sendMessageFromPresta(){
+  if(!S.presta)return;
+  const el=document.getElementById('msg-input-presta');const txt=(el&&el.value||'').trim();if(!txt)return;
+  if(!D.messages)D.messages=[];
+  D.messages.push({id:gid(),fromId:S.presta.id,fromName:S.presta.name,toId:'admin',toName:'Administration',text:txt,date:new Date().toISOString().slice(0,10),ts:Date.now(),read:false});
+  logActivity('message',null,`💬 Message de ${S.presta.name} : « ${txt} »`,[],true);
+  saveD();showMsg('Message envoyé ✓');render();
+}
+function toggleMessageRead(id){const msg=(D.messages||[]).find(x=>x.id===id);if(!msg)return;msg.read=!msg.read;saveD();render();}
+function delMessage(id){D.messages=(D.messages||[]).filter(x=>x.id!==id);saveD();render();}
 function renderNotifBanner(items,dismissFnName){
   if(!items.length)return'';
   return`<div class="alert alert-info" style="margin-bottom:12px">
@@ -1129,13 +1191,13 @@ function renderBilan(){
           <input type="text" value="${l.label||''}" placeholder="Intitulé" onchange="updPrestaLine('${r.id}','${pid}','${l.id}','label',this.value)" style="flex:1;min-width:90px;font-size:12.5px;font-weight:500;padding:3px 5px">
           <button class="btn btn-xs btn-danger" onclick="delPrestaLine('${r.id}','${pid}','${l.id}')">✕</button>
         </div>
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:5px;flex-wrap:nowrap">
           <input type="number" value="${l.montant||''}" onchange="updPrestaLine('${r.id}','${pid}','${l.id}','montant',this.value)" style="width:65px;font-size:12px;padding:3px 5px;font-weight:500">
-          <select onchange="updPrestaLine('${r.id}','${pid}','${l.id}','paidDirect',this.value)" style="font-size:11px;padding:3px 4px">
+          <select onchange="updPrestaLine('${r.id}','${pid}','${l.id}','paidDirect',this.value)" style="font-size:10.5px;padding:2px 2px;flex-shrink:0;width:auto;max-width:95px">
             <option value="0" ${!l.paidDirect?'selected':''}>Payé via nous</option>
             <option value="1" ${l.paidDirect?'selected':''}>Payé direct au presta</option>
           </select>
-          <input type="text" value="${l.notes||''}" placeholder="Note" onchange="updPrestaLine('${r.id}','${pid}','${l.id}','notes',this.value)" style="flex:1;min-width:80px;font-size:12px;padding:3px 5px">
+          <input type="text" value="${l.notes||''}" placeholder="Note" onchange="updPrestaLine('${r.id}','${pid}','${l.id}','notes',this.value)" style="flex:1;min-width:0;font-size:12px;padding:3px 5px">
         </div>
       </div>`;})).join('')}
     </div>`;}).join('')}
@@ -1167,10 +1229,11 @@ function renderPrestaList(){
 function renderPrestaDetailAdmin(p){
   if(!p)return'';
   if(p.flatRate){
-    const evs=D.reservations.filter(r=>r.status!=='annulé'&&(p.domaines||[]).includes(r.domaine)).sort((a,b)=>(b.dateDepart||'').localeCompare(a.dateDepart||''));
+    const todayStr0=dstr(new Date());
+    const evs=D.reservations.filter(r=>r.status!=='annulé'&&(p.domaines||[]).includes(r.domaine)&&(r.dateDepart||r.dateArrivee||'')>=todayStr0).sort((a,b)=>(a.dateArrivee||'').localeCompare(b.dateArrivee||''));
     const amts=evs.map(r=>(getMenageInfo(r)||{}).montant||0);
     const total=amts.reduce((a,x)=>a+x,0),paid=evs.reduce((a,r,i)=>a+(r.menagePaid?amts[i]:0),0);
-    return`<div style="margin-top:16px;background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
+    return`${renderMessagesPanel(p.id,p.name)}<div style="margin-top:16px;background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
       <div class="sec-hdr"><h2>🧹 Suivi de ${p.name} — forfait de base ${money(p.flatRate)}/vacation (modifiable au cas par cas)</h2></div>
       <div class="g3" style="margin-bottom:14px">
         <div class="metric"><span class="lbl">Total dû</span><span class="val">${money(total)}</span></div>
@@ -1193,7 +1256,7 @@ function renderPrestaDetailAdmin(p){
     (D.gardeSchedule||[]).filter(x=>x.pid===p.id).forEach(x=>rows.push({date:x.date,duree:x.duree,paid:x.paid,payMethod:x.payMethod||'cash',resaId:null,schedId:x.id,client:'— (planning)',domaine:x.domaine,source:'planning'}));
     rows.sort((a,b)=>b.date.localeCompare(a.date));
     const total=rows.reduce((a,x)=>a+gardeRate(x.duree),0),paid=rows.filter(x=>x.paid).reduce((a,x)=>a+gardeRate(x.duree),0);
-    return`<div style="margin-top:16px;background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
+    return`${renderMessagesPanel(p.id,p.name)}<div style="margin-top:16px;background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
       <div class="sec-hdr"><h2>🛡 Suivi de ${p.name} — gardiennage (110€ longue / 75€ courte)</h2><button class="btn btn-xs btn-primary" onclick="openM('gardePlanning',null,{pid:'${p.id}'})">📅 Planning</button></div>
       <div class="g3" style="margin-bottom:14px">
         <div class="metric"><span class="lbl">Total dû</span><span class="val">${money(total)}</span></div>
@@ -1214,7 +1277,7 @@ function renderPrestaDetailAdmin(p){
     const prestaRowsFuture=prestaRows.filter(({r,l})=>(l.date||r.dateArrivee||'')>=todayStr).sort((a,b)=>(a.l.date||a.r.dateArrivee||'').localeCompare(b.l.date||b.r.dateArrivee||''));
     const menageTotal=menageRows.reduce((a,x)=>a+x.mi.montant,0),menagePaid=menageRows.filter(x=>x.r.menagePaid).reduce((a,x)=>a+x.mi.montant,0);
     const commTotal=prestaRows.reduce((a,x)=>a+(x.l.montant||0),0);
-    return`<div style="margin-top:16px">
+    return`${renderMessagesPanel(p.id,p.name)}<div style="margin-top:16px">
       <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
         <div class="sec-hdr"><h2>🧹 Forfaits ménage de ${p.name}</h2></div>
         <div style="font-size:11px;color:#888;margin-bottom:8px">Présent et à venir uniquement — l'historique complet est dans Bilan.</div>
@@ -1226,7 +1289,7 @@ function renderPrestaDetailAdmin(p){
         ${menageRowsFuture.length===0?'<div class="empty">Aucun forfait ménage à venir.</div>':''}
         ${menageRowsFuture.map(({r,mi})=>{const dom=gDom(r.domaine);return`<div style="padding:8px 0;border-bottom:1px solid #e5e3de;font-size:13px">
           <div style="margin-bottom:5px"><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span>${ds(r.dateArrivee)} → ${ds(r.dateDepart)} <span style="color:#888">(${displayClientName(r)||'—'})</span></div>
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:5px;flex-wrap:nowrap">
             <input type="text" value="${r.menageComment||''}" placeholder="Note (ex. seulement la longère)" onchange="updMenageComment('${r.id}',this.value)" style="flex:1;min-width:120px;font-size:12px;padding:3px 5px;color:#888">
             <input type="number" value="${mi.montant}" onchange="updMenageMontant('${r.id}',this.value)" style="width:70px;font-weight:600;font-size:13px;padding:3px 5px">
             <span class="pill" style="background:${r.menagePaid?'#E8F3E0':'#FCEBEB'};color:${r.menagePaid?'#27500A':'#791F1F'};cursor:pointer" onclick="toggleMenagePaid('${r.id}')">${r.menagePaid?'✓ Réglé':'✗ Régler'}</span>
@@ -1243,13 +1306,13 @@ function renderPrestaDetailAdmin(p){
             <input type="text" value="${l.label||''}" placeholder="Intitulé" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','label',this.value)" style="flex:1;min-width:90px;font-size:13px;font-weight:500;padding:3px 5px">
             <button class="btn btn-xs btn-danger" onclick="delPrestaLine('${r.id}','${p.id}','${l.id}')">✕</button>
           </div>
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:5px;flex-wrap:nowrap">
             <input type="number" value="${l.montant||''}" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','montant',this.value)" style="width:70px;font-size:12px;padding:3px 5px;font-weight:500">
-            <select onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','paidDirect',this.value)" style="font-size:11px;padding:3px 4px">
+            <select onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','paidDirect',this.value)" style="font-size:10.5px;padding:2px 2px;flex-shrink:0;width:auto;max-width:95px">
               <option value="0" ${!l.paidDirect?'selected':''}>Payé via nous</option>
               <option value="1" ${l.paidDirect?'selected':''}>Payé direct au presta</option>
             </select>
-            <input type="text" value="${l.notes||''}" placeholder="Note" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','notes',this.value)" style="flex:1;min-width:90px;font-size:12px;padding:3px 5px">
+            <input type="text" value="${l.notes||''}" placeholder="Note" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','notes',this.value)" style="flex:1;min-width:0;font-size:12px;padding:3px 5px">
           </div>
         </div>`;}).join('')}
       </div>
@@ -1259,7 +1322,7 @@ function renderPrestaDetailAdmin(p){
     const rows=[...D.dominiqueSchedule].sort((a,b)=>b.date.localeCompare(a.date));
     const total=rows.reduce((a,x)=>a+(x.montant||0),0);
     const paid=rows.filter(x=>x.paid).reduce((a,x)=>a+(x.montant||0),0);
-    return`<div style="margin-top:16px;background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
+    return`${renderMessagesPanel(p.id,p.name)}<div style="margin-top:16px;background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
       <div class="sec-hdr"><h2>🌱 Planning de ${p.name}</h2><button class="btn btn-xs btn-primary" onclick="openM('dominiquePlanning')">Gérer le planning</button></div>
       <div class="g3" style="margin-bottom:10px">
         <div class="metric"><span class="lbl">Total dû</span><span class="val">${money(total)}</span></div>
@@ -1270,7 +1333,7 @@ function renderPrestaDetailAdmin(p){
       ${rows.map(x=>{const dom=gDom(x.domaine);return`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #e5e3de;font-size:13px"><span><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span>${dn(x.date)} ${ds(x.date)}</span><span><strong>${money(x.montant)}</strong> <span class="pill" style="background:${x.paid?'#E8F3E0':'#FCEBEB'};color:${x.paid?'#27500A':'#791F1F'};cursor:pointer" onclick="toggleDominiquePlanningPaid('${x.id}')">${x.paid?'✓ Réglé':'✗ Régler'}</span></span></div>`;}).join('')}
     </div>`;
   }
-  return`<div style="margin-top:16px" class="empty">Aucun suivi financier spécifique pour ${p.name}.</div>`;
+  return`${renderMessagesPanel(p.id,p.name)}<div style="margin-top:16px" class="empty">Aucun suivi financier spécifique pour ${p.name}.</div>`;
 }
 
 function renderDomaineList(){
@@ -1345,13 +1408,13 @@ function renderModalContent(){
             <input type="text" value="${l.label||''}" placeholder="Intitulé (Traiteur, Ménage…)" onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','label',this.value)" style="flex:1;font-size:13px;font-weight:500;padding:5px 6px;box-sizing:border-box">
             <button class="btn btn-xs btn-danger" onclick="delPrestaLine('${id||''}','${p.id}','${l.id}')">✕</button>
           </div>
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:5px;flex-wrap:nowrap">
             <input type="number" value="${l.montant||''}" placeholder="Montant" onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','montant',this.value)" style="width:70px;font-size:12px;padding:4px 6px;font-weight:500">
-            <select onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','paidDirect',this.value)" style="font-size:11px;padding:4px 5px">
+            <select onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','paidDirect',this.value)" style="font-size:10.5px;padding:2px 2px;flex-shrink:0;width:auto;max-width:95px">
               <option value="0" ${!l.paidDirect?'selected':''}>Payé via nous</option>
               <option value="1" ${l.paidDirect?'selected':''}>Payé direct au presta</option>
             </select>
-            <input type="text" value="${l.notes||''}" placeholder="Note" onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','notes',this.value)" style="flex:1;min-width:90px;font-size:12px;padding:4px 6px">
+            <input type="text" value="${l.notes||''}" placeholder="Note" onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','notes',this.value)" style="flex:1;min-width:0;font-size:12px;padding:4px 6px">
           </div>
         </div>`).join('');
         encart=`<div class="presta-encart" id="penc-${p.id}" style="display:${checked?'block':'none'};margin:4px 0 10px 24px;padding:10px;background:#f5f4f1;border-radius:8px">
@@ -1416,7 +1479,7 @@ function renderModalContent(){
       <div class="field"><label>Statut</label><select id="m-status">${sO}</select></div>
     </div>
     <div class="g2" style="margin-bottom:12px">
-      <div class="field"><label>Nom du client / groupe *</label><input type="text" id="m-client" value="${r.client||''}" placeholder="Famille Dupont…"></div>
+      <div class="field"><label style="color:#111;font-weight:700">Nom du client / groupe *</label><input type="text" id="m-client" value="${r.client||''}" placeholder="Famille Dupont…"></div>
       <div class="field" id="m-societe-wrap" style="display:${r.typeClient==='entreprise'?'flex':'none'}"><label>Nom de la société *</label><input type="text" id="m-societe" value="${r.societe||''}" placeholder="Schneider…"></div>
     </div>
     <div class="g2" style="margin-bottom:12px">
@@ -1433,8 +1496,8 @@ function renderModalContent(){
       <div class="field"><label>Date de départ *</label><input type="date" id="m-dep-date" value="${iD}" onchange="refreshAllGardNights();defaultDepHeure(this.value)"></div>
       <div class="field"><label>Heure de départ *</label><select id="m-dep-heure">${heureOptions(initDepHeure)}</select></div>
     </div>
-    <div class="field" style="margin-bottom:12px"><label>Montant de la réservation (€) *</label><input type="number" id="m-montant" value="${r.montant||''}" placeholder="0"></div>
-    <div class="field" style="margin-bottom:12px"><label>Note interne (admin uniquement — invisible prestataires)</label><input type="text" id="m-noteI" value="${r.noteInterne||''}" placeholder="Note rapide…"></div>
+    <div class="field" style="margin-bottom:12px"><label style="color:#111;font-weight:700">Montant de la réservation (€) *</label><input type="number" id="m-montant" value="${r.montant||''}" placeholder="0"></div>
+    <div class="field" style="margin-bottom:12px"><label style="display:flex;align-items:center;gap:6px;white-space:nowrap">Note interne <span style="background:#ECE9E2;color:#666;font-size:9.5px;font-weight:600;padding:2px 6px;border-radius:4px;text-transform:none;letter-spacing:0">🔒 admin uniquement</span></label><input type="text" id="m-noteI" value="${r.noteInterne||''}" placeholder="Note rapide…"></div>
     <hr style="border:none;border-top:1px solid #e5e3de;margin:14px 0">
     ${type==='editResa'?`
     <div style="font-size:13px;font-weight:500;margin-bottom:8px">💳 Paiements — Encaissé : <span style="color:#27500A">${money(tot)}</span> · Solde : <span style="color:${(r.montant||0)-tot>0?'#A32D2D':'#27500A'}">${money((r.montant||0)-tot)}</span></div>
@@ -1690,6 +1753,7 @@ function renderPrestaCalendrierSeul(p){
   return`<div class="topbar"><div style="font-size:20px">🏡</div><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
+  ${renderMessagesPanelPresta()}
   <div class="tabs">
     <button class="tab ${tab==='calendrier'?'active':''}" onclick="setPrestaTab('calendrier')"><span class="tab-ic">📅</span><span class="tab-lbl">Calendrier</span></button>
     <button class="tab ${tab==='monbilan'?'active':''}" onclick="setPrestaTab('monbilan')"><span class="tab-ic">💰</span><span class="tab-lbl">Mon Bilan</span></button>
@@ -1710,6 +1774,7 @@ function renderPrestaFull(p){
   return`<div class="topbar"><div style="font-size:20px">🏡</div><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
+  ${renderMessagesPanelPresta()}
   <div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${tab===k?'active':''}" onclick="setPrestaTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>
   ${content}${S.modal?renderModalWrap():''}`;
 }
@@ -1790,6 +1855,7 @@ function renderPrestaHoraires(p){
   return`<div class="topbar"><div style="font-size:20px">🏡</div><h1>Arrivées / départs</h1><span class="badge bp">${p.name}</span></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
+  ${renderMessagesPanelPresta()}
   ${hasBilan?`<div class="tabs"><button class="tab active" onclick="setPrestaTab('horaires')"><span class="tab-ic">🕐</span><span class="tab-lbl">Horaires</span></button><button class="tab" onclick="setPrestaTab('monbilan')"><span class="tab-ic">💰</span><span class="tab-lbl">Mon Bilan</span></button></div>`:''}
   ${future.length===0?`<div class="ev-card"><div class="empty">Aucune arrivée/départ à venir pour l'instant.</div></div>`:''}
   ${future.map(r=>{const dom=gDom(r.domaine);const isJ=r.dateArrivee===r.dateDepart;
@@ -1836,6 +1902,7 @@ function renderPrestaDominique(p){
   return`<div class="topbar"><div style="font-size:20px">🏡</div><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
+  ${renderMessagesPanelPresta()}
   <div class="tabs">
     <button class="tab ${tab==='calendrier'?'active':''}" onclick="setPrestaTab('calendrier')"><span class="tab-ic">📅</span><span class="tab-lbl">Calendrier</span></button>
     <button class="tab ${tab==='planning'?'active':''}" onclick="setPrestaTab('planning')"><span class="tab-ic">🌱</span><span class="tab-lbl">Mon Planning</span></button>
@@ -1915,6 +1982,7 @@ function renderPrestaGardePersonnel(p){
   return`<div class="topbar"><div style="font-size:20px">🏡</div><h1>Mes gardiennages</h1><span class="badge bp">${p.name}</span></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
+  ${renderMessagesPanelPresta()}
   <div class="tabs">
     <button class="tab ${tab==='liste'?'active':''}" onclick="setPrestaTab('liste')"><span class="tab-ic">📋</span><span class="tab-lbl">Liste</span></button>
     <button class="tab ${tab==='planning'?'active':''}" onclick="setPrestaTab('planning')"><span class="tab-ic">📅</span><span class="tab-lbl">Planning</span></button>
