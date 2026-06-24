@@ -770,15 +770,13 @@ function doLogin(){
 }
 
 function renderAdmin(){
-  const tabs=[['calendrier','📅','Calendrier'],['liste','🎉','Événements'],['visites','👀','Visites'],['prestataires','🧑‍🔧','Prestataires'],['bilan','📊','Bilan'],['domaines','🏰','Domaines'],['liens','💬','Liens WhatsApp']];
+  const tabs=[['calendrier','📅','Calendrier'],['liste','🎉','Événements'],['visites','👀','Visites'],['prestataires','🧑‍🔧','Prestataires'],['bilan','📊','Bilan']];
   let content='';
   if(S.tab==='calendrier')content=renderCalendrier();
   else if(S.tab==='liste')content=renderListe();
   else if(S.tab==='visites')content=renderVisiteList();
   else if(S.tab==='prestataires')content=renderPrestaList();
   else if(S.tab==='bilan')content=renderBilan();
-  else if(S.tab==='domaines')content=renderDomaineList();
-  else if(S.tab==='liens')content=renderLiens();
   const lastSeen=(D.adminLastSeen||{})[S.admin.id]||0;
   const notifs=(D.activityLog||[]).filter(it=>((it.authorId&&it.authorId!==S.admin.id)||it.forAdmin)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
   return`<div class="topbar"><div style="font-size:20px">🏡</div><h1>Les Domaines de DS</h1><span class="badge ba">Admin — ${S.admin.name}</span><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}${renderNotifBanner(notifs,'dismissAdminNotifs')}${renderMessagesHub()}<div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${S.tab===k?'active':''}" onclick="setTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>${content}${S.modal?renderModalWrap():''}`;
@@ -1257,6 +1255,15 @@ function renderPrestaList(){
         <button class="btn btn-xs" onclick="event.stopPropagation();openM('editPresta','${p.id}')">Modifier</button>
         <button class="btn btn-xs btn-danger" onclick="event.stopPropagation();delPresta('${p.id}')">✕</button>
       </div>`;}).join('')}
+  </div>
+  <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-top:14px">
+    <div class="sec-hdr"><h2>👤 Liens personnels administrateurs</h2></div>
+    <div style="font-size:11px;color:#888;margin-bottom:10px">Connexion directe sans code — à n'enregistrer que sur l'appareil personnel de la personne.</div>
+    ${D.admins.map(a=>{const url=window.location.origin+window.location.pathname+'?admin='+a.token;return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #e5e3de">
+      <span style="font-weight:500;font-size:13px;width:80px;flex-shrink:0">${a.name}</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:#666">${url}</span>
+      <button class="btn btn-xs" onclick="copyL('${url}',this)">Copier</button>
+    </div>`;}).join('')}
   </div>
   ${sel?renderPrestaDetailAdmin(D.prestataires.find(x=>x.id===sel)):''}`;
 }
