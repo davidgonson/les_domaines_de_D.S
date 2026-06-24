@@ -127,11 +127,26 @@ input:focus,select:focus,textarea:focus{border-color:#993556;box-shadow:0 0 0 3p
 .band-startend{border-radius:5px;padding:0 5px}
 .band-mid{border-radius:0}
 .band.option{color:#fff!important}
-.band.paid.b0f,.band.paid.b0l{box-shadow:inset 0 0 0 2px #5C1530}
-.band.paid.b1f,.band.paid.b1l{box-shadow:inset 0 0 0 2px #7A5800}
-.band.paid.b2f,.band.paid.b2l{box-shadow:inset 0 0 0 2px #1C3A07}
-.band.paid.b3f,.band.paid.b3l{box-shadow:inset 0 0 0 2px #2A2566}
-.band.paid.b4f,.band.paid.b4l{box-shadow:inset 0 0 0 2px #07335C}
+.band.paid.band-startend.b0f,.band.paid.band-startend.b0l{box-shadow:inset 0 0 0 2px #5C1530}
+.band.paid.band-start.b0f,.band.paid.band-start.b0l{box-shadow:inset 2px 0 0 0 #5C1530,inset 0 2px 0 0 #5C1530,inset 0 -2px 0 0 #5C1530}
+.band.paid.band-end.b0f,.band.paid.band-end.b0l{box-shadow:inset -2px 0 0 0 #5C1530,inset 0 2px 0 0 #5C1530,inset 0 -2px 0 0 #5C1530}
+.band.paid.band-mid.b0f,.band.paid.band-mid.b0l{box-shadow:inset 0 2px 0 0 #5C1530,inset 0 -2px 0 0 #5C1530}
+.band.paid.band-startend.b1f,.band.paid.band-startend.b1l{box-shadow:inset 0 0 0 2px #7A5800}
+.band.paid.band-start.b1f,.band.paid.band-start.b1l{box-shadow:inset 2px 0 0 0 #7A5800,inset 0 2px 0 0 #7A5800,inset 0 -2px 0 0 #7A5800}
+.band.paid.band-end.b1f,.band.paid.band-end.b1l{box-shadow:inset -2px 0 0 0 #7A5800,inset 0 2px 0 0 #7A5800,inset 0 -2px 0 0 #7A5800}
+.band.paid.band-mid.b1f,.band.paid.band-mid.b1l{box-shadow:inset 0 2px 0 0 #7A5800,inset 0 -2px 0 0 #7A5800}
+.band.paid.band-startend.b2f,.band.paid.band-startend.b2l{box-shadow:inset 0 0 0 2px #1C3A07}
+.band.paid.band-start.b2f,.band.paid.band-start.b2l{box-shadow:inset 2px 0 0 0 #1C3A07,inset 0 2px 0 0 #1C3A07,inset 0 -2px 0 0 #1C3A07}
+.band.paid.band-end.b2f,.band.paid.band-end.b2l{box-shadow:inset -2px 0 0 0 #1C3A07,inset 0 2px 0 0 #1C3A07,inset 0 -2px 0 0 #1C3A07}
+.band.paid.band-mid.b2f,.band.paid.band-mid.b2l{box-shadow:inset 0 2px 0 0 #1C3A07,inset 0 -2px 0 0 #1C3A07}
+.band.paid.band-startend.b3f,.band.paid.band-startend.b3l{box-shadow:inset 0 0 0 2px #2A2566}
+.band.paid.band-start.b3f,.band.paid.band-start.b3l{box-shadow:inset 2px 0 0 0 #2A2566,inset 0 2px 0 0 #2A2566,inset 0 -2px 0 0 #2A2566}
+.band.paid.band-end.b3f,.band.paid.band-end.b3l{box-shadow:inset -2px 0 0 0 #2A2566,inset 0 2px 0 0 #2A2566,inset 0 -2px 0 0 #2A2566}
+.band.paid.band-mid.b3f,.band.paid.band-mid.b3l{box-shadow:inset 0 2px 0 0 #2A2566,inset 0 -2px 0 0 #2A2566}
+.band.paid.band-startend.b4f,.band.paid.band-startend.b4l{box-shadow:inset 0 0 0 2px #07335C}
+.band.paid.band-start.b4f,.band.paid.band-start.b4l{box-shadow:inset 2px 0 0 0 #07335C,inset 0 2px 0 0 #07335C,inset 0 -2px 0 0 #07335C}
+.band.paid.band-end.b4f,.band.paid.band-end.b4l{box-shadow:inset -2px 0 0 0 #07335C,inset 0 2px 0 0 #07335C,inset 0 -2px 0 0 #07335C}
+.band.paid.band-mid.b4f,.band.paid.band-mid.b4l{box-shadow:inset 0 2px 0 0 #07335C,inset 0 -2px 0 0 #07335C}
 .b0f{background:#F4C0D1;color:#72243E}
 .b0l{background:#FBEAF0;color:#993556;border:1px dashed #F4C0D1}
 .b1f{background:#F5D98B;color:#7A5800}
@@ -186,7 +201,7 @@ const DOMAIN_LOGOS={
 const PILL=['p0','p1','p2','p3','p4'];
 const MONTHS_FR=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 const PRESTA_CATS=['Animation','Traiteur','Décoration','Logistique','Autre'];
-const EVENT_TYPES=['Mariage','Anniversaire','Séminaire','Famille / Cousinade','EVJF / EVG','Séjour amis','Airbnb','Abritel','Booking','Autre'];
+const EVENT_TYPES=['Mariage','Anniversaire','Séminaire','Famille / Cousinade','EVJF / EVG','Séjour amis','Airbnb','Abritel','Booking','GDC (Gens de confiance)','Déjeuner','Dîner','Autre'];
 const DOMINIQUE_RATES={d1:120,d2:150,d3:120};
 const LEG_BG=['#F4C0D1','#F5D98B','#C0DD97','#CECBF6','#B5D4F4'];
 const BAND_FULL=['b0f','b1f','b2f','b3f','b4f'];
@@ -268,9 +283,9 @@ function saveD(){try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}pushR
 function gDom(id){return D.domaines.find(d=>d.id===id)||{name:'—',color:0};}
 function gPre(id){return D.prestataires.find(p=>p.id===id)||{name:'—',role:''};}
 function gid(){return 'x'+Math.random().toString(36).slice(2,9);}
-function logActivity(action,domaine,label,concernsPresta){
+function logActivity(action,domaine,label,concernsPresta,forAdmin){
   if(!D.activityLog)D.activityLog=[];
-  D.activityLog.push({id:gid(),ts:Date.now(),authorId:S.admin?S.admin.id:null,authorName:S.admin?S.admin.name:'Système',domaine,action,label,concernsPresta:concernsPresta||[]});
+  D.activityLog.push({id:gid(),ts:Date.now(),authorId:S.admin?S.admin.id:null,authorName:S.admin?S.admin.name:(S.presta?S.presta.name:'Système'),domaine,action,label,concernsPresta:concernsPresta||[],forAdmin:!!forAdmin});
   if(D.activityLog.length>200)D.activityLog=D.activityLog.slice(-200);
 }
 function dismissAdminNotifs(){if(!S.admin)return;D.adminLastSeen=D.adminLastSeen||{};D.adminLastSeen[S.admin.id]=Date.now();saveD();render();}
@@ -416,10 +431,8 @@ function buildBands(y,m){
       if(ifr&&ilr)sc='band-startend';else if(ifr)sc='band-start';else if(ilr)sc='band-end';
       /* Données brutes du label : l'arbitrage selon la largeur réelle se fait dans injectBands */
       const mainParts=[];
-      if(ifr){
-        if(r.nbSoiree)mainParts.push(r.nbSoiree+' inv.');
-        if(r.typeEvenement)mainParts.push(r.typeEvenement);
-      }
+      if(r.nbSoiree)mainParts.push(r.nbSoiree+' inv.');
+      if(r.typeEvenement&&!HIDE_EVENT_TYPE)mainParts.push(r.typeEvenement);
       const mainLine=mainParts.join(' · ');
       const nameTxt=displayClientName(r)?shortName(displayClientName(r)):'';
       const timeArr=ifr?(r.heureArrivee||''):'';
@@ -436,8 +449,8 @@ function buildBands(y,m){
 function nbFieldsHtml(domaine,r){
   if(domaine==='d3'){
     return`<div class="g2" style="margin-bottom:4px">
-      <div class="field"><label>🧑 Nombre d'adultes</label><input type="number" id="m-adultes" value="${r.nbAdultes||''}" placeholder="0" min="0" onchange="syncNb('m-adultes','m-enfants')"></div>
-      <div class="field"><label>🧒 Nombre d'enfants</label><input type="number" id="m-enfants" value="${r.nbEnfants||''}" placeholder="0" min="0" onchange="syncNb('m-enfants','m-adultes')"></div>
+      <div class="field"><label>🧑 Nombre d'adultes</label><input type="number" id="m-adultes" value="${r.nbAdultes||''}" placeholder="0" min="0"></div>
+      <div class="field"><label>🧒 Nombre d'enfants</label><input type="number" id="m-enfants" value="${r.nbEnfants||''}" placeholder="0" min="0"></div>
     </div>`;
   }
   return`<div class="g2" style="margin-bottom:4px">
@@ -535,7 +548,8 @@ function checkToken(){
 
 let CAL_DOMAIN_FILTER=null;
 let STRIP_BAND_INFO=false;
-function render(){const r=document.getElementById('root');CAL_DOMAIN_FILTER=(S.view==='presta'&&S.presta&&(S.presta.accessMode==='calendrierSeul'||S.presta.accessMode==='occupation'))?(S.presta.domaines||null):null;STRIP_BAND_INFO=(S.view==='presta'&&S.presta&&S.presta.accessMode==='occupation');if(S.view==='login')r.innerHTML=renderLogin();else if(S.view==='admin')r.innerHTML=renderAdmin();else if(S.view==='presta')r.innerHTML=renderPresta();injectBands();injectVisiteMarkers();}
+let HIDE_EVENT_TYPE=false;
+function render(){const r=document.getElementById('root');CAL_DOMAIN_FILTER=(S.view==='presta'&&S.presta&&(S.presta.accessMode==='calendrierSeul'||S.presta.accessMode==='occupation'))?(S.presta.domaines||null):null;STRIP_BAND_INFO=(S.view==='presta'&&S.presta&&S.presta.accessMode==='occupation');HIDE_EVENT_TYPE=(S.view==='presta'&&S.presta&&S.presta.accessMode==='calendrierSeul');if(S.view==='login')r.innerHTML=renderLogin();else if(S.view==='admin')r.innerHTML=renderAdmin();else if(S.view==='presta')r.innerHTML=renderPresta();injectBands();injectVisiteMarkers();}
 function injectBands(){
   const inCalView=(S.view==='admin'&&S.tab==='calendrier')||(S.view==='presta'&&S.prestaTab==='calendrier');
   if(!inCalView)return;
@@ -544,6 +558,7 @@ function injectBands(){
   const{bands}=buildBands(S.calYear,S.calMonth);
   const gridRect=grid.getBoundingClientRect();
   const dayFrac=h=>Math.max(0,Math.min(1,(h-8)/14));
+  const placed=[];
   bands.forEach(b=>{
     const startIdx=b.row*7+b.colStart,endIdx=b.row*7+b.colStart+b.spanCols-1;
     const startCell=cells[startIdx],endCell=cells[endIdx];
@@ -597,6 +612,31 @@ function injectBands(){
     div.title=label.replace(/<\/(div|span)>/g,' ').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim()+' — cliquer pour détail';
     div.onclick=ev=>{ev.stopPropagation();selectResa(b.rid,ev);};
     grid.appendChild(div);
+    placed.push({rid:b.rid,slot:b.slot,row:b.row,leftPx,widthPx,topPx});
+  });
+  /* Avertissement de chevauchement : deux réservations différentes, même créneau (slot/ligne), qui se touchent ou se croisent dans le temps */
+  const bySlotRow={};
+  placed.forEach(p=>{const k=p.row+'_'+p.slot;(bySlotRow[k]=bySlotRow[k]||[]).push(p);});
+  Object.values(bySlotRow).forEach(arr=>{
+    arr.sort((a,b)=>a.leftPx-b.leftPx);
+    for(let i=0;i<arr.length-1;i++){
+      const a=arr[i],b2=arr[i+1];
+      if(a.rid===b2.rid)continue;
+      if(a.leftPx+a.widthPx>b2.leftPx+0.5){
+        const warn=document.createElement('div');
+        warn.style.position='absolute';
+        warn.style.top=(Math.min(a.topPx,b2.topPx))+'px';
+        warn.style.left=(b2.leftPx-1.5)+'px';
+        warn.style.width='3px';
+        warn.style.height='26px';
+        warn.style.background='#E11D2A';
+        warn.style.zIndex='5';
+        warn.style.borderRadius='2px';
+        warn.style.boxShadow='0 0 3px rgba(225,29,42,.7)';
+        warn.title='⚠️ Chevauchement : ces deux réservations se croisent dans le temps';
+        grid.appendChild(warn);
+      }
+    }
   });
 }
 
@@ -670,7 +710,7 @@ function renderAdmin(){
   else if(S.tab==='domaines')content=renderDomaineList();
   else if(S.tab==='liens')content=renderLiens();
   const lastSeen=(D.adminLastSeen||{})[S.admin.id]||0;
-  const notifs=(D.activityLog||[]).filter(it=>it.authorId&&it.authorId!==S.admin.id&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
+  const notifs=(D.activityLog||[]).filter(it=>((it.authorId&&it.authorId!==S.admin.id)||it.forAdmin)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
   return`<div class="topbar"><div style="font-size:20px">🏡</div><h1>Les Domaines de DS</h1><span class="badge ba">Admin — ${S.admin.name}</span><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}${renderNotifBanner(notifs,'dismissAdminNotifs')}<div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${S.tab===k?'active':''}" onclick="setTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>${content}${S.modal?renderModalWrap():''}`;
 }
 
@@ -764,8 +804,15 @@ function renderDetailPanel(r){
 function renderListe(){
   const readOnly=S.view!=='admin';
   const y=S.listeYear,m=S.listeMonth;
+  const sortBy=S.listeSortBy||'date';
   const inMonth=r=>{const d=r.dateArrivee||r.date;if(!d)return false;const[ry,rm]=d.split('-').map(Number);return ry===y&&rm===(m+1);};
-  const list=D.reservations.filter(inMonth).sort((a,b)=>(a.dateArrivee||a.date).localeCompare(b.dateArrivee||b.date));
+  const list=D.reservations.filter(inMonth).sort((a,b)=>{
+    if(sortBy==='domaine'){
+      const da=gDom(a.domaine).name||'',db=gDom(b.domaine).name||'';
+      if(da!==db)return da.localeCompare(db);
+    }
+    return(a.dateArrivee||a.date).localeCompare(b.dateArrivee||b.date);
+  });
   const totalCA=list.reduce((a,r)=>a+(r.montant||0),0),totalPaid=list.reduce((a,r)=>a+totPay(r),0);
   const rows=list.map(r=>{const dom=gDom(r.domaine);const isJ=r.dateArrivee===r.dateDepart;
     return`<tr ${readOnly?'':`onclick="selectAndGoCal('${r.id}')"`}><td><div style="font-weight:500">${displayClientName(r)||'—'}</div>${r.tel?`<div style="font-size:11px;color:#888">${r.tel}</div>`:''}${r.typeEvenement?`<div style="font-size:11px;color:#993556">${r.typeEvenement}</div>`:''}</td><td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td>
@@ -775,6 +822,7 @@ function renderListe(){
     <td><button class="btn btn-xs" onclick="event.stopPropagation();openM('editResa','${r.id}')">Détail</button></td>`}</tr>`;}).join('');
   return`<div class="cal-header" style="margin-bottom:10px">
     ${monthYearPicker('listeYear','listeMonth')}
+    <div class="field" style="min-width:160px"><label style="font-size:10.5px">Trier par</label><select onchange="setListeSortBy(this.value)" style="font-size:12px;padding:5px 6px"><option value="date" ${sortBy==='date'?'selected':''}>Date d'arrivée</option><option value="domaine" ${sortBy==='domaine'?'selected':''}>Domaine</option></select></div>
     ${readOnly?'':`<button class="btn btn-primary btn-sm" onclick="openM('newResa')">+ Ajouter</button>`}
   </div>
   ${readOnly?'':`<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;font-size:12px">
@@ -817,12 +865,21 @@ function navYearOnly(yKey,d){
 }
 function listeNav(d){S.listeMonth+=d;if(S.listeMonth>11){S.listeMonth=0;S.listeYear++;}if(S.listeMonth<0){S.listeMonth=11;S.listeYear--;}render();}
 
-const ARR_DEFAULT_HOUR={0:'18:00',1:'10:00',2:'10:00',3:'10:00',4:'10:00',5:'16:00',6:'16:00'};
-const DEP_DEFAULT_HOUR={0:'18:00',1:'18:00',2:'18:00',3:'18:00',4:'18:00',5:'11:00',6:'11:00'};
+const ARR_DEFAULT_HOUR={0:'16:00',1:'10:00',2:'10:00',3:'10:00',4:'10:00',5:'16:00',6:'10:00'};
+const DEP_DEFAULT_HOUR={0:'18:00',1:'18:00',2:'18:00',3:'18:00',4:'18:00',5:'18:00',6:'18:00'};
 function defaultArrHeure(dateStr){
   if(!dateStr)return;
   const el=document.getElementById('m-arr-heure');
   if(el&&!el.value){const dow=new Date(dateStr+'T12:00:00').getDay();el.value=ARR_DEFAULT_HOUR[dow]||'';}
+}
+function defaultDepDate(dateStr){
+  if(!dateStr)return;
+  const el=document.getElementById('m-dep-date');
+  if(el&&!el.value){
+    const d=new Date(dateStr+'T12:00:00');d.setDate(d.getDate()+2);
+    el.value=d.toISOString().slice(0,10);
+    refreshAllGardNights();defaultDepHeure(el.value);
+  }
 }
 function defaultDepHeure(dateStr){
   if(!dateStr)return;
@@ -908,6 +965,7 @@ function delVisite(id){if(!confirm('Supprimer cette visite ?'))return;const v=D.
 
 function bilanNav(d){S.bilanMonth+=d;if(S.bilanMonth>11){S.bilanMonth=0;S.bilanYear++;}if(S.bilanMonth<0){S.bilanMonth=11;S.bilanYear--;}render();}
 function setBilanViewMode(mode){S.bilanViewMode=mode;render();}
+function setListeSortBy(v){S.listeSortBy=v;render();}
 function selectPresta(pid){S.selectedPresta=(S.selectedPresta===pid)?null:pid;render();}
 
 function nightsByMonth(r){
@@ -1061,10 +1119,25 @@ function renderBilan(){
   </div>
   <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
     <div class="sec-hdr"><h2>Détail par événement (prestations avec commission)</h2></div>
+    <div style="font-size:11px;color:#888;margin-bottom:8px">Toute modification ici se répercute automatiquement dans l'événement et dans la fiche du prestataire.</div>
     ${evs.length===0?'<div class="empty">Aucun détail sur cette période.</div>':''}
-    ${evs.map(r=>{const dom=gDom(r.domaine);return`<div style="padding:8px 0;border-bottom:1px solid #e5e3de">
-      <div style="font-weight:500;font-size:13px">${displayClientName(r)||dom.name} — <span class="pill ${PILL[dom.color||0]}">${dom.name}</span> · ${ds(r.dateArrivee)}</div>
-      ${Object.entries(r.prestaLines).flatMap(([pid,lines])=>lines.map(l=>{const who=gPre(pid);return`<div style="font-size:12px;color:#666;margin-top:3px">${who.name||'—'} — ${l.label||'—'} : <strong>${money(l.montant)}</strong> <span style="color:${l.paidDirect?'#888':'#A32D2D'}">(${l.paidDirect?'payé direct':'à reverser'})</span>${l.notes?' — '+l.notes:''}</div>`;})).join('')}
+    ${evs.map(r=>{const dom=gDom(r.domaine);return`<div style="padding:10px 0;border-bottom:1px solid #e5e3de">
+      <div style="font-weight:500;font-size:13px;margin-bottom:6px">${displayClientName(r)||dom.name} — <span class="pill ${PILL[dom.color||0]}">${dom.name}</span> · ${ds(r.dateArrivee)}</div>
+      ${Object.entries(r.prestaLines).flatMap(([pid,lines])=>lines.map(l=>{const who=gPre(pid);return`<div style="background:#f5f4f1;border-radius:8px;padding:7px 8px;margin-bottom:5px">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <span style="font-size:11px;color:#888;white-space:nowrap;font-weight:600">${who.name||'—'}</span>
+          <input type="text" value="${l.label||''}" placeholder="Intitulé" onchange="updPrestaLine('${r.id}','${pid}','${l.id}','label',this.value)" style="flex:1;min-width:90px;font-size:12.5px;font-weight:500;padding:3px 5px">
+          <button class="btn btn-xs btn-danger" onclick="delPrestaLine('${r.id}','${pid}','${l.id}')">✕</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <input type="number" value="${l.montant||''}" onchange="updPrestaLine('${r.id}','${pid}','${l.id}','montant',this.value)" style="width:65px;font-size:12px;padding:3px 5px;font-weight:500">
+          <select onchange="updPrestaLine('${r.id}','${pid}','${l.id}','paidDirect',this.value)" style="font-size:11px;padding:3px 4px">
+            <option value="0" ${!l.paidDirect?'selected':''}>Payé via nous</option>
+            <option value="1" ${l.paidDirect?'selected':''}>Payé direct au presta</option>
+          </select>
+          <input type="text" value="${l.notes||''}" placeholder="Note" onchange="updPrestaLine('${r.id}','${pid}','${l.id}','notes',this.value)" style="flex:1;min-width:80px;font-size:12px;padding:3px 5px">
+        </div>
+      </div>`;})).join('')}
     </div>`;}).join('')}
   </div>`;
 }
@@ -1128,36 +1201,56 @@ function renderPrestaDetailAdmin(p){
         <div class="metric"><span class="lbl">Reste à régler</span><span class="val" style="color:#A32D2D">${money(total-paid)}</span></div>
       </div>
       ${rows.length===0?'<div class="empty">Aucune nuit de gardiennage enregistrée.</div>':''}
-      <div style="overflow-x:auto"><table class="list-tbl"><thead><tr><th>Nuit du</th><th>Lieu</th><th>Durée</th><th>Montant</th><th>Mode</th><th>Statut</th><th>Événement</th></tr></thead>
-      <tbody>${rows.map(x=>{const dom=gDom(x.domaine);const toggleCall=x.source==='resa'?`toggleGardeNightPaid('${x.resaId}','${p.id}','${x.date}')`:`toggleGardeSchedulePaid('${x.schedId}')`;const methodCall=x.source==='resa'?`setGardeNightPayMethod('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeSchedulePayMethod('${x.schedId}',this.value)`;return`<tr><td>${dn(x.date)} ${ds(x.date)}</td><td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td><td>${x.duree==='courte'?'Courte (22h-2h)':'Longue (22h-4h)'}</td><td>${money(gardeRate(x.duree))}</td><td><select onchange="${methodCall}" style="font-size:12px"><option value="cash" ${x.payMethod==='cash'?'selected':''}>💵 Cash</option><option value="virement" ${x.payMethod==='virement'?'selected':''}>🏦 Virement</option></select></td><td><span class="pill" style="background:${x.paid?'#E8F3E0':'#FCEBEB'};color:${x.paid?'#27500A':'#791F1F'};cursor:pointer" onclick="${toggleCall}">${x.paid?'✓ Réglé':'✗ Régler'}</span></td><td>${x.client}</td></tr>`;}).join('')}</tbody></table></div>
+      <div style="overflow-x:auto"><table class="list-tbl"><thead><tr><th>Nuit du</th><th>Lieu</th><th>Durée</th><th>Montant</th><th>Mode</th><th>Statut</th><th>Événement</th><th></th></tr></thead>
+      <tbody>${rows.map(x=>{const dom=gDom(x.domaine);const toggleCall=x.source==='resa'?`toggleGardeNightPaid('${x.resaId}','${p.id}','${x.date}')`:`toggleGardeSchedulePaid('${x.schedId}')`;const methodCall=x.source==='resa'?`setGardeNightPayMethod('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeSchedulePayMethod('${x.schedId}',this.value)`;const dureeCall=x.source==='resa'?`setGardeNightDuree('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleDuree('${x.schedId}',this.value)`;const delCall=x.source==='resa'?`delGardeNight('${x.resaId}','${p.id}','${x.date}')`:`delGardePlanning('${x.schedId}')`;return`<tr><td>${dn(x.date)} ${ds(x.date)}</td><td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td><td><select onchange="${dureeCall}" style="font-size:12px"><option value="courte" ${x.duree==='courte'?'selected':''}>Courte (22h-2h)</option><option value="longue" ${x.duree==='longue'?'selected':''}>Longue (22h-4h)</option></select></td><td>${money(gardeRate(x.duree))}</td><td><select onchange="${methodCall}" style="font-size:12px"><option value="cash" ${x.payMethod==='cash'?'selected':''}>💵 Cash</option><option value="virement" ${x.payMethod==='virement'?'selected':''}>🏦 Virement</option></select></td><td><span class="pill" style="background:${x.paid?'#E8F3E0':'#FCEBEB'};color:${x.paid?'#27500A':'#791F1F'};cursor:pointer" onclick="${toggleCall}">${x.paid?'✓ Réglé':'✗ Régler'}</span></td><td>${x.client}</td><td><button class="btn btn-xs btn-danger" onclick="${delCall}">✕</button></td></tr>`;}).join('')}</tbody></table></div>
     </div>`;
   }
   if(p.inputMode==='notes'){
     const menageRows=D.reservations.filter(r=>r.status!=='annulé').map(r=>({r,mi:getMenageInfo(r)})).filter(x=>x.mi&&x.mi.pid===p.id).sort((a,b)=>(b.r.dateDepart||'').localeCompare(a.r.dateDepart||''));
     const prestaRows=[];
     D.reservations.filter(r=>r.status!=='annulé'&&r.prestaLines&&r.prestaLines[p.id]&&r.prestaLines[p.id].length).forEach(r=>{r.prestaLines[p.id].forEach(l=>prestaRows.push({r,l}));});
+    const todayStr=dstr(new Date());
+    const menageRowsFuture=menageRows.filter(({r})=>(r.dateDepart||r.dateArrivee)>=todayStr).sort((a,b)=>(a.r.dateArrivee||'').localeCompare(b.r.dateArrivee||''));
+    const prestaRowsFuture=prestaRows.filter(({r,l})=>(l.date||r.dateArrivee||'')>=todayStr).sort((a,b)=>(a.l.date||a.r.dateArrivee||'').localeCompare(b.l.date||b.r.dateArrivee||''));
     const menageTotal=menageRows.reduce((a,x)=>a+x.mi.montant,0),menagePaid=menageRows.filter(x=>x.r.menagePaid).reduce((a,x)=>a+x.mi.montant,0);
     const commTotal=prestaRows.reduce((a,x)=>a+(x.l.montant||0),0);
     return`<div style="margin-top:16px">
       <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
         <div class="sec-hdr"><h2>🧹 Forfaits ménage de ${p.name}</h2></div>
+        <div style="font-size:11px;color:#888;margin-bottom:8px">Présent et à venir uniquement — l'historique complet est dans Bilan.</div>
         <div class="g3" style="margin-bottom:10px">
           <div class="metric"><span class="lbl">Total dû</span><span class="val">${money(menageTotal)}</span></div>
           <div class="metric"><span class="lbl">Réglé</span><span class="val" style="color:#27500A">${money(menagePaid)}</span></div>
           <div class="metric"><span class="lbl">Reste à régler</span><span class="val" style="color:#A32D2D">${money(menageTotal-menagePaid)}</span></div>
         </div>
-        ${menageRows.length===0?'<div class="empty">Aucun forfait ménage.</div>':''}
-        ${menageRows.map(({r,mi})=>{const dom=gDom(r.domaine);return`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #e5e3de;font-size:13px;gap:8px">
-          <span><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span>${ds(r.dateArrivee)} → ${ds(r.dateDepart)} <span style="color:#888">(${displayClientName(r)||'—'})</span></span>
-          <span style="display:flex;align-items:center;gap:6px;flex-shrink:0"><input type="number" value="${mi.montant}" onchange="updMenageMontant('${r.id}',this.value)" style="width:70px;font-weight:600;font-size:13px;padding:3px 5px"> <span class="pill" style="background:${r.menagePaid?'#E8F3E0':'#FCEBEB'};color:${r.menagePaid?'#27500A':'#791F1F'};cursor:pointer" onclick="toggleMenagePaid('${r.id}')">${r.menagePaid?'✓ Réglé':'✗ Régler'}</span></span>
+        ${menageRowsFuture.length===0?'<div class="empty">Aucun forfait ménage à venir.</div>':''}
+        ${menageRowsFuture.map(({r,mi})=>{const dom=gDom(r.domaine);return`<div style="padding:8px 0;border-bottom:1px solid #e5e3de;font-size:13px">
+          <div style="margin-bottom:5px"><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span>${ds(r.dateArrivee)} → ${ds(r.dateDepart)} <span style="color:#888">(${displayClientName(r)||'—'})</span></div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <input type="text" value="${r.menageComment||''}" placeholder="Note (ex. seulement la longère)" onchange="updMenageComment('${r.id}',this.value)" style="flex:1;min-width:120px;font-size:12px;padding:3px 5px;color:#888">
+            <input type="number" value="${mi.montant}" onchange="updMenageMontant('${r.id}',this.value)" style="width:70px;font-weight:600;font-size:13px;padding:3px 5px">
+            <span class="pill" style="background:${r.menagePaid?'#E8F3E0':'#FCEBEB'};color:${r.menagePaid?'#27500A':'#791F1F'};cursor:pointer" onclick="toggleMenagePaid('${r.id}')">${r.menagePaid?'✓ Réglé':'✗ Régler'}</span>
+          </div>
         </div>`;}).join('')}
       </div>
       <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
         <div class="sec-hdr"><h2>Prestations avec commission de ${p.name}</h2></div>
+        <div style="font-size:11px;color:#888;margin-bottom:4px">Présent et à venir uniquement — l'historique complet est dans Bilan.</div>
         <div style="font-size:12px;color:#888;margin-bottom:10px">Total : ${money(commTotal)} · Ta commission (10%) : ${money(commTotal*0.1)}</div>
-        ${prestaRows.length===0?'<div class="empty">Aucune prestation enregistrée.</div>':''}
-        ${prestaRows.map(({r,l})=>{const dom=gDom(r.domaine);return`<div style="font-size:13px;padding:6px 0;border-bottom:1px solid #e5e3de">
-          <span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span>${ds(r.dateArrivee)} — ${l.label||'—'} : <strong>${money(l.montant)}</strong> <span style="color:${l.paidDirect?'#888':'#A32D2D'}">(${l.paidDirect?'payé direct':'à reverser'})</span>
+        ${prestaRowsFuture.length===0?'<div class="empty">Aucune prestation à venir.</div>':''}
+        ${prestaRowsFuture.map(({r,l})=>{const dom=gDom(r.domaine);return`<div style="padding:8px 0;border-bottom:1px solid #e5e3de;font-size:13px">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><span class="pill ${PILL[dom.color||0]}">${dom.name}</span><span style="color:#888;font-size:12px;white-space:nowrap">${ds(l.date||r.dateArrivee)}</span>
+            <input type="text" value="${l.label||''}" placeholder="Intitulé" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','label',this.value)" style="flex:1;min-width:90px;font-size:13px;font-weight:500;padding:3px 5px">
+            <button class="btn btn-xs btn-danger" onclick="delPrestaLine('${r.id}','${p.id}','${l.id}')">✕</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <input type="number" value="${l.montant||''}" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','montant',this.value)" style="width:70px;font-size:12px;padding:3px 5px;font-weight:500">
+            <select onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','paidDirect',this.value)" style="font-size:11px;padding:3px 4px">
+              <option value="0" ${!l.paidDirect?'selected':''}>Payé via nous</option>
+              <option value="1" ${l.paidDirect?'selected':''}>Payé direct au presta</option>
+            </select>
+            <input type="text" value="${l.notes||''}" placeholder="Note" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','notes',this.value)" style="flex:1;min-width:90px;font-size:12px;padding:3px 5px">
+          </div>
         </div>`;}).join('')}
       </div>
     </div>`;
@@ -1333,7 +1426,7 @@ function renderModalContent(){
     <div id="nb-fields-wrap">${nbFieldsHtml(defDomaine,r)}</div>
     <div style="font-size:11px;color:#888;margin-bottom:12px">* Au moins un des deux nombres est obligatoire</div>
     <div class="g2-compact" style="margin-bottom:12px">
-      <div class="field"><label>Date d'arrivée *</label><input type="date" id="m-arr-date" value="${iA}" onchange="refreshAllGardNights();defaultArrHeure(this.value)"></div>
+      <div class="field"><label>Date d'arrivée *</label><input type="date" id="m-arr-date" value="${iA}" onchange="refreshAllGardNights();defaultArrHeure(this.value);defaultDepDate(this.value)"></div>
       <div class="field"><label>Heure d'arrivée *</label><select id="m-arr-heure">${heureOptions(initArrHeure)}</select></div>
     </div>
     <div class="g2-compact" style="margin-bottom:12px">
@@ -1341,11 +1434,6 @@ function renderModalContent(){
       <div class="field"><label>Heure de départ *</label><select id="m-dep-heure">${heureOptions(initDepHeure)}</select></div>
     </div>
     <div class="field" style="margin-bottom:12px"><label>Montant de la réservation (€) *</label><input type="number" id="m-montant" value="${r.montant||''}" placeholder="0"></div>
-    ${(()=>{if(!id)return'';const mi=getMenageInfo(r);if(!mi)return'';return`<div class="field" style="margin-bottom:12px"><label>🧹 Forfait ménage (${mi.name})</label>
-      <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#f5f4f1;border-radius:8px">
-        <input type="number" value="${mi.montant}" onchange="updMenageMontant('${id}',this.value)" style="width:80px;font-weight:600;font-size:13px;padding:4px 6px">
-        <span class="pill" style="background:${r.menagePaid?'#E8F3E0':'#FCEBEB'};color:${r.menagePaid?'#27500A':'#791F1F'};cursor:pointer" onclick="toggleMenagePaid('${id}')">${r.menagePaid?'✓ Payé':'✗ Non payé'}</span>
-      </div></div>`;})()}
     <div class="field" style="margin-bottom:12px"><label>Note interne (admin uniquement — invisible prestataires)</label><input type="text" id="m-noteI" value="${r.noteInterne||''}" placeholder="Note rapide…"></div>
     <hr style="border:none;border-top:1px solid #e5e3de;margin:14px 0">
     ${type==='editResa'?`
@@ -1367,6 +1455,12 @@ function renderModalContent(){
     </div>
     `:`<p style="font-size:12px;color:#888;margin-top:4px">💡 Après enregistrement, vous pourrez saisir les paiements et ajouter des commentaires visibles par les prestataires.</p>`}
     <hr style="border:none;border-top:1px solid #e5e3de;margin:14px 0">
+    ${(()=>{if(!id)return'';const mi=getMenageInfo(r);if(!mi)return'';return`<div class="field" style="margin-bottom:12px"><label>🧹 Forfait ménage (${mi.name})</label>
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#f5f4f1;border-radius:8px;flex-wrap:wrap">
+        <input type="text" value="${r.menageComment||''}" placeholder="Note (ex. seulement la longère)" onchange="updMenageComment('${id}',this.value)" style="flex:1;min-width:120px;font-size:12px;padding:4px 6px;color:#888">
+        <input type="number" value="${mi.montant}" onchange="updMenageMontant('${id}',this.value)" style="width:80px;font-weight:600;font-size:13px;padding:4px 6px">
+        <span class="pill" style="background:${r.menagePaid?'#E8F3E0':'#FCEBEB'};color:${r.menagePaid?'#27500A':'#791F1F'};cursor:pointer" onclick="toggleMenagePaid('${id}')">${r.menagePaid?'✓ Payé':'✗ Non payé'}</span>
+      </div></div>`;})()}
     <div class="field" style="margin-bottom:12px"><label>Prestataires — cochez puis détaillez (notes + montant, ou gardiennage)</label><div style="padding:4px 0">${pC||'<span style="font-size:12px;color:#888">Aucun prestataire créé</span>'}</div></div>
     <div class="modal-actions"><button class="btn" onclick="closeM()">Fermer</button>${type==='editResa'?`<button class="btn btn-danger" onclick="cancelResa('${id}')">🚫 Annuler la réservation</button>`:''}<button class="btn btn-primary" onclick="saveResa('${id||''}')">Enregistrer</button></div>`;
   }
@@ -1543,9 +1637,12 @@ function renderPrestaMonBilan(p){
       <div class="metric"><span class="lbl">Reste à recevoir</span><span class="val" style="color:#A32D2D">${money(menageTotal-menagePaid)}</span></div>
     </div>
     ${menageEvs.length===0?'<div class="empty">Aucun forfait ménage ce mois-ci.</div>':''}
-    ${menageEvs.map(({r,mi})=>{const dom=gDom(r.domaine);return`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #e5e3de;font-size:13px">
-      <span><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span>${ds(r.dateArrivee)}</span>
-      <span><strong>${money(mi.montant)}</strong> <span style="color:${r.menagePaid?'#27500A':'#A32D2D'}">${r.menagePaid?'✓ reçu':'✗ à recevoir'}</span></span>
+    ${menageEvs.map(({r,mi})=>{const dom=gDom(r.domaine);return`<div style="padding:6px 0;border-bottom:1px solid #e5e3de;font-size:13px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span>${ds(r.dateArrivee)}</span>
+        <span><strong>${money(mi.montant)}</strong> <span style="color:${r.menagePaid?'#27500A':'#A32D2D'}">${r.menagePaid?'✓ reçu':'✗ à recevoir'}</span></span>
+      </div>
+      ${r.menageComment?`<div style="font-size:11px;color:#888;margin-top:2px">${r.menageComment}</div>`:''}
     </div>`;}).join('')}
   </div>
   <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
@@ -1575,9 +1672,12 @@ function renderPrestaMonBilanFlat(p){
   <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
     <div style="font-size:11px;color:#888;margin-bottom:10px">Comptabilisé au mois du départ (moment de la prestation) — ${money(rate)} / vacation, quelle que soit la durée du séjour.</div>
     ${evs.length===0?'<div class="empty">Aucune vacation ce mois-ci.</div>':''}
-    ${evs.map(r=>{const dom=gDom(r.domaine);return`<div style="padding:8px 0;border-bottom:1px solid #e5e3de;display:flex;justify-content:space-between;align-items:center;gap:10px">
-      <div><div style="font-weight:500;font-size:13px">${displayClientName(r)||dom.name}</div><div style="font-size:11px;color:#888">Du ${ds(r.dateArrivee)} au ${ds(r.dateDepart)}</div></div>
-      <div style="white-space:nowrap"><strong>${money(rate)}</strong> <span style="color:${r.menagePaid?'#27500A':'#A32D2D'}">${r.menagePaid?'✓ reçu':'✗ à recevoir'}</span></div>
+    ${evs.map(r=>{const dom=gDom(r.domaine);return`<div style="padding:8px 0;border-bottom:1px solid #e5e3de">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <div><div style="font-weight:500;font-size:13px">${displayClientName(r)||dom.name}</div><div style="font-size:11px;color:#888">Du ${ds(r.dateArrivee)} au ${ds(r.dateDepart)}</div></div>
+        <div style="white-space:nowrap"><strong>${money(rate)}</strong> <span style="color:${r.menagePaid?'#27500A':'#A32D2D'}">${r.menagePaid?'✓ reçu':'✗ à recevoir'}</span></div>
+      </div>
+      ${r.menageComment?`<div style="font-size:11px;color:#888;margin-top:3px">${r.menageComment}</div>`:''}
     </div>`;}).join('')}
   </div>`;
 }
@@ -1742,7 +1842,34 @@ function renderPrestaDominique(p){
   </div>
   ${content}`;
 }
+function renderGardePlanningCalendar(p){
+  const y=S.calYear,m=S.calMonth,todayStr=dstr(new Date());
+  const{tc,sd,dim,dip}=buildDateCellMap(y,m);
+  const nightsByDate={};
+  D.reservations.filter(r=>r.status!=='annulé').forEach(r=>{
+    const pg=(r.prestaGarde||{})[p.id];if(!pg)return;
+    Object.entries(pg.nights||{}).forEach(([date,v])=>{nightsByDate[date]={domaine:pg.domaine,duree:v.duree};});
+  });
+  (D.gardeSchedule||[]).filter(x=>x.pid===p.id).forEach(x=>{nightsByDate[x.date]={domaine:x.domaine,duree:x.duree};});
+  let gridHtml=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  for(let ci=0;ci<tc;ci++){
+    let day,mo=m,yr=y,isO=false;
+    if(ci<sd){day=dip-sd+ci+1;mo=m-1;if(mo<0){mo=11;yr=y-1;}isO=true;}
+    else if(ci>=sd+dim){day=ci-sd-dim+1;mo=m+1;if(mo>11){mo=0;yr=y+1;}isO=true;}
+    else day=ci-sd+1;
+    const ds3=`${yr}-${String(mo+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const n=nightsByDate[ds3];
+    let cls='cal-cell';if(isO)cls+=' other';if(ds3===todayStr)cls+=' today';
+    const dom=n?gDom(n.domaine):null;
+    const marker=n?`<div style="margin-top:6px;padding:4px 5px;border-radius:6px;background:${LEG_BG[dom.color||0]};font-size:10px;font-weight:700;text-align:center;line-height:1.3">${dom.name}<br>${n.duree==='courte'?'Courte':'Longue'}</div>`:'';
+    gridHtml+=`<div class="${cls}"><div class="day-num-wrap"><span class="day-num">${day}</span></div>${marker}</div>`;
+  }
+  return`<div class="cal-header" style="margin-bottom:10px">${monthYearPicker('calYear','calMonth')}</div>
+  <div class="leg">${D.domaines.map(d=>`<span class="leg-item"><span class="leg-dot" style="background:${LEG_BG[d.color||0]}"></span>${d.name}</span>`).join('')}</div>
+  <div class="cal-grid">${gridHtml}</div>`;
+}
 function renderPrestaGardePersonnel(p){
+  const tab=S.prestaTab||'liste';
   const rows=[];
   D.reservations.filter(r=>r.status!=='annulé').forEach(r=>{
     const pg=(r.prestaGarde||{})[p.id];if(!pg)return;
@@ -1757,27 +1884,42 @@ function renderPrestaGardePersonnel(p){
   const totalDu=rows.reduce((a,x)=>a+gardeRate(x.duree),0);
   const totalRecu=rows.filter(x=>x.paid).reduce((a,x)=>a+gardeRate(x.duree),0);
   const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
-  const doms=p.domaines||[];
   const notifs=(D.activityLog||[]).filter(it=>(it.concernsPresta||[]).includes(p.id)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
+  let content;
+  if(tab==='planning'){
+    content=renderGardePlanningCalendar(p);
+  } else {
+    content=`<div class="g2" style="margin-bottom:14px">
+      <div class="metric"><span class="lbl">Total dû</span><span class="val">${money(totalDu)}</span></div>
+      <div class="metric"><span class="lbl">Reste à recevoir</span><span class="val" style="color:#A32D2D">${money(totalDu-totalRecu)}</span></div>
+    </div>
+    <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:0.5rem 0.75rem">
+      ${future.length===0?'<div class="empty">Aucune soirée de gardiennage prévue pour l\'instant.</div>':''}
+      ${future.map(x=>{const dom=gDom(x.domaine);return`<div style="display:flex;align-items:center;gap:8px;padding:7px 2px;border-bottom:1px solid #f0eee8;font-size:12.5px;flex-wrap:wrap">
+        <span class="pill ${PILL[dom.color||0]}" style="flex-shrink:0">${dom.name}</span>
+        <span style="white-space:nowrap">${dn(x.date)} ${fmt(x.date)}</span>
+        <span style="color:#993556;font-weight:600;white-space:nowrap">${x.duree==='courte'?'Courte':'Longue'} · ${money(gardeRate(x.duree))}</span>
+        <span style="color:${x.paid?'#27500A':'#A32D2D'};white-space:nowrap">${x.paid?'✓ Payé':'✗ Non payé'}</span>
+        ${x.client?`<span style="color:#888;white-space:nowrap">${x.client}</span>`:''}
+      </div>`;}).join('')}
+    </div>
+    ${past.length>0?`<div style="margin-top:18px">
+      <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Passées</div>
+      <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:0.5rem 0.75rem;opacity:.6">
+        ${past.slice(-8).reverse().map(x=>{const dom=gDom(x.domaine);return`<div style="display:flex;align-items:center;gap:8px;padding:6px 2px;border-bottom:1px solid #f0eee8;font-size:12px;flex-wrap:wrap">
+          <span class="pill ${PILL[dom.color||0]}">${dom.name}</span><span>${fmt(x.date)}</span><span>${x.duree==='courte'?'Courte':'Longue'} · ${money(gardeRate(x.duree))}</span><span>${x.paid?'Payé':'Non payé'}</span>
+        </div>`;}).join('')}
+      </div>
+    </div>`:''}`;
+  }
   return`<div class="topbar"><div style="font-size:20px">🏡</div><h1>Mes gardiennages</h1><span class="badge bp">${p.name}</span></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
-  <div class="g2" style="margin-bottom:14px">
-    <div class="metric"><span class="lbl">Total dû</span><span class="val">${money(totalDu)}</span></div>
-    <div class="metric"><span class="lbl">Reste à recevoir</span><span class="val" style="color:#A32D2D">${money(totalDu-totalRecu)}</span></div>
+  <div class="tabs">
+    <button class="tab ${tab==='liste'?'active':''}" onclick="setPrestaTab('liste')"><span class="tab-ic">📋</span><span class="tab-lbl">Liste</span></button>
+    <button class="tab ${tab==='planning'?'active':''}" onclick="setPrestaTab('planning')"><span class="tab-ic">📅</span><span class="tab-lbl">Planning</span></button>
   </div>
-  ${future.length===0?`<div class="ev-card"><div class="empty">Aucune soirée de gardiennage prévue pour l'instant.</div></div>`:''}
-  ${future.map(x=>{const dom=gDom(x.domaine);return`<div class="ev-card">
-    <span class="pill ${PILL[dom.color||0]}">${dom.name}</span>
-    <div style="font-size:16px;font-weight:500;margin-top:8px">Nuit du ${dn(x.date)} ${fmt(x.date)}</div>
-    <div style="font-size:15px;color:#993556;font-weight:600">${x.duree==='courte'?'Courte — 22h à 2h':'Longue — 22h à 4h'} · ${money(gardeRate(x.duree))}</div>
-    <div style="font-size:12px;margin-top:4px;color:${x.paid?'#27500A':'#A32D2D'}">${x.paid?'✓ Payé':'✗ Non payé'}</div>
-    <div style="font-size:12px;color:#888;margin-top:2px">${x.client}</div>
-  </div>`;}).join('')}
-  ${past.length>0?`<div style="margin-top:20px;border-top:1px solid #e5e3de;padding-top:14px">
-    <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Passées</div>
-    ${past.slice(-8).reverse().map(x=>{const dom=gDom(x.domaine);return`<div class="ev-card" style="opacity:.5"><span class="pill ${PILL[dom.color||0]}">${dom.name}</span><div style="font-size:13px;margin-top:6px">Nuit du ${fmt(x.date)} — ${x.duree==='courte'?'Courte':'Longue'} · ${money(gardeRate(x.duree))} · ${x.paid?'Payé':'Non payé'}</div></div>`;}).join('')}
-  </div>`:''}`;
+  ${content}`;
 }
 function renderPrestaOccupation(p){
   const today=new Date().toISOString().slice(0,10);
@@ -1844,10 +1986,10 @@ function updPrestaLine(rid,pid,lineId,field,value){
   if(field==='montant')line[field]=parseFloat(value)||0;
   else if(field==='paidDirect')line[field]=value==='1'||value===true;
   else line[field]=value;
-  saveD();
+  saveD();render();
 }
-function addPrestaLine(rid,pid){const r=D.reservations.find(x=>x.id===rid);if(!r)return;const lab=(document.getElementById('pline-label-'+pid).value||'').trim(),amt=parseFloat(document.getElementById('pline-amt-'+pid).value)||0,nt=(document.getElementById('pline-notes-'+pid).value||'').trim(),pd=document.getElementById('pline-paid-'+pid).value==='1';if(!lab&&!amt)return;if(!r.prestaLines)r.prestaLines={};if(!r.prestaLines[pid])r.prestaLines[pid]=[];r.prestaLines[pid].push({id:gid(),label:lab,montant:amt,notes:nt,paidDirect:pd});saveD();S.modal={type:'editResa',id:rid};render();}
-function delPrestaLine(rid,pid,lineId){if(!rid)return;const r=D.reservations.find(x=>x.id===rid);if(!r||!r.prestaLines||!r.prestaLines[pid])return;r.prestaLines[pid]=r.prestaLines[pid].filter(l=>l.id!==lineId);saveD();S.modal={type:'editResa',id:rid};render();}
+function addPrestaLine(rid,pid){const r=D.reservations.find(x=>x.id===rid);if(!r)return;const lab=(document.getElementById('pline-label-'+pid).value||'').trim(),amt=parseFloat(document.getElementById('pline-amt-'+pid).value)||0,nt=(document.getElementById('pline-notes-'+pid).value||'').trim(),pd=document.getElementById('pline-paid-'+pid).value==='1';if(!lab&&!amt)return;if(!r.prestaLines)r.prestaLines={};if(!r.prestaLines[pid])r.prestaLines[pid]=[];r.prestaLines[pid].push({id:gid(),label:lab,montant:amt,notes:nt,paidDirect:pd,date:r.dateArrivee||''});saveD();S.modal={type:'editResa',id:rid};render();}
+function delPrestaLine(rid,pid,lineId){if(!rid)return;const r=D.reservations.find(x=>x.id===rid);if(!r||!r.prestaLines||!r.prestaLines[pid])return;r.prestaLines[pid]=r.prestaLines[pid].filter(l=>l.id!==lineId);saveD();render();}
 
 function addComment(rid){const r=D.reservations.find(x=>x.id===rid);if(!r)return;const txt=document.getElementById('com-txt').value.trim();if(!txt)return;if(!r.commentaires)r.commentaires=[];r.commentaires.push({id:gid(),auteur:'admin',auteurNom:S.admin.name,date:new Date().toISOString().slice(0,10),texte:txt,visible:true});saveD();S.modal={type:'editResa',id:rid};render();}
 function addPrestaComment(rid){
@@ -1855,9 +1997,9 @@ function addPrestaComment(rid){
   const el=document.getElementById('dp-presta-com');const txt=(el&&el.value||'').trim();if(!txt)return;
   if(!r.commentaires)r.commentaires=[];
   r.commentaires.push({id:gid(),auteur:'presta',auteurNom:S.presta.name,date:new Date().toISOString().slice(0,10),texte:txt,visible:true});
+  logActivity('commentaire',r.domaine,`💬 ${S.presta.name} : « ${txt} » — ${displayClientName(r)||'—'} (${fmt(r.dateArrivee)})`,[],true);
   saveD();showMsg('Commentaire envoyé ✓');render();
 }
-function addPrestaComment(rid){const el=document.getElementById('pnote-'+rid);if(!el||!el.value.trim())return;const r=D.reservations.find(x=>x.id===rid);if(!r)return;if(!r.commentaires)r.commentaires=[];r.commentaires.push({id:gid(),auteur:'presta',auteurNom:S.presta.name,date:new Date().toISOString().slice(0,10),texte:el.value.trim(),visible:true});saveD();showMsg('Note envoyée ✓');}
 function saveResa(id){
   const domaine=document.getElementById('m-domaine').value,dateArrivee=document.getElementById('m-arr-date').value,heureArrivee=document.getElementById('m-arr-heure').value,dateDepart=document.getElementById('m-dep-date').value,heureDepart=document.getElementById('m-dep-heure').value,status=document.getElementById('m-status').value,client=capWords(document.getElementById('m-client').value.trim()),tel=document.getElementById('m-tel').value.trim(),email=document.getElementById('m-email').value.trim(),typeClient=document.getElementById('m-typeclient').value,societe=capWords(document.getElementById('m-societe').value.trim()),typeEvenement=(document.getElementById('m-evt')||{}).value||'',noteInterne=document.getElementById('m-noteI').value,montant=parseFloat(document.getElementById('m-montant').value)||0;
   const elAdultes=document.getElementById('m-adultes'),elEnfants=document.getElementById('m-enfants');
@@ -1930,6 +2072,11 @@ function updMenageMontant(rid,value){
   r.menageMontant=parseFloat(value)||0;
   saveD();render();
 }
+function updMenageComment(rid,value){
+  const r=D.reservations.find(x=>x.id===rid);if(!r)return;
+  r.menageComment=value;
+  saveD();render();
+}
 function savePresta(id){
   const name=document.getElementById('m-pname').value.trim(),role=document.getElementById('m-prole').value.trim(),tel=document.getElementById('m-ptel').value.trim(),accessMode=document.getElementById('m-pmode').value;
   const cbs=document.querySelectorAll('#root input[type=checkbox]');const domaines=Array.from(cbs).filter(c=>c.checked).map(c=>c.value);
@@ -1986,6 +2133,22 @@ function setGardeNightPayMethod(rid,pid,date,method){
 function setGardeSchedulePayMethod(id,method){
   const x=(D.gardeSchedule||[]).find(x=>x.id===id);if(!x)return;
   x.payMethod=method;
+  saveD();render();
+}
+function setGardeNightDuree(rid,pid,date,duree){
+  const r=D.reservations.find(x=>x.id===rid);if(!r||!r.prestaGarde||!r.prestaGarde[pid]||!r.prestaGarde[pid].nights[date])return;
+  r.prestaGarde[pid].nights[date].duree=duree;
+  saveD();render();
+}
+function setGardeScheduleDuree(id,duree){
+  const x=(D.gardeSchedule||[]).find(x=>x.id===id);if(!x)return;
+  x.duree=duree;
+  saveD();render();
+}
+function delGardeNight(rid,pid,date){
+  const r=D.reservations.find(x=>x.id===rid);if(!r||!r.prestaGarde||!r.prestaGarde[pid])return;
+  delete r.prestaGarde[pid].nights[date];
+  if(Object.keys(r.prestaGarde[pid].nights).length===0)delete r.prestaGarde[pid];
   saveD();render();
 }
 function saveDomaine(id){const name=document.getElementById('m-dname').value.trim(),color=parseInt(document.getElementById('m-dcolor').value);if(!name){alert('Le nom est obligatoire.');return;}if(id){const d=D.domaines.find(x=>x.id===id);Object.assign(d,{name,color});}else D.domaines.push({id:gid(),name,color});saveD();S.modal=null;showMsg('Domaine enregistré ✓');}
