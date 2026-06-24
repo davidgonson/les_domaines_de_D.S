@@ -68,8 +68,10 @@ input:focus,select:focus,textarea:focus{border-color:#993556;box-shadow:0 0 0 3p
 .comment-item .meta{font-size:11px;color:#666;margin-bottom:4px;display:flex;justify-content:space-between}
 .link-box{display:flex;align-items:center;gap:8px;background:#f5f4f1;border-radius:8px;padding:8px 12px;font-size:11px;font-family:monospace;word-break:break-all;border:1px solid #e5e3de}
 .wa-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:8px;background:#25D366;color:#fff;font-size:12px;font-weight:500;text-decoration:none;border:none;cursor:pointer;font-family:inherit;white-space:nowrap}
-.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.sec-hdr h2{font-size:15px;font-weight:500}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin:-1rem -1.25rem 12px -1.25rem;padding:10px 1.25rem;background:#9c9890;border-radius:12px 12px 0 0}
+.sec-hdr h2{font-size:15px;font-weight:500;color:#fff}
+.sec-hdr .btn{background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)}
+.sec-hdr .btn:hover{background:rgba(255,255,255,.25)}
 .empty{text-align:center;padding:2.5rem;color:#666;font-size:13px}
 .note-box{background:#f5f4f1;border-radius:6px;padding:8px 12px;font-size:12px;color:#555;border-left:3px solid #ED93B1;margin-top:6px}
 .ev-card{border:1px solid #e5e3de;border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fff}
@@ -1201,9 +1203,11 @@ function renderBilan(){
     <div class="sec-hdr"><h2>Détail par événement (prestations avec commission)</h2></div>
     <div style="font-size:11px;color:#888;margin-bottom:8px">Toute modification ici se répercute automatiquement dans l'événement et dans la fiche du prestataire.</div>
     ${evs.length===0?'<div class="empty">Aucun détail sur cette période.</div>':''}
-    ${evs.map((r,evIdx)=>{const dom=gDom(r.domaine);return`<div style="padding:10px 8px;margin:0 -8px;border-bottom:1px solid #e5e3de;background:${evIdx%2===1?'#f7f6f3':'transparent'}">
+    ${evs.map((r,evIdx)=>{const dom=gDom(r.domaine);
+      const allLines=Object.entries(r.prestaLines).flatMap(([pid,lines])=>lines.map(l=>({pid,l})));
+      return`<div style="padding:10px 8px;margin:0 -8px;border-bottom:1px solid #e5e3de;background:${evIdx%2===1?'#f7f6f3':'transparent'}">
       <div style="font-weight:500;font-size:13px;margin-bottom:6px">${r.client||dom.name}${r.typeClient==='entreprise'&&r.societe?` <span style="color:#888;font-weight:400">(${r.societe})</span>`:''} — <span class="pill ${PILL[dom.color||0]}">${dom.name}</span> · ${ds(r.dateArrivee)}</div>
-      ${Object.entries(r.prestaLines).flatMap(([pid,lines])=>lines.map(l=>{const who=gPre(pid);return`<div style="background:#f5f4f1;border-radius:8px;padding:7px 8px;margin-bottom:5px">
+      ${allLines.map(({pid,l},lIdx)=>{const who=gPre(pid);return`<div style="background:${lIdx%2===1?'#ECEAE3':'#f5f4f1'};border-radius:8px;padding:7px 8px;margin-bottom:5px">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
           <span style="font-size:11px;color:#888;white-space:nowrap;font-weight:600">${who.name||'—'}</span>
           <input type="text" value="${l.label||''}" placeholder="Intitulé" onchange="updPrestaLine('${r.id}','${pid}','${l.id}','label',this.value)" style="flex:1;min-width:90px;font-size:12.5px;font-weight:500;padding:3px 5px">
@@ -1217,7 +1221,7 @@ function renderBilan(){
           </select>
           <input type="text" value="${l.notes||''}" placeholder="Note" onchange="updPrestaLine('${r.id}','${pid}','${l.id}','notes',this.value)" style="flex:1;min-width:0;font-size:12px;padding:3px 5px">
         </div>
-      </div>`;})).join('')}
+      </div>`;}).join('')}
     </div>`;}).join('')}
   </div>`;
 }
