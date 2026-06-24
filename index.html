@@ -76,7 +76,7 @@ input:focus,select:focus,textarea:focus{border-color:#993556;box-shadow:0 0 0 3p
 .note-box{background:#f5f4f1;border-radius:6px;padding:8px 12px;font-size:12px;color:#555;border-left:3px solid #ED93B1;margin-top:6px}
 .ev-card{border:1px solid #e5e3de;border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fff}
 .list-tbl{width:100%;border-collapse:collapse;font-size:13px}
-.list-tbl th{text-align:left;padding:7px 9px;font-size:11px;font-weight:600;color:#222;background:#d4d1c8;border-bottom:1px solid #c2bfb5;text-transform:uppercase;letter-spacing:.03em}
+.list-tbl th{text-align:left;padding:7px 9px;font-size:11px;font-weight:700;color:#000;background:#f0eee8;border-bottom:1px solid #e0ddd4;text-transform:uppercase;letter-spacing:.03em}
 .list-tbl td{padding:8px 9px;border-bottom:1px solid #e5e3de;vertical-align:middle}
 .list-tbl tbody tr:nth-child(even) td{background:#f7f6f3}
 .list-tbl tr:last-child td{border-bottom:none}
@@ -862,10 +862,11 @@ function renderDetailPanel(r){
       ${pays.map(pa=>`<div style="display:flex;gap:4px;font-size:12px;padding:4px 0;border-bottom:1px solid #e5e3de"><span style="flex:1;color:#666">${fmt(pa.date)}</span><span style="font-weight:500">${money(pa.montant)}</span><span style="color:#666;margin-left:4px">${pa.type||pa.note||''}${pa.comment?' — '+pa.comment:''}</span></div>`).join('')}
       ${pays.length>0?`<div style="font-size:11px;margin-top:5px;display:flex;justify-content:space-between"><span style="color:#666;font-weight:700">Total ${money(r.montant||0)}</span><span style="font-weight:600;color:${solde>0?'#A32D2D':'#27500A'}">Solde ${money(solde)}</span></div>`:''}
     </div>`}
-    ${comms.length>0?`<div class="dp-section"><label>Notes (${comms.length})</label>${comms.map(c=>`<div style="font-size:12px;padding:5px 0;border-bottom:1px solid #e5e3de"><div style="color:#666;font-size:10px;margin-bottom:2px">${c.auteurNom}${c.auteur==='presta'?' (prestataire)':''} · ${fmt(c.date)}</div><div>${c.texte}</div></div>`).join('')}</div>`:''}
+    ${comms.length>0?`<div class="dp-section"><label>Notes (${comms.length})</label>${comms.map(c=>`<div style="font-size:12px;padding:5px 0;border-bottom:1px solid #e5e3de"><div style="color:#666;font-size:10px;margin-bottom:2px">${c.auteurNom}${c.auteur==='presta'?' (prestataire)':''} · ${fmt(c.date)}</div>${c.photoUrl?`<img src="${c.photoUrl}" style="max-width:100%;max-height:200px;border-radius:8px;margin-top:3px;display:block;cursor:pointer" onclick="window.open(this.src,'_blank')">`:''}${c.texte?`<div>${c.texte}</div>`:''}</div>`).join('')}</div>`:''}
     ${(!readOnly)?(()=>{const ct=getMenageInfo(r);if(!ct)return'';return`<div class="dp-section"><label>💬 Commentaire pour ${ct.name}</label>
       <textarea id="dp-admin-com" rows="2" placeholder="Une précision pour ${ct.name}…" style="resize:none;width:100%;box-sizing:border-box;margin-bottom:6px"></textarea>
-      <button class="btn btn-sm btn-primary" onclick="addAdminQuickComment('${r.id}')">Envoyer</button>
+      <input type="file" id="dp-admin-photo" accept="image/*" style="display:none" onchange="addAdminQuickPhoto('${r.id}',this)">
+      <div style="display:flex;gap:8px"><button class="btn btn-sm" onclick="document.getElementById('dp-admin-photo').click()">📷 Photo</button><button class="btn btn-sm btn-primary" onclick="addAdminQuickComment('${r.id}')">Envoyer</button></div>
     </div>`;})():''}
     ${readOnly&&S.presta?`<div class="dp-section"><label>💬 Commentaire de ${S.presta.name} à David / Svitlana</label>
       <textarea id="dp-presta-com" rows="2" placeholder="Écrire un message…" style="resize:none;width:100%;box-sizing:border-box;margin-bottom:6px"></textarea>
@@ -1174,7 +1175,7 @@ function renderBilan(){
     ${revRows.length===0?'<div class="empty">Aucune location sur cette période.</div>':''}
     ${revRows.length>0?`<table class="list-tbl"><thead><tr><th>Domaine</th><th>Montant location</th><th>Payé</th><th>Payé virement</th><th>Payé cash</th><th>Reste à payer</th><th>Occupation</th></tr></thead>
     <tbody>${revRows.map(({d,loc,paid,cash,virement,nuitees})=>`<tr><td><span class="pill ${PILL[d.color||0]}">${d.name}</span></td><td style="font-weight:500">${money(loc)}</td><td style="color:#27500A">${money(paid)}</td><td>${money(virement)}</td><td>${money(cash)}</td><td style="color:${loc-paid>0?'#A32D2D':'#27500A'}">${money(loc-paid)}</td><td>${nuitees} / ${daysInPeriod} <span style="color:#888">(${(nuitees/daysInPeriod*100).toFixed(0)}%)</span></td></tr>`).join('')}
-    <tr><td style="font-weight:600">Total</td><td style="font-weight:600">${money(revTotal)}</td><td style="font-weight:600;color:#27500A">${money(paidTotal)}</td><td style="font-weight:600">${money(virementTotal)}</td><td style="font-weight:600">${money(cashTotal)}</td><td style="font-weight:600;color:${revTotal-paidTotal>0?'#A32D2D':'#27500A'}">${money(revTotal-paidTotal)}</td><td></td></tr></tbody></table>`:''}
+    <tr style="background:#f0eee8"><td style="font-weight:700;color:#000">Total</td><td style="font-weight:700;color:#000">${money(revTotal)}</td><td style="font-weight:700;color:#000">${money(paidTotal)}</td><td style="font-weight:700;color:#000">${money(virementTotal)}</td><td style="font-weight:700;color:#000">${money(cashTotal)}</td><td style="font-weight:700;color:#000">${money(revTotal-paidTotal)}</td><td></td></tr></tbody></table>`:''}
   </div>
   <div class="g3" style="margin-bottom:14px">
     <div class="metric"><span class="lbl">Total prestations (commission)</span><span class="val">${money(totalGeneral)}</span></div>
@@ -1207,8 +1208,9 @@ function renderBilan(){
       const allLines=Object.entries(r.prestaLines).flatMap(([pid,lines])=>lines.map(l=>({pid,l})));
       return`<div style="padding:10px 8px;margin:0 -8px;border-bottom:1px solid #e5e3de;background:${evIdx%2===1?'#f7f6f3':'transparent'}">
       <div style="font-weight:500;font-size:13px;margin-bottom:6px">${r.client||dom.name}${r.typeClient==='entreprise'&&r.societe?` <span style="color:#888;font-weight:400">(${r.societe})</span>`:''} — <span class="pill ${PILL[dom.color||0]}">${dom.name}</span> · ${ds(r.dateArrivee)}</div>
-      ${allLines.map(({pid,l},lIdx)=>{const who=gPre(pid);return`<div style="background:${lIdx%2===1?'#ECEAE3':'#f5f4f1'};border-radius:8px;padding:7px 8px;margin-bottom:5px">
+      ${allLines.map(({pid,l},lIdx)=>{const who=gPre(pid);return`<div style="background:#f5f4f1;border-radius:8px;padding:7px 8px;margin-bottom:5px">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <span style="font-size:11px;color:#fff;background:#9c9890;border-radius:50%;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700">${lIdx+1}</span>
           <span style="font-size:11px;color:#888;white-space:nowrap;font-weight:600">${who.name||'—'}</span>
           <input type="text" value="${l.label||''}" placeholder="Intitulé" onchange="updPrestaLine('${r.id}','${pid}','${l.id}','label',this.value)" style="flex:1;min-width:90px;font-size:12.5px;font-weight:500;padding:3px 5px">
           <button class="btn btn-xs btn-danger" onclick="delPrestaLine('${r.id}','${pid}','${l.id}')">✕</button>
@@ -1560,9 +1562,11 @@ function renderModalContent(){
     </div>
     <hr style="border:none;border-top:1px solid #e5e3de;margin:14px 0">
     <div style="font-size:13px;font-weight:500;margin-bottom:8px">💬 ${(()=>{const ct=getMenageInfo(r);return ct?`Commentaire visible par ${ct.name}`:'Commentaires visibles par les prestataires';})()} (${comms.length})</div>
-    ${comms.map(c=>`<div class="comment-item"><div class="meta"><span>${c.auteurNom} · ${fmt(c.date)}</span></div><div>${c.texte}</div></div>`).join('')}
+    ${comms.map(c=>`<div class="comment-item"><div class="meta"><span>${c.auteurNom} · ${fmt(c.date)}</span></div>${c.photoUrl?`<img src="${c.photoUrl}" style="max-width:100%;max-height:220px;border-radius:8px;margin-top:4px;display:block;cursor:pointer" onclick="window.open(this.src,'_blank')">`:''}${c.texte?`<div>${c.texte}</div>`:''}</div>`).join('')}
     <textarea id="com-txt" rows="2" placeholder="Nouveau commentaire ou instruction…" style="resize:none;margin-bottom:8px"></textarea>
+    <input type="file" id="com-photo" accept="image/*" style="display:none" onchange="addPhotoComment('${r.id}',this)">
     <div style="display:flex;align-items:center;gap:10px">
+      <button class="btn btn-sm" onclick="document.getElementById('com-photo').click()">📷 Photo</button>
       <button class="btn btn-sm btn-primary" style="margin-left:auto" onclick="addComment('${r.id}')">+ Commentaire</button>
     </div>
     `:`<p style="font-size:12px;color:#888;margin-top:4px">💡 Après enregistrement, vous pourrez saisir les paiements et ajouter des commentaires visibles par les prestataires.</p>`}
@@ -2122,6 +2126,44 @@ function addPrestaComment(rid){
   r.commentaires.push({id:gid(),auteur:'presta',auteurNom:S.presta.name,date:new Date().toISOString().slice(0,10),texte:txt,visible:true});
   logActivity('commentaire',r.domaine,`💬 ${S.presta.name} : « ${txt} » — ${displayClientName(r)||'—'} (${fmt(r.dateArrivee)})`,[],true);
   saveD();showMsg('Commentaire envoyé ✓');render();
+}
+function resizeImageFile(file,maxDim,callback){
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      let w=img.width,h=img.height;
+      if(w>h&&w>maxDim){h=Math.round(h*maxDim/w);w=maxDim;}
+      else if(h>maxDim){w=Math.round(w*maxDim/h);h=maxDim;}
+      const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      callback(canvas.toDataURL('image/jpeg',0.72));
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function addPhotoComment(rid,inputEl){
+  const file=inputEl.files&&inputEl.files[0];if(!file)return;
+  const r=D.reservations.find(x=>x.id===rid);if(!r)return;
+  const isPresta=S.view==='presta'&&S.presta;
+  const authorName=isPresta?S.presta.name:(S.admin?S.admin.name:'Système');
+  resizeImageFile(file,1000,dataUrl=>{
+    if(!r.commentaires)r.commentaires=[];
+    r.commentaires.push({id:gid(),auteur:isPresta?'presta':'admin',auteurNom:authorName,date:new Date().toISOString().slice(0,10),texte:'',photoUrl:dataUrl,visible:true});
+    saveD();showMsg('Photo ajoutée ✓');inputEl.value='';render();
+  });
+}
+function addAdminQuickPhoto(rid,inputEl){
+  const file=inputEl.files&&inputEl.files[0];if(!file||!S.admin)return;
+  const r=D.reservations.find(x=>x.id===rid);if(!r)return;
+  const ct=getMenageInfo(r);
+  resizeImageFile(file,1000,dataUrl=>{
+    if(!r.commentaires)r.commentaires=[];
+    r.commentaires.push({id:gid(),auteur:'admin',auteurNom:S.admin.name,date:new Date().toISOString().slice(0,10),texte:'',photoUrl:dataUrl,visible:true});
+    if(ct)logActivity('commentaire',r.domaine,`💬 ${S.admin.name} → ${ct.name} : photo ajoutée — ${displayClientName(r)||'—'} (${fmt(r.dateArrivee)})`,[ct.pid]);
+    saveD();showMsg('Photo envoyée ✓');inputEl.value='';render();
+  });
 }
 function addAdminQuickComment(rid){
   const r=D.reservations.find(x=>x.id===rid);if(!r||!S.admin)return;
