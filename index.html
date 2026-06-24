@@ -215,7 +215,7 @@ const DOMAIN_LOGOS={
 const PILL=['p0','p1','p2','p3','p4'];
 const MONTHS_FR=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 const PRESTA_CATS=['Animation','Traiteur','Décoration','Logistique','Autre'];
-const EVENT_TYPES=['Mariage','Anniversaire','Séminaire','Famille / Cousinade','EVJF / EVG','Séjour amis','Airbnb','Abritel','Booking','GDC (Gens de confiance)','Déjeuner / Dîner','Gratuit','Autre'];
+const EVENT_TYPES=['Mariage','Anniversaire','Séminaire','Famille / Ami','EVJF / EVG','Airbnb','Abritel','Booking','GDC (Gens de confiance)','Déjeuner / Dîner','Gratuit','Autre'];
 const DOMINIQUE_RATES={d1:120,d2:150,d3:120};
 const LEG_BG=['#F4C0D1','#F5D98B','#C0DD97','#CECBF6','#B5D4F4'];
 const BAND_FULL=['b0f','b1f','b2f','b3f','b4f'];
@@ -280,6 +280,7 @@ function runMigrations(){
     if(p.name==='Pascaline'){p.accessMode='calendrierSeul';if(p.flatRate===undefined)p.flatRate=250;}
   });
   (D.reservations||[]).forEach(r=>{
+    if(r.typeEvenement==='Famille / Cousinade'||r.typeEvenement==='Séjour amis')r.typeEvenement='Famille / Ami';
     Object.values(r.prestaGarde||{}).forEach(pg=>{
       Object.keys(pg.nights||{}).forEach(date=>{
         if(typeof pg.nights[date]==='string')pg.nights[date]={duree:pg.nights[date],paid:false};
@@ -291,6 +292,7 @@ function runMigrations(){
   });
   (D.dominiqueSchedule||[]).forEach(x=>{if(x.paid===undefined)x.paid=false;if(x.comment===undefined)x.comment='';});
   (D.gardeSchedule||[]).forEach(x=>{if(x.payMethod===undefined)x.payMethod='cash';if(x.comment===undefined)x.comment='';});
+  (D.visites||[]).forEach(v=>{if(v.typeEvenement==='Famille / Cousinade'||v.typeEvenement==='Séjour amis')v.typeEvenement='Famille / Ami';});
 }
 let S={view:'login',admin:null,presta:null,tab:'calendrier',prestaTab:'calendrier',modal:null,msg:null,selResa:null,selectedPresta:null,hiddenDomains:[],calYear:2026,calMonth:5,bilanYear:2026,bilanMonth:5,listeYear:2026,listeMonth:5,visiteYear:2026,visiteMonth:5,prestaBilanYear:2026,prestaBilanMonth:5,adminPrestaYear:2026,adminPrestaMonth:5,clientsSortBy:'date'};
 
@@ -597,7 +599,7 @@ function onEvtTypeChange(val){
       depWrap.style.display='none';
       if(arrDateEl&&depDateEl)depDateEl.value=arrDateEl.value;
     } else {
-      depWrap.style.display='grid';
+      depWrap.style.display='flex';
     }
   }
 }
@@ -1067,7 +1069,6 @@ function saveVisite(id){
   if(!heure)missing.push("l'heure");
   if(!client)missing.push('le nom de la personne');
   if(missing.length){alert('Champs obligatoires manquants : '+missing.join(', ')+'.');return;}
-  if(tel&&!isValidPhone(tel)){alert("Numéro de téléphone invalide. En France : 10 chiffres commençant par 0 (ex. 06 12 34 56 78). À l'étranger : commencez par + ou 00 suivi de l'indicatif.");return;}
   const isNew=!id;
   if(id){const v=D.visites.find(x=>x.id===id);Object.assign(v,{domaine,date,heure,status,client,typeEvenement,tel,email,noteInterne});}
   else D.visites.push({id:gid(),domaine,date,heure,status,client,typeEvenement,tel,email,noteInterne});
@@ -1673,8 +1674,8 @@ function renderModalContent(){
       <div class="field"><label>Date d'arrivée *</label><div class="date-row"><input type="date" id="m-arr-date" value="${iA}" onchange="refreshAllGardNights();defaultArrHeure(this.value);defaultDepDate(this.value);if((document.getElementById('m-evt')||{}).value==='Déjeuner / Dîner'){document.getElementById('m-dep-date').value=this.value;}"><button type="button" class="date-btn" onclick="document.getElementById('m-arr-date').showPicker&&document.getElementById('m-arr-date').showPicker()" title="Choisir une date">📅</button></div></div>
       <div class="field"><label>Heure d'arrivée *</label><select id="m-arr-heure">${heureOptions(initArrHeure)}</select></div>
     </div>
-    <div class="g2-compact" id="dep-date-wrap" style="margin-bottom:12px;${r.typeEvenement==='Déjeuner / Dîner'?'display:none':''}">
-      <div class="field"><label>Date de départ *</label><div class="date-row"><input type="date" id="m-dep-date" value="${iD}" onchange="refreshAllGardNights();defaultDepHeure(this.value)"><button type="button" class="date-btn" onclick="document.getElementById('m-dep-date').showPicker&&document.getElementById('m-dep-date').showPicker()" title="Choisir une date">📅</button></div></div>
+    <div class="g2-compact" style="margin-bottom:12px">
+      <div class="field" id="dep-date-wrap" style="${r.typeEvenement==='Déjeuner / Dîner'?'display:none':''}"><label>Date de départ *</label><div class="date-row"><input type="date" id="m-dep-date" value="${iD}" onchange="refreshAllGardNights();defaultDepHeure(this.value)"><button type="button" class="date-btn" onclick="document.getElementById('m-dep-date').showPicker&&document.getElementById('m-dep-date').showPicker()" title="Choisir une date">📅</button></div></div>
       <div class="field"><label>Heure de départ *</label><select id="m-dep-heure">${heureOptions(initDepHeure)}</select></div>
     </div>
     <div class="g2" style="margin-bottom:12px">
@@ -2358,7 +2359,6 @@ function saveResa(id){
   if(!montant&&typeEvenement!=='Gratuit')missing.push('le montant');
   if(missing.length){alert('Champs obligatoires manquants : '+missing.join(', ')+'.');return;}
   if(tel==='À compléter')tel='';
-  if(tel&&!isValidPhone(tel)){alert("Numéro de téléphone invalide. En France : 10 chiffres commençant par 0 (ex. 06 12 34 56 78). À l'étranger : commencez par + ou 00 suivi de l'indicatif.");return;}
   if(!tel)tel='À compléter';
   const dep=dateDepart||dateArrivee;
   const isNew=!id;
