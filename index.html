@@ -15,14 +15,14 @@
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a;background:#f5f4f1;font-size:14px;min-height:100vh}
 .app{max-width:920px;margin:0 auto;padding:1rem}
 .topbar{display:flex;align-items:center;gap:8px;padding:10px 0 14px;border-bottom:1px solid #e5e3de;margin-bottom:14px}
-.topbar h1{font-size:16px;font-weight:500;flex:1}
+.topbar h1{font-size:17px;font-weight:600;flex:1;margin-left:6px}
 .badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500}
 .ba{background:#FBEAF0;color:#72243E}.bp{background:#E1F5EE;color:#085041}
 .btn{padding:7px 14px;border-radius:8px;border:1px solid #d5d3ce;font-size:12px;cursor:pointer;font-family:inherit;background:#fff;color:#1a1a1a;transition:background .15s}
 .btn:hover{background:#f0eeea}
 .btn-primary{background:#993556;color:#fff;border-color:#993556}.btn-primary:hover{background:#72243E;border-color:#72243E}
-.btn-resa{background:#3C2A6B;color:#fff;border-color:#3C2A6B}.btn-resa:hover{background:#2C1F4F;border-color:#2C1F4F}
-.btn-visite{background:#FCE9F0;color:#A32D5C;border-color:#F5C7DA}.btn-visite:hover{background:#F8D9E6}
+.btn-resa{background:#0C2D52;color:#fff;border-color:#0C2D52}.btn-resa:hover{background:#081F38;border-color:#081F38}
+.btn-visite{background:#185FA5;color:#fff;border-color:#185FA5}.btn-visite:hover{background:#124A82;border-color:#124A82}
 .btn-prestation{background:#E6F1FB;color:#185FA5;border-color:#B5D4F4}.btn-prestation:hover{background:#D8EAF8}
 .btn-sm{padding:4px 10px;font-size:12px}.btn-xs{padding:2px 7px;font-size:11px}
 .btn-danger{color:#A32D2D;border-color:#F7C1C1;background:#fff}.btn-danger:hover{background:#FCEBEB}
@@ -31,12 +31,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1
 .dom-box{flex:1;text-align:center;padding:12px 6px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s;user-select:none}
 .dom-box.sel{opacity:1;box-shadow:0 0 0 2px rgba(0,0,0,.3) inset}
 .dom-box.fade{opacity:.3}
-.tab{flex:1;padding:6px 2px;text-align:center;border-radius:6px;cursor:pointer;font-size:12px;border:none;background:transparent;color:#666;font-family:inherit;transition:background .15s;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0}
-.tab .tab-ic{font-size:14px;line-height:1}
-.tab .tab-lbl{font-weight:500;text-transform:uppercase;font-size:9.5px;letter-spacing:.03em;line-height:1.1}
+.tab{flex:1;padding:7px 1px;text-align:center;border-radius:6px;cursor:pointer;font-size:12px;border:none;background:transparent;color:#666;font-family:inherit;transition:background .15s;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0}
+.tab .tab-ic{font-size:16px;line-height:1}
+.tab .tab-lbl{font-weight:500;text-transform:uppercase;font-size:8px;letter-spacing:.02em;line-height:1.1}
 .tab.active{background:#fff;color:#1a1a1a;font-weight:500;border:1px solid #d5d3ce}
 input,select,textarea{width:100%;padding:7px 10px;border:1px solid #d5d3ce;border-radius:8px;font-size:13px;font-family:inherit;background:#fff;color:#1a1a1a;outline:none;transition:border-color .15s}
 input:focus,select:focus,textarea:focus{border-color:#993556;box-shadow:0 0 0 3px rgba(153,53,86,.1)}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield}
+input[type=date]{padding-right:6px}
+input[type=date]::-webkit-calendar-picker-indicator{display:none}
+.date-row{display:flex;align-items:stretch;gap:4px}
+.date-row input[type=date]{flex:1;min-width:0}
+.date-btn{flex-shrink:0;width:34px;border:none;background:transparent;color:#A32D2D;font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.date-btn:hover{color:#791F1F}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
 .field{display:flex;flex-direction:column;gap:5px}
@@ -207,7 +215,7 @@ const DOMAIN_LOGOS={
 const PILL=['p0','p1','p2','p3','p4'];
 const MONTHS_FR=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 const PRESTA_CATS=['Animation','Traiteur','Décoration','Logistique','Autre'];
-const EVENT_TYPES=['Mariage','Anniversaire','Séminaire','Famille / Cousinade','EVJF / EVG','Séjour amis','Airbnb','Abritel','Booking','GDC (Gens de confiance)','Déjeuner','Dîner','Autre'];
+const EVENT_TYPES=['Mariage','Anniversaire','Séminaire','Famille / Cousinade','EVJF / EVG','Séjour amis','Airbnb','Abritel','Booking','GDC (Gens de confiance)','Déjeuner / Dîner','Gratuit','Autre'];
 const DOMINIQUE_RATES={d1:120,d2:150,d3:120};
 const LEG_BG=['#F4C0D1','#F5D98B','#C0DD97','#CECBF6','#B5D4F4'];
 const BAND_FULL=['b0f','b1f','b2f','b3f','b4f'];
@@ -284,7 +292,7 @@ function runMigrations(){
   (D.dominiqueSchedule||[]).forEach(x=>{if(x.paid===undefined)x.paid=false;if(x.comment===undefined)x.comment='';});
   (D.gardeSchedule||[]).forEach(x=>{if(x.payMethod===undefined)x.payMethod='cash';if(x.comment===undefined)x.comment='';});
 }
-let S={view:'login',admin:null,presta:null,tab:'calendrier',prestaTab:'calendrier',modal:null,msg:null,selResa:null,selectedPresta:null,hiddenDomains:[],calYear:2026,calMonth:5,bilanYear:2026,bilanMonth:5,listeYear:2026,listeMonth:5,visiteYear:2026,visiteMonth:5,prestaBilanYear:2026,prestaBilanMonth:5};
+let S={view:'login',admin:null,presta:null,tab:'calendrier',prestaTab:'calendrier',modal:null,msg:null,selResa:null,selectedPresta:null,hiddenDomains:[],calYear:2026,calMonth:5,bilanYear:2026,bilanMonth:5,listeYear:2026,listeMonth:5,visiteYear:2026,visiteMonth:5,prestaBilanYear:2026,prestaBilanMonth:5,adminPrestaYear:2026,adminPrestaMonth:5,clientsSortBy:'date'};
 
 function loadD(){try{const r=localStorage.getItem(SK);if(r)return JSON.parse(r);}catch(e){}return JSON.parse(JSON.stringify(DEF));}
 function saveD(){try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}pushRemoteD(D);}
@@ -384,9 +392,7 @@ function displayClientName(r){
 }
 function shortName(client){
   if(!client)return'';
-  const parts=client.trim().split(/\s+/);
-  const last=parts[parts.length-1]||'';
-  return last.charAt(0).toUpperCase()+last.slice(1);
+  return client.trim();
 }
 function isValidPhone(tel){
   if(!tel)return true;
@@ -394,6 +400,13 @@ function isValidPhone(tel){
   if(t.startsWith('+')||t.startsWith('00'))return true;
   const digits=t.replace(/[\s.\-]/g,'');
   return/^0[1-9]\d{8}$/.test(digits);
+}
+function displayTel(tel){
+  if(!tel||tel==='À compléter')return'';
+  const digits=tel.replace(/[\s.\-]/g,'');
+  if(/^0\d(0{6,})$/.test(digits))return'';
+  if(/^0?0{9,}$/.test(digits))return'';
+  return tel;
 }
 function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x;}
 function ds(d){if(!d)return'';const[y,m,day]=d.split('-');return`${parseInt(day)} ${['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'][parseInt(m)-1]}`;}
@@ -405,8 +418,9 @@ function isCash(pa){return/cash/i.test(pa.comment||pa.note||'');}
 function payStatus(r){const t=totPay(r),m=r.montant||0;if(m===0)return'none';if(t>=m)return'full';if(t>0)return'part';return'none';}
 function getMenageInfo(r){
   let info=null;
-  if(r.domaine==='d1')info={pid:'p1',name:'Misha',montant:450};
-  else if(r.domaine==='d2'){const n=r.nbPersonnes||r.nbSoiree||0;info={pid:'p2',name:'Sasha',montant:n>=40?500:400};}
+  const isRepasSeul=(r.typeEvenement==='Déjeuner / Dîner');
+  if(r.domaine==='d1')info={pid:'p1',name:'Misha',montant:isRepasSeul?100:450};
+  else if(r.domaine==='d2'){const n=r.nbPersonnes||r.nbSoiree||0;info={pid:'p2',name:'Sasha',montant:isRepasSeul?100:(n>=40?500:400)};}
   else if(r.domaine==='d3')info={pid:'p3',name:'Pascaline',montant:250};
   if(!info)return null;
   if(r.menageMontant!==undefined&&r.menageMontant!==null&&r.menageMontant!=='')info.montant=parseFloat(r.menageMontant);
@@ -444,18 +458,16 @@ function buildVac(){
   const mid={},edge={};
   VAC.forEach(([s,e,n])=>{
     const sd=new Date(s+'T12:00:00'),ed=new Date(e+'T12:00:00');
-    const lbl=VAC_LABEL[n]||('de '+n);
-    edge[dstr(sd)]='Début vacances '+lbl;
-    edge[dstr(ed)]='Fin vacances '+lbl;
-    let c=addDays(sd,1);while(c<ed){mid[dstr(c)]=n;c=addDays(c,1);}
+    let c=new Date(sd);while(c<=ed){mid[dstr(c)]=n;c=addDays(c,1);}
   });return{mid,edge};
 }
 const{mid:VM,edge:VE}=buildVac();
 const AF=Object.assign({},...Array.from({length:11},(_,i)=>getFeries(2025+i)));
 const AP=Object.assign({},...Array.from({length:11},(_,i)=>getPonts(2025+i)));
 
-function dayCls(d){if(AF[d])return'ferie';if(VE[d])return'vac-edge';if(AP[d])return'pont';if(VM[d])return'vac-mid';return'';}
-function dayTag(d){if(AF[d])return AF[d];if(VE[d])return VE[d];if(AP[d])return'Pont';return'';}
+function isWeekend(d){const dow=new Date(d+'T12:00:00').getDay();return dow===0||dow===6;}
+function dayCls(d){if(AF[d])return'ferie';if(AP[d])return'pont';if(VM[d])return'vac-mid';if(isWeekend(d))return'vac-mid';return'';}
+function dayTag(d){if(AF[d])return AF[d];if(AP[d])return'Pont';if(VM[d])return VM[d];return'';}
 
 function buildDateCellMap(y,m){
   const fd=new Date(y,m,1);let sd=fd.getDay();sd=sd===0?6:sd-1;
@@ -513,6 +525,13 @@ function buildBands(y,m){
 }
 
 function nbFieldsHtml(domaine,r){
+  const evt=r.typeEvenement||(document.getElementById('m-evt')?document.getElementById('m-evt').value:'');
+  const isRepasSeul=(evt==='Déjeuner / Dîner');
+  if(isRepasSeul){
+    return`<div class="g2" style="margin-bottom:4px">
+      <div class="field"><label>🥂 Nb d'invités</label><input type="number" id="m-nbs" value="${r.nbSoiree||r.nbPersonnes||''}" placeholder="0" min="0"></div>
+    </div><input type="hidden" id="m-nbp" value="0">`;
+  }
   if(domaine==='d3'){
     return`<div class="g2" style="margin-bottom:4px">
       <div class="field"><label>🧑 Nombre d'adultes</label><input type="number" id="m-adultes" value="${r.nbAdultes||''}" placeholder="0" min="0"></div>
@@ -557,6 +576,30 @@ function pickTypeClient(el){
   });
   const wrap=document.getElementById('m-societe-wrap');
   if(wrap)wrap.style.display=el.dataset.id==='entreprise'?'flex':'none';
+}
+function onEvtTypeChange(val){
+  if(val==='Séminaire'){
+    const entBox=document.querySelector('#dom-picker-tc .dom-box[data-id="entreprise"]');
+    if(entBox)pickTypeClient(entBox);
+  }
+  const wrap=document.getElementById('nb-fields-wrap');
+  const domEl=document.getElementById('m-domaine');
+  if(wrap&&domEl)wrap.innerHTML=nbFieldsHtml(domEl.value,{typeEvenement:val});
+  const montantEl=document.getElementById('m-montant');
+  if(montantEl){
+    if(val==='Gratuit'){montantEl.value='0';montantEl.readOnly=true;montantEl.style.background='#f0eee8';montantEl.style.color='#888';}
+    else{montantEl.readOnly=false;montantEl.style.background='';montantEl.style.color='';}
+  }
+  const depWrap=document.getElementById('dep-date-wrap');
+  const arrDateEl=document.getElementById('m-arr-date'),depDateEl=document.getElementById('m-dep-date');
+  if(depWrap){
+    if(val==='Déjeuner / Dîner'){
+      depWrap.style.display='none';
+      if(arrDateEl&&depDateEl)depDateEl.value=arrDateEl.value;
+    } else {
+      depWrap.style.display='grid';
+    }
+  }
 }
 function nightsList(arr,dep){
   if(!arr)return[];
@@ -767,13 +810,14 @@ function doLogin(){
 }
 
 function renderAdmin(){
-  const tabs=[['calendrier','📅','Calendrier'],['liste','🎉','Événements'],['visites','👀','Visites'],['prestataires','🧑‍🔧','Équipe<br>Domaines'],['bilan','📊','Bilan']];
+  const tabs=[['calendrier','📅','Planning'],['liste','🎉','Liste<br>résas'],['visites','👀','Liste<br>visites'],['prestataires','🧑‍🔧','Équipe<br>Domaines'],['bilan','📊','Bilan €'],['clients','📇','Liste<br>clients']];
   let content='';
   if(S.tab==='calendrier')content=renderCalendrier();
   else if(S.tab==='liste')content=renderListe();
   else if(S.tab==='visites')content=renderVisiteList();
   else if(S.tab==='prestataires')content=renderPrestaList();
   else if(S.tab==='bilan')content=renderBilan();
+  else if(S.tab==='clients')content=renderClientsList();
   const lastSeen=(D.adminLastSeen||{})[S.admin.id]||0;
   const notifs=(D.activityLog||[]).filter(it=>((it.authorId&&it.authorId!==S.admin.id)||it.forAdmin)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
   return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge ba">Admin — ${S.admin.name}</span><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}${renderNotifBanner(notifs,'dismissAdminNotifs')}${renderMessagesHub()}<div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${S.tab===k?'active':''}" onclick="setTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>${content}${S.modal?renderModalWrap():''}`;
@@ -828,7 +872,7 @@ function renderDetailPanel(r){
   const myLines=(readOnly&&S.presta&&S.presta.inputMode==='notes')?((r.prestaLines||{})[S.presta.id]||[]):[];
   return`<div class="detail-panel">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;gap:8px">
-      <div style="min-width:0"><div style="font-size:16px;font-weight:700">${displayClientName(r)||'—'}</div>${r.tel?`<div style="font-size:12px;color:#888;margin-top:2px">${r.tel}</div>`:''}<div style="margin-top:4px"><span class="pill ${PILL[c]}">${dom.name}</span> <span class="status s-${r.status}" style="margin-left:4px">${r.status}</span></div></div>
+      <div style="min-width:0"><div style="font-size:16px;font-weight:700">${displayClientName(r)||'—'}</div><div style="font-size:12px;color:#888;margin-top:2px">${displayTel(r.tel)||'<span style="color:#A32D2D">À renseigner</span>'}</div><div style="margin-top:4px"><span class="pill ${PILL[c]}">${dom.name}</span> <span class="status s-${r.status}" style="margin-left:4px">${r.status}</span></div></div>
       <div style="display:flex;gap:6px;flex-shrink:0">
         ${readOnly?'':`<button class="btn btn-xs btn-primary" onclick="openM('editResa','${r.id}')" title="Modifier">✏️</button><button class="btn btn-xs btn-danger" onclick="delResa('${r.id}')" title="Supprimer">🗑️</button>`}
         <button class="btn btn-xs" onclick="closePanel()" title="Fermer">✕</button>
@@ -844,6 +888,7 @@ function renderDetailPanel(r){
     ${(r.nbPersonnes||r.nbSoiree)?`<div style="font-size:12px;color:#555;margin-bottom:8px;display:flex;gap:16px">${r.nbPersonnes?'<span>🛏 <strong>'+r.nbPersonnes+'</strong> couchages</span>':''} ${r.nbSoiree?'<span>🥂 <strong>'+r.nbSoiree+'</strong> invités soirée</span>':''}</div>`:''}
     ${Object.keys(r.prestaGarde||{}).length?Object.entries(r.prestaGarde).map(([pid,pg])=>{const who=gPre(pid);return`<div style="margin-bottom:8px"><div style="font-size:11px;color:#888;margin-bottom:3px">🛡 ${who.name||'—'}</div>${Object.entries(pg.nights||{}).sort((a,b)=>a[0].localeCompare(b[0])).map(([d,v])=>readOnly?`<span class="pill" style="background:#f0eee8;color:#555;margin-right:4px;margin-bottom:4px;display:inline-block">Nuit du ${ds(d)} — ${v.duree==='courte'?'22h-2h':'22h-4h'}</span>`:`<span class="pill" style="background:${v.paid?'#E8F3E0':'#FCEBEB'};color:${v.paid?'#27500A':'#791F1F'};margin-right:4px;margin-bottom:4px;display:inline-block;cursor:pointer" onclick="toggleGardeNightPaid('${r.id}','${pid}','${d}')" title="Cliquer pour ${v.paid?'marquer non payé':'marquer payé'}">Nuit du ${ds(d)} — ${v.duree==='courte'?'22h-2h':'22h-4h'} · ${money(gardeRate(v.duree))} ${v.paid?'✓ payé':'✗ non payé'}</span>`).join('')}</div>`;}).join(''):''}
     ${(!readOnly&&r.noteInterne)?`<div class="note-box" style="margin-bottom:8px">${r.noteInterne}</div>`:''}
+    ${r.caviste&&(!readOnly?(S.presta&&(S.presta.id==='p1'||S.presta.id==='p2')):true)?`<div class="dp-section"><label>🍷 Commande caviste</label><div class="note-box" style="border-left-color:#F5D98B">${r.caviste.replace(/\n/g,'<br>')}</div></div>`:''}
     ${myLines.length?`<div class="dp-section"><label>🍽 Ma prestation</label>
       ${myLines.map(l=>`<div style="background:#f5f4f1;border-radius:8px;padding:8px;margin-bottom:6px">
         <input type="text" value="${l.label||''}" placeholder="Intitulé" onchange="updPrestaLine('${r.id}','${S.presta.id}','${l.id}','label',this.value)" style="width:100%;font-size:13px;font-weight:500;padding:4px 5px;margin-bottom:4px;box-sizing:border-box">
@@ -884,7 +929,7 @@ function renderListe(){
   });
   const totalCA=list.reduce((a,r)=>a+(r.montant||0),0),totalPaid=list.reduce((a,r)=>a+totPay(r),0);
   const rows=list.map(r=>{const dom=gDom(r.domaine);const isJ=r.dateArrivee===r.dateDepart;
-    return`<tr ${readOnly?'':`onclick="selectAndGoCal('${r.id}')"`}><td><div style="font-weight:500">${r.client||'—'}</div>${r.tel?`<div style="font-size:11px;color:#888">${r.tel}</div>`:''}${r.typeEvenement?`<div style="font-size:11px;color:#993556">${r.typeEvenement}</div>`:''}</td><td>${r.typeClient==='entreprise'&&r.societe?r.societe:'<span style="color:#ccc">—</span>'}</td><td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td>
+    return`<tr ${readOnly?'':`onclick="selectAndGoCal('${r.id}')"`}><td><div style="font-weight:500">${r.client||'—'}</div><div style="font-size:11px;color:#888">${displayTel(r.tel)||'<span style="color:#A32D2D">À renseigner</span>'}</div>${r.typeEvenement?`<div style="font-size:11px;color:#993556">${r.typeEvenement}</div>`:''}</td><td>${r.typeClient==='entreprise'&&r.societe?r.societe:'<span style="color:#ccc">—</span>'}</td><td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td>
     <td>${dn(r.dateArrivee||r.date)} ${ds(r.dateArrivee||r.date)}<br><span style="font-size:11px;color:#888">${r.heureArrivee||''}</span></td>
     <td>${isJ?'<span style="font-size:11px;color:#888">Journée</span>':`${dn(r.dateDepart)} ${ds(r.dateDepart)}<br><span style="font-size:11px;color:#888">${r.heureDepart||''}</span>`}</td>
     <td style="text-align:center">${r.nbPersonnes||'—'}</td><td style="text-align:center">${r.nbSoiree||'—'}</td><td><span class="status s-${r.status}">${r.status}</span></td>${readOnly?'':`<td>${payBadge(r)}</td>
@@ -1021,9 +1066,8 @@ function saveVisite(id){
   if(!date)missing.push('la date');
   if(!heure)missing.push("l'heure");
   if(!client)missing.push('le nom de la personne');
-  if(!tel)missing.push('le téléphone');
   if(missing.length){alert('Champs obligatoires manquants : '+missing.join(', ')+'.');return;}
-  if(!isValidPhone(tel)){alert("Numéro de téléphone invalide. En France : 10 chiffres commençant par 0 (ex. 06 12 34 56 78). À l'étranger : commencez par + ou 00 suivi de l'indicatif.");return;}
+  if(tel&&!isValidPhone(tel)){alert("Numéro de téléphone invalide. En France : 10 chiffres commençant par 0 (ex. 06 12 34 56 78). À l'étranger : commencez par + ou 00 suivi de l'indicatif.");return;}
   const isNew=!id;
   if(id){const v=D.visites.find(x=>x.id===id);Object.assign(v,{domaine,date,heure,status,client,typeEvenement,tel,email,noteInterne});}
   else D.visites.push({id:gid(),domaine,date,heure,status,client,typeEvenement,tel,email,noteInterne});
@@ -1035,7 +1079,12 @@ function delVisite(id){if(!confirm('Supprimer cette visite ?'))return;const v=D.
 function bilanNav(d){S.bilanMonth+=d;if(S.bilanMonth>11){S.bilanMonth=0;S.bilanYear++;}if(S.bilanMonth<0){S.bilanMonth=11;S.bilanYear--;}render();}
 function setBilanViewMode(mode){S.bilanViewMode=mode;render();}
 function setListeSortBy(v){S.listeSortBy=v;render();}
-function selectPresta(pid){S.selectedPresta=(S.selectedPresta===pid)?null:pid;render();}
+function selectPresta(pid){
+  const opening=S.selectedPresta!==pid;
+  S.selectedPresta=(S.selectedPresta===pid)?null:pid;
+  if(opening){const now=new Date();S.adminPrestaYear=now.getFullYear();S.adminPrestaMonth=now.getMonth();}
+  render();
+}
 function setMsgSelectedPid(pid){S.msgSelectedPid=pid;render();}
 function toggleHiddenDomaine(did){
   if(!S.hiddenDomains)S.hiddenDomains=[];
@@ -1084,7 +1133,8 @@ function renderBilan(){
   const viewMode=S.bilanViewMode||'month';
   const y=S.bilanYear,m=S.bilanMonth;
   const inPeriod=r=>{const d=r.dateArrivee||r.date;if(!d)return false;const[ry,rm]=d.split('-').map(Number);return viewMode==='year'?ry===y:(ry===y&&rm===(m+1));};
-  const inMenagePeriod=r=>{const d=r.dateDepart||r.dateArrivee||r.date;if(!d)return false;const[ry,rm]=d.split('-').map(Number);return viewMode==='year'?ry===y:(ry===y&&rm===(m+1));};
+  const todayStr0=dstr(new Date());
+  const inMenagePeriod=r=>{const d=r.dateDepart||r.dateArrivee||r.date;if(!d)return false;const[ry,rm]=d.split('-').map(Number);const inP=viewMode==='year'?ry===y:(ry===y&&rm===(m+1));if(!inP)return false;return d<=todayStr0;};
   const evs=D.reservations.filter(r=>r.status!=='annulé'&&inPeriod(r)&&r.prestaLines&&Object.values(r.prestaLines).some(l=>l.length>0));
   const byP={};let totalGeneral=0;
   evs.forEach(r=>Object.entries(r.prestaLines).forEach(([pid,lines])=>{
@@ -1097,7 +1147,9 @@ function renderBilan(){
     });
   }));
   const rows=Object.entries(byP).sort((a,b)=>b[1].total-a[1].total);
+  const todayStr=dstr(new Date());
   const revByDom={};let revTotal=0,paidTotal=0;
+  const revByDomPast={},revByDomFuture={};let revTotalPast=0,paidTotalPast=0,revTotalFuture=0,paidTotalFuture=0;
   const daysInPeriod=viewMode==='year'?(((y%4===0&&y%100!==0)||y%400===0)?366:365):new Date(y,m+1,0).getDate();
   D.reservations.filter(r=>r.status!=='annulé').forEach(r=>{
     const amt=viewMode==='year'?montantForYear(r,y):montantForMonth(r,y,m);
@@ -1106,6 +1158,15 @@ function renderBilan(){
     if(amt>0||paid>0){
       revByDom[r.domaine].loc+=amt;revByDom[r.domaine].paid+=paid;
       revTotal+=amt;paidTotal+=paid;
+    }
+    if(viewMode==='year'){
+      const isPast=(r.dateDepart||r.dateArrivee||'')<todayStr;
+      const tgt=isPast?revByDomPast:revByDomFuture;
+      if(!tgt[r.domaine])tgt[r.domaine]={loc:0,paid:0,cash:0,virement:0,nuitees:0};
+      if(amt>0||paid>0){
+        tgt[r.domaine].loc+=amt;tgt[r.domaine].paid+=paid;
+        if(isPast){revTotalPast+=amt;paidTotalPast+=paid;}else{revTotalFuture+=amt;paidTotalFuture+=paid;}
+      }
     }
     const counts=nightsByMonth(r);
     if(viewMode==='year'){
@@ -1123,6 +1184,8 @@ function renderBilan(){
     });
   });
   const revRows=D.domaines.map(d=>({d,...(revByDom[d.id]||{loc:0,paid:0,cash:0,virement:0,nuitees:0})})).filter(x=>x.loc>0||x.paid>0||x.cash>0||x.virement>0||x.nuitees>0);
+  const revRowsPast=D.domaines.map(d=>({d,...(revByDomPast[d.id]||{loc:0,paid:0})})).filter(x=>x.loc>0||x.paid>0);
+  const revRowsFuture=D.domaines.map(d=>({d,...(revByDomFuture[d.id]||{loc:0,paid:0})})).filter(x=>x.loc>0||x.paid>0);
   let cashTotal=0,virementTotal=0;
   D.reservations.filter(r=>r.status!=='annulé').forEach(r=>{
     (r.paiements||[]).forEach(pa=>{
@@ -1172,6 +1235,29 @@ function renderBilan(){
   <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
     <div class="sec-hdr"><h2>💶 Performance de location</h2></div>
     <div style="font-size:11px;color:#888;margin-bottom:10px">Les séjours à cheval sur deux périodes sont répartis au prorata du nombre de nuits dans chacune (location et paiements). Occupation sur ${daysInPeriod} ${viewMode==='year'?'jours de l\'année':'jours du mois'}.</div>
+    ${viewMode==='year'?`
+    <div style="margin-bottom:10px">
+      <div style="font-size:12px;font-weight:700;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:.03em">📌 Déjà réalisé (jusqu'à aujourd'hui)</div>
+      ${revRowsPast.length===0?'<div style="font-size:12px;color:#888;margin-bottom:10px">Rien à ce jour.</div>':`<table class="list-tbl"><thead><tr><th>Domaine</th><th>Montant location</th><th>Payé</th><th>Reste à payer</th></tr></thead>
+      <tbody>${revRowsPast.map(({d,loc,paid})=>`<tr><td><span class="pill ${PILL[d.color||0]}">${d.name}</span></td><td style="font-weight:500">${money(loc)}</td><td style="color:#27500A">${money(paid)}</td><td style="color:${loc-paid>0?'#A32D2D':'#27500A'}">${money(loc-paid)}</td></tr>`).join('')}
+      <tr style="background:#f0eee8"><td style="font-weight:700;color:#000">Total réalisé</td><td style="font-weight:700;color:#000">${money(revTotalPast)}</td><td style="font-weight:700;color:#000">${money(paidTotalPast)}</td><td style="font-weight:700;color:#000">${money(revTotalPast-paidTotalPast)}</td></tr></tbody></table>`}
+    </div>
+    <div style="margin-bottom:10px">
+      <div style="font-size:12px;font-weight:700;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:.03em">🔮 À venir (réservations futures)</div>
+      ${revRowsFuture.length===0?'<div style="font-size:12px;color:#888;margin-bottom:10px">Aucune réservation future enregistrée.</div>':`<table class="list-tbl"><thead><tr><th>Domaine</th><th>Montant attendu</th><th>Déjà encaissé</th><th>Reste à percevoir</th></tr></thead>
+      <tbody>${revRowsFuture.map(({d,loc,paid})=>`<tr><td><span class="pill ${PILL[d.color||0]}">${d.name}</span></td><td style="font-weight:500">${money(loc)}</td><td style="color:#27500A">${money(paid)}</td><td style="color:${loc-paid>0?'#A32D2D':'#27500A'}">${money(loc-paid)}</td></tr>`).join('')}
+      <tr style="background:#f0eee8"><td style="font-weight:700;color:#000">Total attendu</td><td style="font-weight:700;color:#000">${money(revTotalFuture)}</td><td style="font-weight:700;color:#000">${money(paidTotalFuture)}</td><td style="font-weight:700;color:#000">${money(revTotalFuture-paidTotalFuture)}</td></tr></tbody></table>`}
+    </div>
+    <div style="background:#EEEDFE;border-radius:8px;padding:10px 12px;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:700;color:#3C3489;margin-bottom:4px;text-transform:uppercase;letter-spacing:.03em">📊 Total théorique de l'année ${y}</div>
+      <div style="display:flex;gap:18px;flex-wrap:wrap">
+        <span style="font-size:14px"><strong>${money(revTotalPast+revTotalFuture)}</strong> <span style="color:#666;font-size:11px">attendu sur l'année</span></span>
+        <span style="font-size:14px;color:#27500A"><strong>${money(paidTotalPast+paidTotalFuture)}</strong> <span style="color:#666;font-size:11px">déjà encaissé</span></span>
+        <span style="font-size:14px;color:#A32D2D"><strong>${money((revTotalPast+revTotalFuture)-(paidTotalPast+paidTotalFuture))}</strong> <span style="color:#666;font-size:11px">reste à percevoir</span></span>
+      </div>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:.03em">Détail par domaine — vue d'ensemble</div>
+    `:''}
     ${revRows.length===0?'<div class="empty">Aucune location sur cette période.</div>':''}
     ${revRows.length>0?`<table class="list-tbl"><thead><tr><th>Domaine</th><th>Montant location</th><th>Payé</th><th>Payé virement</th><th>Payé cash</th><th>Reste à payer</th><th>Occupation</th></tr></thead>
     <tbody>${revRows.map(({d,loc,paid,cash,virement,nuitees})=>{const ct=getMenageInfo({domaine:d.id,nbPersonnes:0,nbSoiree:0});const ctP=ct?D.prestataires.find(x=>x.id===ct.pid):null;return`<tr><td><span class="pill ${PILL[d.color||0]}">${d.name}</span>${ctP?` ${ctP.tel?`<a href="https://wa.me/${ctP.tel.replace(/\D/g,'')}" target="_blank" style="font-size:11px;color:#25D366;text-decoration:none" title="WhatsApp ${ctP.name}">💬 ${ctP.name}</a>`:`<span style="font-size:11px;color:#888">${ctP.name}</span>`}`:''}</td><td style="font-weight:500">${money(loc)}</td><td style="color:#27500A">${money(paid)}</td><td>${money(virement)}</td><td>${money(cash)}</td><td style="color:${loc-paid>0?'#A32D2D':'#27500A'}">${money(loc-paid)}</td><td>${nuitees} / ${daysInPeriod} <span style="color:#888">(${(nuitees/daysInPeriod*100).toFixed(0)}%)</span></td></tr>`;}).join('')}
@@ -1189,7 +1275,8 @@ function renderBilan(){
     <tbody>${rows.map(([pid,v])=>{const p=gPre(pid);return`<tr><td>${p.name||'—'}</td><td style="text-align:center">${v.count}</td><td style="font-weight:500">${money(v.total)}</td><td style="color:#888">${money(v.direct)}</td><td style="font-weight:600;color:#A32D2D">${money(v.viaNous)}</td><td style="color:#27500A">${money(v.total*0.1)}</td></tr>`;}).join('')}</tbody></table>`:''}
   </div>
   <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
-    <div class="sec-hdr"><h2>🧹 Forfaits ménage — sans commission, suivi à part</h2></div>
+    <div class="sec-hdr"><h2>🧹 Forfaits ménage — passé uniquement (à vérifier)</h2></div>
+    <div style="font-size:11px;color:#888;margin-bottom:8px">Le futur n'est pas affiché ici : on ne suit que ce qui est déjà passé, pour vérifier ce qui a été payé ou non.</div>
     ${menageRows.length===0?'<div class="empty">Aucun forfait ménage sur cette période.</div>':''}
     ${menageRows.length>0?`<table class="list-tbl"><thead><tr><th>Prestataire</th><th>Nb vacations</th><th>Total dû</th><th>Payé</th><th>Reste à payer</th></tr></thead>
     <tbody>${menageRows.map(([pid,v])=>`<tr><td>${v.name}</td><td style="text-align:center">${v.count}</td><td style="font-weight:500">${money(v.total)}</td><td style="color:#27500A">${money(v.paid)}</td><td style="font-weight:600;color:${v.total-v.paid>0?'#A32D2D':'#27500A'}">${money(v.total-v.paid)}</td></tr>`).join('')}</tbody></table>`:''}
@@ -1263,6 +1350,8 @@ function renderPrestaList(){
         <button class="btn btn-xs btn-danger" onclick="event.stopPropagation();delPresta('${p.id}')">✕</button>
       </div>`;}).join('')}
   </div>
+  ${sel?renderPrestaDetailAdmin(D.prestataires.find(x=>x.id===sel)):''}
+  ${renderDomaineList()}
   <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-top:14px">
     <div class="sec-hdr"><h2>👤 Liens personnels administrateurs</h2></div>
     <div style="font-size:11px;color:#888;margin-bottom:10px">Connexion directe sans code — à n'enregistrer que sur l'appareil personnel de la personne.</div>
@@ -1271,137 +1360,160 @@ function renderPrestaList(){
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:#666">${url}</span>
       <button class="btn btn-xs" onclick="copyL('${url}',this)">Copier</button>
     </div>`;}).join('')}
-  </div>
-  ${sel?renderPrestaDetailAdmin(D.prestataires.find(x=>x.id===sel)):''}
-  ${renderDomaineList()}`;
+  </div>`;
 }
 
 function renderPrestaDetailAdmin(p){
   if(!p)return'';
-  if(p.flatRate){
-    const todayStr0=dstr(new Date());
-    const evs=D.reservations.filter(r=>r.status!=='annulé'&&(p.domaines||[]).includes(r.domaine)&&(r.dateDepart||r.dateArrivee||'')>=todayStr0).sort((a,b)=>(a.dateArrivee||'').localeCompare(b.dateArrivee||''));
-    const amts=evs.map(r=>(getMenageInfo(r)||{}).montant||0);
-    const total=amts.reduce((a,x)=>a+x,0),paid=evs.reduce((a,r,i)=>a+(r.menagePaid?amts[i]:0),0);
-    return`<div style="margin-top:16px;background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
-      <div class="sec-hdr"><h2>🧹 Suivi de ${p.name} — forfait de base ${money(p.flatRate)}/vacation (modifiable au cas par cas)</h2></div>
-      <div class="g3" style="margin-bottom:14px">
-        <div class="metric"><span class="lbl">Total dû</span><span class="val">${money(total)}</span></div>
-        <div class="metric"><span class="lbl">Réglé</span><span class="val" style="color:#27500A">${money(paid)}</span></div>
-        <div class="metric"><span class="lbl">Reste à régler</span><span class="val" style="color:#A32D2D">${money(total-paid)}</span></div>
-      </div>
-      ${evs.length===0?'<div class="empty">Aucune vacation enregistrée.</div>':''}
-      ${evs.map((r,i)=>{const dom=gDom(r.domaine);return`<div style="padding:8px 8px;margin:0 -8px;border-bottom:1px solid #e5e3de;font-size:13px;background:${i%2===1?'#f7f6f3':'transparent'}">
-        <div style="margin-bottom:5px"><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span>${ds(r.dateArrivee)} → ${ds(r.dateDepart)} <span style="color:#888">(${displayClientName(r)||'—'})</span></div>
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap">
-          <input type="text" value="${r.menageComment||''}" placeholder="Commentaire pour Pascaline" onchange="updMenageComment('${r.id}',this.value)" style="flex:1;min-width:0;font-size:12px;padding:3px 5px;color:#888">
-          <span style="display:flex;align-items:center;gap:2px;flex-shrink:0"><input type="number" value="${amts[i]}" onchange="updMenageMontant('${r.id}',this.value)" style="width:65px;font-weight:600;font-size:13px;padding:3px 5px"><span style="font-size:12px;font-weight:600;color:#666">€</span></span>
-          <span class="pill" style="background:${r.menagePaid?'#E8F3E0':'#FCEBEB'};color:${r.menagePaid?'#27500A':'#791F1F'};cursor:pointer;flex-shrink:0" onclick="toggleMenagePaid('${r.id}')">${r.menagePaid?'✓ Réglé':'✗ Régler'}</span>
-        </div>
-      </div>`;}).join('')}
-    </div>`;
-  }
-  if(p.inputMode==='garde'){
-    const rows=[];
-    D.reservations.filter(r=>r.status!=='annulé').forEach(r=>{
-      const pg=(r.prestaGarde||{})[p.id];if(!pg)return;
-      Object.entries(pg.nights||{}).forEach(([date,v])=>rows.push({date,duree:v.duree,paid:v.paid,payMethod:v.payMethod||'cash',comment:v.comment||'',resaId:r.id,client:displayClientName(r)||'—',domaine:pg.domaine,source:'resa'}));
-    });
-    (D.gardeSchedule||[]).filter(x=>x.pid===p.id).forEach(x=>rows.push({date:x.date,duree:x.duree,paid:x.paid,payMethod:x.payMethod||'cash',comment:x.comment||'',resaId:null,schedId:x.id,client:'— (planning)',domaine:x.domaine,source:'planning'}));
-    rows.sort((a,b)=>b.date.localeCompare(a.date));
-    const total=rows.reduce((a,x)=>a+gardeRate(x.duree),0),paid=rows.filter(x=>x.paid).reduce((a,x)=>a+gardeRate(x.duree),0);
-    return`<div style="margin-top:16px;background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
-      <div class="sec-hdr"><h2>🛡 Suivi de ${p.name} — gardiennage (110€ longue / 75€ courte)</h2><button class="btn btn-xs btn-primary" onclick="openM('gardePlanning',null,{pid:'${p.id}'})">📅 Planning</button></div>
-      <div class="g3" style="margin-bottom:14px">
-        <div class="metric"><span class="lbl">Total dû</span><span class="val">${money(total)}</span></div>
-        <div class="metric"><span class="lbl">Réglé</span><span class="val" style="color:#27500A">${money(paid)}</span></div>
-        <div class="metric"><span class="lbl">Reste à régler</span><span class="val" style="color:#A32D2D">${money(total-paid)}</span></div>
-      </div>
-      ${rows.length===0?'<div class="empty">Aucune nuit de gardiennage enregistrée.</div>':''}
-      <div style="overflow-x:auto"><table class="list-tbl"><thead><tr><th>Nuit du</th><th>Lieu</th><th>Durée</th><th>Commentaire</th><th>Montant</th><th>Mode</th><th>Statut</th><th>Événement</th><th></th></tr></thead>
-      <tbody>${rows.map(x=>{const dom=gDom(x.domaine);const toggleCall=x.source==='resa'?`toggleGardeNightPaid('${x.resaId}','${p.id}','${x.date}')`:`toggleGardeSchedulePaid('${x.schedId}')`;const methodCall=x.source==='resa'?`setGardeNightPayMethod('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeSchedulePayMethod('${x.schedId}',this.value)`;const dureeCall=x.source==='resa'?`setGardeNightDuree('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleDuree('${x.schedId}',this.value)`;const commentCall=x.source==='resa'?`setGardeNightComment('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleComment('${x.schedId}',this.value)`;const delCall=x.source==='resa'?`delGardeNight('${x.resaId}','${p.id}','${x.date}')`:`delGardePlanning('${x.schedId}')`;return`<tr><td>${dn(x.date)} ${ds(x.date)}</td><td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td><td><select onchange="${dureeCall}" style="font-size:12px"><option value="courte" ${x.duree==='courte'?'selected':''}>Courte (22h-2h)</option><option value="longue" ${x.duree==='longue'?'selected':''}>Longue (22h-4h)</option></select></td><td><input type="text" value="${x.comment||''}" placeholder="Commentaire pour ${p.name}" onchange="${commentCall}" style="font-size:12px;padding:3px 5px;width:130px;color:#888"></td><td>${money(gardeRate(x.duree))}</td><td><select onchange="${methodCall}" style="font-size:12px"><option value="cash" ${x.payMethod==='cash'?'selected':''}>💵 Cash</option><option value="virement" ${x.payMethod==='virement'?'selected':''}>🏦 Virement</option></select></td><td><span class="pill" style="background:${x.paid?'#E8F3E0':'#FCEBEB'};color:${x.paid?'#27500A':'#791F1F'};cursor:pointer" onclick="${toggleCall}">${x.paid?'✓ Réglé':'✗ Régler'}</span></td><td>${x.client}</td><td><button class="btn btn-xs btn-danger" onclick="${delCall}">✕</button></td></tr>`;}).join('')}</tbody></table></div>
-    </div>`;
-  }
-  if(p.inputMode==='notes'){
-    const menageRows=D.reservations.filter(r=>r.status!=='annulé').map(r=>({r,mi:getMenageInfo(r)})).filter(x=>x.mi&&x.mi.pid===p.id).sort((a,b)=>(b.r.dateDepart||'').localeCompare(a.r.dateDepart||''));
-    const prestaRows=[];
-    D.reservations.filter(r=>r.status!=='annulé'&&r.prestaLines&&r.prestaLines[p.id]&&r.prestaLines[p.id].length).forEach(r=>{r.prestaLines[p.id].forEach(l=>prestaRows.push({r,l}));});
-    const todayStr=dstr(new Date());
-    const menageRowsFuture=menageRows.filter(({r})=>(r.dateDepart||r.dateArrivee)>=todayStr).sort((a,b)=>(a.r.dateArrivee||'').localeCompare(b.r.dateArrivee||''));
-    const prestaRowsFuture=prestaRows.filter(({r,l})=>(l.date||r.dateArrivee||'')>=todayStr).sort((a,b)=>(a.l.date||a.r.dateArrivee||'').localeCompare(b.l.date||b.r.dateArrivee||''));
-    const menageTotal=menageRows.reduce((a,x)=>a+x.mi.montant,0),menagePaid=menageRows.filter(x=>x.r.menagePaid).reduce((a,x)=>a+x.mi.montant,0);
-    const commTotal=prestaRows.reduce((a,x)=>a+(x.l.montant||0),0);
-    return`<div style="margin-top:16px">
-      <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
-        <div class="sec-hdr"><h2>🧹 Forfaits ménage de ${p.name}</h2></div>
-        <div style="font-size:11px;color:#888;margin-bottom:8px">Présent et à venir uniquement — l'historique complet est dans Bilan.</div>
+  const y=S.adminPrestaYear,m=S.adminPrestaMonth;
+  const monthKey=`${y}-${String(m+1).padStart(2,'0')}`;
+  const inMonth=dateStr=>!!dateStr&&dateStr.startsWith(monthKey);
+  const nav=`<div class="cal-header" style="margin-bottom:14px">${monthYearPicker('adminPrestaYear','adminPrestaMonth')}</div>`;
+
+  /* === Forfait ménage (Misha / Sasha / Pascaline) === */
+  let menageSection='';
+  {
+    const rows=D.reservations.filter(r=>r.status!=='annulé').map(r=>({r,mi:getMenageInfo(r)})).filter(x=>x.mi&&x.mi.pid===p.id&&inMonth(x.r.dateDepart||x.r.dateArrivee)).sort((a,b)=>(a.r.dateArrivee||'').localeCompare(b.r.dateArrivee||''));
+    if(rows.length||p.flatRate||p.inputMode==='notes'){
+      const total=rows.reduce((a,x)=>a+x.mi.montant,0),paid=rows.filter(x=>x.r.menagePaid).reduce((a,x)=>a+x.mi.montant,0);
+      menageSection=`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
+        <div class="sec-hdr"><h2>🧹 Forfaits ménage — ${MONTHS_FR[m]} ${y}</h2></div>
         <div class="g3" style="margin-bottom:10px">
-          <div class="metric"><span class="lbl">Total dû</span><span class="val">${money(menageTotal)}</span></div>
-          <div class="metric"><span class="lbl">Réglé</span><span class="val" style="color:#27500A">${money(menagePaid)}</span></div>
-          <div class="metric"><span class="lbl">Reste à régler</span><span class="val" style="color:#A32D2D">${money(menageTotal-menagePaid)}</span></div>
+          <div class="metric"><span class="lbl">Total dû ce mois</span><span class="val">${money(total)}</span></div>
+          <div class="metric"><span class="lbl">Réglé</span><span class="val" style="color:#27500A">${money(paid)}</span></div>
+          <div class="metric"><span class="lbl">Reste à régler</span><span class="val" style="color:#A32D2D">${money(total-paid)}</span></div>
         </div>
-        ${menageRowsFuture.length===0?'<div class="empty">Aucun forfait ménage à venir.</div>':''}
-        ${menageRowsFuture.map(({r,mi})=>{const dom=gDom(r.domaine);return`<div style="padding:8px 0;border-bottom:1px solid #e5e3de;font-size:13px">
+        ${rows.length===0?'<div class="empty">Aucun forfait ménage ce mois-ci.</div>':''}
+        ${rows.map(({r,mi},i)=>{const dom=gDom(r.domaine);return`<div style="padding:8px 0;border-bottom:1px solid #e5e3de;font-size:13px;background:${i%2===1?'#f7f6f3':'transparent'}">
           <div style="margin-bottom:5px"><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span>${ds(r.dateArrivee)} → ${ds(r.dateDepart)} <span style="color:#888">(${displayClientName(r)||'—'})</span></div>
           <div style="display:flex;align-items:center;gap:5px;flex-wrap:nowrap">
-            <input type="text" value="${r.menageComment||''}" placeholder="Note (ex. seulement la longère)" onchange="updMenageComment('${r.id}',this.value)" style="flex:1;min-width:120px;font-size:12px;padding:3px 5px;color:#888">
+            <input type="text" value="${r.menageComment||''}" placeholder="Note" onchange="updMenageComment('${r.id}',this.value)" style="flex:1;min-width:100px;font-size:12px;padding:3px 5px;color:#888">
             <span style="display:flex;align-items:center;gap:2px;flex-shrink:0"><input type="number" value="${mi.montant}" onchange="updMenageMontant('${r.id}',this.value)" style="width:65px;font-weight:600;font-size:13px;padding:3px 5px"><span style="font-size:12px;font-weight:600;color:#666">€</span></span>
             <span class="pill" style="background:${r.menagePaid?'#E8F3E0':'#FCEBEB'};color:${r.menagePaid?'#27500A':'#791F1F'};cursor:pointer" onclick="toggleMenagePaid('${r.id}')">${r.menagePaid?'✓ Réglé':'✗ Régler'}</span>
           </div>
         </div>`;}).join('')}
-      </div>
-      <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
-        <div class="sec-hdr"><h2>Prestations avec commission de ${p.name}</h2></div>
-        <div style="font-size:11px;color:#888;margin-bottom:4px">Présent et à venir uniquement — l'historique complet est dans Bilan.</div>
-        <div style="font-size:12px;color:#888;margin-bottom:10px">Total : ${money(commTotal)} · Ta commission (10%) : ${money(commTotal*0.1)}</div>
-        ${prestaRowsFuture.length===0?'<div class="empty">Aucune prestation à venir.</div>':''}
-        ${prestaRowsFuture.map(({r,l})=>{const dom=gDom(r.domaine);return`<div style="padding:8px 0;border-bottom:1px solid #e5e3de;font-size:13px">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><span class="pill ${PILL[dom.color||0]}">${dom.name}</span><span style="color:#888;font-size:12px;white-space:nowrap">${ds(l.date||r.dateArrivee)}</span>
-            <input type="text" value="${l.label||''}" placeholder="Intitulé" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','label',this.value)" style="flex:1;min-width:90px;font-size:13px;font-weight:500;padding:3px 5px">
-            <button class="btn btn-xs btn-danger" onclick="delPrestaLine('${r.id}','${p.id}','${l.id}')">✕</button>
-          </div>
-          <div style="display:flex;align-items:center;gap:5px;flex-wrap:nowrap">
-            <input type="number" value="${l.montant||''}" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','montant',this.value)" style="width:70px;font-size:12px;padding:3px 5px;font-weight:500">
-            <select onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','paidDirect',this.value)" style="font-size:10.5px;padding:2px 2px;flex-shrink:0;width:auto;max-width:95px">
-              <option value="0" ${!l.paidDirect?'selected':''}>Payé via nous</option>
-              <option value="1" ${l.paidDirect?'selected':''}>Payé direct au presta</option>
-            </select>
-            <input type="text" value="${l.notes||''}" placeholder="Note" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','notes',this.value)" style="flex:1;min-width:0;font-size:12px;padding:3px 5px">
-          </div>
-        </div>`;}).join('')}
-      </div>
-    </div>`;
+      </div>`;
+    }
   }
-  if(p.name==='Dominique'){
-    const rows=[...D.dominiqueSchedule].sort((a,b)=>b.date.localeCompare(a.date));
-    const total=rows.reduce((a,x)=>a+(x.montant||0),0);
-    const paid=rows.filter(x=>x.paid).reduce((a,x)=>a+(x.montant||0),0);
-    return`<div style="margin-top:16px;background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
-      <div class="sec-hdr"><h2>🌱 Planning de ${p.name}</h2><button class="btn btn-xs btn-primary" onclick="openM('dominiquePlanning')">Gérer le planning</button></div>
-      <div class="g3" style="margin-bottom:10px">
-        <div class="metric"><span class="lbl">Total dû</span><span class="val">${money(total)}</span></div>
+
+  /* === Gardiennage (Sébastien / Mathilde) === */
+  let gardeSection='';
+  if(p.inputMode==='garde'){
+    const rows=[];
+    D.reservations.filter(r=>r.status!=='annulé').forEach(r=>{
+      const pg=(r.prestaGarde||{})[p.id];if(!pg)return;
+      Object.entries(pg.nights||{}).forEach(([date,v])=>{if(inMonth(date))rows.push({date,duree:v.duree,paid:v.paid,payMethod:v.payMethod||'cash',comment:v.comment||'',resaId:r.id,client:displayClientName(r)||'—',domaine:pg.domaine,source:'resa'});});
+    });
+    (D.gardeSchedule||[]).filter(x=>x.pid===p.id&&inMonth(x.date)).forEach(x=>rows.push({date:x.date,duree:x.duree,paid:x.paid,payMethod:x.payMethod||'cash',comment:x.comment||'',resaId:null,schedId:x.id,client:'— (planning)',domaine:x.domaine,source:'planning'}));
+    rows.sort((a,b)=>a.date.localeCompare(b.date));
+    const total=rows.reduce((a,x)=>a+gardeRate(x.duree),0),paid=rows.filter(x=>x.paid).reduce((a,x)=>a+gardeRate(x.duree),0);
+    gardeSection=`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
+      <div class="sec-hdr"><h2>🛡 Gardiennage — ${MONTHS_FR[m]} ${y}</h2><button class="btn btn-xs btn-primary" onclick="openM('gardePlanning',null,{pid:'${p.id}'})">📅 Planning</button></div>
+      <div class="g3" style="margin-bottom:14px">
+        <div class="metric"><span class="lbl">Total dû ce mois</span><span class="val">${money(total)}</span></div>
         <div class="metric"><span class="lbl">Réglé</span><span class="val" style="color:#27500A">${money(paid)}</span></div>
         <div class="metric"><span class="lbl">Reste à régler</span><span class="val" style="color:#A32D2D">${money(total-paid)}</span></div>
       </div>
-      ${rows.length===0?'<div class="empty">Aucune journée programmée.</div>':''}
+      ${rows.length===0?'<div class="empty">Aucune nuit de gardiennage ce mois-ci.</div>':''}
+      ${rows.length>0?`<div style="overflow-x:auto"><table class="list-tbl"><thead><tr><th>Nuit du</th><th>Lieu</th><th>Durée</th><th>Commentaire</th><th>Montant</th><th>Mode</th><th>Statut</th><th>Événement</th><th></th></tr></thead>
+      <tbody>${rows.map(x=>{const dom=gDom(x.domaine);const toggleCall=x.source==='resa'?`toggleGardeNightPaid('${x.resaId}','${p.id}','${x.date}')`:`toggleGardeSchedulePaid('${x.schedId}')`;const methodCall=x.source==='resa'?`setGardeNightPayMethod('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeSchedulePayMethod('${x.schedId}',this.value)`;const dureeCall=x.source==='resa'?`setGardeNightDuree('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleDuree('${x.schedId}',this.value)`;const commentCall=x.source==='resa'?`setGardeNightComment('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleComment('${x.schedId}',this.value)`;const delCall=x.source==='resa'?`delGardeNight('${x.resaId}','${p.id}','${x.date}')`:`delGardePlanning('${x.schedId}')`;return`<tr><td>${dn(x.date)} ${ds(x.date)}</td><td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td><td><select onchange="${dureeCall}" style="font-size:12px"><option value="courte" ${x.duree==='courte'?'selected':''}>Courte (22h-2h)</option><option value="longue" ${x.duree==='longue'?'selected':''}>Longue (22h-4h)</option></select></td><td><input type="text" value="${x.comment||''}" placeholder="Commentaire" onchange="${commentCall}" style="font-size:12px;padding:3px 5px;width:130px;color:#888"></td><td>${money(gardeRate(x.duree))}</td><td><select onchange="${methodCall}" style="font-size:12px"><option value="cash" ${x.payMethod==='cash'?'selected':''}>💵 Cash</option><option value="virement" ${x.payMethod==='virement'?'selected':''}>🏦 Virement</option></select></td><td><span class="pill" style="background:${x.paid?'#E8F3E0':'#FCEBEB'};color:${x.paid?'#27500A':'#791F1F'};cursor:pointer" onclick="${toggleCall}">${x.paid?'✓ Réglé':'✗ Régler'}</span></td><td>${x.client}</td><td><button class="btn btn-xs btn-danger" onclick="${delCall}">✕</button></td></tr>`;}).join('')}</tbody></table></div>`:''}
+    </div>`;
+  }
+
+  /* === Prestations diverses avec commission (traiteur, déco, animation…) === */
+  let commSection='';
+  if(p.inputMode==='notes'){
+    const prestaRows=[];
+    D.reservations.filter(r=>r.status!=='annulé'&&r.prestaLines&&r.prestaLines[p.id]&&r.prestaLines[p.id].length).forEach(r=>{r.prestaLines[p.id].forEach(l=>{if(inMonth(l.date||r.dateArrivee))prestaRows.push({r,l});});});
+    prestaRows.sort((a,b)=>(a.l.date||a.r.dateArrivee||'').localeCompare(b.l.date||b.r.dateArrivee||''));
+    const commTotal=prestaRows.reduce((a,x)=>a+(x.l.montant||0),0);
+    commSection=`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
+      <div class="sec-hdr"><h2>Prestations avec commission — ${MONTHS_FR[m]} ${y}</h2></div>
+      <div style="font-size:12px;color:#888;margin-bottom:10px">Total : ${money(commTotal)} · Ta commission (10%) : ${money(commTotal*0.1)}</div>
+      ${prestaRows.length===0?'<div class="empty">Aucune prestation ce mois-ci.</div>':''}
+      ${prestaRows.map(({r,l})=>{const dom=gDom(r.domaine);return`<div style="padding:8px 0;border-bottom:1px solid #e5e3de;font-size:13px">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><span class="pill ${PILL[dom.color||0]}">${dom.name}</span><span style="color:#888;font-size:12px;white-space:nowrap">${ds(l.date||r.dateArrivee)}</span>
+          <input type="text" value="${l.label||''}" placeholder="Intitulé" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','label',this.value)" style="flex:1;min-width:90px;font-size:13px;font-weight:500;padding:3px 5px">
+          <button class="btn btn-xs btn-danger" onclick="delPrestaLine('${r.id}','${p.id}','${l.id}')">✕</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;flex-wrap:nowrap">
+          <input type="number" value="${l.montant||''}" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','montant',this.value)" style="width:70px;font-size:12px;padding:3px 5px;font-weight:500">
+          <select onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','paidDirect',this.value)" style="font-size:10.5px;padding:2px 2px;flex-shrink:0;width:auto;max-width:95px">
+            <option value="0" ${!l.paidDirect?'selected':''}>Payé via nous</option>
+            <option value="1" ${l.paidDirect?'selected':''}>Payé direct au presta</option>
+          </select>
+          <input type="text" value="${l.notes||''}" placeholder="Note" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','notes',this.value)" style="flex:1;min-width:0;font-size:12px;padding:3px 5px">
+        </div>
+      </div>`;}).join('')}
+    </div>`;
+  }
+
+  /* === Dominique (jardinage) === */
+  let dominiqueSection='';
+  if(p.name==='Dominique'){
+    const rows=[...D.dominiqueSchedule].filter(x=>inMonth(x.date)).sort((a,b)=>a.date.localeCompare(b.date));
+    const total=rows.reduce((a,x)=>a+(x.montant||0),0);
+    const paid=rows.filter(x=>x.paid).reduce((a,x)=>a+(x.montant||0),0);
+    dominiqueSection=`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
+      <div class="sec-hdr"><h2>🌱 Planning de ${p.name} — ${MONTHS_FR[m]} ${y}</h2><button class="btn btn-xs btn-primary" onclick="openM('dominiquePlanning')">Gérer le planning</button></div>
+      <div class="g3" style="margin-bottom:10px">
+        <div class="metric"><span class="lbl">Total dû ce mois</span><span class="val">${money(total)}</span></div>
+        <div class="metric"><span class="lbl">Réglé</span><span class="val" style="color:#27500A">${money(paid)}</span></div>
+        <div class="metric"><span class="lbl">Reste à régler</span><span class="val" style="color:#A32D2D">${money(total-paid)}</span></div>
+      </div>
+      ${rows.length===0?'<div class="empty">Aucune journée programmée ce mois-ci.</div>':''}
       ${rows.map((x,xIdx)=>{const dom=gDom(x.domaine);return`<div style="padding:6px 8px;margin:0 -8px;border-bottom:1px solid #e5e3de;font-size:13px;background:${xIdx%2===1?'#f7f6f3':'transparent'}">
         <div style="margin-bottom:4px"><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span>${dn(x.date)} ${ds(x.date)}</div>
         <div style="display:flex;align-items:center;gap:6px">
-          <input type="text" value="${x.comment||''}" placeholder="Commentaire pour Dominique" onchange="updDominiquePlanningComment('${x.id}',this.value)" style="flex:1;min-width:0;font-size:12px;padding:3px 5px;color:#888">
+          <input type="text" value="${x.comment||''}" placeholder="Commentaire" onchange="updDominiquePlanningComment('${x.id}',this.value)" style="flex:1;min-width:0;font-size:12px;padding:3px 5px;color:#888">
           <strong style="white-space:nowrap">${money(x.montant)}</strong>
           <span class="pill" style="background:${x.paid?'#E8F3E0':'#FCEBEB'};color:${x.paid?'#27500A':'#791F1F'};cursor:pointer;flex-shrink:0" onclick="toggleDominiquePlanningPaid('${x.id}')">${x.paid?'✓ Réglé':'✗ Régler'}</span>
         </div>
       </div>`;}).join('')}
     </div>`;
   }
-  return`<div style="margin-top:16px" class="empty">Aucun suivi financier spécifique pour ${p.name}.</div>`;
+
+  const allEmpty=!menageSection&&!gardeSection&&!commSection&&!dominiqueSection;
+  return`<div style="margin-top:16px">${nav}${menageSection}${gardeSection}${commSection}${dominiqueSection}${allEmpty?`<div class="empty">Aucun suivi financier spécifique pour ${p.name}.</div>`:''}</div>`;
+}
+
+function setClientsSortBy(v){S.clientsSortBy=v;render();}
+function updClientTel(rid,val){
+  const r=D.reservations.find(x=>x.id===rid);if(!r)return;
+  const v=(val||'').trim();
+  if(v&&!isValidPhone(v)){alert("Numéro de téléphone invalide. En France : 10 chiffres commençant par 0 (ex. 06 12 34 56 78). À l'étranger : commencez par + ou 00 suivi de l'indicatif.");render();return;}
+  r.tel=v||'À compléter';
+  saveD();showMsg('Téléphone enregistré ✓');
+}
+function renderClientsList(){
+  const sortBy=S.clientsSortBy||'date';
+  let rows=D.reservations.filter(r=>r.status!=='annulé'&&(r.client||r.societe)).map(r=>({r,dom:gDom(r.domaine)}));
+  if(sortBy==='alpha'){
+    rows.sort((a,b)=>(displayClientName(a.r)||'').localeCompare(displayClientName(b.r)||'',  'fr',{sensitivity:'base'}));
+  } else if(sortBy==='domaine'){
+    rows.sort((a,b)=>(a.dom.name||'').localeCompare(b.dom.name||'',  'fr')||(a.r.dateArrivee||'').localeCompare(b.r.dateArrivee||''));
+  } else {
+    rows.sort((a,b)=>(b.r.dateArrivee||'').localeCompare(a.r.dateArrivee||''));
+  }
+  return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
+    <div class="sec-hdr"><h2>📇 Liste clients</h2></div>
+    <div style="margin-bottom:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-size:12px;color:#888">Trier par :</span>
+      <button class="btn btn-sm ${sortBy==='date'?'btn-primary':''}" onclick="setClientsSortBy('date')">Date</button>
+      <button class="btn btn-sm ${sortBy==='alpha'?'btn-primary':''}" onclick="setClientsSortBy('alpha')">Ordre alphabétique</button>
+      <button class="btn btn-sm ${sortBy==='domaine'?'btn-primary':''}" onclick="setClientsSortBy('domaine')">Domaine</button>
+    </div>
+    ${rows.length===0?'<div class="empty">Aucun client enregistré.</div>':''}
+    ${rows.length>0?`<div style="overflow-x:auto"><table class="list-tbl"><thead><tr><th>Nom</th><th>Société</th><th>Téléphone</th><th>Email</th><th>Domaine</th><th>Date</th></tr></thead>
+    <tbody>${rows.map(({r,dom})=>`<tr onclick="selectAndGoCal('${r.id}')"><td style="font-weight:500">${r.client||'—'}</td><td>${r.typeClient==='entreprise'&&r.societe?r.societe:'<span style="color:#ccc">—</span>'}</td><td onclick="event.stopPropagation()"><input type="tel" value="${displayTel(r.tel)}" placeholder="À renseigner" onchange="updClientTel('${r.id}',this.value)" style="width:130px;font-size:12px;padding:4px 6px;border:1px solid transparent;background:transparent" onfocus="this.style.borderColor='#d5d3ce';this.style.background='#fff'" onblur="this.style.borderColor='transparent';this.style.background='transparent'"></td><td>${r.email?`<a href="mailto:${r.email}" onclick="event.stopPropagation()" style="color:#185FA5;text-decoration:none">${r.email}</a>`:'<span style="color:#ccc">—</span>'}</td><td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td><td>${fmt(r.dateArrivee)}</td></tr>`).join('')}</tbody></table></div>`:''}
+  </div>`;
 }
 
 function renderDomaineList(){
   return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-top:14px">
     <div class="sec-hdr"><h2>Domaines</h2><button class="btn btn-primary btn-sm" onclick="openM('newDomaine')">+ Ajouter</button></div>
     ${D.domaines.map(d=>`<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #e5e3de">
-      ${DOMAIN_LOGOS[d.id]?`<img src="${DOMAIN_LOGOS[d.id]}" alt="" style="width:42px;height:42px;object-fit:contain;flex-shrink:0">`:''}
+      ${d.id==='d1'?`<div style="width:42px;height:42px;border-radius:8px;background:#FBEAF0;border:1.5px solid #993556;display:flex;align-items:center;justify-content:center;font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:20px;color:#993556;flex-shrink:0">D</div>`:(DOMAIN_LOGOS[d.id]?`<img src="${DOMAIN_LOGOS[d.id]}" alt="" style="width:42px;height:42px;object-fit:contain;flex-shrink:0">`:'')}
       <span class="pill ${PILL[d.color||0]}" style="font-size:13px;padding:5px 14px">${d.name}</span>
       <span style="flex:1;font-size:13px;color:#888">${D.reservations.filter(r=>r.domaine===d.id).length} réservation(s)</span>
       <button class="btn btn-xs" onclick="openM('editDomaine','${d.id}')">Modifier</button>
@@ -1452,7 +1564,15 @@ function renderModalContent(){
   const{type,id,prefDate}=S.modal;
   if(type==='newResa'||type==='editResa'){
     const r=type==='editResa'?D.reservations.find(x=>x.id===id)||{}:{};
-    const iA=r.dateArrivee||prefDate||'',iD=r.dateDepart||prefDate||'';
+    const DEP_OFFSET_DAYS={0:1,1:1,2:1,3:1,4:1,5:2,6:1};
+    const iA=r.dateArrivee||prefDate||'';
+    let iD=r.dateDepart||'';
+    if(!iD&&prefDate&&type==='newResa'){
+      const dow0=new Date(prefDate+'T12:00:00').getDay();
+      const offset=DEP_OFFSET_DAYS[dow0]||1;
+      iD=dstr(addDays(new Date(prefDate+'T12:00:00'),offset));
+    }
+    if(!iD)iD=prefDate||'';
     const initArrHeure=r.heureArrivee||(iA?(ARR_DEFAULT_HOUR[new Date(iA+'T12:00:00').getDay()]||''):'');
     const initDepHeure=r.heureDepart||(iD?(DEP_DEFAULT_HOUR[new Date(iD+'T12:00:00').getDay()]||''):'');
     const sO=['confirmé','option','annulé'].map(s=>`<option ${r.status===s?'selected':''}>${s}</option>`).join('');
@@ -1532,7 +1652,7 @@ function renderModalContent(){
     </div>
     <div class="g2" style="margin-bottom:12px">
       <div class="field"><label>Type d’événement *</label>
-        <select id="m-evt">
+        <select id="m-evt" onchange="onEvtTypeChange(this.value)">
           <option value="">&#8212; Choisir —</option>
           ${EVENT_TYPES.map(ev=>`<option value="${ev}" ${r.typeEvenement===ev?'selected':''}>${ev}</option>`).join('')}
         </select>
@@ -1544,21 +1664,21 @@ function renderModalContent(){
       <div class="field" id="m-societe-wrap" style="display:${r.typeClient==='entreprise'?'flex':'none'}"><label>Nom de la société *</label><input type="text" id="m-societe" value="${r.societe||''}" placeholder="Schneider…"></div>
     </div>
     <div class="g2" style="margin-bottom:12px">
-      <div class="field"><label>Téléphone *</label><input type="tel" id="m-tel" value="${r.tel||''}" placeholder="06 XX XX XX XX"></div>
+      <div class="field"><label>Téléphone</label><input type="tel" id="m-tel" value="${r.tel||''}" placeholder="06 XX XX XX XX"></div>
       <div class="field"><label>Email</label><input type="email" id="m-email" value="${r.email||''}" placeholder="nom@email.com"></div>
     </div>
     <div id="nb-fields-wrap">${nbFieldsHtml(defDomaine,r)}</div>
     <div style="font-size:11px;color:#888;margin-bottom:12px">* Au moins un des deux nombres est obligatoire</div>
     <div class="g2-compact" style="margin-bottom:12px">
-      <div class="field"><label>Date d'arrivée *</label><input type="date" id="m-arr-date" value="${iA}" onchange="refreshAllGardNights();defaultArrHeure(this.value);defaultDepDate(this.value)"></div>
+      <div class="field"><label>Date d'arrivée *</label><div class="date-row"><input type="date" id="m-arr-date" value="${iA}" onchange="refreshAllGardNights();defaultArrHeure(this.value);defaultDepDate(this.value);if((document.getElementById('m-evt')||{}).value==='Déjeuner / Dîner'){document.getElementById('m-dep-date').value=this.value;}"><button type="button" class="date-btn" onclick="document.getElementById('m-arr-date').showPicker&&document.getElementById('m-arr-date').showPicker()" title="Choisir une date">📅</button></div></div>
       <div class="field"><label>Heure d'arrivée *</label><select id="m-arr-heure">${heureOptions(initArrHeure)}</select></div>
     </div>
-    <div class="g2-compact" style="margin-bottom:12px">
-      <div class="field"><label>Date de départ *</label><input type="date" id="m-dep-date" value="${iD}" onchange="refreshAllGardNights();defaultDepHeure(this.value)"></div>
+    <div class="g2-compact" id="dep-date-wrap" style="margin-bottom:12px;${r.typeEvenement==='Déjeuner / Dîner'?'display:none':''}">
+      <div class="field"><label>Date de départ *</label><div class="date-row"><input type="date" id="m-dep-date" value="${iD}" onchange="refreshAllGardNights();defaultDepHeure(this.value)"><button type="button" class="date-btn" onclick="document.getElementById('m-dep-date').showPicker&&document.getElementById('m-dep-date').showPicker()" title="Choisir une date">📅</button></div></div>
       <div class="field"><label>Heure de départ *</label><select id="m-dep-heure">${heureOptions(initDepHeure)}</select></div>
     </div>
     <div class="g2" style="margin-bottom:12px">
-      <div class="field"><label style="color:#111;font-weight:700">Montant de la réservation (€) *</label><div style="display:flex;align-items:center;gap:5px"><input type="number" id="m-montant" value="${r.montant||''}" placeholder="0" style="font-weight:700;flex:1"><span style="font-weight:700;color:#111">€</span></div></div>
+      <div class="field"><label style="color:#111;font-weight:700">Montant de la réservation (€) *</label><div style="display:flex;align-items:center;gap:5px"><input type="number" id="m-montant" value="${r.typeEvenement==='Gratuit'?'0':(r.montant||'')}" placeholder="0" style="font-weight:700;flex:1${r.typeEvenement==='Gratuit'?';background:#f0eee8;color:#888':''}" ${r.typeEvenement==='Gratuit'?'readonly':''}><span style="font-weight:700;color:#111">€</span></div></div>
       <div class="field"><label style="display:flex;align-items:center;gap:6px;white-space:nowrap">Note interne <span style="background:#ECE9E2;color:#666;font-size:9.5px;font-weight:600;padding:2px 6px;border-radius:4px;text-transform:none;letter-spacing:0">🔒 admin uniquement</span></label><input type="text" id="m-noteI" value="${r.noteInterne||''}" placeholder="Note rapide…"></div>
     </div>
     <hr style="border:none;border-top:1px solid #e5e3de;margin:14px 0">
@@ -1566,10 +1686,10 @@ function renderModalContent(){
     <div style="font-size:13px;font-weight:500;margin-bottom:8px">💳 Paiements — Encaissé : <span style="color:#27500A">${money(tot)}</span> · Solde : <span style="color:${(r.montant||0)-tot>0?'#A32D2D':'#27500A'}">${money((r.montant||0)-tot)}</span></div>
     ${pR||'<div style="font-size:12px;color:#888;margin-bottom:8px">Aucun paiement enregistré.</div>'}
     <div style="display:flex;gap:8px;margin-bottom:12px;align-items:flex-end;flex-wrap:wrap">
-      <div class="field" style="flex:1;min-width:90px"><label>Date</label><input type="date" id="pay-date" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="field" style="flex:1.4;min-width:120px"><label>Date</label><div class="date-row"><input type="date" id="pay-date" value="${new Date().toISOString().slice(0,10)}"><button type="button" class="date-btn" onclick="document.getElementById('pay-date').showPicker&&document.getElementById('pay-date').showPicker()" title="Choisir une date">📅</button></div></div>
       <div class="field" style="flex:1;min-width:75px"><label>Montant (€)</label><div style="display:flex;align-items:center;gap:4px"><input type="number" id="pay-amt" placeholder="0" style="flex:1"><span style="font-weight:600;color:#666">€</span></div></div>
       <div class="field" style="flex:1;min-width:100px"><label>Type</label><select id="pay-type"><option value="Acompte" ${pays.length===0?'selected':''}>Acompte</option><option value="Intermédiaire">Intermédiaire</option><option value="Solde" ${pays.length>0?'selected':''}>Solde</option><option value="Autre">Autre</option></select></div>
-      <div class="field" style="flex:2;min-width:110px"><label>Commentaire</label><input type="text" id="pay-comment" placeholder="Optionnel…"></div>
+      <div class="field" style="flex:1;min-width:80px"><label>Commentaire</label><input type="text" id="pay-comment" placeholder="Optionnel…"></div>
       <button class="btn btn-sm btn-primary" style="white-space:nowrap;align-self:flex-end;margin-bottom:1px" onclick="addPay('${id}')">+ Ajouter</button>
     </div>
     <hr style="border:none;border-top:1px solid #e5e3de;margin:14px 0">
@@ -1589,7 +1709,15 @@ function renderModalContent(){
         <span style="display:flex;align-items:center;gap:2px;flex-shrink:0"><input type="number" value="${mi.montant}" onchange="updMenageMontant('${id}',this.value)" style="width:65px;font-weight:600;font-size:13px;padding:4px 6px"><span style="font-size:12px;font-weight:600;color:#666">€</span></span>
         <span class="pill" style="background:${r.menagePaid?'#E8F3E0':'#FCEBEB'};color:${r.menagePaid?'#27500A':'#791F1F'};cursor:pointer" onclick="toggleMenagePaid('${id}')">${r.menagePaid?'✓ Payé':'✗ Non payé'}</span>
       </div></div>`;})()}
-    <div class="field" style="margin-bottom:12px"><label>Prestataires — cochez puis détaillez (notes + montant, ou gardiennage)</label><div style="padding:4px 0">${pC||'<span style="font-size:12px;color:#888">Aucun prestataire créé</span>'}</div></div>
+    <div class="field" style="margin-bottom:12px"><label>Prestataires — cochez puis détaillez (notes + montant, ou gardiennage)</label>
+      ${(defDomaine==='d1'||defDomaine==='d2'||!defDomaine)?(()=>{
+        const cavCheckedDefault=!!(r.caviste&&r.caviste.trim());
+        return`<div><label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="checkbox" id="m-caviste-chk" ${cavCheckedDefault?'checked':''} style="width:auto" onchange="document.getElementById('penc-caviste').style.display=this.checked?'block':'none';if(!this.checked)document.getElementById('m-caviste').value='';"> 🍷 Caviste <span style="color:#888">(note pour le gardien, pas un prestataire)</span></label>
+        <div class="presta-encart" id="penc-caviste" style="display:${cavCheckedDefault?'block':'none'};margin:4px 0 10px 24px;padding:10px;background:#f5f4f1;border-radius:8px">
+          <textarea id="m-caviste" rows="2" style="resize:none" placeholder="Ex : 15 bouteilles de champagne, 1 fût de bière…">${r.caviste||''}</textarea>
+        </div></div>`;
+      })():'<input type="hidden" id="m-caviste" value="">'}
+      <div style="padding:4px 0">${pC||'<span style="font-size:12px;color:#888">Aucun prestataire créé</span>'}</div></div>
     <div class="modal-actions"><button class="btn" onclick="closeM()">Fermer</button>${type==='editResa'?`<button class="btn btn-danger" onclick="cancelResa('${id}')">🚫 Annuler la réservation</button>`:''}<button class="btn btn-primary" onclick="saveResa('${id||''}')">Enregistrer</button></div>`;
   }
   if(type==='dominiquePlanning'){
@@ -1685,7 +1813,7 @@ function renderModalContent(){
     </div>
     <div class="field" style="margin-bottom:12px"><label>Statut</label><select id="v-status">${sO}</select></div>
     <div class="g2" style="margin-bottom:12px">
-      <div class="field"><label>Date de la visite *</label><input type="date" id="v-date" value="${v.date||prefDate||''}"></div>
+      <div class="field"><label>Date de la visite *</label><div class="date-row"><input type="date" id="v-date" value="${v.date||prefDate||''}"><button type="button" class="date-btn" onclick="document.getElementById('v-date').showPicker&&document.getElementById('v-date').showPicker()" title="Choisir une date">📅</button></div></div>
       <div class="field"><label>Heure *</label><select id="v-heure">${heureOptions(v.heure)}</select></div>
     </div>
     <div class="g2" style="margin-bottom:12px">
@@ -1698,7 +1826,7 @@ function renderModalContent(){
       </div>
     </div>
     <div class="g2" style="margin-bottom:12px">
-      <div class="field"><label>Téléphone *</label><input type="tel" id="v-tel" value="${v.tel||''}" placeholder="06 XX XX XX XX"></div>
+      <div class="field"><label>Téléphone</label><input type="tel" id="v-tel" value="${v.tel||''}" placeholder="06 XX XX XX XX"></div>
       <div class="field"><label>Email</label><input type="email" id="v-email" value="${v.email||''}" placeholder="nom@email.com"></div>
     </div>
     <div class="field" style="margin-bottom:14px"><label>Note</label><textarea id="v-note" rows="2" style="resize:none">${v.noteInterne||''}</textarea></div>
@@ -1822,14 +1950,14 @@ function renderPrestaCalendrierSeul(p){
   ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
   ${renderMessagesPanelPresta()}
   <div class="tabs">
-    <button class="tab ${tab==='calendrier'?'active':''}" onclick="setPrestaTab('calendrier')"><span class="tab-ic">📅</span><span class="tab-lbl">Calendrier</span></button>
+    <button class="tab ${tab==='calendrier'?'active':''}" onclick="setPrestaTab('calendrier')"><span class="tab-ic">📅</span><span class="tab-lbl">Planning</span></button>
     <button class="tab ${tab==='monbilan'?'active':''}" onclick="setPrestaTab('monbilan')"><span class="tab-ic">💰</span><span class="tab-lbl">Mon Bilan</span></button>
   </div>
   ${content}`;
 }
 function renderPrestaFull(p){
   const tab=S.prestaTab||'calendrier';
-  const tabs=[['calendrier','📅','Calendrier'],['liste','🎉','Événements'],['visites','👀','Visites']];
+  const tabs=[['calendrier','📅','Planning'],['liste','🎉','Événements'],['visites','👀','Visites']];
   if(p.inputMode==='notes')tabs.push(['monbilan','💰','Mon Bilan']);
   let content='';
   if(tab==='calendrier')content=renderCalendrier();
@@ -1974,7 +2102,7 @@ function renderPrestaDominique(p){
   ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
   ${renderMessagesPanelPresta()}
   <div class="tabs">
-    <button class="tab ${tab==='calendrier'?'active':''}" onclick="setPrestaTab('calendrier')"><span class="tab-ic">📅</span><span class="tab-lbl">Calendrier</span></button>
+    <button class="tab ${tab==='calendrier'?'active':''}" onclick="setPrestaTab('calendrier')"><span class="tab-ic">📅</span><span class="tab-lbl">Planning</span></button>
     <button class="tab ${tab==='planning'?'active':''}" onclick="setPrestaTab('planning')"><span class="tab-ic">🌱</span><span class="tab-lbl">Mon Planning</span></button>
   </div>
   ${content}`;
@@ -2187,7 +2315,7 @@ function addAdminQuickComment(rid){
   saveD();showMsg('Commentaire envoyé ✓');render();
 }
 function saveResa(id){
-  const domaine=document.getElementById('m-domaine').value,dateArrivee=document.getElementById('m-arr-date').value,heureArrivee=document.getElementById('m-arr-heure').value,dateDepart=document.getElementById('m-dep-date').value,heureDepart=document.getElementById('m-dep-heure').value,status=document.getElementById('m-status').value,client=capWords(document.getElementById('m-client').value.trim()),tel=document.getElementById('m-tel').value.trim(),email=document.getElementById('m-email').value.trim(),typeClient=document.getElementById('m-typeclient').value,societe=capWords(document.getElementById('m-societe').value.trim()),typeEvenement=(document.getElementById('m-evt')||{}).value||'',noteInterne=document.getElementById('m-noteI').value,montant=parseFloat(document.getElementById('m-montant').value)||0;
+  const domaine=document.getElementById('m-domaine').value,dateArrivee=document.getElementById('m-arr-date').value,heureArrivee=document.getElementById('m-arr-heure').value,dateDepart=document.getElementById('m-dep-date').value,heureDepart=document.getElementById('m-dep-heure').value,status=document.getElementById('m-status').value,client=capWords(document.getElementById('m-client').value.trim()),tel=document.getElementById('m-tel').value.trim(),email=document.getElementById('m-email').value.trim(),typeClient=document.getElementById('m-typeclient').value,societe=capWords(document.getElementById('m-societe').value.trim()),typeEvenement=(document.getElementById('m-evt')||{}).value||'',noteInterne=document.getElementById('m-noteI').value,caviste=(document.getElementById('m-caviste')||{}).value||'',montant=parseFloat(document.getElementById('m-montant').value)||0;
   const elAdultes=document.getElementById('m-adultes'),elEnfants=document.getElementById('m-enfants');
   let nbPersonnes,nbSoiree,nbAdultes=0,nbEnfants=0;
   if(domaine==='d3'&&elAdultes){
@@ -2223,17 +2351,17 @@ function saveResa(id){
   if(!heureArrivee)missing.push("l'heure d'arrivée");
   if(!heureDepart)missing.push("l'heure de départ");
   if(!client)missing.push('le nom du client');
-  if(!tel)missing.push('le téléphone du client');
   if(typeClient==='entreprise'&&!societe)missing.push('le nom de la société');
   if(!typeEvenement)missing.push("le type d'événement");
   if(!nbPersonnes&&!nbSoiree)missing.push('au moins un nombre (couchages ou invités soirée)');
-  if(!montant)missing.push('le montant');
+  if(!montant&&typeEvenement!=='Gratuit')missing.push('le montant');
   if(missing.length){alert('Champs obligatoires manquants : '+missing.join(', ')+'.');return;}
-  if(!isValidPhone(tel)){alert("Numéro de téléphone invalide. En France : 10 chiffres commençant par 0 (ex. 06 12 34 56 78). À l'étranger : commencez par + ou 00 suivi de l'indicatif.");return;}
+  if(tel&&!isValidPhone(tel)){alert("Numéro de téléphone invalide. En France : 10 chiffres commençant par 0 (ex. 06 12 34 56 78). À l'étranger : commencez par + ou 00 suivi de l'indicatif.");return;}
+  if(!tel)tel='À compléter';
   const dep=dateDepart||dateArrivee;
   const isNew=!id;
-  if(id){const r=D.reservations.find(x=>x.id===id);Object.assign(r,{domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,tel,email,typeClient,societe,typeEvenement,nbPersonnes,nbSoiree,nbAdultes,nbEnfants,prestaGarde,noteInterne,montant,prestataires});}
-  else D.reservations.push({id:gid(),domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,tel,email,typeClient,societe,typeEvenement,nbPersonnes,nbSoiree,nbAdultes,nbEnfants,prestaLines:{},prestaGarde,noteInterne,montant,paiements:[],prestataires,commentaires:[]});
+  if(id){const r=D.reservations.find(x=>x.id===id);Object.assign(r,{domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,tel,email,typeClient,societe,typeEvenement,nbPersonnes,nbSoiree,nbAdultes,nbEnfants,prestaGarde,noteInterne,caviste,montant,prestataires});}
+  else D.reservations.push({id:gid(),domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,tel,email,typeClient,societe,typeEvenement,nbPersonnes,nbSoiree,nbAdultes,nbEnfants,prestaLines:{},prestaGarde,noteInterne,caviste,montant,paiements:[],prestataires,commentaires:[]});
   logActivity(isNew?'créée':'modifiée',domaine,`Réservation ${isNew?'créée':'modifiée'} — ${(typeClient==='entreprise'&&societe)?societe:client||'—'} (${fmt(dateArrivee)})`);
   Object.keys(prestaGarde).forEach(pid=>{
     logActivity(isNew?'créée':'modifiée',domaine,`Gardiennage ${isNew?'ajouté':'mis à jour'} — ${(typeClient==='entreprise'&&societe)?societe:client||'—'} (${fmt(dateArrivee)})`,[pid]);
