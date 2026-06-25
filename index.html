@@ -182,6 +182,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
   .liste-evt-tbl th:nth-child(6),.liste-evt-tbl td:nth-child(6){display:none}
 }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="app" id="root"></div>
@@ -215,7 +216,7 @@ const DOMAIN_LOGOS={
 const PILL=['p0','p1','p2','p3','p4'];
 const MONTHS_FR=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 const PRESTA_CATS=['Animation','Traiteur','Décoration','Logistique','Autre'];
-const EVENT_TYPES=['Mariage','Anniversaire','Séminaire','Famille / Ami','EVJF / EVG','Airbnb','Abritel','Booking','GDC (Gens de confiance)','Déjeuner / Dîner','Gratuit','Autre'];
+const EVENT_TYPES=['Mariage','Anniversaire','Séminaire','Famille / Amis','EVJF / EVG','Airbnb','Abritel','Booking','GDC / Home Exchange','Déjeuner / Dîner','Gratuit','Autre'];
 const DOMINIQUE_RATES={d1:120,d2:150,d3:120};
 const LEG_BG=['#F4C0D1','#F5D98B','#C0DD97','#CECBF6','#B5D4F4'];
 const BAND_FULL=['b0f','b1f','b2f','b3f','b4f'];
@@ -280,7 +281,8 @@ function runMigrations(){
     if(p.name==='Pascaline'){p.accessMode='calendrierSeul';if(p.flatRate===undefined)p.flatRate=250;}
   });
   (D.reservations||[]).forEach(r=>{
-    if(r.typeEvenement==='Famille / Cousinade'||r.typeEvenement==='Séjour amis')r.typeEvenement='Famille / Ami';
+    if(r.typeEvenement==='Famille / Cousinade'||r.typeEvenement==='Séjour amis'||r.typeEvenement==='Famille / Ami')r.typeEvenement='Famille / Amis';
+    if(r.typeEvenement==='GDC (Gens de confiance)')r.typeEvenement='GDC / Home Exchange';
     Object.values(r.prestaGarde||{}).forEach(pg=>{
       Object.keys(pg.nights||{}).forEach(date=>{
         if(typeof pg.nights[date]==='string')pg.nights[date]={duree:pg.nights[date],paid:false};
@@ -292,9 +294,9 @@ function runMigrations(){
   });
   (D.dominiqueSchedule||[]).forEach(x=>{if(x.paid===undefined)x.paid=false;if(x.comment===undefined)x.comment='';});
   (D.gardeSchedule||[]).forEach(x=>{if(x.payMethod===undefined)x.payMethod='cash';if(x.comment===undefined)x.comment='';});
-  (D.visites||[]).forEach(v=>{if(v.typeEvenement==='Famille / Cousinade'||v.typeEvenement==='Séjour amis')v.typeEvenement='Famille / Ami';});
+  (D.visites||[]).forEach(v=>{if(v.typeEvenement==='Famille / Cousinade'||v.typeEvenement==='Séjour amis'||v.typeEvenement==='Famille / Ami')v.typeEvenement='Famille / Amis';if(v.typeEvenement==='GDC (Gens de confiance)')v.typeEvenement='GDC / Home Exchange';});
 }
-let S={view:'login',admin:null,presta:null,tab:'calendrier',prestaTab:'calendrier',modal:null,msg:null,selResa:null,selectedPresta:null,hiddenDomains:[],calYear:2026,calMonth:5,bilanYear:2026,bilanMonth:5,listeYear:2026,listeMonth:5,visiteYear:2026,visiteMonth:5,prestaBilanYear:2026,prestaBilanMonth:5,adminPrestaYear:2026,adminPrestaMonth:5,clientsSortBy:'date'};
+let S={view:'login',admin:null,presta:null,tab:'calendrier',prestaTab:'calendrier',modal:null,msg:null,selResa:null,selectedPresta:null,hiddenDomains:[],calYear:2026,calMonth:5,bilanYear:2026,bilanMonth:5,listeYear:2026,listeMonth:5,visiteYear:2026,visiteMonth:5,prestaBilanYear:2026,prestaBilanMonth:5,adminPrestaYear:2026,adminPrestaMonth:5,clientsSortBy:'date',clientsExportSub:'clients'};
 
 function loadD(){try{const r=localStorage.getItem(SK);if(r)return JSON.parse(r);}catch(e){}return JSON.parse(JSON.stringify(DEF));}
 function saveD(){try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}pushRemoteD(D);}
@@ -558,6 +560,16 @@ function autoCheckGardien(domaineId){
     }
   });
 }
+function readCurrentNbValues(){
+  const get=id=>{const el=document.getElementById(id);return el?el.value:'';};
+  return{
+    nbPersonnes:get('m-nbp'),
+    nbSoiree:get('m-nbs'),
+    nbAdultes:get('m-adultes'),
+    nbEnfants:get('m-enfants'),
+    typeEvenement:(document.getElementById('m-evt')||{}).value||''
+  };
+}
 function pickDomaine(hiddenId,pickerId,el){
   document.getElementById(hiddenId).value=el.dataset.id;
   document.querySelectorAll('#'+pickerId+' .dom-box').forEach(b=>{
@@ -567,7 +579,7 @@ function pickDomaine(hiddenId,pickerId,el){
   if(hiddenId==='m-domaine'){
     autoCheckGardien(el.dataset.id);
     const wrap=document.getElementById('nb-fields-wrap');
-    if(wrap)wrap.innerHTML=nbFieldsHtml(el.dataset.id,{});
+    if(wrap)wrap.innerHTML=nbFieldsHtml(el.dataset.id,readCurrentNbValues());
   }
 }
 function pickTypeClient(el){
@@ -586,20 +598,27 @@ function onEvtTypeChange(val){
   }
   const wrap=document.getElementById('nb-fields-wrap');
   const domEl=document.getElementById('m-domaine');
-  if(wrap&&domEl)wrap.innerHTML=nbFieldsHtml(domEl.value,{typeEvenement:val});
+  if(wrap&&domEl){
+    const cur=readCurrentNbValues();
+    cur.typeEvenement=val;
+    wrap.innerHTML=nbFieldsHtml(domEl.value,cur);
+  }
   const montantEl=document.getElementById('m-montant');
   if(montantEl){
     if(val==='Gratuit'){montantEl.value='0';montantEl.readOnly=true;montantEl.style.background='#f0eee8';montantEl.style.color='#888';}
     else{montantEl.readOnly=false;montantEl.style.background='';montantEl.style.color='';}
   }
+  const datesWrap=document.getElementById('datesheures-wrap');
   const depWrap=document.getElementById('dep-date-wrap');
   const arrDateEl=document.getElementById('m-arr-date'),depDateEl=document.getElementById('m-dep-date');
-  if(depWrap){
+  if(depWrap&&datesWrap){
     if(val==='Déjeuner / Dîner'){
       depWrap.style.display='none';
+      datesWrap.style.gridTemplateColumns='1fr 1fr 1fr';
       if(arrDateEl&&depDateEl)depDateEl.value=arrDateEl.value;
     } else {
       depWrap.style.display='flex';
+      datesWrap.style.gridTemplateColumns='1fr 1fr';
     }
   }
 }
@@ -625,6 +644,30 @@ function gardNightsHtmlFor(pid,nights,state){
       </select>
     </div>`;
   }).join('');
+}
+function extPrestaRowHtml(x){
+  x=x||{};
+  const xid=x.id||gid();
+  return`<div class="ext-presta-row" data-extid="${xid}" style="display:flex;align-items:flex-start;gap:6px;margin-bottom:8px;padding:8px;background:#fff;border:1px solid #e5e3de;border-radius:7px">
+    <div style="flex:1;display:flex;flex-direction:column;gap:5px">
+      <input type="text" class="ext-intitule" value="${(x.intitule||'').replace(/"/g,'&quot;')}" placeholder="Ex : Activités, Coiffeuse, Traiteur, Livraison…" style="font-size:12px;padding:4px 6px;font-weight:600">
+      <div style="display:flex;gap:5px;align-items:center">
+        <span style="display:flex;align-items:center;gap:2px;flex-shrink:0"><input type="number" class="ext-montant" value="${x.montant||''}" placeholder="0" style="width:65px;font-size:12px;padding:4px 6px;font-weight:600"><span style="font-size:11px;font-weight:600;color:#666">€</span></span>
+        <select class="ext-sens" style="flex:1;font-size:11px;padding:4px 4px">
+          <option value="paye_par_nous" ${(x.sens||'paye_par_nous')==='paye_par_nous'?'selected':''}>Payé par nous directement</option>
+          <option value="client_nous_reverse" ${x.sens==='client_nous_reverse'?'selected':''}>Le client paie ce montant, on le reverse au prestataire</option>
+          <option value="presta_nous_reverse" ${x.sens==='presta_nous_reverse'?'selected':''}>Le prestataire est payé par le client mais nous reverse ce montant</option>
+        </select>
+      </div>
+      <input type="text" class="ext-note" value="${(x.note||'').replace(/"/g,'&quot;')}" placeholder="Note libre (ex : arrive à 13h, prévu toute l'après-midi…)" style="font-size:11.5px;padding:4px 6px;color:#888">
+    </div>
+    <button type="button" class="btn btn-xs btn-danger" onclick="this.closest('.ext-presta-row').remove()" style="flex-shrink:0;margin-top:2px">✕</button>
+  </div>`;
+}
+function addExtPrestaRow(){
+  const wrap=document.getElementById('penc-extpresta-rows');
+  if(!wrap)return;
+  wrap.insertAdjacentHTML('beforeend',extPrestaRowHtml({}));
 }
 function onGardChkChange(chk){
   const sel=document.querySelector(`.gard-sel[data-presta="${chk.dataset.presta}"][data-date="${chk.dataset.date}"]`);
@@ -812,14 +855,14 @@ function doLogin(){
 }
 
 function renderAdmin(){
-  const tabs=[['calendrier','📅','Planning'],['liste','🎉','Liste<br>résas'],['visites','👀','Liste<br>visites'],['prestataires','🧑‍🔧','Équipe<br>Domaines'],['bilan','📊','Bilan €'],['clients','📇','Liste<br>clients']];
+  const tabs=[['calendrier','📅','Planning'],['liste','🎉','Liste<br>résas'],['visites','👀','Liste<br>visites'],['prestataires','🧑‍🔧','Équipe<br>Domaines'],['bilan','📊','Bilan €'],['clientsExport','📇','Clients<br>/ Export']];
   let content='';
   if(S.tab==='calendrier')content=renderCalendrier();
   else if(S.tab==='liste')content=renderListe();
   else if(S.tab==='visites')content=renderVisiteList();
   else if(S.tab==='prestataires')content=renderPrestaList();
   else if(S.tab==='bilan')content=renderBilan();
-  else if(S.tab==='clients')content=renderClientsList();
+  else if(S.tab==='clientsExport')content=renderClientsExport();
   const lastSeen=(D.adminLastSeen||{})[S.admin.id]||0;
   const notifs=(D.activityLog||[]).filter(it=>((it.authorId&&it.authorId!==S.admin.id)||it.forAdmin)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
   return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge ba">Admin — ${S.admin.name}</span><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}${renderNotifBanner(notifs,'dismissAdminNotifs')}${renderMessagesHub()}<div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${S.tab===k?'active':''}" onclick="setTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>${content}${S.modal?renderModalWrap():''}`;
@@ -890,7 +933,15 @@ function renderDetailPanel(r){
     ${(r.nbPersonnes||r.nbSoiree)?`<div style="font-size:12px;color:#555;margin-bottom:8px;display:flex;gap:16px">${r.nbPersonnes?'<span>🛏 <strong>'+r.nbPersonnes+'</strong> couchages</span>':''} ${r.nbSoiree?'<span>🥂 <strong>'+r.nbSoiree+'</strong> invités soirée</span>':''}</div>`:''}
     ${Object.keys(r.prestaGarde||{}).length?Object.entries(r.prestaGarde).map(([pid,pg])=>{const who=gPre(pid);return`<div style="margin-bottom:8px"><div style="font-size:11px;color:#888;margin-bottom:3px">🛡 ${who.name||'—'}</div>${Object.entries(pg.nights||{}).sort((a,b)=>a[0].localeCompare(b[0])).map(([d,v])=>readOnly?`<span class="pill" style="background:#f0eee8;color:#555;margin-right:4px;margin-bottom:4px;display:inline-block">Nuit du ${ds(d)} — ${v.duree==='courte'?'22h-2h':'22h-4h'}</span>`:`<span class="pill" style="background:${v.paid?'#E8F3E0':'#FCEBEB'};color:${v.paid?'#27500A':'#791F1F'};margin-right:4px;margin-bottom:4px;display:inline-block;cursor:pointer" onclick="toggleGardeNightPaid('${r.id}','${pid}','${d}')" title="Cliquer pour ${v.paid?'marquer non payé':'marquer payé'}">Nuit du ${ds(d)} — ${v.duree==='courte'?'22h-2h':'22h-4h'} · ${money(gardeRate(v.duree))} ${v.paid?'✓ payé':'✗ non payé'}</span>`).join('')}</div>`;}).join(''):''}
     ${(!readOnly&&r.noteInterne)?`<div class="note-box" style="margin-bottom:8px">${r.noteInterne}</div>`:''}
-    ${r.caviste&&(!readOnly?(S.presta&&(S.presta.id==='p1'||S.presta.id==='p2')):true)?`<div class="dp-section"><label>🍷 Commande caviste</label><div class="note-box" style="border-left-color:#F5D98B">${r.caviste.replace(/\n/g,'<br>')}</div></div>`:''}
+    ${r.caviste&&(!readOnly?(S.presta&&(()=>{const mi=getMenageInfo(r);return mi&&mi.pid===S.presta.id;})()):true)?`<div class="dp-section"><label>🍷 Commande caviste</label><div class="note-box" style="border-left-color:#F5D98B">${r.caviste.replace(/\n/g,'<br>')}</div></div>`:''}
+    ${(!readOnly&&r.prestasExterieurs&&r.prestasExterieurs.length)?`<div class="dp-section"><label>🎭 Prestataire(s) extérieur(s)</label>${r.prestasExterieurs.map(x=>{
+      const sensLabel=x.sens==='client_nous_reverse'?'Client paie → à reverser au prestataire':x.sens==='presta_nous_reverse'?'Prestataire payé par client → à nous reverser':'Payé par nous';
+      return`<div class="note-box" style="border-left-color:#CECBF6;margin-bottom:6px">
+        <div style="font-weight:600">${x.intitule||'—'}</div>
+        ${x.montant?`<div style="margin-top:2px">${money(x.montant)} — <span style="color:#666">${sensLabel}</span></div>`:''}
+        ${x.note?`<div style="margin-top:2px;color:#888">${x.note}</div>`:''}
+      </div>`;
+    }).join('')}</div>`:''}
     ${myLines.length?`<div class="dp-section"><label>🍽 Ma prestation</label>
       ${myLines.map(l=>`<div style="background:#f5f4f1;border-radius:8px;padding:8px;margin-bottom:6px">
         <input type="text" value="${l.label||''}" placeholder="Intitulé" onchange="updPrestaLine('${r.id}','${S.presta.id}','${l.id}','label',this.value)" style="width:100%;font-size:13px;font-weight:500;padding:4px 5px;margin-bottom:4px;box-sizing:border-box">
@@ -1157,16 +1208,16 @@ function renderBilan(){
     const paid=viewMode==='year'?paidForYear(r,y):paidForMonth(r,y,m);
     if(!revByDom[r.domaine])revByDom[r.domaine]={loc:0,paid:0,cash:0,virement:0,nuitees:0};
     if(amt>0||paid>0){
-      revByDom[r.domaine].loc+=amt;revByDom[r.domaine].paid+=paid;
-      revTotal+=amt;paidTotal+=paid;
+      revByDom[r.domaine].loc+=amt;
+      revTotal+=amt;
     }
+    const isPast=(r.dateDepart||r.dateArrivee||'')<todayStr;
     if(viewMode==='year'){
-      const isPast=(r.dateDepart||r.dateArrivee||'')<todayStr;
       const tgt=isPast?revByDomPast:revByDomFuture;
       if(!tgt[r.domaine])tgt[r.domaine]={loc:0,paid:0,cash:0,virement:0,nuitees:0};
       if(amt>0||paid>0){
-        tgt[r.domaine].loc+=amt;tgt[r.domaine].paid+=paid;
-        if(isPast){revTotalPast+=amt;paidTotalPast+=paid;}else{revTotalFuture+=amt;paidTotalFuture+=paid;}
+        tgt[r.domaine].loc+=amt;
+        if(isPast)revTotalPast+=amt;else revTotalFuture+=amt;
       }
     }
     const counts=nightsByMonth(r);
@@ -1181,12 +1232,22 @@ function renderBilan(){
       const[py,pm]=pa.date.split('-').map(Number);
       const inP=viewMode==='year'?py===y:(py===y&&pm===(m+1));
       if(!inP)return;
-      if(isCash(pa))revByDom[r.domaine].cash+=pa.montant||0;else revByDom[r.domaine].virement+=pa.montant||0;
+      const cashAmt=isCash(pa)?(pa.montant||0):0;
+      const virAmt=isCash(pa)?0:(pa.montant||0);
+      revByDom[r.domaine].cash+=cashAmt;revByDom[r.domaine].virement+=virAmt;
+      revByDom[r.domaine].paid+=(pa.montant||0);paidTotal+=(pa.montant||0);
+      if(viewMode==='year'){
+        const tgt=isPast?revByDomPast:revByDomFuture;
+        if(!tgt[r.domaine])tgt[r.domaine]={loc:0,paid:0,cash:0,virement:0,nuitees:0};
+        tgt[r.domaine].cash+=cashAmt;tgt[r.domaine].virement+=virAmt;
+        tgt[r.domaine].paid+=(pa.montant||0);
+        if(isPast)paidTotalPast+=(pa.montant||0);else paidTotalFuture+=(pa.montant||0);
+      }
     });
   });
   const revRows=D.domaines.map(d=>({d,...(revByDom[d.id]||{loc:0,paid:0,cash:0,virement:0,nuitees:0})})).filter(x=>x.loc>0||x.paid>0||x.cash>0||x.virement>0||x.nuitees>0);
-  const revRowsPast=D.domaines.map(d=>({d,...(revByDomPast[d.id]||{loc:0,paid:0})})).filter(x=>x.loc>0||x.paid>0);
-  const revRowsFuture=D.domaines.map(d=>({d,...(revByDomFuture[d.id]||{loc:0,paid:0})})).filter(x=>x.loc>0||x.paid>0);
+  const revRowsPast=D.domaines.map(d=>({d,...(revByDomPast[d.id]||{loc:0,paid:0,cash:0,virement:0})})).filter(x=>x.loc>0||x.paid>0);
+  const revRowsFuture=D.domaines.map(d=>({d,...(revByDomFuture[d.id]||{loc:0,paid:0,cash:0,virement:0})})).filter(x=>x.loc>0||x.paid>0);
   let cashTotal=0,virementTotal=0;
   D.reservations.filter(r=>r.status!=='annulé').forEach(r=>{
     (r.paiements||[]).forEach(pa=>{
@@ -1240,8 +1301,8 @@ function renderBilan(){
     <div style="margin-bottom:10px">
       <div style="font-size:12px;font-weight:700;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:.03em">📌 Déjà réalisé (jusqu'à aujourd'hui)</div>
       ${revRowsPast.length===0?'<div style="font-size:12px;color:#888;margin-bottom:10px">Rien à ce jour.</div>':`<table class="list-tbl"><thead><tr><th>Domaine</th><th>Montant location</th><th>Payé</th><th>Reste à payer</th></tr></thead>
-      <tbody>${revRowsPast.map(({d,loc,paid})=>`<tr><td><span class="pill ${PILL[d.color||0]}">${d.name}</span></td><td style="font-weight:500">${money(loc)}</td><td style="color:#27500A">${money(paid)}</td><td style="color:${loc-paid>0?'#A32D2D':'#27500A'}">${money(loc-paid)}</td></tr>`).join('')}
-      <tr style="background:#f0eee8"><td style="font-weight:700;color:#000">Total réalisé</td><td style="font-weight:700;color:#000">${money(revTotalPast)}</td><td style="font-weight:700;color:#000">${money(paidTotalPast)}</td><td style="font-weight:700;color:#000">${money(revTotalPast-paidTotalPast)}</td></tr></tbody></table>`}
+      <tbody>${revRowsPast.map(({d,loc,paid,cash,virement})=>`<tr><td><span class="pill ${PILL[d.color||0]}">${d.name}</span></td><td style="font-weight:500">${money(loc)}</td><td><div style="color:#27500A;font-weight:600">${money(paid)}</div><div style="font-size:10px;color:#999;margin-top:1px">virement ${money(virement||0)} · cash ${money(cash||0)}</div></td><td style="color:${loc-paid>0?'#A32D2D':'#27500A'}">${money(loc-paid)}</td></tr>`).join('')}
+      <tr style="background:#f0eee8"><td style="font-weight:700;color:#000">Total réalisé</td><td style="font-weight:700;color:#000">${money(revTotalPast)}</td><td><div style="font-weight:700;color:#000">${money(paidTotalPast)}</div><div style="font-size:10px;color:#777;font-weight:500;margin-top:1px">virement ${money(revRowsPast.reduce((a,x)=>a+(x.virement||0),0))} · cash ${money(revRowsPast.reduce((a,x)=>a+(x.cash||0),0))}</div></td><td style="font-weight:700;color:#000">${money(revTotalPast-paidTotalPast)}</td></tr></tbody></table>`}
     </div>
     <div style="margin-bottom:10px">
       <div style="font-size:12px;font-weight:700;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:.03em">🔮 À venir (réservations futures)</div>
@@ -1260,9 +1321,9 @@ function renderBilan(){
     <div style="font-size:12px;font-weight:700;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:.03em">Détail par domaine — vue d'ensemble</div>
     `:''}
     ${revRows.length===0?'<div class="empty">Aucune location sur cette période.</div>':''}
-    ${revRows.length>0?`<table class="list-tbl"><thead><tr><th>Domaine</th><th>Montant location</th><th>Payé</th><th>Payé virement</th><th>Payé cash</th><th>Reste à payer</th><th>Occupation</th></tr></thead>
-    <tbody>${revRows.map(({d,loc,paid,cash,virement,nuitees})=>{const ct=getMenageInfo({domaine:d.id,nbPersonnes:0,nbSoiree:0});const ctP=ct?D.prestataires.find(x=>x.id===ct.pid):null;return`<tr><td><span class="pill ${PILL[d.color||0]}">${d.name}</span>${ctP?` ${ctP.tel?`<a href="https://wa.me/${ctP.tel.replace(/\D/g,'')}" target="_blank" style="font-size:11px;color:#25D366;text-decoration:none" title="WhatsApp ${ctP.name}">💬 ${ctP.name}</a>`:`<span style="font-size:11px;color:#888">${ctP.name}</span>`}`:''}</td><td style="font-weight:500">${money(loc)}</td><td style="color:#27500A">${money(paid)}</td><td>${money(virement)}</td><td>${money(cash)}</td><td style="color:${loc-paid>0?'#A32D2D':'#27500A'}">${money(loc-paid)}</td><td>${nuitees} / ${daysInPeriod} <span style="color:#888">(${(nuitees/daysInPeriod*100).toFixed(0)}%)</span></td></tr>`;}).join('')}
-    <tr style="background:#f0eee8"><td style="font-weight:700;color:#000">Total</td><td style="font-weight:700;color:#000">${money(revTotal)}</td><td style="font-weight:700;color:#000">${money(paidTotal)}</td><td style="font-weight:700;color:#000">${money(virementTotal)}</td><td style="font-weight:700;color:#000">${money(cashTotal)}</td><td style="font-weight:700;color:#000">${money(revTotal-paidTotal)}</td><td></td></tr></tbody></table>`:''}
+    ${revRows.length>0?`<table class="list-tbl"><thead><tr><th>Domaine</th><th>Montant location</th><th>Payé</th><th>Reste à payer</th><th>Occupation</th></tr></thead>
+    <tbody>${revRows.map(({d,loc,paid,cash,virement,nuitees})=>{const ct=getMenageInfo({domaine:d.id,nbPersonnes:0,nbSoiree:0});const ctP=ct?D.prestataires.find(x=>x.id===ct.pid):null;return`<tr><td><span class="pill ${PILL[d.color||0]}">${d.name}</span>${ctP?` ${ctP.tel?`<a href="https://wa.me/${ctP.tel.replace(/\D/g,'')}" target="_blank" style="font-size:11px;color:#25D366;text-decoration:none" title="WhatsApp ${ctP.name}">💬 ${ctP.name}</a>`:`<span style="font-size:11px;color:#888">${ctP.name}</span>`}`:''}</td><td style="font-weight:500">${money(loc)}</td><td><div style="color:#27500A;font-weight:600">${money(paid)}</div><div style="font-size:10px;color:#999;margin-top:1px">virement ${money(virement)} · cash ${money(cash)}</div></td><td style="color:${loc-paid>0?'#A32D2D':'#27500A'}">${money(loc-paid)}</td><td>${nuitees} / ${daysInPeriod} <span style="color:#888">(${(nuitees/daysInPeriod*100).toFixed(0)}%)</span></td></tr>`;}).join('')}
+    <tr style="background:#f0eee8"><td style="font-weight:700;color:#000">Total</td><td style="font-weight:700;color:#000">${money(revTotal)}</td><td><div style="font-weight:700;color:#000">${money(paidTotal)}</div><div style="font-size:10px;color:#777;font-weight:500;margin-top:1px">virement ${money(virementTotal)} · cash ${money(cashTotal)}</div></td><td style="font-weight:700;color:#000">${money(revTotal-paidTotal)}</td><td></td></tr></tbody></table>`:''}
   </div>
   <div class="g3" style="margin-bottom:14px">
     <div class="metric"><span class="lbl">Total prestations (commission)</span><span class="val">${money(totalGeneral)}</span></div>
@@ -1486,6 +1547,15 @@ function updClientTel(rid,val){
   r.tel=v||'À compléter';
   saveD();showMsg('Téléphone enregistré ✓');
 }
+function setClientsExportSub(v){S.clientsExportSub=v;render();}
+function renderClientsExport(){
+  const sub=S.clientsExportSub||'clients';
+  return`<div class="tabs" style="margin-bottom:14px;max-width:340px">
+    <button class="tab ${sub==='clients'?'active':''}" onclick="setClientsExportSub('clients')"><span class="tab-ic">📇</span><span class="tab-lbl">Liste clients</span></button>
+    <button class="tab ${sub==='export'?'active':''}" onclick="setClientsExportSub('export')"><span class="tab-ic">💾</span><span class="tab-lbl">Export / Sauvegarde</span></button>
+  </div>
+  ${sub==='clients'?renderClientsList():renderExport()}`;
+}
 function renderClientsList(){
   const sortBy=S.clientsSortBy||'date';
   let rows=D.reservations.filter(r=>r.status!=='annulé'&&(r.client||r.societe)).map(r=>({r,dom:gDom(r.domaine)}));
@@ -1508,6 +1578,195 @@ function renderClientsList(){
     ${rows.length>0?`<div style="overflow-x:auto"><table class="list-tbl"><thead><tr><th>Nom</th><th>Société</th><th>Téléphone</th><th>Email</th><th>Domaine</th><th>Date</th></tr></thead>
     <tbody>${rows.map(({r,dom})=>`<tr onclick="selectAndGoCal('${r.id}')"><td style="font-weight:500">${r.client||'—'}</td><td>${r.typeClient==='entreprise'&&r.societe?r.societe:'<span style="color:#ccc">—</span>'}</td><td onclick="event.stopPropagation()"><input type="tel" value="${displayTel(r.tel)}" placeholder="À renseigner" onchange="updClientTel('${r.id}',this.value)" style="width:130px;font-size:12px;padding:4px 6px;border:1px solid transparent;background:transparent" onfocus="this.style.borderColor='#d5d3ce';this.style.background='#fff'" onblur="this.style.borderColor='transparent';this.style.background='transparent'"></td><td>${r.email?`<a href="mailto:${r.email}" onclick="event.stopPropagation()" style="color:#185FA5;text-decoration:none">${r.email}</a>`:'<span style="color:#ccc">—</span>'}</td><td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td><td>${fmt(r.dateArrivee)}</td></tr>`).join('')}</tbody></table></div>`:''}
   </div>`;
+}
+
+function getLastBackupInfo(){
+  try{const raw=localStorage.getItem('lastBackupExport');return raw?JSON.parse(raw):null;}catch(e){return null;}
+}
+function markBackupDone(){
+  try{localStorage.setItem('lastBackupExport',JSON.stringify({date:dstr(new Date()),ts:Date.now()}));}catch(e){}
+}
+function daysSinceBackup(){
+  const info=getLastBackupInfo();
+  if(!info)return null;
+  return Math.floor((Date.now()-info.ts)/86400000);
+}
+function renderExport(){
+  const days=daysSinceBackup();
+  const info=getLastBackupInfo();
+  let alertHtml='';
+  if(days===null){
+    alertHtml=`<div class="alert" style="background:#FCEBEB;color:#791F1F">⚠️ Aucune sauvegarde Excel n'a encore été faite. Il est recommandé d'en faire une dès maintenant, puis une fois par semaine.</div>`;
+  } else if(days>=7){
+    alertHtml=`<div class="alert" style="background:#FCEBEB;color:#791F1F">⚠️ Dernière sauvegarde Excel il y a ${days} jours (${fmt(info.date)}). Pense à en refaire une.</div>`;
+  } else {
+    alertHtml=`<div class="alert alert-ok">✓ Dernière sauvegarde Excel il y a ${days} jour${days>1?'s':''} (${fmt(info.date)}).</div>`;
+  }
+  return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
+    <div class="sec-hdr"><h2>💾 Export Excel / Sauvegarde</h2></div>
+    ${alertHtml}
+    <div style="font-size:13px;color:#555;margin:10px 0 16px;line-height:1.5">
+      Ce tableau récapitule l'ensemble des réservations, avec toutes les informations utiles (client, société, contact, domaine, dates, montants, paiements, prestataires assignés…).<br>
+      <strong>Recommandation :</strong> télécharge ce fichier une fois par semaine et conserve-le (email à toi-même, clé USB, Drive…). En cas de problème avec le site, tu ne perds ainsi jamais plus d'une semaine d'organisation.
+    </div>
+    <button class="btn btn-primary" style="padding:10px 18px;font-size:13px;margin-right:8px" onclick="exportExcel('date')">📥 Télécharger l'Excel (par dates de séjour)</button>
+    <button class="btn btn-primary" style="padding:10px 18px;font-size:13px" onclick="exportExcel('modif')">🕒 Télécharger l'Excel (par dernières modifications)</button>
+    <div style="margin-top:18px;font-size:11px;color:#888">Le fichier contient un onglet "Réservations" avec une ligne par séjour, et un onglet "Clients" avec les coordonnées. Il s'ouvre avec Excel, Google Sheets ou Numbers.<br>Le tri "par dernières modifications" place en haut les réservations créées ou modifiées le plus récemment — pratique pour repérer vite ce qui a changé dans la semaine.</div>
+  </div>
+  <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
+    <div class="sec-hdr"><h2>♻️ Restaurer une sauvegarde</h2></div>
+    <div style="font-size:13px;color:#555;margin-bottom:14px;line-height:1.5">
+      Si la base de données en ligne est perdue ou inaccessible, tu peux réinjecter ici un fichier Excel exporté précédemment depuis ce logiciel. Toutes les réservations qu'il contient seront recréées.<br>
+      <span style="color:#A32D2D;font-weight:600">⚠️ Attention : cette opération ajoute les réservations du fichier à celles déjà présentes. Si tu restaures après une perte totale, les données actuelles seront simplement complétées (pas de doublons si tu restaures un fichier déjà importé).</span>
+    </div>
+    <input type="file" id="restore-file-input" accept=".xlsx,.xls" style="display:none" onchange="handleRestoreFile(this)">
+    <button class="btn" style="padding:10px 18px;font-size:13px;border-color:#A32D2D;color:#A32D2D" onclick="document.getElementById('restore-file-input').click()">📤 Choisir un fichier Excel à restaurer</button>
+    <div id="restore-status" style="margin-top:12px"></div>
+  </div>`;
+}
+function exportExcel(sortMode){
+  if(typeof XLSX==='undefined'){alert("La librairie Excel ne s'est pas chargée (connexion internet nécessaire). Réessaie dans quelques secondes.");return;}
+  let sorted=[...D.reservations];
+  if(sortMode==='modif'){
+    sorted.sort((a,b)=>(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0));
+  } else {
+    sorted.sort((a,b)=>(a.dateArrivee||'').localeCompare(b.dateArrivee||''));
+  }
+  const resaRows=sorted.map(r=>{
+    const dom=gDom(r.domaine);
+    const mi=getMenageInfo(r);
+    const prestaNames=(r.prestataires||[]).map(pid=>gPre(pid).name).join(', ');
+    return{
+      'ID':r.id,
+      'Dernière modification':r.updatedAt?new Date(r.updatedAt).toLocaleString('fr-FR'):'',
+      'Domaine':dom.name,
+      'Statut':r.status,
+      'Client':r.client||'',
+      'Société':r.typeClient==='entreprise'?(r.societe||''):'',
+      'Type client':r.typeClient==='entreprise'?'Entreprise':'Particulier',
+      'Téléphone':displayTel(r.tel)||'',
+      'Email':r.email||'',
+      'Type événement':r.typeEvenement||'',
+      'Date arrivée':r.dateArrivee||'',
+      'Heure arrivée':r.heureArrivee||'',
+      'Date départ':r.dateDepart||'',
+      'Heure départ':r.heureDepart||'',
+      'Couchages':r.nbPersonnes||r.nbAdultes||'',
+      'Enfants':r.nbEnfants||'',
+      'Invités soirée':r.nbSoiree||'',
+      'Montant total €':r.montant||0,
+      'Total payé €':totPay(r),
+      'Reste à payer €':(r.montant||0)-totPay(r),
+      'Détail paiements':(r.paiements||[]).map(p=>`${p.date}:${p.montant}€${p.note?' ('+p.note+')':''}`).join(' | '),
+      'Ménage prévu pour':mi?mi.name:'',
+      'Montant ménage €':mi?mi.montant:'',
+      'Ménage réglé':r.menagePaid?'Oui':'Non',
+      'Prestataires assignés (IDs)':(r.prestataires||[]).join(','),
+      'Prestataires assignés (noms)':prestaNames,
+      'Note interne':r.noteInterne||'',
+      'Commande caviste':r.caviste||'',
+      'Prestataires extérieurs':(r.prestasExterieurs||[]).map(x=>`${x.intitule}${x.montant?' - '+x.montant+'€':''}${x.note?' / '+x.note:''}`).join(' | ')
+    };
+  });
+  const clientRows=[...D.reservations].filter(r=>r.client||r.societe).sort((a,b)=>(a.client||'').localeCompare(b.client||'','fr',{sensitivity:'base'})).map(r=>{
+    const dom=gDom(r.domaine);
+    return{
+      'Nom':r.client||'',
+      'Société':r.typeClient==='entreprise'?(r.societe||''):'',
+      'Téléphone':displayTel(r.tel)||'',
+      'Email':r.email||'',
+      'Domaine':dom.name,
+      'Date arrivée':r.dateArrivee||'',
+      'Type événement':r.typeEvenement||''
+    };
+  });
+  const wb=XLSX.utils.book_new();
+  const ws1=XLSX.utils.json_to_sheet(resaRows);
+  const ws2=XLSX.utils.json_to_sheet(clientRows);
+  XLSX.utils.book_append_sheet(wb,ws1,'Réservations');
+  XLSX.utils.book_append_sheet(wb,ws2,'Clients');
+  const today=dstr(new Date());
+  const suffix=sortMode==='modif'?'par_modif':'par_dates';
+  XLSX.writeFile(wb,`Domaines_Normandie_export_${suffix}_${today}.xlsx`);
+  markBackupDone();
+  showMsg('Export Excel téléchargé ✓');
+}
+
+function handleRestoreFile(input){
+  const file=input.files&&input.files[0];
+  if(!file)return;
+  const statusEl=document.getElementById('restore-status');
+  if(statusEl)statusEl.innerHTML='<span style="color:#666;font-size:13px">Lecture du fichier…</span>';
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=new Uint8Array(e.target.result);
+      const wb=XLSX.read(data,{type:'array'});
+      const sheet=wb.Sheets['Réservations']||wb.Sheets[wb.SheetNames[0]];
+      if(!sheet)throw new Error("Aucune feuille 'Réservations' trouvée dans le fichier.");
+      const rows=XLSX.utils.sheet_to_json(sheet,{defval:''});
+      if(!rows.length)throw new Error('Le fichier ne contient aucune ligne de réservation.');
+      const domByName={};D.domaines.forEach(d=>domByName[d.name]=d.id);
+      let added=0,updated=0,skipped=0;
+      rows.forEach(row=>{
+        const id=String(row['ID']||'').trim();
+        if(!id){skipped++;return;}
+        const domaine=domByName[row['Domaine']]||D.domaines[0].id;
+        const tel=row['Téléphone']&&row['Téléphone']!=='À renseigner'?String(row['Téléphone']):'';
+        const paiements=[];
+        if(row['Détail paiements']){
+          String(row['Détail paiements']).split('|').forEach(seg=>{
+            const m=seg.trim().match(/^(\d{4}-\d{2}-\d{2}):([\d.]+)€(?:\s*\((.*)\))?$/);
+            if(m)paiements.push({id:gid(),date:m[1],montant:parseFloat(m[2])||0,note:m[3]||''});
+          });
+        }
+        const prestataires=row['Prestataires assignés (IDs)']?String(row['Prestataires assignés (IDs)']).split(',').map(s=>s.trim()).filter(Boolean):[];
+        const rebuilt={
+          id,
+          domaine,
+          status:row['Statut']||'confirmé',
+          client:row['Client']||'',
+          societe:row['Société']||'',
+          typeClient:row['Type client']==='Entreprise'?'entreprise':'particulier',
+          tel,
+          email:row['Email']||'',
+          typeEvenement:row['Type événement']||'',
+          dateArrivee:row['Date arrivée']||'',
+          heureArrivee:row['Heure arrivée']||'',
+          dateDepart:row['Date départ']||row['Date arrivée']||'',
+          heureDepart:row['Heure départ']||'',
+          nbPersonnes:parseInt(row['Couchages'])||0,
+          nbEnfants:parseInt(row['Enfants'])||0,
+          nbSoiree:parseInt(row["Invités soirée"])||0,
+          montant:parseFloat(row['Montant total €'])||0,
+          menagePaid:row['Ménage réglé']==='Oui',
+          prestataires,
+          noteInterne:row['Note interne']||'',
+          caviste:row['Commande caviste']||'',
+          prestasExterieurs:[],
+          paiements,
+          commentaires:[],
+          prestaLines:{},
+          prestaGarde:{}
+        };
+        const existing=D.reservations.find(x=>x.id===id);
+        if(existing){
+          Object.assign(existing,rebuilt,{paiements:existing.paiements&&existing.paiements.length?existing.paiements:paiements,commentaires:existing.commentaires||[],prestaLines:existing.prestaLines||{},prestaGarde:existing.prestaGarde||{},prestasExterieurs:existing.prestasExterieurs||[]});
+          updated++;
+        } else {
+          D.reservations.push(rebuilt);
+          added++;
+        }
+      });
+      saveD();
+      if(statusEl)statusEl.innerHTML=`<div class="alert alert-ok">✓ Restauration terminée : ${added} réservation(s) recréée(s), ${updated} mise(s) à jour${skipped?', '+skipped+' ligne(s) ignorée(s) (sans ID)':''}.</div>`;
+      render();
+    }catch(err){
+      if(statusEl)statusEl.innerHTML=`<div class="alert" style="background:#FCEBEB;color:#791F1F">❌ Erreur lors de la lecture du fichier : ${err.message}</div>`;
+    }
+    input.value='';
+  };
+  reader.readAsArrayBuffer(file);
 }
 
 function renderDomaineList(){
@@ -1670,13 +1929,11 @@ function renderModalContent(){
     </div>
     <div id="nb-fields-wrap">${nbFieldsHtml(defDomaine,r)}</div>
     <div style="font-size:11px;color:#888;margin-bottom:12px">* Au moins un des deux nombres est obligatoire</div>
-    <div class="g2-compact" style="margin-bottom:12px">
-      <div class="field"><label>Date d'arrivée *</label><div class="date-row"><input type="date" id="m-arr-date" value="${iA}" onchange="refreshAllGardNights();defaultArrHeure(this.value);defaultDepDate(this.value);if((document.getElementById('m-evt')||{}).value==='Déjeuner / Dîner'){document.getElementById('m-dep-date').value=this.value;}"><button type="button" class="date-btn" onclick="document.getElementById('m-arr-date').showPicker&&document.getElementById('m-arr-date').showPicker()" title="Choisir une date">📅</button></div></div>
-      <div class="field"><label>Heure d'arrivée *</label><select id="m-arr-heure">${heureOptions(initArrHeure)}</select></div>
-    </div>
-    <div class="g2-compact" style="margin-bottom:12px">
-      <div class="field" id="dep-date-wrap" style="${r.typeEvenement==='Déjeuner / Dîner'?'display:none':''}"><label>Date de départ *</label><div class="date-row"><input type="date" id="m-dep-date" value="${iD}" onchange="refreshAllGardNights();defaultDepHeure(this.value)"><button type="button" class="date-btn" onclick="document.getElementById('m-dep-date').showPicker&&document.getElementById('m-dep-date').showPicker()" title="Choisir une date">📅</button></div></div>
-      <div class="field"><label>Heure de départ *</label><select id="m-dep-heure">${heureOptions(initDepHeure)}</select></div>
+    <div id="datesheures-wrap" style="display:grid;grid-template-columns:${r.typeEvenement==='Déjeuner / Dîner'?'1fr 1fr 1fr':'1fr 1fr'};gap:6px;margin-bottom:12px">
+      <div class="field" style="gap:2px"><label style="font-size:10.5px">Date d'arrivée *</label><div class="date-row"><input type="date" id="m-arr-date" value="${iA}" onchange="refreshAllGardNights();defaultArrHeure(this.value);defaultDepDate(this.value);if((document.getElementById('m-evt')||{}).value==='Déjeuner / Dîner'){document.getElementById('m-dep-date').value=this.value;}" style="font-size:12px;padding:6px 7px"><button type="button" class="date-btn" onclick="document.getElementById('m-arr-date').showPicker&&document.getElementById('m-arr-date').showPicker()" title="Choisir une date">📅</button></div></div>
+      <div class="field" style="gap:2px"><label style="font-size:10.5px">Heure d'arrivée *</label><select id="m-arr-heure" style="font-size:12px;padding:6px 7px">${heureOptions(initArrHeure)}</select></div>
+      <div class="field" id="dep-date-wrap" style="gap:2px;${r.typeEvenement==='Déjeuner / Dîner'?'display:none':''}"><label style="font-size:10.5px">Date de départ *</label><div class="date-row"><input type="date" id="m-dep-date" value="${iD}" onchange="refreshAllGardNights();defaultDepHeure(this.value)" style="font-size:12px;padding:6px 7px"><button type="button" class="date-btn" onclick="document.getElementById('m-dep-date').showPicker&&document.getElementById('m-dep-date').showPicker()" title="Choisir une date">📅</button></div></div>
+      <div class="field" style="gap:2px"><label style="font-size:10.5px">Heure de départ *</label><select id="m-dep-heure" style="font-size:12px;padding:6px 7px">${heureOptions(initDepHeure)}</select></div>
     </div>
     <div class="g2" style="margin-bottom:12px">
       <div class="field"><label style="color:#111;font-weight:700">Montant de la réservation (€) *</label><div style="display:flex;align-items:center;gap:5px"><input type="number" id="m-montant" value="${r.typeEvenement==='Gratuit'?'0':(r.montant||'')}" placeholder="0" style="font-weight:700;flex:1${r.typeEvenement==='Gratuit'?';background:#f0eee8;color:#888':''}" ${r.typeEvenement==='Gratuit'?'readonly':''}><span style="font-weight:700;color:#111">€</span></div></div>
@@ -1702,7 +1959,11 @@ function renderModalContent(){
       <button class="btn btn-sm" onclick="document.getElementById('com-photo').click()">📷 Photo</button>
       <button class="btn btn-sm btn-primary" style="margin-left:auto" onclick="addComment('${r.id}')">+ Commentaire</button>
     </div>
-    `:`<p style="font-size:12px;color:#888;margin-top:4px">💡 Après enregistrement, vous pourrez saisir les paiements et ajouter des commentaires visibles par les prestataires.</p>`}
+    `:`
+    <div style="font-size:13px;font-weight:500;margin-bottom:6px">💬 ${(()=>{const ct=getMenageInfo({domaine:defDomaine});return ct?`Commentaire visible par ${ct.name}`:'Commentaire visible par les prestataires assignés';})()}</div>
+    <textarea id="com-txt-new" rows="2" placeholder="Ex : la maquilleuse arrive à 13h, le client a précisé que…" style="resize:none;margin-bottom:4px"></textarea>
+    <p style="font-size:11px;color:#888;margin-bottom:4px">💡 Ce commentaire sera enregistré avec la réservation. Les paiements et l'historique des commentaires deviendront disponibles juste après le premier enregistrement.</p>
+    `}
     <hr style="border:none;border-top:1px solid #e5e3de;margin:14px 0">
     ${(()=>{if(!id)return'';const mi=getMenageInfo(r);if(!mi)return'';return`<div class="field" style="margin-bottom:12px"><label>🧹 Forfait ménage (${mi.name})</label>
       <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#f5f4f1;border-radius:8px;flex-wrap:wrap">
@@ -1711,13 +1972,22 @@ function renderModalContent(){
         <span class="pill" style="background:${r.menagePaid?'#E8F3E0':'#FCEBEB'};color:${r.menagePaid?'#27500A':'#791F1F'};cursor:pointer" onclick="toggleMenagePaid('${id}')">${r.menagePaid?'✓ Payé':'✗ Non payé'}</span>
       </div></div>`;})()}
     <div class="field" style="margin-bottom:12px"><label>Prestataires — cochez puis détaillez (notes + montant, ou gardiennage)</label>
-      ${(defDomaine==='d1'||defDomaine==='d2'||!defDomaine)?(()=>{
+      ${(()=>{
         const cavCheckedDefault=!!(r.caviste&&r.caviste.trim());
         return`<div><label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="checkbox" id="m-caviste-chk" ${cavCheckedDefault?'checked':''} style="width:auto" onchange="document.getElementById('penc-caviste').style.display=this.checked?'block':'none';if(!this.checked)document.getElementById('m-caviste').value='';"> 🍷 Caviste <span style="color:#888">(note pour le gardien, pas un prestataire)</span></label>
         <div class="presta-encart" id="penc-caviste" style="display:${cavCheckedDefault?'block':'none'};margin:4px 0 10px 24px;padding:10px;background:#f5f4f1;border-radius:8px">
           <textarea id="m-caviste" rows="2" style="resize:none" placeholder="Ex : 15 bouteilles de champagne, 1 fût de bière…">${r.caviste||''}</textarea>
         </div></div>`;
-      })():'<input type="hidden" id="m-caviste" value="">'}
+      })()}
+      ${(()=>{
+        const extList=r.prestasExterieurs||[];
+        const extCheckedDefault=extList.length>0;
+        return`<div style="margin-top:10px"><label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="checkbox" id="m-extpresta-chk" ${extCheckedDefault?'checked':''} style="width:auto" onchange="document.getElementById('penc-extpresta').style.display=this.checked?'block':'none';if(this.checked&&document.getElementById('penc-extpresta-rows').children.length===0){addExtPrestaRow();}if(!this.checked)document.getElementById('penc-extpresta-rows').innerHTML='';"> 🎭 Prestataire(s) extérieur(s) <span style="color:#888">(maquilleuse, masseur, traiteur, livreur… — pas un compte, juste une note)</span></label>
+        <div class="presta-encart" id="penc-extpresta" style="display:${extCheckedDefault?'block':'none'};margin:4px 0 10px 24px;padding:10px;background:#f5f4f1;border-radius:8px">
+          <div id="penc-extpresta-rows">${extList.map(extPrestaRowHtml).join('')}</div>
+          <button type="button" class="btn btn-sm" onclick="addExtPrestaRow()">+ Ajouter un prestataire extérieur</button>
+        </div></div>`;
+      })()}
       <div style="padding:4px 0">${pC||'<span style="font-size:12px;color:#888">Aucun prestataire créé</span>'}</div></div>
     <div class="modal-actions"><button class="btn" onclick="closeM()">Fermer</button>${type==='editResa'?`<button class="btn btn-danger" onclick="cancelResa('${id}')">🚫 Annuler la réservation</button>`:''}<button class="btn btn-primary" onclick="saveResa('${id||''}')">Enregistrer</button></div>`;
   }
@@ -2317,6 +2587,13 @@ function addAdminQuickComment(rid){
 }
 function saveResa(id){
   const domaine=document.getElementById('m-domaine').value,dateArrivee=document.getElementById('m-arr-date').value;let dateDepart=document.getElementById('m-dep-date').value;const heureArrivee=document.getElementById('m-arr-heure').value,heureDepart=document.getElementById('m-dep-heure').value,status=document.getElementById('m-status').value,client=capWords(document.getElementById('m-client').value.trim());let tel=document.getElementById('m-tel').value.trim();const email=document.getElementById('m-email').value.trim(),typeClient=document.getElementById('m-typeclient').value,societe=capWords(document.getElementById('m-societe').value.trim()),typeEvenement=(document.getElementById('m-evt')||{}).value||'',noteInterne=document.getElementById('m-noteI').value,caviste=(document.getElementById('m-caviste')||{}).value||'',montant=parseFloat(document.getElementById('m-montant').value)||0;
+  const prestasExterieurs=Array.from(document.querySelectorAll('.ext-presta-row')).map(row=>({
+    id:row.dataset.extid||gid(),
+    intitule:(row.querySelector('.ext-intitule')||{}).value||'',
+    montant:parseFloat((row.querySelector('.ext-montant')||{}).value)||0,
+    sens:(row.querySelector('.ext-sens')||{}).value||'paye_par_nous',
+    note:(row.querySelector('.ext-note')||{}).value||''
+  })).filter(x=>x.intitule.trim()||x.montant||x.note.trim());
   if(!dateDepart&&typeEvenement==='Déjeuner / Dîner')dateDepart=dateArrivee;
   const elAdultes=document.getElementById('m-adultes'),elEnfants=document.getElementById('m-enfants');
   let nbPersonnes,nbSoiree,nbAdultes=0,nbEnfants=0;
@@ -2355,15 +2632,22 @@ function saveResa(id){
   if(!client)missing.push('le nom du client');
   if(typeClient==='entreprise'&&!societe)missing.push('le nom de la société');
   if(!typeEvenement)missing.push("le type d'événement");
-  if(!nbPersonnes&&!nbSoiree)missing.push('au moins un nombre (couchages ou invités soirée)');
+  if(!nbPersonnes&&!nbSoiree&&typeEvenement!=='Gratuit'&&typeEvenement!=='Déjeuner / Dîner')missing.push('au moins un nombre (couchages ou invités soirée)');
   if(!montant&&typeEvenement!=='Gratuit')missing.push('le montant');
   if(missing.length){alert('Champs obligatoires manquants : '+missing.join(', ')+'.');return;}
   if(tel==='À compléter')tel='';
   if(!tel)tel='À compléter';
   const dep=dateDepart||dateArrivee;
   const isNew=!id;
-  if(id){const r=D.reservations.find(x=>x.id===id);Object.assign(r,{domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,tel,email,typeClient,societe,typeEvenement,nbPersonnes,nbSoiree,nbAdultes,nbEnfants,prestaGarde,noteInterne,caviste,montant,prestataires});}
-  else D.reservations.push({id:gid(),domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,tel,email,typeClient,societe,typeEvenement,nbPersonnes,nbSoiree,nbAdultes,nbEnfants,prestaLines:{},prestaGarde,noteInterne,caviste,montant,paiements:[],prestataires,commentaires:[]});
+  const nowTs=Date.now();
+  const newCommentTxt=(document.getElementById('com-txt-new')||{}).value||'';
+  const initCommentaires=newCommentTxt.trim()?[{id:gid(),auteur:'admin',auteurNom:S.admin.name,date:new Date().toISOString().slice(0,10),texte:newCommentTxt.trim(),visible:true}]:[];
+  if(id){const r=D.reservations.find(x=>x.id===id);Object.assign(r,{domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,tel,email,typeClient,societe,typeEvenement,nbPersonnes,nbSoiree,nbAdultes,nbEnfants,prestaGarde,noteInterne,caviste,prestasExterieurs,montant,prestataires,updatedAt:nowTs});}
+  else D.reservations.push({id:gid(),domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,tel,email,typeClient,societe,typeEvenement,nbPersonnes,nbSoiree,nbAdultes,nbEnfants,prestaLines:{},prestaGarde,noteInterne,caviste,prestasExterieurs,montant,paiements:[],prestataires,commentaires:initCommentaires,createdAt:nowTs,updatedAt:nowTs});
+  if(isNew&&newCommentTxt.trim()){
+    const ct=getMenageInfo({domaine,nbPersonnes,nbSoiree,typeEvenement});
+    if(ct)logActivity('commentaire',domaine,`💬 ${S.admin.name} → ${ct.name} : « ${newCommentTxt.trim()} » — ${(typeClient==='entreprise'&&societe)?societe:client||'—'} (${fmt(dateArrivee)})`,[ct.pid]);
+  }
   logActivity(isNew?'créée':'modifiée',domaine,`Réservation ${isNew?'créée':'modifiée'} — ${(typeClient==='entreprise'&&societe)?societe:client||'—'} (${fmt(dateArrivee)})`);
   Object.keys(prestaGarde).forEach(pid=>{
     logActivity(isNew?'créée':'modifiée',domaine,`Gardiennage ${isNew?'ajouté':'mis à jour'} — ${(typeClient==='entreprise'&&societe)?societe:client||'—'} (${fmt(dateArrivee)})`,[pid]);
