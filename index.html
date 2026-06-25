@@ -1227,36 +1227,38 @@ function renderBilan(){
       const key=`${y}-${String(m+1).padStart(2,'0')}`;
       revByDom[r.domaine].nuitees+=counts[key]||0;
     }
-    (r.paiements||[]).forEach(pa=>{
-      if(!pa.date)return;
-      const[py,pm]=pa.date.split('-').map(Number);
-      const inP=viewMode==='year'?py===y:(py===y&&pm===(m+1));
-      if(!inP)return;
-      const cashAmt=isCash(pa)?(pa.montant||0):0;
-      const virAmt=isCash(pa)?0:(pa.montant||0);
+    /* La part payée (paid) ci-dessus est déjà rattachée à la période du séjour, pas à la date réelle
+       du règlement. On répartit ce montant entre cash/virement selon la même proportion que
+       l'ensemble des paiements de cette réservation, pour rester cohérent avec "où en est ce séjour". */
+    if(paid>0){
+      const totalPaye=totPay(r)||1;
+      let cashSum=0,virSum=0;
+      (r.paiements||[]).forEach(pa=>{if(isCash(pa))cashSum+=pa.montant||0;else virSum+=pa.montant||0;});
+      const cashAmt=paid*(cashSum/totalPaye);
+      const virAmt=paid*(virSum/totalPaye);
       revByDom[r.domaine].cash+=cashAmt;revByDom[r.domaine].virement+=virAmt;
-      revByDom[r.domaine].paid+=(pa.montant||0);paidTotal+=(pa.montant||0);
+      revByDom[r.domaine].paid+=paid;paidTotal+=paid;
       if(viewMode==='year'){
         const tgt=isPast?revByDomPast:revByDomFuture;
         if(!tgt[r.domaine])tgt[r.domaine]={loc:0,paid:0,cash:0,virement:0,nuitees:0};
         tgt[r.domaine].cash+=cashAmt;tgt[r.domaine].virement+=virAmt;
-        tgt[r.domaine].paid+=(pa.montant||0);
-        if(isPast)paidTotalPast+=(pa.montant||0);else paidTotalFuture+=(pa.montant||0);
+        tgt[r.domaine].paid+=paid;
+        if(isPast)paidTotalPast+=paid;else paidTotalFuture+=paid;
       }
-    });
+    }
   });
   const revRows=D.domaines.map(d=>({d,...(revByDom[d.id]||{loc:0,paid:0,cash:0,virement:0,nuitees:0})})).filter(x=>x.loc>0||x.paid>0||x.cash>0||x.virement>0||x.nuitees>0);
   const revRowsPast=D.domaines.map(d=>({d,...(revByDomPast[d.id]||{loc:0,paid:0,cash:0,virement:0})})).filter(x=>x.loc>0||x.paid>0);
   const revRowsFuture=D.domaines.map(d=>({d,...(revByDomFuture[d.id]||{loc:0,paid:0,cash:0,virement:0})})).filter(x=>x.loc>0||x.paid>0);
   let cashTotal=0,virementTotal=0;
   D.reservations.filter(r=>r.status!=='annulé').forEach(r=>{
-    (r.paiements||[]).forEach(pa=>{
-      if(!pa.date)return;
-      const[py,pm]=pa.date.split('-').map(Number);
-      const inP=viewMode==='year'?py===y:(py===y&&pm===(m+1));
-      if(!inP)return;
-      if(isCash(pa))cashTotal+=pa.montant||0;else virementTotal+=pa.montant||0;
-    });
+    const paid=viewMode==='year'?paidForYear(r,y):paidForMonth(r,y,m);
+    if(paid<=0)return;
+    const totalPaye=totPay(r)||1;
+    let cashSum=0,virSum=0;
+    (r.paiements||[]).forEach(pa=>{if(isCash(pa))cashSum+=pa.montant||0;else virSum+=pa.montant||0;});
+    cashTotal+=paid*(cashSum/totalPaye);
+    virementTotal+=paid*(virSum/totalPaye);
   });
   /* Forfaits ménage (sans commission, suivi à part) */
   const menageByP={};
