@@ -14,8 +14,8 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a;background:#f5f4f1;font-size:14px;min-height:100vh}
 .app{max-width:920px;margin:0 auto;padding:1rem}
-.topbar{display:flex;align-items:center;gap:8px;padding:10px 0 14px;border-bottom:1px solid #e5e3de;margin-bottom:14px}
-.topbar h1{font-size:17px;font-weight:600;flex:1;margin-left:6px}
+.topbar{display:flex;align-items:center;gap:6px;padding:10px 0 14px;border-bottom:1px solid #e5e3de;margin-bottom:14px;flex-wrap:nowrap}
+.topbar h1{font-size:13px;font-weight:600;flex:1;margin-left:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500}
 .ba{background:#FBEAF0;color:#72243E}.bp{background:#E1F5EE;color:#085041}
 .btn{padding:7px 14px;border-radius:8px;border:1px solid #d5d3ce;font-size:12px;cursor:pointer;font-family:inherit;background:#fff;color:#1a1a1a;transition:background .15s}
@@ -175,6 +175,16 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .leg{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px;align-items:center}
 .leg-item{display:flex;align-items:center;gap:4px;font-size:11px;color:#555}
 .leg-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+.search-bar{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid #c2bfb6;border-radius:10px;padding:6px 12px;margin-bottom:12px;transition:border-color .15s}
+.search-bar:focus-within{border-color:#993556;box-shadow:0 0 0 3px rgba(153,53,86,.12)}
+.search-bar input{border:none;background:transparent;outline:none;flex:1;font-size:13px;font-family:inherit;color:#1a1a1a}
+.search-bar input::placeholder{color:#aaa}
+.search-results{background:#fff;border:1px solid #e5e3de;border-radius:10px;margin-bottom:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.1)}
+.search-result-item{padding:10px 14px;border-bottom:1px solid #f0eeea;cursor:pointer;display:flex;align-items:center;gap:10px;transition:background .12s}
+.search-result-item:last-child{border-bottom:none}
+.search-result-item:hover{background:#faf9f7}
+.search-result-item .sr-name{font-weight:600;font-size:13px;flex:1}
+.search-result-item .sr-meta{font-size:11px;color:#888;white-space:nowrap}
 @media(max-width:640px){
   .detail-panel{width:100%;max-width:100vw}
   .g3{grid-template-columns:1fr 1fr}
@@ -220,7 +230,7 @@ const DOMAIN_LOGOS={
 const PILL=['p0','p1','p2','p3','p4'];
 const MONTHS_FR=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 const PRESTA_CATS=['Animation','Traiteur','Décoration','Logistique','Autre'];
-const EVENT_TYPES=['Mariage','Anniversaire','Séminaire','Famille / Amis','EVJF / EVG','Airbnb','Abritel','Booking','GDC / Home Exchange','Déjeuner / Dîner','Gratuit','Autre'];
+const EVENT_TYPES=['Mariage','Anniversaire','Séminaire','Famille / Amis','EVJF / EVG','Airbnb','Abritel','Booking','GDC','Home Exchange','Déjeuner / Dîner','Gratuit','Autre'];
 const DOMINIQUE_RATES={d1:120,d2:150,d3:120};
 const LEG_BG=['#F4C0D1','#F5D98B','#C0DD97','#CECBF6','#B5D4F4'];
 const BAND_FULL=['b0f','b1f','b2f','b3f','b4f'];
@@ -310,7 +320,7 @@ const CONTRACT_DATA={
         'Les Propriétaires restent joignables si nécessaire : David – 06 20 14 33 22, Svitlana – 06 30 86 85 69'
       ]},
       {h:'Signature et acceptation',p:[
-        'Les clés et accès au Domaine seront remis après le check-in et la signature des présentes.',
+        'Les clés et accès au Domaine seront remis après le check-in et la signature des présentes.\n        Sans signature du règlement intérieur, aucune remise des clés ne sera effectuée.',
         'La signature du contrat de location vaut reconnaissance de la prise de connaissance et acceptation du présent règlement intérieur ainsi que des conditions générales de location.',
         'Le non-respect des consignes de sécurité, des engagements contractuels ou du présent règlement pourra entraîner l\u2019interruption immédiate de la location, sans remboursement.',
         'Le Locataire est responsable des personnes qui l\u2019accompagnent et se porte garant de leur comportement durant tout le séjour.'
@@ -396,7 +406,7 @@ const CONTRACT_DATA={
         'Les Propriétaires restent joignables si nécessaire : David – 06 20 14 33 22, Svitlana – 06 30 86 85 69'
       ]},
       {h:'Signature et acceptation',p:[
-        'Les clés et accès au Domaine seront remis après le check-in et la signature des présentes.',
+        'Les clés et accès au Domaine seront remis après le check-in et la signature des présentes.\n        Sans signature du règlement intérieur, aucune remise des clés ne sera effectuée.',
         'La signature du contrat de location vaut reconnaissance de la prise de connaissance et acceptation du présent règlement intérieur ainsi que des conditions générales de location.',
         'Le non-respect des consignes de sécurité, des engagements contractuels ou du présent règlement pourra entraîner l\u2019interruption immédiate de la location, sans remboursement.',
         'Le Locataire est responsable des personnes qui l\u2019accompagnent et se porte garant de leur comportement durant tout le séjour.'
@@ -409,7 +419,7 @@ const CONTRACT_DATA={
     siteWeb:'www.ledomaineauxlions.fr',
     adresseSite:'700, Chemin de la Boullaye, 14100 Fauguernon',
     logo:'data:image/png;base64,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',
-    couleur:'#7A7A7A',
+    couleur:'#8A8A8A',
     couleurClaire:'#F0F0F0',
     description:[
       'Maison d\u2019une surface de 350 m² sur deux niveaux comprenant : cuisine équipée, 4 salons/salles à manger, 5 salles de bains et 7 toilettes, 9/12 chambres (capacité légale maximale : 15 personnes).',
@@ -433,58 +443,57 @@ const CONTRACT_DATA={
     parkingMax:7,
     piscinePeriode:'d\u2019avril à octobre',
     reglement:[
-      {h:'Usage général',p:[
-        'Le Locataire s\u2019engage à jouir de la location de manière paisible et à en faire un usage conforme à la destination des lieux, à savoir une location de vacances et de réception privée. Le contrat de location est établi pour une capacité maximale de 15 personnes conforme à celle prévue au contrat. Cette capacité ne pourra en aucun cas être dépassée.',
-        'Le jour du départ, l\u2019ensemble des lieux devra être rangé, les cuisines entièrement nettoyées, la vaisselle lavée et rangée, et les sacs poubelles fermés puis déposés dans les bacs prévus à cet effet.',
-        'Il est strictement interdit de fumer à l\u2019intérieur de l\u2019ensemble des bâtiments. Les mégots ne devront en aucun cas être jetés au sol ou dans les espaces extérieurs.',
-        'Lors de toute sortie, même temporaire, le Locataire est tenu de fermer systématiquement les lieux à clé. En cas de non-respect, le Locataire assumera l\u2019entière responsabilité de tout vol, dégradation ou dommage survenu.',
-        'Des extincteurs sont mis à disposition dans les bâtiments, ainsi qu\u2019une trousse de premiers secours située dans les cuisines. L\u2019utilisation de flammes nues est strictement interdite sauf autorisation écrite préalable.'
+      {h:'USAGE GÉNÉRAL',p:[
+        '1. Le Locataire s\u2019engage à jouir de la location de manière paisible et à en faire un usage conforme à la destination des lieux, à savoir une location de vacances et de réception privée. Le contrat de location est établi pour une capacité maximale de 15 personnes conforme à celle prévue au contrat. Cette capacité ne pourra en aucun cas être dépassée.',
+        '2. Le jour du départ, l\u2019ensemble des lieux devra être rangé, les cuisines entièrement nettoyées, la vaisselle lavée et rangée, et les sacs poubelles fermés puis déposés dans les bacs prévus à cet effet.',
+        '3. Il est strictement interdit de fumer à l\u2019intérieur de l\u2019ensemble des bâtiments. Les mégots ne devront en aucun cas être jetés au sol ou dans les espaces extérieurs.',
+        '4. Lors de toute sortie, même temporaire, le Locataire est tenu de fermer systématiquement les lieux à clé. En cas de non-respect, le Locataire assumera l\u2019entière responsabilité de tout vol, dégradation ou dommage survenu.',
+        '5. Des extincteurs sont mis à disposition dans les bâtiments, ainsi qu\u2019une trousse de premiers secours située dans les cuisines. L\u2019utilisation de flammes nues est strictement interdite sauf autorisation écrite préalable.'
       ]},
-      {h:'Nettoyage',p:[
-        'La propriété devra être rendue propre et rangée. Un état des lieux sera effectué en fin de séjour.',
-        'Sont inclus dans la prestation : le nettoyage des sols, salles de bain et WC ; le lavage et le repassage du linge de maison, les lits préparés à l\u2019arrivée.',
-        'Le Locataire devra notamment : nettoyer les appareils électroménagers et le barbecue ; laver et ranger la vaisselle ; remettre en place les meubles déplacés ; fermer les sacs poubelles.'
+      {h:'NETTOYAGE',p:[
+        '1. La propriété devra être rendue propre et rangée. Un état des lieux sera effectué en fin de séjour.',
+        '2. Sont inclus dans la prestation : le nettoyage des sols, salles de bain et WC ; le lavage et le repassage du linge de maison, les lits préparés à l\u2019arrivée.',
+        '3. Le Locataire devra notamment : nettoyer les appareils électroménagers et le barbecue ; laver et ranger la vaisselle ; remettre en place les meubles déplacés ; fermer les sacs poubelles.'
       ]},
-      {h:'Wi-Fi / Accès internet',p:[
-        'Un accès Internet Wi-Fi est mis gracieusement à disposition. Le Propriétaire ne saurait être tenu responsable en cas de dysfonctionnement.'
+      {h:'WI-FI / ACCÈS INTERNET',p:[
+        '1. Un accès Internet Wi-Fi est mis gracieusement à disposition. Le Propriétaire ne saurait être tenu responsable en cas de dysfonctionnement.'
       ]},
-      {h:'La piscine',p:[
-        'La piscine est chauffée d\u2019avril à octobre (24/28°). Les horaires d\u2019accès (9h/22h) sont donnés à titre indicatif. Il est interdit de courir, sauter, crier, manger, fumer ou consommer des boissons dans l\u2019espace piscine.',
-        'Les enfants doivent être accompagnés en permanence par un adulte responsable. Les brassards sont obligatoires pour les enfants de moins de 7 ans.'
+      {h:'LA PISCINE',p:[
+        '1. La piscine est chauffée d\u2019avril à octobre (24/28°). Les horaires d\u2019accès (9h/22h) sont donnés à titre indicatif. Il est interdit de courir, sauter, crier, manger, fumer ou consommer des boissons dans l\u2019espace piscine.',
+        '2. Les enfants doivent être accompagnés en permanence par un adulte responsable. Les brassards sont obligatoires pour les enfants de moins de 7 ans.'
       ]},
-      {h:'Terrasses, jardins et espaces extérieurs',p:[
-        'Les équipements sportifs peuvent être utilisés de 9h à 22h. Les terrasses, salons de jardin et espaces de réception extérieurs sont accessibles de 9h à 23h.',
-        'La terrasse située entre le bâtiment et la piscine n\u2019est pas autorisée pour les animations ou la diffusion musicale. Cet espace doit rester calme et silencieux, particulièrement à partir de 22h.',
-        'Les attractions pour enfants sont à utiliser uniquement pour les enfants de 7 à 13 ans sous l\u2019entière responsabilité des parents.'
+      {h:'TERRASSES, JARDINS ET ESPACES EXTÉRIEURS',p:[
+        '1. Les équipements sportifs peuvent être utilisés de 9h à 22h. Les terrasses, salons de jardin et espaces de réception extérieurs sont accessibles de 9h à 23h.',
+        '2. La terrasse située entre le bâtiment et la piscine n\u2019est pas autorisée pour les animations ou la diffusion musicale. Cet espace doit rester calme et silencieux, particulièrement à partir de 22h.',
+        '3. Les attractions pour enfants sont à utiliser uniquement pour les enfants de 7 à 13 ans sous l\u2019entière responsabilité des parents.'
       ]},
-      {h:'Bruit et tranquillité du voisinage',p:[
-        'Aucune fête, musique, animation, cri ou nuisance sonore n\u2019est autorisé à l\u2019extérieur des bâtiments ni dans les hébergements. À partir de 22h, toute activité devra se tenir exclusivement à l\u2019intérieur du bâtiment, portes et fenêtres fermées, et le calme doit être quasiment absolu sur l\u2019ensemble de la propriété.',
-        'L\u2019utilisation de feux d\u2019artifice, pétards, lanternes volantes, fumigènes ou de tout dispositif pyrotechnique est strictement interdite sur l\u2019ensemble de la propriété.',
-        'En cas de nuisance sonore ou de non-respect des présentes règles, le Gardien du Domaine, tout agent mandaté ou les Propriétaires pourront intervenir à tout moment.',
-        'À compter de la 2ᵉ intervention du Gardien ou d\u2019un agent mandaté, une pénalité forfaitaire de 300 € par intervention supplémentaire pourra être appliquée et retenue sur le dépôt de garantie. En cas de manquement répété, la fête ou la location pourra être interrompue immédiatement, sans remboursement.'
+      {h:'BRUIT ET TRANQUILLITÉ DU VOISINAGE',p:[
+        '1. Aucune fête, musique, animation, cri ou nuisance sonore n\u2019est autorisé à l\u2019extérieur des bâtiments ni dans les hébergements. À partir de 22h, toute activité devra se tenir exclusivement à l\u2019intérieur du bâtiment, portes et fenêtres fermées.',
+        '2. L\u2019utilisation de feux d\u2019artifice, pétards, lanternes volantes, fumigènes ou de tout dispositif pyrotechnique est strictement interdite sur l\u2019ensemble de la propriété.',
+        '3. En cas de nuisance sonore ou de non-respect des présentes règles, le Gardien du Domaine, tout agent mandaté ou les Propriétaires pourront intervenir à tout moment.',
+        '4. À compter de la 2ᵉ intervention du Gardien ou d\u2019un agent mandaté, une pénalité forfaitaire de 300 € par intervention supplémentaire pourra être appliquée et retenue sur le dépôt de garantie. En cas de manquement répété, la fête ou la location pourra être interrompue immédiatement, sans remboursement.'
       ]},
-      {h:'Caution et responsabilité',p:[
-        'Une caution d\u2019un montant de 1 500 € est demandée à l\u2019arrivée (chèque ou virement instantané). La remise des clés est conditionnée à son dépôt effectif.',
-        'Tout sinistre, dommage, fuite, panne ou dégradation devra être signalé immédiatement au Propriétaire ou au Gardien. Après état des lieux de sortie, la caution sera restituée, déduction faite des éventuels frais de remise en état.',
-        'Les retenues sur caution pourront notamment concerner : mobilier et décoration, équipements électroménagers et audiovisuels, équipements sportifs, installations sanitaires, espaces verts, piscine, frais de nettoyage ou d\u2019intervention, pénalités liées au bruit.',
-        'Le Locataire demeure financièrement responsable des dégradations, incidents ou nuisances causés par lui-même, ses invités ou prestataires, y compris au-delà du montant du dépôt de garantie.'
+      {h:'CAUTION ET RESPONSABILITÉ',p:[
+        '1. Une caution d\u2019un montant de 1 500 € est demandée à l\u2019arrivée (chèque ou virement instantané). La remise des clés est conditionnée à son dépôt effectif.',
+        '2. Tout sinistre, dommage, fuite, panne ou dégradation devra être signalé immédiatement au Propriétaire ou au Gardien. Après état des lieux de sortie, la caution sera restituée, déduction faite des éventuels frais de remise en état.',
+        '3. Les retenues sur caution pourront notamment concerner : mobilier et décoration, équipements électroménagers et audiovisuels, équipements sportifs, installations sanitaires, espaces verts, piscine, frais de nettoyage ou d\u2019intervention, pénalités liées au bruit.',
+        '4. Le Locataire demeure financièrement responsable des dégradations, incidents ou nuisances causés par lui-même, ses invités ou prestataires, y compris au-delà du montant du dépôt de garantie.'
       ]},
-      {h:'Responsabilité écologique',p:[
-        'Des poubelles de tri sélectif sont mises à disposition. L\u2019eau et l\u2019énergie doivent être utilisées de manière raisonnable.',
-        'La propriété étant équipée d\u2019une fosse septique, seul le papier hygiénique doit être jeté dans les WC. Toute obstruction des réseaux pourra entraîner des frais forfaitaires de 350 €.'
+      {h:'RESPONSABILITÉ ÉCOLOGIQUE',p:[
+        '1. Des poubelles de tri sélectif sont mises à disposition. L\u2019eau et l\u2019énergie doivent être utilisées de manière raisonnable.',
+        '2. La propriété étant équipée d\u2019une fosse septique, seul le papier hygiénique doit être jeté dans les WC. Toute obstruction des réseaux pourra entraîner des frais forfaitaires de 350 €.'
       ]},
-      {h:'Parking',p:[
-        'Les véhicules doivent être stationnés exclusivement sur le parking principal. La capacité maximale du parking est limitée à 7 véhicules.'
+      {h:'PARKING',p:[
+        '1. Les véhicules doivent être stationnés exclusivement sur le parking principal. La capacité maximale du parking est limitée à 7 véhicules.'
       ]},
-      {h:'Contacts pendant le séjour',p:[
-        'Le voisin : Jacques – 02 31 64 63 05, et Micheline – 07 88 64 88 57',
-        'Les Propriétaires restent joignables si nécessaire : David – 06 20 14 33 22, Svitlana – 06 30 86 85 69'
+      {h:'CONTACTS PENDANT LE SÉJOUR',p:[
+        '1. Les Propriétaires restent joignables si nécessaire : David – 06 20 14 33 22, Svitlana – 06 30 86 85 69'
       ]},
-      {h:'Signature et acceptation',p:[
-        'Les clés et accès au Domaine seront remis après le check-in et la signature des présentes.',
-        'La signature du contrat de location vaut reconnaissance de la prise de connaissance et acceptation du présent règlement intérieur ainsi que des conditions générales de location.',
-        'Le non-respect des consignes de sécurité, des engagements contractuels ou du présent règlement pourra entraîner l\u2019interruption immédiate de la location, sans remboursement.',
-        'Le Locataire est responsable des personnes qui l\u2019accompagnent et se porte garant de leur comportement durant tout le séjour.'
+      {h:'SIGNATURE ET ACCEPTATION',p:[
+        '1. Les clés et accès au Domaine seront remis après le check-in et la signature des présentes.\n        Sans signature du règlement intérieur, aucune remise des clés ne sera effectuée.',
+        '2. La signature du contrat de location vaut reconnaissance de la prise de connaissance et acceptation du présent règlement intérieur ainsi que des conditions générales de location.',
+        '3. Le non-respect des consignes de sécurité, des engagements contractuels ou du présent règlement pourra entraîner l\u2019interruption immédiate de la location, sans remboursement.',
+        '4. Le Locataire est responsable des personnes qui l\u2019accompagnent et se porte garant de leur comportement durant tout le séjour.'
       ]}
     ]
   }
@@ -548,7 +557,8 @@ function runMigrations(){
   });
   (D.reservations||[]).forEach(r=>{
     if(r.typeEvenement==='Famille / Cousinade'||r.typeEvenement==='Séjour amis'||r.typeEvenement==='Famille / Ami')r.typeEvenement='Famille / Amis';
-    if(r.typeEvenement==='GDC (Gens de confiance)')r.typeEvenement='GDC / Home Exchange';
+    if(r.typeEvenement==='GDC (Gens de confiance)')r.typeEvenement='GDC';
+    if(r.typeEvenement==='GDC / Home Exchange')r.typeEvenement='GDC';
     Object.values(r.prestaGarde||{}).forEach(pg=>{
       Object.keys(pg.nights||{}).forEach(date=>{
         if(typeof pg.nights[date]==='string')pg.nights[date]={duree:pg.nights[date],paid:false};
@@ -560,9 +570,9 @@ function runMigrations(){
   });
   (D.dominiqueSchedule||[]).forEach(x=>{if(x.paid===undefined)x.paid=false;if(x.comment===undefined)x.comment='';});
   (D.gardeSchedule||[]).forEach(x=>{if(x.payMethod===undefined)x.payMethod='cash';if(x.comment===undefined)x.comment='';});
-  (D.visites||[]).forEach(v=>{if(v.typeEvenement==='Famille / Cousinade'||v.typeEvenement==='Séjour amis'||v.typeEvenement==='Famille / Ami')v.typeEvenement='Famille / Amis';if(v.typeEvenement==='GDC (Gens de confiance)')v.typeEvenement='GDC / Home Exchange';});
+  (D.visites||[]).forEach(v=>{if(v.typeEvenement==='Famille / Cousinade'||v.typeEvenement==='Séjour amis'||v.typeEvenement==='Famille / Ami')v.typeEvenement='Famille / Amis';if(v.typeEvenement==='GDC (Gens de confiance)'||v.typeEvenement==='GDC / Home Exchange')v.typeEvenement='GDC';});
 }
-let S={view:'login',admin:null,presta:null,tab:'calendrier',prestaTab:'calendrier',modal:null,msg:null,selResa:null,selectedPresta:null,hiddenDomains:[],calYear:2026,calMonth:5,bilanYear:2026,bilanMonth:5,listeYear:2026,listeMonth:5,visiteYear:2026,visiteMonth:5,prestaBilanYear:2026,prestaBilanMonth:5,adminPrestaYear:2026,adminPrestaMonth:5,clientsSortBy:'date',clientsExportSub:'clients',resteAPayerDetail:null};
+let S={view:'login',admin:null,presta:null,tab:'calendrier',prestaTab:'calendrier',modal:null,msg:null,selResa:null,selectedPresta:null,hiddenDomains:[],calYear:2026,calMonth:5,bilanYear:2026,bilanMonth:5,listeYear:2026,listeMonth:5,visiteYear:2026,visiteMonth:5,prestaBilanYear:2026,prestaBilanMonth:5,adminPrestaYear:2026,adminPrestaMonth:5,clientsSortBy:'date',clientsExportSub:'clients',resteAPayerDetail:null,searchQuery:null,bilanAnnualMonth:null};
 
 function loadD(){try{const r=localStorage.getItem(SK);if(r)return JSON.parse(r);}catch(e){}return JSON.parse(JSON.stringify(DEF));}
 function saveD(){try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}pushRemoteD(D);}
@@ -1068,6 +1078,13 @@ function onEvtTypeChange(val){
     if(val==='Gratuit'){montantEl.value='0';montantEl.readOnly=true;montantEl.style.background='#f0eee8';montantEl.style.color='#888';}
     else{montantEl.readOnly=false;montantEl.style.background='';montantEl.style.color='';}
   }
+  // Décocher "avec contrat" pour les types sans contrat
+  const contratEl=document.getElementById('m-avec-contrat');
+  if(contratEl){
+    const noContrat=['Airbnb','Abritel','Booking','Gratuit','Déjeuner / Dîner'];
+    if(noContrat.includes(val))contratEl.checked=false;
+    else contratEl.checked=true;
+  }
   const depWrap=document.getElementById('dep-date-wrap');
   const arrDateEl=document.getElementById('m-arr-date'),depDateEl=document.getElementById('m-dep-date');
   if(depWrap){
@@ -1161,7 +1178,17 @@ function checkToken(){
 let CAL_DOMAIN_FILTER=null;
 let STRIP_BAND_INFO=false;
 let HIDE_EVENT_TYPE=false;
-function render(){const r=document.getElementById('root');CAL_DOMAIN_FILTER=(S.view==='presta'&&S.presta&&(S.presta.accessMode==='calendrierSeul'||S.presta.accessMode==='occupation'))?(S.presta.domaines||null):null;STRIP_BAND_INFO=(S.view==='presta'&&S.presta&&S.presta.accessMode==='occupation');HIDE_EVENT_TYPE=(S.view==='presta'&&S.presta&&S.presta.accessMode==='calendrierSeul');if(S.view==='login')r.innerHTML=renderLogin();else if(S.view==='admin')r.innerHTML=renderAdmin();else if(S.view==='presta')r.innerHTML=renderPresta();injectBands();injectVisiteMarkers();}
+function render(){const r=document.getElementById('root');CAL_DOMAIN_FILTER=(S.view==='presta'&&S.presta&&(S.presta.accessMode==='calendrierSeul'||S.presta.accessMode==='occupation'))?(S.presta.domaines||null):null;STRIP_BAND_INFO=(S.view==='presta'&&S.presta&&S.presta.accessMode==='occupation');HIDE_EVENT_TYPE=(S.view==='presta'&&S.presta&&S.presta.accessMode==='calendrierSeul');
+  // Preserve search input state
+  const prevSearch=document.getElementById('search-input');
+  const prevVal=prevSearch?prevSearch.value:'';
+  const prevSelStart=prevSearch?prevSearch.selectionStart:0;
+  const prevSelEnd=prevSearch?prevSearch.selectionEnd:0;
+  const wasSearchFocused=prevSearch&&document.activeElement===prevSearch;
+  if(S.view==='login')r.innerHTML=renderLogin();else if(S.view==='admin')r.innerHTML=renderAdmin();else if(S.view==='presta')r.innerHTML=renderPresta();
+  if(wasSearchFocused){const newSearch=document.getElementById('search-input');if(newSearch){newSearch.focus();try{newSearch.setSelectionRange(prevSelStart,prevSelEnd);}catch(e){}}}
+  injectBands();injectVisiteMarkers();
+}
 function injectBands(){
   const inCalView=(S.view==='admin'&&S.tab==='calendrier')||(S.view==='presta'&&S.prestaTab==='calendrier');
   if(!inCalView)return;
@@ -1323,7 +1350,7 @@ function renderAdmin(){
   else if(S.tab==='clientsExport')content=renderClientsExport();
   const lastSeen=(D.adminLastSeen||{})[S.admin.id]||0;
   const notifs=(D.activityLog||[]).filter(it=>((it.authorId&&it.authorId!==S.admin.id)||it.forAdmin)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
-  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge ba">Admin — ${S.admin.name}</span><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}${renderNotifBanner(notifs,'dismissAdminNotifs')}${renderMessagesHub()}<div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${S.tab===k?'active':''}" onclick="setTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>${content}${S.modal?renderModalWrap():''}`;
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge ba" style="flex-shrink:0">Admin — ${S.admin.name}</span><button class="btn btn-sm" onclick="logout()" style="flex-shrink:0">Déconnexion</button></div>${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}${renderNotifBanner(notifs,'dismissAdminNotifs')}${renderMessagesHub()}<div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${S.tab===k?'active':''}" onclick="setTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>${content}${S.modal?renderModalWrap():''}`;
 }
 
 function renderCalendrier(){
@@ -1349,10 +1376,10 @@ function renderCalendrier(){
     <div class="cal-side">
       <div class="cal-header">
         ${monthYearPicker('calYear','calMonth')}
-        ${readOnly?'':`<div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn btn-resa btn-sm" onclick="openM('newResa')">NEW Réservation</button>
+        ${readOnly?'':`<div style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;min-width:0">
+          <button class="btn btn-resa btn-sm" onclick="openM('newResa')">NEW Rés.</button>
           <button class="btn btn-visite btn-sm" onclick="openM('newVisite')">NEW Visite</button>
-          <button class="btn btn-prestation btn-sm" onclick="openM('pickPrestationResa')">NEW Prestation</button>
+          <button class="btn btn-prestation btn-sm" onclick="openM('pickPrestationResa')">NEW Prest.</button>
         </div>`}
       </div>
       <div class="leg">
@@ -1424,8 +1451,7 @@ function renderDetailPanel(r){
       <button class="btn btn-sm btn-primary" onclick="addPrestaComment('${r.id}')">Envoyer</button>
     </div>`:''}
     ${readOnly?'':`<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary btn-sm" style="flex:1" onclick="openM('editResa','${r.id}')">✏️ Modifier</button><button class="btn btn-sm btn-danger" onclick="delResa('${r.id}')">Suppr.</button><button class="btn btn-sm" onclick="closePanel()">Fermer</button></div>
-    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sm" style="flex:1;border-color:#993556;color:#993556" onclick="downloadContractPdf('${r.id}')">📄 Contrat PDF</button><button class="btn btn-sm" style="flex:1;border-color:#185FA5;color:#185FA5" onclick="downloadContractDocx('${r.id}')">📝 Contrat Word</button></div>`}
-  </div>`;
+    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sm" style="flex:1;border-color:#993556;color:#993556" onclick="downloadContractPdf('${r.id}')">📄 Contrat PDF</button><button class="btn btn-sm" style="flex:1;border-color:#185FA5;color:#185FA5" onclick="downloadContractDocx('${r.id}')">📝 Contrat Word</button></div>`}  </div>`;
 }
 
 function renderListe(){
@@ -1789,6 +1815,7 @@ function renderBilan(){
     ${viewMode==='month'?monthYearPicker('bilanYear','bilanMonth'):`<span style="display:inline-flex;align-items:center;gap:4px"><button class="cal-nav" onclick="navYearOnly('bilanYear',-1)">‹</button><span class="month-label" style="width:88px;text-align:center">${y}</span><button class="cal-nav" onclick="navYearOnly('bilanYear',1)">›</button></span>`}
   </div>
   <div style="margin-bottom:14px"><button class="btn btn-sm ${viewMode==='month'?'btn-primary':''}" onclick="setBilanViewMode('month')">Mensuel</button> <button class="btn btn-sm ${viewMode==='year'?'btn-primary':''}" onclick="setBilanViewMode('year')">Annuel</button></div>
+  ${viewMode==='year'?renderBilanAnnualSummary(y):''}
   <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
     <div class="sec-hdr"><h2>💶 Performance de location</h2></div>
     <div style="font-size:11px;color:#888;margin-bottom:10px">Les séjours à cheval sur deux périodes sont répartis au prorata du nombre de nuits dans chacune (location et paiements). Occupation sur ${daysInPeriod} ${viewMode==='year'?'jours de l\'année':'jours du mois'}.</div>
@@ -1876,13 +1903,25 @@ function renderMessagesHub(){
   if(!D.prestataires.length)return'';
   const msgPid=S.msgSelectedPid||'';
   const msgP=D.prestataires.find(x=>x.id===msgPid);
+  const searchOpen=S.searchQuery!==null&&S.searchQuery!==undefined;
+  const searchBtn=searchOpen
+    ?`<div style="display:flex;align-items:center;gap:4px;flex:1;min-width:0;position:relative;max-width:240px">
+        <div class="search-bar" style="flex:1;min-width:0;margin-bottom:0;padding:3px 8px">
+          <span style="font-size:13px;color:#aaa;flex-shrink:0">🔍</span>
+          <input type="text" id="search-input" value="${(S.searchQuery||'').replace(/"/g,'&quot;')}" placeholder="Nom, société…" oninput="S.searchQuery=this.value;render()" onkeydown="if(event.key==='Escape'){S.searchQuery=null;render();}">
+          <button style="border:none;background:none;color:#aaa;cursor:pointer;font-size:16px;padding:0;flex-shrink:0" onclick="S.searchQuery=null;render()">×</button>
+        </div>
+        ${(S.searchQuery||'').trim().length>=2?renderSearchDropdown():''}
+      </div>`
+    :`<button class="btn btn-xs" style="padding:3px 8px;font-size:13px;flex-shrink:0" onclick="S.searchQuery='';render();setTimeout(()=>{const el=document.getElementById('search-input');if(el)el.focus();},30)" title="Rechercher une réservation">🔍</button>`;
   return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:10px;padding:0.45rem 0.65rem;margin-bottom:10px">
     <div style="display:flex;align-items:center;gap:6px;${msgP?'margin-bottom:5px':''}">
-      <span style="font-weight:600;font-size:11.5px;white-space:nowrap">💬 Écrire à</span>
-      <select onchange="setMsgSelectedPid(this.value)" style="font-size:11.5px;flex:1;padding:3px 5px">
+      <span style="font-weight:600;font-size:11.5px;white-space:nowrap;flex-shrink:0">💬 Écrire à</span>
+      <select onchange="setMsgSelectedPid(this.value)" style="font-size:11.5px;flex:1;padding:3px 5px;min-width:0">
         <option value="">— Choisir —</option>
         ${D.prestataires.map(x=>`<option value="${x.id}" ${x.id===msgPid?'selected':''}>${x.name}</option>`).join('')}
       </select>
+      ${searchBtn}
     </div>
     ${msgP?renderMessagesPanel(msgP.id,msgP.name):''}
   </div>`;
@@ -1899,7 +1938,7 @@ function renderPrestaList(){
         <div style="width:36px;height:36px;border-radius:50%;background:${AVB[ci%5]};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:${AVT[ci%5]};flex-shrink:0">${initials(p.name)}</div>
         <div style="flex:1;min-width:0;cursor:pointer" onclick="selectPresta('${p.id}')">
           <div style="font-weight:500;font-size:14px;${sel===p.id?'color:#993556':''}">${p.name}${sel===p.id?' ▾':' ▸'} <span style="color:#888;font-weight:400;font-size:12px">${p.role}</span></div>
-          <div style="font-size:12px;color:#888;margin-top:2px">${p.tel||'Pas de WhatsApp'} · ${doms||'Aucun domaine'} · ${modeLbl}</div>
+          <div style="font-size:12px;color:#888;margin-top:2px">${p.tel||''} ${p.tel?'·':''} ${doms||'Aucun domaine'} · ${modeLbl}</div>
         </div>
         ${p.tel?`<a class="btn btn-xs" style="background:#25D366;color:#fff;border-color:#25D366" href="https://wa.me/${p.tel.replace(/\D/g,'')}?text=${encodeURIComponent('Bonjour '+p.name.split(' ')[0]+' 👋')}" target="_blank" onclick="event.stopPropagation()">💬</a>`:''}
         ${p.inputMode==='garde'?`<button class="btn btn-xs" onclick="event.stopPropagation();openM('gardePlanning',null,{pid:'${p.id}'})">📅 Planning</button>`:''}
@@ -1910,13 +1949,28 @@ function renderPrestaList(){
   ${sel?renderPrestaDetailAdmin(D.prestataires.find(x=>x.id===sel)):''}
   ${renderDomaineList()}
   <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-top:14px">
-    <div class="sec-hdr"><h2>👤 Liens personnels administrateurs</h2></div>
-    <div style="font-size:11px;color:#888;margin-bottom:10px">Connexion directe sans code — à n'enregistrer que sur l'appareil personnel de la personne.</div>
-    ${D.admins.map(a=>{const url=window.location.origin+window.location.pathname+'?admin='+a.token;return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #e5e3de">
+    <div class="sec-hdr"><h2>🔗 Liens personnels</h2></div>
+    <div style="font-size:11px;color:#888;margin-bottom:12px">Connexion directe sans code — à enregistrer sur l'appareil personnel de chaque personne (raccourci bureau ou écran d'accueil).</div>
+    <div style="font-size:11px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Administrateurs</div>
+    ${D.admins.map(a=>{const url=window.location.origin+window.location.pathname+'?admin='+a.token;return`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #e5e3de">
       <span style="font-weight:500;font-size:13px;width:80px;flex-shrink:0">${a.name}</span>
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:#666">${url}</span>
       <button class="btn btn-xs" onclick="copyL('${url}',this)">Copier</button>
     </div>`;}).join('')}
+    <div style="font-size:11px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:.04em;margin-top:14px;margin-bottom:8px">Prestataires</div>
+    <div style="font-size:11px;color:#888;margin-bottom:10px">📲 Envoyer ce lien par WhatsApp à chaque prestataire. Il voit uniquement ses interventions.</div>
+    ${D.prestataires.length===0?'<div style="font-size:12px;color:#888">Aucun prestataire enregistré.</div>':''}
+    ${D.prestataires.map(p=>{
+      const url=window.location.origin+window.location.pathname+'?t='+p.token;
+      const prenom=p.name.split(' ')[0];
+      const tel=(p.tel||'').replace(/\D/g,'');
+      const wa=tel?`https://wa.me/${tel}?text=${encodeURIComponent('Bonjour '+prenom+' 👋\n\nVoici votre lien pour consulter vos interventions sur les domaines :\n'+url+'\n\nIl suffit de l\'ouvrir — pas de mot de passe nécessaire.')}`:null;
+      return`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #e5e3de;flex-wrap:wrap">
+        <span style="font-weight:500;font-size:13px;min-width:100px;flex-shrink:0">${p.name} <span style="color:#888;font-weight:400;font-size:11px">${p.role}</span></span>
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:#666">${url}</span>
+        <button class="btn btn-xs" onclick="copyL('${url}',this)">Copier</button>
+        ${wa?`<a class="wa-btn" style="padding:3px 8px;font-size:11px" href="${wa}" target="_blank">💬 WA</a>`:''}
+      </div>`;}).join('')}
   </div>`;
 }
 
@@ -2296,15 +2350,42 @@ function buildAnnexSections(r){
 function generateContractHtml(r){
   const{sections,cd,partiesData}=buildContractSections(r);
   const mainSections=sections.slice(3,-1);
+
+  /* Marqueurs d'emphase dans le texte du règlement */
+  function styleLine(txt){
+    if(!txt)return'';
+    // Passages en gras rouge — formules de sanction / interruption / caution
+    txt=txt.replace(/(Sans signature du règlement intérieur[^.]*\.)/gi,'<strong style="color:#B22222;font-size:11pt">$1</strong>');
+    txt=txt.replace(/(Le non-respect des consignes[^.]*sans remboursement\.)/gi,'<strong style="color:#B22222">$1</strong>');
+    txt=txt.replace(/(l['']interruption immédiate de la location, sans remboursement)/gi,'<strong style="color:#B22222">$1</strong>');
+    txt=txt.replace(/(La remise des clés est conditionnée[^.]+\.)/gi,'<strong>$1</strong>');
+    txt=txt.replace(/(pénalité forfaitaire de 300 €[^.]*\.)/gi,'<strong style="color:#B22222">$1</strong>');
+    txt=txt.replace(/(frais forfaitaires de 350 €)/gi,'<strong style="color:#B22222">$1</strong>');
+    // Passages en gras simple — obligations du locataire
+    txt=txt.replace(/(l['']ensemble des lieux devra être rangé[^.]*cet effet\.)/gi,'<strong>$1</strong>');
+    txt=txt.replace(/(Les brassards sont obligatoires pour les enfants de moins de 7 ans\.)/gi,'<strong>$1</strong>');
+    txt=txt.replace(/(strictement interdit[^.]*\.)/gi,'<strong>$1</strong>');
+    txt=txt.replace(/(90 dB)/g,'<strong style="color:#B22222">90 dB</strong>');
+    txt=txt.replace(/(60 dB)/g,'<strong style="color:#B22222">60 dB</strong>');
+    return txt;
+  }
+
+  /* Helper — colore les numéros de type "4.1." ou "1." en couleur domaine */
+  function styleNum(txt,color){
+    if(!txt)return'';
+    return txt.replace(/^(\d+(?:\.\d+)*\.)\s/,`<span style="color:${color};font-weight:700;font-size:11pt">$1</span> `);
+  }
+
   const body=mainSections.map(s=>{
     let html='';
-    if(s.h)html+=`<h2>${s.h}</h2>`;
+    if(s.h)html+=`<h2 class="grad-bg">${s.h}</h2>`;
     s.p.forEach(line=>{
-      if(line==='')html+='<div style="height:8px"></div>';
-      else html+=`<p>${line}</p>`;
+      if(line===''){html+='<div style="height:8px"></div>';return;}
+      html+=`<p>${styleLine(styleNum(line,cd.couleur))}</p>`;
     });
     return html;
   }).join('');
+
   const partiesHtml=`<div class="parties-box">
     <div class="party-card">
       <div class="party-label">Le Bailleur</div>
@@ -2317,64 +2398,119 @@ function generateContractHtml(r){
       <div class="party-detail">${partiesData.preneur.lignes.join('<br>')}</div>
     </div>
   </div>`;
-  return`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${contractFileName(r,cd,'pdf').replace(/\.pdf$/,'')}</title>
+
+  /* CSS Règlement intérieur — tous les titres en bandeau coloré */
+  const annexSectionsHtml=buildAnnexSections(r).map((s,si)=>{
+    let html='';
+    if(s.h){
+      html+=`<div class="reg-section-header grad-bg">${s.h.toUpperCase()}</div>`;
+    }
+    s.p.forEach(line=>{
+      if(line===''){html+='<div style="height:6px"></div>';return;}
+      html+=`<p class="reg-p">${styleLine(styleNum(line,cd.couleur))}</p>`;
+    });
+    return html;
+  }).join('');
+
+  return`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">
+  <title>${contractFileName(r,cd,'pdf').replace(/\.pdf$/,'')}</title>
   <style>
-    @page{margin:18mm 16mm}
-    body{font-family:'Georgia','Times New Roman',serif;font-size:11.5pt;line-height:1.5;color:#2A2A2A;max-width:760px;margin:0 auto;padding:24px 20px 60px}
-    .contract-header{text-align:center;padding-bottom:18px;margin-bottom:24px;border-bottom:2px solid ${cd.couleur}}
-    .contract-header img{height:110px;object-fit:contain;margin-bottom:10px}
-    .contract-title{font-size:16pt;font-weight:bold;letter-spacing:1px;color:${cd.couleur};text-transform:uppercase;margin-top:6px}
-    .contract-subtitle{font-size:11pt;color:#777;margin-top:4px;font-style:italic}
-    h2{font-size:11.5pt;font-weight:bold;margin-top:22px;margin-bottom:8px;color:${cd.couleur};border-bottom:1px solid ${cd.couleurClaire};padding-bottom:4px}
-    p{margin:5px 0;text-align:justify}
-    .parties-box{display:flex;gap:18px;margin:18px 0 8px;flex-wrap:wrap}
-    .party-card{flex:1;min-width:240px;background:${cd.couleurClaire};border-radius:10px;padding:14px 16px;border-left:4px solid ${cd.couleur}}
-    .party-card .party-label{font-size:9pt;text-transform:uppercase;letter-spacing:.5px;color:${cd.couleur};font-weight:bold;margin-bottom:6px}
-    .party-card .party-name{font-weight:bold;font-size:12pt;margin-bottom:4px}
-    .party-card .party-detail{font-size:10pt;color:#555;line-height:1.45}
-    .signature-zone{display:flex;justify-content:space-between;margin-top:40px;gap:30px}
+    @page{margin:16mm 15mm}
+    *{box-sizing:border-box}
+    body{font-family:'Georgia','Times New Roman',serif;font-size:10.5pt;line-height:1.55;color:#2A2A2A;max-width:800px;margin:0 auto;padding:20px 24px 60px;background:#fff}
+
+    /* ── DÉGRADÉS PAR DOMAINE ── */
+    ${r.domaine==='d1'?`
+    .grad-bg{background:linear-gradient(135deg,#7A5800 0%,#B8891A 25%,#D4A832 45%,#F5D98B 55%,#C49A20 75%,#8A6500 100%)}
+    `:''}
+    ${r.domaine==='d2'?`
+    .grad-bg{background:linear-gradient(135deg,#6B3A3E 0%,#A8696F 25%,#C48A90 45%,#E8B8BC 55%,#B87880 75%,#7A4448 100%)}
+    `:''}
+    ${r.domaine==='d3'?`
+    .grad-bg{background:linear-gradient(135deg,#555 0%,#888 20%,#bbb 40%,#e0e0e0 50%,#aaa 65%,#777 80%,#555 100%)}
+    `:''}
+
+    /* ── EN-TÊTE CONTRAT ── */
+    .contract-header{text-align:center;padding-bottom:20px;margin-bottom:28px}
+    .contract-header img{height:100px;object-fit:contain;margin-bottom:14px;display:block;margin-left:auto;margin-right:auto}
+    .contract-title{font-size:17pt;font-weight:bold;letter-spacing:2px;text-transform:uppercase;margin-top:0;
+      color:#fff;display:inline-block;padding:10px 28px;border-radius:6px;
+    }
+    .contract-subtitle{font-size:10.5pt;color:#888;margin-top:8px;font-style:italic;letter-spacing:.5px}
+
+    /* ── PARTIES ── */
+    .parties-box{display:flex;gap:20px;margin:20px 0 10px;flex-wrap:wrap}
+    .party-card{flex:1;min-width:240px;background:${cd.couleurClaire};border-radius:12px;padding:16px 18px;border-left:5px solid ${cd.couleur}}
+    .party-card .party-label{font-size:8.5pt;text-transform:uppercase;letter-spacing:1.2px;color:${cd.couleur};font-weight:bold;margin-bottom:6px}
+    .party-card .party-name{font-weight:bold;font-size:12pt;margin-bottom:5px;color:#1a1a1a}
+    .party-card .party-detail{font-size:9.5pt;color:#555;line-height:1.5}
+
+    /* ── SECTIONS CONTRAT ── */
+    h2{font-size:10pt;font-weight:bold;margin-top:20px;margin-bottom:8px;
+      color:#fff;padding:6px 14px;border-radius:4px;letter-spacing:.5px;text-transform:uppercase;
+    }
+    p{margin:5px 0 8px;text-align:justify;line-height:1.55}
+
+    /* ── SIGNATURES ── */
+    .signature-zone{display:flex;justify-content:space-between;margin-top:44px;gap:30px;padding-top:20px;border-top:1px solid #ddd}
     .signature-col{flex:1;text-align:center}
-    .signature-col .sig-line{border-top:1px solid #999;margin-top:50px;padding-top:6px;font-size:9.5pt;color:#777}
-    .footer-note{text-align:center;font-size:9pt;color:#999;margin-top:40px;border-top:1px solid #eee;padding-top:10px}
-    .annex-break{page-break-before:always}
-    .annex-header{text-align:center;padding-bottom:14px;margin:0 0 20px;border-bottom:2px solid ${cd.couleur}}
-    .annex-header img{height:80px;object-fit:contain;margin-bottom:8px}
-    .annex-title{font-size:14pt;font-weight:bold;color:${cd.couleur};text-transform:uppercase;letter-spacing:.5px}
-    .annex-subtitle{font-size:10pt;color:#999;margin-top:3px;font-style:italic}
+    .signature-col .sig-name{font-weight:bold;font-size:10.5pt;margin-bottom:6px}
+    .signature-col .sig-line{border-top:1px solid #aaa;margin-top:54px;padding-top:7px;font-size:9pt;color:#888}
+    .footer-note{text-align:center;font-size:9pt;color:#bbb;margin-top:44px;border-top:1px solid #eee;padding-top:10px;letter-spacing:.3px}
+
+    /* ── SAUT DE PAGE + EN-TÊTE ANNEXE ── */
+    .annex-break{page-break-before:always;padding-top:4px}
+    .annex-header{text-align:center;padding-bottom:16px;margin:0 0 24px}
+    .annex-header img{height:80px;object-fit:contain;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto}
+    .annex-title{font-size:14pt;font-weight:bold;text-transform:uppercase;letter-spacing:1.5px;
+      color:#fff;display:inline-block;padding:8px 24px;border-radius:6px;margin-bottom:4px;
+    }
+    .annex-subtitle{font-size:10pt;color:#888;font-style:italic}
+
+    /* ── RÈGLEMENT INTÉRIEUR — TOUS TITRES EN BANDEAU DÉGRADÉ ── */
+    .reg-section-header{
+      color:#fff;font-size:9.5pt;font-weight:bold;text-transform:uppercase;letter-spacing:1.2px;
+      padding:7px 14px;margin:20px 0 10px;border-radius:4px;
+    }
+    p.reg-p{margin:4px 0 8px;text-align:justify;font-size:10pt;line-height:1.55}
+
+    /* ── EMPHASES ── */
+    strong{font-weight:700}
+    .sig-final{margin-top:28px;font-size:9.5pt;color:#666;font-style:italic;border-top:1px dashed #ccc;padding-top:14px}
   </style></head><body>
+
   <div class="contract-header">
     ${cd.logo?`<img src="${cd.logo}" alt="${cd.nomDomaine}">`:''}
-    <div class="contract-title">Contrat de location de vacances</div>
-    <div class="contract-subtitle">${cd.nomDomaine} — ${cd.adresseSite}</div>
+    <div class="contract-title grad-bg">Contrat de location de vacances</div>
+    <div class="contract-subtitle">${cd.nomDomaine} &nbsp;·&nbsp; ${cd.adresseSite}</div>
   </div>
+
   ${partiesHtml}
   ${body}
-  <p style="margin-top:24px;font-style:italic;color:#777">Réalisé en 2 exemplaires.</p>
+
+  <p style="margin-top:28px;font-style:italic;color:#888;font-size:9.5pt">Réalisé en 2 exemplaires originaux.</p>
   <div class="signature-zone">
     <div class="signature-col">
-      <div style="font-weight:bold">Le Preneur</div>
-      <div class="sig-line">Signature (lu et approuvé) — Date :</div>
+      <div class="sig-name">Le Preneur</div>
+      <div class="sig-line">Signature précédée de la mention « lu et approuvé » — Date :</div>
     </div>
     <div class="signature-col">
-      <div style="font-weight:bold">David et Svitlana GONSON<br>Les Domaines de D.S</div>
-      <div class="sig-line">Signature (lu et approuvé) — Date : ${dateLong(dstr(new Date()))}</div>
+      <div class="sig-name">David et Svitlana GONSON<br><span style="font-size:9.5pt;font-weight:400;color:#666">Les Domaines de D.S</span></div>
+      <div class="sig-line">Signature — Date : ${dateLong(dstr(new Date()))}</div>
     </div>
   </div>
-  <div class="annex-break">
+
+    ${buildAnnexSections(r).length?`<div class="annex-break">
     <div class="annex-header">
       ${cd.logo?`<img src="${cd.logo}" alt="${cd.nomDomaine}">`:''}
-      <div class="annex-title">Annexe — Règlement intérieur</div>
+      <div class="annex-title grad-bg">Règlement intérieur</div>
       <div class="annex-subtitle">${cd.nomDomaine}</div>
-    </div>
-    ${buildAnnexSections(r).map(s=>{
-      let h='';
-      if(s.h)h+=`<h2>${s.h}</h2>`;
-      s.p.forEach(line=>{h+=`<p>${line}</p>`;});
-      return h;
-    }).join('')}
-    <p style="margin-top:24px;font-size:10pt;color:#777;font-style:italic">Nom, date et signature précédée de la mention « lu et approuvé »</p>
+    </div>`:''}
+    ${annexSectionsHtml}
+    <div class="sig-final">Nom, date et signature précédée de la mention « lu et approuvé »</div>
   </div>
-  <div class="footer-note">${cd.nomDomaine} · ${cd.siteWeb} · ${cd.email}</div>
+
+  <div class="footer-note">${cd.nomDomaine} &nbsp;·&nbsp; ${cd.siteWeb} &nbsp;·&nbsp; ${cd.email}</div>
   </body></html>`;
 }
 
@@ -2385,7 +2521,8 @@ function downloadContractPdf(rid){
   if(!w){alert('Le navigateur a bloqué l\u2019ouverture de la fenêtre. Autorise les pop-ups pour ce site puis réessaie.');return;}
   w.document.write(html);
   w.document.close();
-  setTimeout(()=>{w.print();},400);
+  /* Pas d'impression automatique — l'utilisateur choisit depuis le nouvel onglet :
+     imprimer (Ctrl+P), enregistrer en PDF, partager ou fermer */
 }
 
 function base64ToUint8Array(base64Data){
@@ -2399,80 +2536,151 @@ async function downloadContractDocx(rid){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
   if(typeof docx==='undefined'){alert('La librairie Word ne s\u2019est pas chargée (connexion internet nécessaire). Réessaie dans quelques secondes.');return;}
   const{sections,cd,partiesData}=buildContractSections(r);
-  const{Document,Packer,Paragraph,TextRun,AlignmentType,ImageRun,BorderStyle}=docx;
+  const{Document,Packer,Paragraph,TextRun,AlignmentType,ImageRun,BorderStyle,ShadingType}=docx;
   const themeColor=(cd.couleur||'#8B5A4A').replace('#','');
+  const themeLight=(cd.couleurClaire||'#F7F0DF').replace('#','');
   const children=[];
+
+  /* Logo */
   if(cd.logo){
     try{
       const imgBytes=base64ToUint8Array(cd.logo);
-      children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new ImageRun({data:imgBytes,transformation:{width:130,height:130},type:'png'})],spacing:{after:120}}));
+      children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new ImageRun({data:imgBytes,transformation:{width:120,height:120},type:'png'})],spacing:{after:140}}));
     }catch(e){}
   }
-  children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'CONTRAT DE LOCATION DE VACANCES',bold:true,size:32,color:themeColor,allCaps:true})],spacing:{after:80}}));
-  children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:`${cd.nomDomaine} — ${cd.adresseSite}`,italics:true,size:20,color:'777777'})],spacing:{after:300},border:{bottom:{style:BorderStyle.SINGLE,size:6,color:themeColor,space:8}}}));
 
+  /* Titre contrat */
+  children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'CONTRAT DE LOCATION DE VACANCES',bold:true,size:34,color:themeColor,allCaps:true})],spacing:{after:60}}));
+  children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:`${cd.nomDomaine}  ·  ${cd.adresseSite}`,italics:true,size:19,color:'888888'})],spacing:{after:320},border:{bottom:{style:BorderStyle.THICK,size:8,color:themeColor,space:8}}}));
+
+  /* Parties en encarts côte à côte (simulés en tableau) */
   function partyParagraphs(label,party){
-    const out=[new Paragraph({children:[new TextRun({text:label,bold:true,size:18,color:themeColor,allCaps:true})],spacing:{after:40}})];
-    out.push(new Paragraph({children:[new TextRun({text:party.nom,bold:true,size:24})],spacing:{after:40}}));
-    party.lignes.forEach(l=>out.push(new Paragraph({children:[new TextRun({text:l,size:20,color:'555555'})],spacing:{after:20}})));
+    const out=[];
+    out.push(new Paragraph({children:[new TextRun({text:label,bold:true,size:17,color:themeColor,allCaps:true,characterSpacing:40})],spacing:{before:60,after:30}}));
+    out.push(new Paragraph({children:[new TextRun({text:party.nom,bold:true,size:25,color:'1A1A1A'})],spacing:{after:30}}));
+    party.lignes.forEach(l=>out.push(new Paragraph({children:[new TextRun({text:l,size:19,color:'555555'})],spacing:{after:16}})));
     return out;
   }
   partyParagraphs('Le Bailleur',partiesData.bailleur).forEach(p=>children.push(p));
-  children.push(new Paragraph({text:'',spacing:{after:120}}));
+  children.push(new Paragraph({text:'',spacing:{after:80}}));
   partyParagraphs('Le Preneur',partiesData.preneur).forEach(p=>children.push(p));
-  children.push(new Paragraph({text:'',spacing:{after:200},border:{bottom:{style:BorderStyle.SINGLE,size:4,color:'DDDDDD',space:4}}}));
+  children.push(new Paragraph({text:'',spacing:{after:240},border:{bottom:{style:BorderStyle.SINGLE,size:4,color:'CCCCCC',space:6}}}));
 
+  /* Helper: rend une ligne avec passages critiques en gras/rouge */
+  function lineToRuns(line){
+    const RED='B22222';
+    const patterns=[
+      {re:/(Sans signature du règlement intérieur[^.]*\.)/gi,bold:true,color:RED},
+      {re:/(Le non-respect des consignes[^.]*sans remboursement\.)/gi,bold:true,color:RED},
+      {re:/(l['']interruption immédiate de la location, sans remboursement)/gi,bold:true,color:RED},
+      {re:/(pénalité forfaitaire de 300 €[^.]*\.)/gi,bold:true,color:RED},
+      {re:/(frais forfaitaires de 350 €)/gi,bold:true,color:RED},
+      {re:/(90 dB)/g,bold:true,color:RED},
+      {re:/(60 dB)/g,bold:true,color:RED},
+      {re:/(l['']ensemble des lieux devra être rangé[^.]*cet effet\.)/gi,bold:true,color:'1A1A1A'},
+      {re:/(Les brassards sont obligatoires[^.]+\.)/gi,bold:true,color:'1A1A1A'},
+      {re:/(La remise des clés est conditionnée[^.]+\.)/gi,bold:true,color:'1A1A1A'},
+      {re:/(strictement interdit[^.]*\.)/gi,bold:true,color:'1A1A1A'},
+    ];
+    const runs=[];
+    // Extraire le numéro en début de ligne (ex: "4.1. " ou "1. ")
+    const numMatch=line.match(/^(\d+(?:\.\d+)*\.)\s/);
+    let rest=line;
+    if(numMatch){
+      runs.push(new TextRun({text:numMatch[1]+' ',bold:true,color:themeColor,size:22}));
+      rest=line.slice(numMatch[0].length);
+    }
+    // Tokenise le reste selon les patterns d'emphase
+    let segments=[{text:rest,bold:false,color:'2A2A2A'}];
+    patterns.forEach(({re,bold,color})=>{
+      const newSegs=[];
+      segments.forEach(seg=>{
+        if(seg.bold){newSegs.push(seg);return;}
+        let last=0,m;re.lastIndex=0;
+        while((m=re.exec(seg.text))!==null){
+          if(m.index>last)newSegs.push({text:seg.text.slice(last,m.index),bold:false,color:seg.color});
+          newSegs.push({text:m[0],bold,color});
+          last=m.index+m[0].length;
+        }
+        if(last<seg.text.length)newSegs.push({text:seg.text.slice(last),bold:false,color:seg.color});
+      });
+      segments=newSegs;
+    });
+    segments.forEach(s=>runs.push(new TextRun({text:s.text,bold:s.bold,color:s.color,size:21})));
+    return runs;
+  }
+
+  /* Sections du contrat */
   const mainSections=sections.slice(3,-1);
   mainSections.forEach(s=>{
-    if(s.h)children.push(new Paragraph({children:[new TextRun({text:s.h,bold:true,size:24,color:themeColor})],spacing:{before:240,after:120},border:{bottom:{style:BorderStyle.SINGLE,size:4,color:'EEEEEE',space:4}}}));
+    if(s.h)children.push(new Paragraph({
+      children:[new TextRun({text:s.h.toUpperCase(),bold:true,size:22,color:themeColor,characterSpacing:20})],
+      spacing:{before:280,after:100},
+      border:{bottom:{style:BorderStyle.SINGLE,size:6,color:themeColor,space:4}}
+    }));
     s.p.forEach(line=>{
-      if(line==='')children.push(new Paragraph({text:'',spacing:{after:100}}));
-      else children.push(new Paragraph({children:[new TextRun({text:line,size:22})],spacing:{after:60},alignment:AlignmentType.JUSTIFIED}));
+      if(line==='')children.push(new Paragraph({text:'',spacing:{after:80}}));
+      else children.push(new Paragraph({children:lineToRuns(line),spacing:{after:60},alignment:AlignmentType.JUSTIFIED}));
     });
   });
 
-  children.push(new Paragraph({children:[new TextRun({text:'Réalisé en 2 exemplaires.',italics:true,size:20,color:'777777'})],spacing:{before:300,after:300}}));
+  /* Zone signature */
+  children.push(new Paragraph({children:[new TextRun({text:'Réalisé en 2 exemplaires originaux.',italics:true,size:19,color:'888888'})],spacing:{before:320,after:280}}));
   children.push(new Paragraph({
     tabStops:[{type:'right',position:9000}],
-    children:[new TextRun({text:'Le Preneur',bold:true,size:22}),new TextRun({text:'\t'}),new TextRun({text:'David et Svitlana GONSON — Les Domaines de D.S',bold:true,size:22})],
-    spacing:{after:600}
+    children:[new TextRun({text:'Le Preneur',bold:true,size:21}),new TextRun({text:'\t'}),new TextRun({text:'David et Svitlana GONSON — Les Domaines de D.S',bold:true,size:21})],
+    spacing:{after:700}
   }));
   children.push(new Paragraph({
     tabStops:[{type:'right',position:9000}],
-    children:[new TextRun({text:'Signature (lu et approuvé) — Date :',size:20,color:'777777'}),new TextRun({text:'\t'}),new TextRun({text:`Signature (lu et approuvé) — Date : ${dateLong(dstr(new Date()))}`,size:20,color:'777777'})]
+    children:[new TextRun({text:'Signature précédée de « lu et approuvé » — Date :',size:19,color:'888888'}),new TextRun({text:'\t'}),new TextRun({text:`Signature — Date : ${dateLong(dstr(new Date()))}`,size:19,color:'888888'})]
   }));
 
+  /* ══ ANNEXE RÈGLEMENT INTÉRIEUR ══ */
   if(cd.logo){
     try{
       const imgBytes2=base64ToUint8Array(cd.logo);
-      children.push(new Paragraph({alignment:AlignmentType.CENTER,pageBreakBefore:true,children:[new ImageRun({data:imgBytes2,transformation:{width:90,height:90},type:'png'})],spacing:{after:100}}));
-    }catch(e){
-      children.push(new Paragraph({pageBreakBefore:true,text:''}));
-    }
+      children.push(new Paragraph({alignment:AlignmentType.CENTER,pageBreakBefore:true,children:[new ImageRun({data:imgBytes2,transformation:{width:85,height:85},type:'png'})],spacing:{after:120}}));
+    }catch(e){children.push(new Paragraph({pageBreakBefore:true,text:''}));}
   } else {
     children.push(new Paragraph({pageBreakBefore:true,text:''}));
   }
-  children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'ANNEXE — RÈGLEMENT INTÉRIEUR',bold:true,size:28,color:themeColor,allCaps:true})],spacing:{after:60}}));
-  children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:cd.nomDomaine,italics:true,size:20,color:'777777'})],spacing:{after:280},border:{bottom:{style:BorderStyle.SINGLE,size:6,color:themeColor,space:8}}}));
+  children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'RÈGLEMENT INTÉRIEUR',bold:true,size:30,color:themeColor,allCaps:true})],spacing:{after:50}}));
+  children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:cd.nomDomaine,italics:true,size:20,color:'888888'})],spacing:{after:300},border:{bottom:{style:BorderStyle.THICK,size:8,color:themeColor,space:8}}}));
+
   buildAnnexSections(r).forEach(s=>{
-    if(s.h)children.push(new Paragraph({children:[new TextRun({text:s.h,bold:true,size:24,color:themeColor})],spacing:{before:240,after:120},border:{bottom:{style:BorderStyle.SINGLE,size:4,color:'EEEEEE',space:4}}}));
+    if(!s.h&&!s.p.length)return;
+    if(s.h){
+      /* Tous les titres en bandeau couleur domaine, texte blanc */
+      children.push(new Paragraph({
+        children:[new TextRun({text:s.h.toUpperCase(),bold:true,size:20,color:'FFFFFF',characterSpacing:60})],
+        spacing:{before:260,after:100},
+        shading:{type:ShadingType.SOLID,color:themeColor},
+        indent:{left:160,right:160}
+      }));
+    }
     s.p.forEach(line=>{
-      children.push(new Paragraph({children:[new TextRun({text:line,size:22})],spacing:{after:60},alignment:AlignmentType.JUSTIFIED}));
+      if(!line)children.push(new Paragraph({text:'',spacing:{after:60}}));
+      else children.push(new Paragraph({children:lineToRuns(line),spacing:{after:55},alignment:AlignmentType.JUSTIFIED}));
     });
   });
-  children.push(new Paragraph({children:[new TextRun({text:'Nom, date et signature précédée de la mention « lu et approuvé »',italics:true,size:20,color:'777777'})],spacing:{before:300}}));
+  children.push(new Paragraph({children:[new TextRun({text:'Nom, date et signature précédée de la mention « lu et approuvé »',italics:true,size:19,color:'888888'})],spacing:{before:360},border:{top:{style:BorderStyle.DASHED,size:4,color:'CCCCCC',space:6}}}));
 
   const doc=new Document({
-    styles:{default:{document:{run:{font:'Georgia',size:22}}}},
-    sections:[{properties:{page:{size:{width:11906,height:16838},margin:{top:1134,right:1134,bottom:1134,left:1134}}},children}]
+    styles:{default:{document:{run:{font:'Georgia',size:21}}}},
+    sections:[{properties:{page:{size:{width:11906,height:16838},margin:{top:1080,right:1080,bottom:1080,left:1080}}},children}]
   });
   const blob=await Packer.toBlob(doc);
   const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;
-  a.download=contractFileName(r,cd,'docx');
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  const w=window.open(url,'_blank');
+  if(!w){
+    const a=document.createElement('a');
+    a.href=url;a.download=contractFileName(r,cd,'docx');
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+    return;
+  }
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
 }
 
 
@@ -2625,7 +2833,7 @@ function renderDomaineList(){
   return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-top:14px">
     <div class="sec-hdr"><h2>Domaines</h2><button class="btn btn-primary btn-sm" onclick="openM('newDomaine')">+ Ajouter</button></div>
     ${D.domaines.map(d=>`<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #e5e3de">
-      ${d.id==='d1'?`<div style="width:42px;height:42px;border-radius:8px;background:#FBEAF0;border:1.5px solid #993556;display:flex;align-items:center;justify-content:center;font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:20px;color:#993556;flex-shrink:0">D</div>`:(DOMAIN_LOGOS[d.id]?`<img src="${DOMAIN_LOGOS[d.id]}" alt="" style="width:42px;height:42px;object-fit:contain;flex-shrink:0">`:'')}
+      ${DOMAIN_LOGOS[d.id]?`<img src="${DOMAIN_LOGOS[d.id]}" alt="" style="width:42px;height:42px;object-fit:contain;flex-shrink:0">`:`<div style="width:42px;height:42px;border-radius:8px;background:#f5f4f1;display:flex;align-items:center;justify-content:center;font-size:11px;color:#aaa;flex-shrink:0">—</div>`}
       <span class="pill ${PILL[d.color||0]}" style="font-size:13px;padding:5px 14px">${d.name}</span>
       <span style="flex:1;font-size:13px;color:#888">${D.reservations.filter(r=>r.domaine===d.id).length} réservation(s)</span>
       <button class="btn btn-xs" onclick="openM('editDomaine','${d.id}')">Modifier</button>
@@ -2696,30 +2904,31 @@ function renderModalContent(){
       let encart='';
       if(p.inputMode==='notes'){
         const lines=(r.prestaLines||{})[p.id]||[];
+        const intitulePlaceholder=p.name==='Misha'?'Traiteur, …':p.name==='Sasha'?'Décoration, …':'Intitulé…';
         const linesHtml=lines.map((l,li)=>`<div style="padding:8px 0;${li>0?'border-top:1px solid #ddd9d0;margin-top:6px':''}">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
-            <input type="text" value="${l.label||''}" placeholder="Intitulé (Traiteur, Ménage…)" onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','label',this.value)" style="flex:1;font-size:13px;font-weight:500;padding:5px 6px;box-sizing:border-box">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+            <input type="text" value="${l.label||''}" placeholder="${intitulePlaceholder}" onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','label',this.value)" style="flex:1;font-size:13px;font-weight:500;padding:5px 6px;box-sizing:border-box">
             <button class="btn btn-xs btn-danger" onclick="delPrestaLine('${id||''}','${p.id}','${l.id}')">✕</button>
           </div>
-          <div style="display:flex;align-items:center;gap:5px;flex-wrap:nowrap">
-            <input type="number" value="${l.montant||''}" placeholder="Montant" onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','montant',this.value)" style="width:70px;font-size:12px;padding:4px 6px;font-weight:500">
-            <select onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','paidDirect',this.value)" style="font-size:10.5px;padding:2px 2px;flex-shrink:0;width:auto;max-width:95px">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+            <span style="display:flex;align-items:center;gap:3px;flex-shrink:0"><input type="number" value="${l.montant||''}" placeholder="Montant" onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','montant',this.value)" style="width:70px;font-size:12px;padding:4px 6px;font-weight:500"><span style="font-weight:600;color:#666;font-size:12px">€</span></span>
+            <select onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','paidDirect',this.value)" style="font-size:11px;flex:1;padding:4px 4px">
               <option value="0" ${!l.paidDirect?'selected':''}>Payé via nous</option>
               <option value="1" ${l.paidDirect?'selected':''}>Payé direct au presta</option>
             </select>
-            <input type="text" value="${l.notes||''}" placeholder="Note" onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','notes',this.value)" style="flex:1;min-width:0;font-size:12px;padding:4px 6px">
           </div>
+          <textarea rows="3" placeholder="Note…" onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','notes',this.value)" style="width:100%;font-size:12px;padding:4px 6px;resize:none;box-sizing:border-box">${l.notes||''}</textarea>
         </div>`).join('');
         encart=`<div class="presta-encart" id="penc-${p.id}" style="display:${checked?'block':'none'};margin:4px 0 10px 24px;padding:10px;background:#f5f4f1;border-radius:8px">
           ${linesHtml||'<div style="font-size:12px;color:#888;margin-bottom:6px">Aucune prestation ajoutée.</div>'}
           ${id?`<div style="margin-top:10px;${lines.length?'border-top:1px solid #ddd9d0;padding-top:10px':''}">
-            <input type="text" id="pline-label-${p.id}" placeholder="Intitulé (Traiteur, Ménage…)" style="width:100%;font-size:13px;padding:5px 6px;margin-bottom:5px;box-sizing:border-box">
-            <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <input type="text" id="pline-label-${p.id}" placeholder="${intitulePlaceholder}" style="width:100%;font-size:13px;padding:5px 6px;margin-bottom:6px;box-sizing:border-box">
+            <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
               <span style="display:flex;align-items:center;gap:3px"><input type="number" id="pline-amt-${p.id}" placeholder="Montant" style="width:65px;font-size:12px;padding:4px 6px"><span style="font-weight:600;color:#666;font-size:12px">€</span></span>
-              <select id="pline-paid-${p.id}" style="font-size:11px"><option value="0">Payé via nous</option><option value="1">Payé direct au presta</option></select>
-              <input type="text" id="pline-notes-${p.id}" placeholder="Note (optionnel)" style="flex:1;min-width:90px;font-size:12px;padding:4px 6px">
-              <button class="btn btn-xs btn-primary" onclick="addPrestaLine('${id}','${p.id}')">+ Ajouter</button>
+              <select id="pline-paid-${p.id}" style="font-size:11px;flex:1"><option value="0">Payé via nous</option><option value="1">Payé direct au presta</option></select>
             </div>
+            <textarea id="pline-notes-${p.id}" rows="3" placeholder="Note (optionnel)" style="width:100%;font-size:12px;padding:4px 6px;margin-bottom:6px;resize:none;box-sizing:border-box"></textarea>
+            <button class="btn btn-xs btn-primary" onclick="addPrestaLine('${id}','${p.id}')">+ Ajouter</button>
           </div>`:`<div style="font-size:11px;color:#888;margin-top:4px">Enregistrez d'abord la réservation pour ajouter le détail des prestations.</div>`}
         </div>`;
       } else if(p.inputMode==='garde'){
@@ -2736,8 +2945,7 @@ function renderModalContent(){
       return`<div><label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="checkbox" value="${p.id}" ${checked?'checked':''} style="width:auto" onchange="const _e=document.getElementById('penc-${p.id}');if(_e)_e.style.display=this.checked?'block':'none';${id?`togglePrestataireChecked('${id}','${p.id}',this.checked);`:''}"> ${p.name} <span style="color:#888">(${dispRole})</span></label>${encart}</div>`;
     }).join('');
     const pays=r.paiements||[];const tot=pays.reduce((a,p)=>a+(p.montant||0),0);
-    const pR=pays.map(pa=>{const cash=isCash(pa);return`<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:13px;padding:5px;background:${cash?'#FFF6E0':'#f5f4f1'};border-radius:6px;flex-wrap:wrap">
-      ${cash?'<span title="Paiement en espèces">💵</span>':''}
+    const pR=pays.map(pa=>{return`<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:13px;padding:5px;background:#f5f4f1;border-radius:6px;flex-wrap:wrap">
       <input type="date" class="pay-inline" value="${pa.date||''}" onchange="updPay('${r.id}','${pa.id}','date',this.value)" style="width:120px;flex-shrink:0">
       <input type="number" class="pay-inline" value="${pa.montant||''}" onchange="updPay('${r.id}','${pa.id}','montant',this.value)" style="width:65px;font-weight:500;flex-shrink:0">
       <select class="pay-inline" onchange="updPay('${r.id}','${pa.id}','type',this.value)" style="width:100px;flex-shrink:0">
@@ -2782,39 +2990,53 @@ function renderModalContent(){
       <div class="form-section-title">📅 Dates et horaires</div>
       <div id="datesheures-wrap" style="display:flex;flex-direction:column;gap:10px">
         <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px">
-          <div class="field"><label>Date d'arrivée *</label><div class="date-row"><input type="date" id="m-arr-date" value="${iA}" onchange="refreshAllGardNights();defaultArrHeure(this.value);defaultDepDate(this.value);if((document.getElementById('m-evt')||{}).value==='Déjeuner / Dîner'){document.getElementById('m-dep-date').value=this.value;}refreshDefaultArrhes();"><button type="button" class="date-btn" onclick="document.getElementById('m-arr-date').showPicker&&document.getElementById('m-arr-date').showPicker()" title="Choisir une date">📅</button></div></div>
-          <div class="field"><label>Heure d'arrivée *</label><select id="m-arr-heure">${heureOptions(initArrHeure)}</select></div>
+          <div class="field"><label>Date arrivée *</label><div class="date-row"><input type="date" id="m-arr-date" value="${iA}" onchange="refreshAllGardNights();defaultArrHeure(this.value);defaultDepDate(this.value);if((document.getElementById('m-evt')||{}).value==='Déjeuner / Dîner'){document.getElementById('m-dep-date').value=this.value;}refreshDefaultArrhes();"><button type="button" class="date-btn" onclick="document.getElementById('m-arr-date').showPicker&&document.getElementById('m-arr-date').showPicker()" title="Choisir une date">📅</button></div></div>
+          <div class="field"><label>Heure arrivée *</label><select id="m-arr-heure">${heureOptions(initArrHeure)}</select></div>
         </div>
         <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px">
-          <div class="field" id="dep-date-wrap" style="${r.typeEvenement==='Déjeuner / Dîner'?'visibility:hidden':''}"><label>Date de départ *</label><div class="date-row"><input type="date" id="m-dep-date" value="${iD}" onchange="refreshAllGardNights();defaultDepHeure(this.value);refreshDefaultArrhes();"><button type="button" class="date-btn" onclick="document.getElementById('m-dep-date').showPicker&&document.getElementById('m-dep-date').showPicker()" title="Choisir une date">📅</button></div></div>
-          <div class="field"><label>Heure de départ *</label><select id="m-dep-heure">${heureOptions(initDepHeure)}</select></div>
+          <div class="field" id="dep-date-wrap" style="${r.typeEvenement==='Déjeuner / Dîner'?'visibility:hidden':''}"><label>Date départ *</label><div class="date-row"><input type="date" id="m-dep-date" value="${iD}" onchange="refreshAllGardNights();defaultDepHeure(this.value);refreshDefaultArrhes();"><button type="button" class="date-btn" onclick="document.getElementById('m-dep-date').showPicker&&document.getElementById('m-dep-date').showPicker()" title="Choisir une date">📅</button></div></div>
+          <div class="field"><label>Heure départ *</label><select id="m-dep-heure">${heureOptions(initDepHeure)}</select></div>
         </div>
       </div>
     </div>
     <div class="form-section">
       <div class="form-section-title">💶 Montants</div>
       <div class="g2" style="margin-bottom:10px">
-        <div class="field"><label style="color:#111;font-weight:700">Montant de la réservation (€) *</label><div style="display:flex;align-items:center;gap:5px"><input type="number" id="m-montant" value="${r.typeEvenement==='Gratuit'?'0':(r.montant||'')}" placeholder="0" style="font-weight:700;flex:1${r.typeEvenement==='Gratuit'?';background:#f0eee8;color:#888':''}" ${r.typeEvenement==='Gratuit'?'readonly':''}><span style="font-weight:700;color:#111">€</span></div></div>
-        <div class="field"><label style="display:flex;align-items:center;gap:6px;white-space:nowrap">Note interne <span style="background:#ECE9E2;color:#666;font-size:9.5px;font-weight:600;padding:2px 6px;border-radius:4px;text-transform:none;letter-spacing:0">🔒 admin uniquement</span></label><input type="text" id="m-noteI" value="${r.noteInterne||''}" placeholder="Note rapide…"></div>
+        <div class="field">
+          <label style="color:#111;font-weight:700">Montant de la réservation (€) *</label>
+          <div style="display:flex;align-items:center;gap:6px">
+            <input type="number" id="m-montant" value="${r.typeEvenement==='Gratuit'?'0':(r.montant||'')}" placeholder="0" style="font-weight:700;flex:1${r.typeEvenement==='Gratuit'?';background:#f0eee8;color:#888':''}" ${r.typeEvenement==='Gratuit'?'readonly':''}>
+            <span style="font-weight:700;color:#111">€</span>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.02em;border:1px solid #d5d3ce;border-radius:6px;padding:3px 7px;background:#fff"><input type="checkbox" id="m-avec-contrat" ${(['Airbnb','Abritel','Booking','Gratuit','Déjeuner / Dîner'].includes(r.typeEvenement||'')||r.avecContrat===false)?'':'checked'} style="width:auto;margin:0"> 📄 Contrat</label>
+          </div>
+        </div>
+        <div class="field"><label style="display:flex;align-items:center;gap:6px;white-space:nowrap">Note interne <span style="background:#ECE9E2;color:#666;font-size:9.5px;font-weight:600;padding:2px 6px;border-radius:4px;text-transform:none;letter-spacing:0">🔒 admin</span></label><input type="text" id="m-noteI" value="${r.noteInterne||''}" placeholder="Note rapide…"></div>
       </div>
-      <div class="g2">
-        <div class="field"><label>Arrhes prévues au contrat (€) <span style="color:#999;font-weight:400;text-transform:none">(pré-rempli, modifiable)</span></label><input type="number" id="m-arrhes" value="${r.arrhes||computeDefaultArrhes(defDomaine,r.typeEvenement||'',iA,iD,r.montant||0)}" placeholder="Ex : 1500" data-user-edited="${r.arrhes?'1':'0'}" oninput="this.dataset.userEdited='1'"></div>
-        <div class="field"><label>Dépôt de garantie (€) <span style="color:#999;font-weight:400;text-transform:none">(pré-rempli, modifiable)</span></label><input type="number" id="m-depot" value="${r.depotGarantie||computeDefaultDepot(defDomaine)}" placeholder="Ex : 3000" data-user-edited="${r.depotGarantie?'1':'0'}" oninput="this.dataset.userEdited='1'"></div>
+      <div class="g2" style="margin-bottom:${type==='editResa'?'12px':'0'}">
+        <div class="field"><label>Arrhes prévues (€)</label><input type="number" id="m-arrhes" value="${r.arrhes||computeDefaultArrhes(defDomaine,r.typeEvenement||'',iA,iD,r.montant||0)}" placeholder="Ex : 1500" data-user-edited="${r.arrhes?'1':'0'}" oninput="this.dataset.userEdited='1'"></div>
+        <div class="field"><label>Dépôt de garantie (€)</label><input type="number" id="m-depot" value="${r.depotGarantie||computeDefaultDepot(defDomaine)}" placeholder="Ex : 3000" data-user-edited="${r.depotGarantie?'1':'0'}" oninput="this.dataset.userEdited='1'"></div>
       </div>
-    </div>
-    <hr style="border:none;border-top:1px solid #e5e3de;margin:14px 0">
-    ${type==='editResa'?`
-    <div style="font-size:13px;font-weight:500;margin-bottom:8px">💳 Paiements — Encaissé : <span style="color:#27500A">${money(tot)}</span> · Solde : <span style="color:${(r.montant||0)-tot>0?'#A32D2D':'#27500A'}">${money((r.montant||0)-tot)}</span></div>
-    ${pR||'<div style="font-size:12px;color:#888;margin-bottom:8px">Aucun paiement enregistré.</div>'}
-    <div style="display:flex;gap:8px;margin-bottom:12px;align-items:flex-end;flex-wrap:wrap">
-      <div class="field" style="flex:1.4;min-width:120px"><label>Date</label><div class="date-row"><input type="date" id="pay-date" value="${new Date().toISOString().slice(0,10)}"><button type="button" class="date-btn" onclick="document.getElementById('pay-date').showPicker&&document.getElementById('pay-date').showPicker()" title="Choisir une date">📅</button></div></div>
-      <div class="field" style="flex:1;min-width:75px"><label>Montant (€)</label><div style="display:flex;align-items:center;gap:4px"><input type="number" id="pay-amt" placeholder="0" style="flex:1"><span style="font-weight:600;color:#666">€</span></div></div>
-      <div class="field" style="flex:1;min-width:100px"><label>Type</label><select id="pay-type"><option value="Acompte" ${pays.length===0?'selected':''}>Acompte</option><option value="Intermédiaire">Intermédiaire</option><option value="Solde" ${pays.length>0?'selected':''}>Solde</option><option value="Autre">Autre</option></select></div>
-      <div class="field" style="flex:1;min-width:80px"><label>Commentaire</label><input type="text" id="pay-comment" placeholder="Optionnel…"></div>
-      <button class="btn btn-sm btn-primary" style="white-space:nowrap;align-self:flex-end;margin-bottom:1px" onclick="addPay('${id}')">+ Ajouter</button>
+      ${type==='editResa'?`<div style="border-top:1px solid #e3e0d8;padding-top:10px">
+        <div style="font-size:12px;font-weight:600;color:#444;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
+          <span>💳 Paiements</span>
+          <span style="font-size:11px">Encaissé : <strong style="color:#27500A">${money(tot)}</strong> · Solde : <strong style="color:${(r.montant||0)-tot>0?'#A32D2D':'#27500A'}">${money((r.montant||0)-tot)}</strong></span>
+        </div>
+        ${pR||'<div style="font-size:12px;color:#888;margin-bottom:8px">Aucun paiement enregistré.</div>'}
+        <div style="background:#fff;border:1px solid #e3e0d8;border-radius:8px;padding:8px 10px;margin-top:6px">
+          <div style="font-size:10.5px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Ajouter un règlement</div>
+          <div style="display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap">
+            <div class="field" style="flex:1.2;min-width:110px"><label>Date</label><div class="date-row"><input type="date" id="pay-date" value="${new Date().toISOString().slice(0,10)}"><button type="button" class="date-btn" onclick="document.getElementById('pay-date').showPicker&&document.getElementById('pay-date').showPicker()" title="Choisir">📅</button></div></div>
+            <div class="field" style="flex:0.8;min-width:65px"><label>Montant €</label><input type="number" id="pay-amt" placeholder="0"></div>
+            <div class="field" style="flex:0.9;min-width:85px"><label>Type</label><select id="pay-type"><option value="Acompte" ${pays.length===0?'selected':''}>Acompte</option><option value="Intermédiaire">Intermédiaire</option><option value="Solde" ${pays.length>0?'selected':''}>Solde</option><option value="Autre">Autre</option></select></div>
+            <div class="field" style="flex:1;min-width:80px"><label>Commentaire</label><input type="text" id="pay-comment" placeholder="Optionnel…"></div>
+            <button class="btn btn-sm btn-primary" style="white-space:nowrap;align-self:flex-end;margin-bottom:1px" onclick="addPay('${id}')">+ Ajouter</button>
+          </div>
+        </div>
+      </div>`:''}
     </div>
     <hr style="border:none;border-top:1px solid #e5e3de;margin:14px 0">
     <div style="font-size:13px;font-weight:500;margin-bottom:8px">💬 ${(()=>{const ct=getMenageInfo(r);return ct?`Commentaire visible par ${ct.name}`:'Commentaires visibles par les prestataires';})()} (${comms.length})</div>
+    ${type==='editResa'?`
     ${comms.map(c=>`<div class="comment-item"><div class="meta"><span>${c.auteurNom} · ${fmt(c.date)}</span></div>${c.photoUrl?`<img src="${c.photoUrl}" style="max-width:100%;max-height:220px;border-radius:8px;margin-top:4px;display:block;cursor:pointer" onclick="window.open(this.src,'_blank')">`:''}${c.texte?`<div>${c.texte}</div>`:''}</div>`).join('')}
     <textarea id="com-txt" rows="2" placeholder="Nouveau commentaire ou instruction…" style="resize:none;margin-bottom:8px"></textarea>
     <input type="file" id="com-photo" accept="image/*" style="display:none" onchange="addPhotoComment('${r.id}',this)">
@@ -2837,25 +3059,25 @@ function renderModalContent(){
         <span style="display:flex;align-items:center;gap:2px;flex-shrink:0"><input type="number" value="${mi.montant}" onchange="updMenageMontant('${id}',this.value)" style="width:65px;font-weight:600;font-size:13px;padding:4px 6px"><span style="font-size:12px;font-weight:600;color:#666">€</span></span>
         <span class="pill" style="background:${r.menagePaid?'#E8F3E0':'#FCEBEB'};color:${r.menagePaid?'#27500A':'#791F1F'};cursor:pointer" onclick="toggleMenagePaid('${id}')">${r.menagePaid?'✓ Payé':'✗ Non payé'}</span>
       </div></div>`;})()}
-    <div class="field" style="margin-bottom:12px"><label>Prestataires — cochez puis détaillez (notes + montant, ou gardiennage)</label>
+    <div class="field" style="margin-bottom:12px"><label>Prestataires — cochez puis détaillez</label>
       ${(()=>{
         const cavCheckedDefault=!!(r.caviste&&r.caviste.trim());
-        return`<div><label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="checkbox" id="m-caviste-chk" ${cavCheckedDefault?'checked':''} style="width:auto" onchange="document.getElementById('penc-caviste').style.display=this.checked?'block':'none';if(!this.checked)document.getElementById('m-caviste').value='';"> 🍷 Caviste <span style="color:#888">(note pour le gardien, pas un prestataire)</span></label>
-        <div class="presta-encart" id="penc-caviste" style="display:${cavCheckedDefault?'block':'none'};margin:4px 0 10px 24px;padding:10px;background:#f5f4f1;border-radius:8px">
+        return`<div style="padding:3px 0"><label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="checkbox" id="m-caviste-chk" ${cavCheckedDefault?'checked':''} style="width:auto" onchange="document.getElementById('penc-caviste').style.display=this.checked?'block':'none';if(!this.checked)document.getElementById('m-caviste').value='';"> 🍷 Caviste <span style="color:#888">(visible gardien)</span></label>
+        <div class="presta-encart" id="penc-caviste" style="display:${cavCheckedDefault?'block':'none'};margin:4px 0 6px 24px;padding:10px;background:#f5f4f1;border-radius:8px">
           <textarea id="m-caviste" rows="2" style="resize:none" placeholder="Ex : 15 bouteilles de champagne, 1 fût de bière…">${r.caviste||''}</textarea>
         </div></div>`;
       })()}
       ${(()=>{
         const extList=r.prestasExterieurs||[];
         const extCheckedDefault=extList.length>0;
-        return`<div style="margin-top:10px"><label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="checkbox" id="m-extpresta-chk" ${extCheckedDefault?'checked':''} style="width:auto" onchange="document.getElementById('penc-extpresta').style.display=this.checked?'block':'none';if(this.checked&&document.getElementById('penc-extpresta-rows').children.length===0){addExtPrestaRow();}if(!this.checked)document.getElementById('penc-extpresta-rows').innerHTML='';"> 🎭 Prestataire(s) extérieur(s) <span style="color:#888">(maquilleuse, masseur, traiteur, livreur… — pas un compte, juste une note)</span></label>
-        <div class="presta-encart" id="penc-extpresta" style="display:${extCheckedDefault?'block':'none'};margin:4px 0 10px 24px;padding:10px;background:#f5f4f1;border-radius:8px">
+        return`<div style="padding:3px 0"><label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="checkbox" id="m-extpresta-chk" ${extCheckedDefault?'checked':''} style="width:auto" onchange="document.getElementById('penc-extpresta').style.display=this.checked?'block':'none';if(this.checked&&document.getElementById('penc-extpresta-rows').children.length===0){addExtPrestaRow();}if(!this.checked)document.getElementById('penc-extpresta-rows').innerHTML='';"> 🎭 Autre prestataire <span style="color:#888;font-size:12px">(traiteur, activités… visible gardien)</span></label>
+        <div class="presta-encart" id="penc-extpresta" style="display:${extCheckedDefault?'block':'none'};margin:4px 0 6px 24px;padding:10px;background:#f5f4f1;border-radius:8px">
           <div id="penc-extpresta-rows">${extList.map(extPrestaRowHtml).join('')}</div>
-          <button type="button" class="btn btn-sm" onclick="addExtPrestaRow()">+ Ajouter un prestataire extérieur</button>
+          <button type="button" class="btn btn-sm" onclick="addExtPrestaRow()">+ Ajouter</button>
         </div></div>`;
       })()}
-      <div style="padding:4px 0">${pC||'<span style="font-size:12px;color:#888">Aucun prestataire créé</span>'}</div></div>
-    ${type==='editResa'?`<div style="margin-bottom:14px;padding:10px 12px;background:#f5f4f1;border-radius:8px"><div style="font-size:11px;color:#888;margin-bottom:8px">📄 Générer le contrat de location avec les informations ci-dessus</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-sm" style="border-color:#993556;color:#993556" onclick="downloadContractPdf('${id}')">📄 Télécharger en PDF</button><button type="button" class="btn btn-sm" style="border-color:#185FA5;color:#185FA5" onclick="downloadContractDocx('${id}')">📝 Télécharger en Word</button></div></div>`:''}
+      <div style="padding:3px 0">${pC||'<span style="font-size:12px;color:#888">Aucun prestataire créé</span>'}</div></div>
+    ${type==='editResa'?`<div style="margin-bottom:14px;padding:10px 12px;background:#f5f4f1;border-radius:8px"><div style="font-size:11px;color:#888;margin-bottom:8px">📄 Ouvrir le contrat dans un nouvel onglet — imprimer, enregistrer ou partager depuis là</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-sm" style="border-color:#993556;color:#993556" onclick="downloadContractPdf('${id}')">📄 Ouvrir en PDF</button><button type="button" class="btn btn-sm" style="border-color:#185FA5;color:#185FA5" onclick="downloadContractDocx('${id}')">📝 Ouvrir en Word</button></div></div>`:''}
     <div class="modal-actions"><button class="btn" onclick="closeM()">Fermer</button>${type==='editResa'?`<button class="btn btn-danger" onclick="cancelResa('${id}')">🚫 Annuler la réservation</button>`:''}<button class="btn btn-primary" onclick="saveResa('${id||''}')">Enregistrer</button></div>`;
   }
   if(type==='dominiquePlanning'){
@@ -3192,6 +3414,9 @@ function renderPrestaHoraires(p){
   ${hasBilan?`<div class="tabs"><button class="tab active" onclick="setPrestaTab('horaires')"><span class="tab-ic">🕐</span><span class="tab-lbl">Horaires</span></button><button class="tab" onclick="setPrestaTab('monbilan')"><span class="tab-ic">💰</span><span class="tab-lbl">Mon Bilan</span></button></div>`:''}
   ${future.length===0?`<div class="ev-card"><div class="empty">Aucune arrivée/départ à venir pour l'instant.</div></div>`:''}
   ${future.map(r=>{const dom=gDom(r.domaine);const isJ=r.dateArrivee===r.dateDepart;
+    const cavisteInfo=r.caviste?`<div style="margin-top:8px;padding:6px 10px;background:#FFF8E6;border-left:3px solid #F5D98B;border-radius:0 6px 6px 0;font-size:12px"><span style="font-weight:600;color:#7A5800">🍷 Caviste :</span> ${r.caviste}</div>`:'';
+    const extPrestas=(r.prestasExterieurs||[]).filter(x=>x.intitule);
+    const extInfo=extPrestas.length?`<div style="margin-top:8px;padding:6px 10px;background:#E6F1FB;border-left:3px solid #B5D4F4;border-radius:0 6px 6px 0;font-size:12px"><span style="font-weight:600;color:#0C447C">🎭 Prestataires extérieurs :</span> ${extPrestas.map(x=>x.intitule+(x.note?' — '+x.note:'')).join(' · ')}</div>`:'';
     return`<div class="ev-card">
       <span class="pill ${PILL[dom.color||0]}">${dom.name}</span>${r.nbPersonnes?` <span style="font-size:13px;color:#666;margin-left:6px">🛏 ${r.nbPersonnes} couchages</span>`:''}
       <div style="background:#f5f4f1;border-radius:10px;padding:12px;margin-top:8px">
@@ -3200,6 +3425,7 @@ function renderPrestaHoraires(p){
           ${!isJ?`<div><div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.04em">Départ</div><div style="font-size:16px;font-weight:500;margin-top:3px">${dn(r.dateDepart)} ${ds(r.dateDepart)}</div><div style="font-size:15px;color:#993556;font-weight:600">${r.heureDepart||'—'}</div></div>`:''}
         </div>
       </div>
+      ${cavisteInfo}${extInfo}
     </div>`;}).join('')}
   ${past.length>0?`<div style="margin-top:20px;border-top:1px solid #e5e3de;padding-top:14px">
     <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Passés</div>
@@ -3298,13 +3524,24 @@ function renderPrestaGardePersonnel(p){
     </div>
     <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:0.5rem 0.75rem">
       ${future.length===0?'<div class="empty">Aucune soirée de gardiennage prévue pour l\'instant.</div>':''}
-      ${future.map((x,xIdx)=>{const dom=gDom(x.domaine);return`<div style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid #f0eee8;font-size:12.5px;flex-wrap:wrap;background:${xIdx%2===1?'#f7f6f3':'transparent'}">
+      ${future.map((x,xIdx)=>{const dom=gDom(x.domaine);
+        // Trouver la réservation pour afficher caviste/ext prestataires
+        const resa=x.resaId?D.reservations.find(r=>r.id===x.resaId):null;
+        const cavisteInfo=(resa&&resa.caviste)?`<div style="margin-top:5px;font-size:11px;padding:4px 8px;background:#FFF8E6;border-left:2px solid #F5D98B;border-radius:0 4px 4px 0"><span style="font-weight:600;color:#7A5800">🍷 Caviste :</span> ${resa.caviste}</div>`:'';
+        const extPrestas=resa?(resa.prestasExterieurs||[]).filter(x=>x.intitule):[];
+        const extInfo=extPrestas.length?`<div style="margin-top:4px;font-size:11px;padding:4px 8px;background:#E6F1FB;border-left:2px solid #B5D4F4;border-radius:0 4px 4px 0"><span style="font-weight:600;color:#0C447C">🎭 Ext. :</span> ${extPrestas.map(x=>x.intitule+(x.note?' — '+x.note:'')).join(' · ')}</div>`:'';
+        return`<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 4px;border-bottom:1px solid #f0eee8;font-size:12.5px;flex-wrap:wrap;background:${xIdx%2===1?'#f7f6f3':'transparent'}">
         <span class="pill ${PILL[dom.color||0]}" style="flex-shrink:0">${dom.name}</span>
-        <span style="white-space:nowrap">${dn(x.date)} ${fmt(x.date)}</span>
-        <span style="color:#993556;font-weight:600;white-space:nowrap">${x.duree==='courte'?'Courte':'Longue'} · ${money(gardeRate(x.duree))}</span>
-        <span style="color:${x.paid?'#27500A':'#A32D2D'};white-space:nowrap">${x.paid?'✓ Payé':'✗ Non payé'}</span>
-        ${x.client?`<span style="color:#888;white-space:nowrap">${x.client}</span>`:''}
-        ${x.comment?`<span style="color:#534AB7;font-style:italic">${x.comment}</span>`:''}
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="white-space:nowrap">${dn(x.date)} ${fmt(x.date)}</span>
+            <span style="color:#993556;font-weight:600;white-space:nowrap">${x.duree==='courte'?'Courte':'Longue'} · ${money(gardeRate(x.duree))}</span>
+            <span style="color:${x.paid?'#27500A':'#A32D2D'};white-space:nowrap">${x.paid?'✓ Payé':'✗ Non payé'}</span>
+            ${x.client?`<span style="color:#888;white-space:nowrap">${x.client}</span>`:''}
+            ${x.comment?`<span style="color:#534AB7;font-style:italic">${x.comment}</span>`:''}
+          </div>
+          ${cavisteInfo}${extInfo}
+        </div>
       </div>`;}).join('')}
     </div>
     ${past.length>0?`<div style="margin-top:18px">
@@ -3347,12 +3584,126 @@ function renderPrestaOccupation(p){
   </div>`:''}`;
 }
 
-function setTab(t){S.tab=t;S.msg=null;S.selResa=null;render();}
-function logout(){S.view='login';S.admin=null;S.msg=null;S.selResa=null;render();}
+function renderSearchDropdown(){
+  const q=(S.searchQuery||'').trim().toLowerCase();
+  const results=D.reservations.filter(r=>{
+    const name=(r.client||'').toLowerCase();
+    const soc=(r.societe||'').toLowerCase();
+    return name.includes(q)||soc.includes(q);
+  }).sort((a,b)=>(b.dateArrivee||'').localeCompare(a.dateArrivee||'')).slice(0,8);
+  if(!results.length)return`<div style="position:absolute;top:100%;right:0;left:0;background:#fff;border:1px solid #e5e3de;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:200;padding:10px 14px;font-size:13px;color:#888">Aucun résultat pour « ${q} »</div>`;
+  return`<div style="position:absolute;top:100%;right:0;left:0;background:#fff;border:1px solid #e5e3de;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:200;overflow:hidden">
+    ${results.map(r=>{const dom=gDom(r.domaine);const ps=payStatus(r);const psCls=ps==='full'?'pay-full':ps==='part'?'pay-part':'pay-none';const psLbl=ps==='full'?'Soldé':ps==='part'?'Partiel':'Non payé';
+    return`<div class="search-result-item" onclick="S.searchQuery=null;openM('editResa','${r.id}')">
+      <span class="pill ${PILL[dom.color||0]}" style="flex-shrink:0">${dom.name}</span>
+      <span class="sr-name">${displayClientName(r)||'—'}</span>
+      <span class="sr-meta">${ds(r.dateArrivee)}${r.dateDepart&&r.dateDepart!==r.dateArrivee?' → '+ds(r.dateDepart):''}</span>
+      <span class="${psCls}" style="flex-shrink:0">${psLbl}</span>
+    </div>`;}).join('')}
+  </div>`;
+}
+function renderSearchBar(){
+  const q=(S.searchQuery||'').trim().toLowerCase();
+  const results=q.length>=2?D.reservations.filter(r=>{
+    const name=(r.client||'').toLowerCase();
+    const soc=(r.societe||'').toLowerCase();
+    return name.includes(q)||soc.includes(q);
+  }).sort((a,b)=>(b.dateArrivee||'').localeCompare(a.dateArrivee||'')).slice(0,8):[];
+  return`<div>
+    <div class="search-bar">
+      <span style="font-size:15px;color:#aaa;flex-shrink:0">🔍</span>
+      <input type="text" id="search-input" value="${(S.searchQuery||'').replace(/"/g,'&quot;')}" placeholder="Rechercher une réservation par nom…" oninput="S.searchQuery=this.value;render()" onkeydown="if(event.key==='Escape'){S.searchQuery=null;render();}">
+      <button style="border:none;background:none;color:#aaa;cursor:pointer;font-size:16px;padding:0 0 0 4px" onclick="S.searchQuery=null;render()">×</button>
+    </div>
+    ${q.length>=2?`<div class="search-results">
+      ${results.length===0?`<div style="padding:12px 14px;font-size:13px;color:#888">Aucun résultat pour « ${q} »</div>`:''}
+      ${results.map(r=>{const dom=gDom(r.domaine);const ps=payStatus(r);const psCls=ps==='full'?'pay-full':ps==='part'?'pay-part':'pay-none';const psLbl=ps==='full'?'Soldé':ps==='part'?'Partiel':'Non payé';return`<div class="search-result-item" onclick="S.searchQuery=null;openM('editResa','${r.id}')">
+        <span class="pill ${PILL[dom.color||0]}" style="flex-shrink:0">${dom.name}</span>
+        <span class="sr-name">${displayClientName(r)||'—'}</span>
+        <span class="sr-meta">${ds(r.dateArrivee)}${r.dateDepart&&r.dateDepart!==r.dateArrivee?' → '+ds(r.dateDepart):''}</span>
+        <span class="${psCls}" style="flex-shrink:0">${psLbl}</span>
+      </div>`;}).join('')}
+    </div>`:''}
+  </div>`;
+}
+function setBilanAnnualMonth(m){S.bilanAnnualMonth=(S.bilanAnnualMonth===m)?null:m;render();}
+function renderBilanAnnualSummary(y){
+  const MONTHS_FULL=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const rows=[];
+  for(let m=0;m<12;m++){
+    const monthKey=`${y}-${String(m+1).padStart(2,'0')}`;
+    let loc=0,paid=0,nbResas=0;
+    D.reservations.filter(r=>r.status!=='annulé').forEach(r=>{
+      const amt=montantForMonth(r,y,m);
+      const p=paidForMonth(r,y,m);
+      if(amt>0||p>0){loc+=amt;paid+=p;}
+      const arr=r.dateArrivee||r.date||'';
+      if(arr.startsWith(monthKey))nbResas++;
+    });
+    rows.push({m,label:MONTHS_FULL[m],loc,paid,nbResas});
+  }
+  const totalLoc=rows.reduce((a,r)=>a+r.loc,0);
+  const totalPaid=rows.reduce((a,r)=>a+r.paid,0);
+  return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
+    <div class="sec-hdr"><h2>📆 Récapitulatif mensuel ${y}</h2></div>
+    <div style="font-size:11px;color:#888;margin-bottom:10px">Cliquez sur un mois pour voir le détail.</div>
+    <table class="list-tbl">
+      <thead><tr><th>Mois</th><th>Rés.</th><th>CA attendu</th><th>Encaissé</th><th>Reste</th></tr></thead>
+      <tbody>
+      ${rows.map(({m:mi,label,loc,paid,nbResas})=>{
+        const isOpen=S.bilanAnnualMonth===mi;
+        const reste=loc-paid;
+        return`<tr style="cursor:pointer;${isOpen?'background:#FBEAF0':''}" onclick="setBilanAnnualMonth(${mi})">
+          <td style="font-weight:${isOpen?'700':'400'}">${isOpen?'▾ ':' '}${label}</td>
+          <td style="text-align:center;color:#666">${nbResas||''}</td>
+          <td style="font-weight:500">${loc>0?money(loc):'—'}</td>
+          <td style="color:#27500A;font-weight:${paid>0?'600':'400'}">${paid>0?money(paid):'—'}</td>
+          <td style="color:${reste>0.5?'#A32D2D':'#888'}">${loc>0?(reste>0.5?money(reste):'✓'):'—'}</td>
+        </tr>
+        ${isOpen?`<tr><td colspan="5" style="padding:0;border:none">
+          <div style="padding:10px 0 6px">${renderBilanMonthDetail(y,mi)}</div>
+        </td></tr>`:''}`;
+      }).join('')}
+      <tr style="background:#f0eee8;font-weight:700">
+        <td>Total ${y}</td><td></td>
+        <td>${money(totalLoc)}</td>
+        <td style="color:#27500A">${money(totalPaid)}</td>
+        <td style="color:${totalLoc-totalPaid>0?'#A32D2D':'#888'}">${money(totalLoc-totalPaid)}</td>
+      </tr>
+      </tbody>
+    </table>
+  </div>`;
+}
+function renderBilanMonthDetail(y,m){
+  const monthKey=`${y}-${String(m+1).padStart(2,'0')}`;
+  const rows=[];
+  D.reservations.filter(r=>r.status!=='annulé').forEach(r=>{
+    const arr=r.dateArrivee||r.date||'';
+    if(!arr.startsWith(monthKey))return;
+    const dom=gDom(r.domaine);
+    const paid=totPay(r);
+    const ps=payStatus(r);
+    rows.push({r,dom,paid,ps});
+  });
+  if(rows.length===0)return'<div style="font-size:12px;color:#888;padding:8px 12px">Aucune réservation ce mois-ci.</div>';
+  rows.sort((a,b)=>(a.r.dateArrivee||'').localeCompare(b.r.dateArrivee||''));
+  return`<div style="background:#FBEAF0;border-radius:8px;padding:8px 12px;margin:0 -8px">
+    ${rows.map(({r,dom,paid,ps})=>{const psCls=ps==='full'?'pay-full':ps==='part'?'pay-part':'pay-none';const psLbl=ps==='full'?'Soldé':ps==='part'?'Partiel':'Non payé';
+    return`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #EDD5DE;cursor:pointer;flex-wrap:wrap" onclick="openM('editResa','${r.id}')">
+      <span class="pill ${PILL[dom.color||0]}">${dom.name}</span>
+      <span style="font-weight:600;font-size:13px;flex:1">${displayClientName(r)||'—'}</span>
+      <span style="font-size:11px;color:#888">${ds(r.dateArrivee)}${r.dateDepart&&r.dateDepart!==r.dateArrivee?' → '+ds(r.dateDepart):''}</span>
+      <span style="font-size:12px;font-weight:600">${money(r.montant||0)}</span>
+      <span class="${psCls}">${psLbl}</span>
+    </div>`;}).join('')}
+  </div>`;
+}
 function openM(type,id,extra){S.modal={type,id,...(extra||{})};render();}
 function closeM(){S.modal=null;render();}
 function closePanel(){S.selResa=null;render();}
 function showMsg(m){S.msg=m;render();setTimeout(()=>{S.msg=null;render();},3000);}
+function setTab(t){S.tab=t;S.msg=null;S.selResa=null;S.searchQuery=null;render();}
+function logout(){S.view='login';S.admin=null;S.presta=null;S.msg=null;S.selResa=null;S.searchQuery=null;render();}
 function calNav(d){S.calMonth+=d;if(S.calMonth>11){S.calMonth=0;S.calYear++;}if(S.calMonth<0){S.calMonth=11;S.calYear--;}S.selResa=null;render();}
 function selectResa(rid,e){if(e)e.stopPropagation();S.selResa=rid;render();}
 function openNewResaOnDate(date){openM('newResa',null,{prefDate:date});}
@@ -3465,6 +3816,8 @@ function saveResaCore(id){
   const societe=capWords((document.getElementById('m-societe')||{}).value||'').trim();
   const client=[prenom1,nom1].filter(Boolean).join(' ')+((prenom2||nom2)?(' et '+[prenom2,nom2].filter(Boolean).join(' ')):'');
   const typeEvenement=(document.getElementById('m-evt')||{}).value||'',noteInterne=document.getElementById('m-noteI').value,caviste=(document.getElementById('m-caviste')||{}).value||'',montant=parseFloat(document.getElementById('m-montant').value)||0,arrhes=parseFloat((document.getElementById('m-arrhes')||{}).value)||0,depotGarantie=parseFloat((document.getElementById('m-depot')||{}).value)||0;
+  const avecContratEl=document.getElementById('m-avec-contrat');
+  const avecContrat=avecContratEl?avecContratEl.checked:true;
   const prestasExterieurs=Array.from(document.querySelectorAll('.ext-presta-row')).map(row=>({
     id:row.dataset.extid||gid(),
     intitule:(row.querySelector('.ext-intitule')||{}).value||'',
@@ -3525,10 +3878,10 @@ function saveResaCore(id){
   const newCommentTxt=(document.getElementById('com-txt-new')||{}).value||'';
   const initCommentaires=newCommentTxt.trim()?[{id:gid(),auteur:'admin',auteurNom:S.admin.name,date:new Date().toISOString().slice(0,10),texte:newCommentTxt.trim(),visible:true}]:[];
   let newId=id;
-  if(id){const r=D.reservations.find(x=>x.id===id);Object.assign(r,{domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,civilite1,prenom1,nom1,tel,email,prenom2,nom2,tel2,email2,adresse,typeClient,societe,typeEvenement,nbPersonnes,nbSoiree,nbAdultes,nbEnfants,prestaGarde,noteInterne,caviste,prestasExterieurs,montant,arrhes,depotGarantie,prestataires,updatedAt:nowTs});}
+  if(id){const r=D.reservations.find(x=>x.id===id);Object.assign(r,{domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,civilite1,prenom1,nom1,tel,email,prenom2,nom2,tel2,email2,adresse,typeClient,societe,typeEvenement,nbPersonnes,nbSoiree,nbAdultes,nbEnfants,prestaGarde,noteInterne,caviste,prestasExterieurs,montant,arrhes,depotGarantie,avecContrat,prestataires,updatedAt:nowTs});}
   else{
     newId=gid();
-    D.reservations.push({id:newId,domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,civilite1,prenom1,nom1,tel,email,prenom2,nom2,tel2,email2,adresse,typeClient,societe,typeEvenement,nbPersonnes,nbSoiree,nbAdultes,nbEnfants,prestaLines:{},prestaGarde,noteInterne,caviste,prestasExterieurs,montant,arrhes,depotGarantie,paiements:[],prestataires,commentaires:initCommentaires,createdAt:nowTs,updatedAt:nowTs});
+    D.reservations.push({id:newId,domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,civilite1,prenom1,nom1,tel,email,prenom2,nom2,tel2,email2,adresse,typeClient,societe,typeEvenement,nbPersonnes,nbSoiree,nbAdultes,nbEnfants,prestaLines:{},prestaGarde,noteInterne,caviste,prestasExterieurs,montant,arrhes,depotGarantie,avecContrat,paiements:[],prestataires,commentaires:initCommentaires,createdAt:nowTs,updatedAt:nowTs});
   }
   if(isNew&&newCommentTxt.trim()){
     const ct=getMenageInfo({domaine,nbPersonnes,nbSoiree,typeEvenement});
