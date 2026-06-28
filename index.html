@@ -1259,10 +1259,13 @@ function injectBands(){
         // 100% — admin seulement
         const fullHtml=(!isPrestaView&&b.isPaid)?`<span style="font-size:9px;font-weight:700;font-style:italic;color:#E8000D;margin-right:3px;letter-spacing:.5px;display:inline-block;transform:skewX(-12deg)">100%</span>`:'';
         // Badge P bleu ciel — prestataire non-ménage assigné
-        const pSvg=`<svg width="13" height="13" viewBox="0 0 13 13" style="display:inline-block;vertical-align:middle;margin-right:2px;flex-shrink:0"><circle cx="6.5" cy="6.5" r="6" fill="none" stroke="#2E86C1" stroke-width="1.5"/><text x="6.5" y="9.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="#2E86C1" font-family="Arial,sans-serif">P</text></svg>`;
+        const pSvg=`<svg width="13" height="13" viewBox="0 0 13 13" style="display:inline-block;vertical-align:middle;margin-left:2px;flex-shrink:0"><circle cx="6.5" cy="6.5" r="6" fill="none" stroke="#2E86C1" stroke-width="1.5"/><text x="6.5" y="9.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="#2E86C1" font-family="Arial,sans-serif">P</text></svg>`;
         const pBadge=b.hasPresta?pSvg:'';
-        // Construction de la ligne : ordre = 100% (ou anneau) + P + nom
-        topParts.push(optPrefix+dotHtml+fullHtml+pBadge+'<span style="font-weight:800">'+b.nameTxt+'</span>');
+        if(isPrestaView){
+          topParts.push(pBadge+'<span style="font-weight:800">'+b.nameTxt+'</span>');
+        } else {
+          topParts.push(optPrefix+dotHtml+fullHtml+pBadge+'<span style="font-weight:800">'+b.nameTxt+'</span>');
+        }
       }
       if(b.mainLine)topParts.push(b.mainLine);
       const topLine=topParts.join(' · ');
@@ -1505,7 +1508,7 @@ function renderListe(){
   /* ── HISTORIQUE DES DERNIÈRES MODIFICATIONS ── */
   const recentItems=[
     ...D.reservations.map(r=>({
-      ts:r.updatedAt||r.createdAt||0,
+      ts:r.updatedAt||r.createdAt||1,
       isNew:!r.updatedAt||(r.updatedAt===r.createdAt),
       type:'résa',
       label:r.client||r.societe||'—',
@@ -1514,7 +1517,7 @@ function renderListe(){
       status:r.status
     })),
     ...D.visites.map(v=>({
-      ts:v.updatedAt||v.createdAt||0,
+      ts:v.updatedAt||v.createdAt||1,
       isNew:!v.updatedAt||(v.updatedAt===v.createdAt),
       type:'visite',
       label:v.client||'—',
@@ -1762,7 +1765,7 @@ function renderDernieres(){
       typeEvt:r.typeEvenement||'',
       dateArr:r.dateArrivee||r.date||'',
       statut:r.status||'',
-      lastChange:r.lastChange||'',
+      lastChange:r.lastChange||(r.updatedAt&&r.updatedAt!==r.createdAt?'Modifiée avant le suivi automatique':'Réservation existante'),
       rid:r.id
     })),
     ...D.visites.map(v=>({
@@ -1774,14 +1777,14 @@ function renderDernieres(){
       typeEvt:v.typeEvenement||'',
       dateArr:v.date||'',
       statut:v.status||'prévue',
-      lastChange:v.lastChange||'',
+      lastChange:v.lastChange||'Visite existante',
       rid:null,vid:v.id
     }))
-  ].filter(x=>x.ts).sort((a,b)=>b.ts-a.ts).slice(0,20);
+  ].filter(x=>x.client&&x.client!=='—'||x.domaine).sort((a,b)=>b.ts-a.ts).slice(0,20);
 
   const rows=items.map(x=>{
     const d=new Date(x.ts);
-    const when=d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    const when=x.ts>1?d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'—';
     const dom=gDom(x.domaine);
     const isResa=x.type==='resa';
     const actionLabel=x.isNew?(isResa?'✚ Nouvelle résa':'✚ Nouvelle visite'):(isResa?'✎ Résa modifiée':'✎ Visite modifiée');
