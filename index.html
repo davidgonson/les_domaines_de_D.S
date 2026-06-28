@@ -846,7 +846,11 @@ function buildBands(y,m){
       /* Heures pour position proportionnelle (fenêtre 8h-22h) */
       const hArr=ifr?(parseInt((r.heureArrivee||'12:00').split(':')[0])+(parseInt((r.heureArrivee||'12:00').split(':')[1]||0)/60)):8;
       const hDep=ilr?(parseInt((r.heureDepart||'12:00').split(':')[0])+(parseInt((r.heureDepart||'12:00').split(':')[1]||0)/60)):22;
-      bands.push({rid:r.id,slot,row:fc.row,colStart:fc.col,spanCols:lc.col-fc.col+1,shapeClass:sc,nameTxt,timeArr,timeDep,mainLine,bandCls:bc,optCls:oc,isJ,isPaid:payStatus(r)==='full',isPartPaid:payStatus(r)==='part',isFirstRow:ifr,isLastRow:ilr,hA:hArr,hD:hDep,colorIdx:c});
+      // Badge P : prestataire connecté a une prestation non-ménage sur cette résa
+      const currentPid=S.presta?S.presta.id:null;
+      const menagePid=getMenageInfo(r)?getMenageInfo(r).pid:null;
+      const hasPresta=!!(currentPid&&currentPid!==menagePid&&(r.prestataires||[]).includes(currentPid));
+      bands.push({rid:r.id,slot,row:fc.row,colStart:fc.col,spanCols:lc.col-fc.col+1,shapeClass:sc,nameTxt,timeArr,timeDep,mainLine,bandCls:bc,optCls:oc,isJ,isPaid:payStatus(r)==='full',isPartPaid:payStatus(r)==='part',isFirstRow:ifr,isLastRow:ilr,hA:hArr,hD:hDep,colorIdx:c,hasPresta});
     });
   });
   return{bands,tc,sd,dim,dip};
@@ -1242,17 +1246,18 @@ function injectBands(){
     } else {
       const topParts=[];
       if(b.nameTxt){
-        // Préfixe OPT pour les options
-        const optPrefix=b.optCls?' <span style="font-size:9px;font-weight:900;letter-spacing:.5px;opacity:.9">OPT</span> ':'';
-        // Point acompte (légèrement plus gros)
-        // Couleurs de texte par index domaine (bordeaux, doré, vert, violet, bleu)
+        const isPrestaView=S.view==='presta';
+        // Préfixe OPT pour les options (admin seulement)
+        const optPrefix=(!isPrestaView&&b.optCls)?' <span style="font-size:9px;font-weight:900;letter-spacing:.5px;opacity:.9">OPT</span> ':'';
+        // Anneau acompte — admin seulement
         const DOT_COLORS=['#72243E','#7A5800','#27500A','#3C3489','#0C447C'];
         const dotColor=DOT_COLORS[b.colorIdx||0];
-        // Anneau coloré avec centre blanc — SVG inline centré sur la hauteur de ligne
-        const dotHtml=b.isPartPaid?`<svg width="12" height="12" viewBox="0 0 12 12" style="display:inline-block;vertical-align:middle;margin-right:3px;flex-shrink:0"><circle cx="6" cy="6" r="5.5" fill="${dotColor}"/><circle cx="6" cy="6" r="3" fill="white"/></svg>`:'';
-        // 100% très penché
-        const fullHtml=b.isPaid?`<span style="font-size:9px;font-weight:700;font-style:italic;color:#E8000D;margin-right:3px;letter-spacing:.5px;display:inline-block;transform:skewX(-12deg)">100%</span>`:'';
-        topParts.push(optPrefix+dotHtml+fullHtml+'<span style="font-weight:800">'+b.nameTxt+'</span>');
+        const dotHtml=(!isPrestaView&&b.isPartPaid)?`<svg width="12" height="12" viewBox="0 0 12 12" style="display:inline-block;vertical-align:middle;margin-right:3px;flex-shrink:0"><circle cx="6" cy="6" r="5.5" fill="${dotColor}"/><circle cx="6" cy="6" r="3" fill="white"/></svg>`:'';
+        // 100% — admin seulement
+        const fullHtml=(!isPrestaView&&b.isPaid)?`<span style="font-size:9px;font-weight:700;font-style:italic;color:#E8000D;margin-right:3px;letter-spacing:.5px;display:inline-block;transform:skewX(-12deg)">100%</span>`:'';
+        // Badge P rouge cerclé — prestataire a une prestation assignée (non-ménage)
+        const pBadge=(isPrestaView&&b.hasPresta)?`<svg width="13" height="13" viewBox="0 0 13 13" style="display:inline-block;vertical-align:middle;margin-right:3px;flex-shrink:0"><circle cx="6.5" cy="6.5" r="6" fill="none" stroke="#C0392B" stroke-width="1.5"/><text x="6.5" y="9.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="#C0392B" font-family="Arial,sans-serif">P</text></svg>`:'';
+        topParts.push(optPrefix+dotHtml+fullHtml+pBadge+'<span style="font-weight:800">'+b.nameTxt+'</span>');
       }
       if(b.mainLine)topParts.push(b.mainLine);
       const topLine=topParts.join(' · ');
@@ -1414,7 +1419,13 @@ function renderDetailPanel(r){
   return`<div class="detail-panel">
     ${r.createdAt?`<div style="font-size:9.5px;color:#aaa;margin-bottom:4px">Créée le ${new Date(r.createdAt).toLocaleDateString('fr-FR')} à ${new Date(r.createdAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>`:''}
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;gap:8px">
-      <div style="min-width:0"><div style="font-size:16px;font-weight:700">${displayClientName(r)||'—'}</div><div style="font-size:12px;color:#888;margin-top:2px">${displayTel(r.tel)||'<span style="color:#A32D2D">À renseigner</span>'}</div><div style="margin-top:4px"><span class="pill ${PILL[c]}">${dom.name}</span> <span class="status s-${r.status}" style="margin-left:4px">${r.status}</span></div></div>
+      <div style="min-width:0">
+        <div style="font-size:16px;font-weight:700">${r.typeClient==='entreprise'&&r.societe?r.societe:displayClientName(r)||'—'}</div>
+        ${r.typeClient==='entreprise'&&r.societe&&r.nom1?`<div style="font-size:12px;color:#666;margin-top:1px">Contact : ${[r.civilite1||'',r.nom1].filter(Boolean).join(' ')}</div>`:''}
+        <div style="font-size:12px;color:#888;margin-top:2px">${displayTel(r.tel)||'<span style="color:#A32D2D">À renseigner</span>'}</div>
+        ${readOnly&&r.email?`<div style="font-size:12px;color:#888;margin-top:1px">${r.email}</div>`:''}
+        <div style="margin-top:4px"><span class="pill ${PILL[c]}">${dom.name}</span> <span class="status s-${r.status}" style="margin-left:4px">${r.status}</span></div>
+      </div>
       <div style="display:flex;gap:6px;flex-shrink:0">
         ${readOnly?'':`<button class="btn btn-xs btn-primary" onclick="openM('editResa','${r.id}')" title="Modifier">✏️</button><button class="btn btn-xs btn-danger" onclick="delResa('${r.id}')" title="Supprimer">🗑️</button>`}
         <button class="btn btn-xs" onclick="closePanel()" title="Fermer">✕</button>
