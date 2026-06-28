@@ -1266,12 +1266,8 @@ function injectBands(){
       }
       if(b.mainLine)topParts.push(b.mainLine);
       const topLine=topParts.join(' · ');
-      // Vue prestataire : pas d'heures dans b-bottom pour éviter confusion visuelle avec P
-      if(isPrestaView){
-        label=topLine?`<div class="b-top">${topLine}</div>`:'';
-      } else {
-        label=(topLine||timeArrF||timeDepF)?`<div class="b-top">${topLine}</div><div class="b-bottom"><span>${timeArrF}</span><span>${timeDepF}</span></div>`:'';
-      }
+      // Ligne du bas : heures seulement, plus de P ici
+      label=(topLine||timeArrF||timeDepF)?`<div class="b-top">${topLine}</div><div class="b-bottom"><span>${timeArrF}</span><span>${timeDepF}</span></div>`:'';
     }
     div.innerHTML=label;
     div.title=label.replace(/<\/(div|span)>/g,' ').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim()+' — cliquer pour détail';
