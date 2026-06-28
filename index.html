@@ -1258,15 +1258,16 @@ function injectBands(){
         const dotHtml=(!isPrestaView&&b.isPartPaid)?`<svg width="12" height="12" viewBox="0 0 12 12" style="display:inline-block;vertical-align:middle;margin-right:3px;flex-shrink:0"><circle cx="6" cy="6" r="5.5" fill="${dotColor}"/><circle cx="6" cy="6" r="3" fill="white"/></svg>`:'';
         // 100% — admin seulement
         const fullHtml=(!isPrestaView&&b.isPaid)?`<span style="font-size:9px;font-weight:700;font-style:italic;color:#E8000D;margin-right:3px;letter-spacing:.5px;display:inline-block;transform:skewX(-12deg)">100%</span>`:'';
-        // Badge P bleu ciel — prestataire non-ménage assigné (visible admin ET presta)
-        const pBadge=b.hasPresta?`<svg width="13" height="13" viewBox="0 0 13 13" style="display:inline-block;vertical-align:middle;margin-right:3px;flex-shrink:0"><circle cx="6.5" cy="6.5" r="6" fill="none" stroke="#2E86C1" stroke-width="1.5"/><text x="6.5" y="9.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="#2E86C1" font-family="Arial,sans-serif">P</text></svg>`:'';
+        // Badge P bleu ciel — prestataire non-ménage assigné
+        const pSvg=`<svg width="13" height="13" viewBox="0 0 13 13" style="display:inline-block;vertical-align:middle;margin-right:2px;flex-shrink:0"><circle cx="6.5" cy="6.5" r="6" fill="none" stroke="#2E86C1" stroke-width="1.5"/><text x="6.5" y="9.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="#2E86C1" font-family="Arial,sans-serif">P</text></svg>`;
+        const pBadge=b.hasPresta?pSvg:'';
+        // Construction de la ligne : ordre = 100% (ou anneau) + P + nom
         topParts.push(optPrefix+dotHtml+fullHtml+pBadge+'<span style="font-weight:800">'+b.nameTxt+'</span>');
       }
       if(b.mainLine)topParts.push(b.mainLine);
       const topLine=topParts.join(' · ');
-      // P badge aussi à droite côté heure de départ
-      const pRight=b.hasPresta?`<svg width="12" height="12" viewBox="0 0 13 13" style="display:inline-block;vertical-align:middle;margin-right:2px;flex-shrink:0"><circle cx="6.5" cy="6.5" r="6" fill="none" stroke="#2E86C1" stroke-width="1.5"/><text x="6.5" y="9.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="#2E86C1" font-family="Arial,sans-serif">P</text></svg>`:'';
-      label=(topLine||timeArrF||timeDepF||pRight)?`<div class="b-top">${topLine}</div><div class="b-bottom"><span>${timeArrF}</span><span style="display:inline-flex;align-items:center;gap:2px">${pRight}${timeDepF}</span></div>`:'';
+      // Ligne du bas : heures seulement, plus de P ici
+      label=(topLine||timeArrF||timeDepF)?`<div class="b-top">${topLine}</div><div class="b-bottom"><span>${timeArrF}</span><span>${timeDepF}</span></div>`:'';
     }
     div.innerHTML=label;
     div.title=label.replace(/<\/(div|span)>/g,' ').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim()+' — cliquer pour détail';
