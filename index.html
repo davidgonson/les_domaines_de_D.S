@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Les Domaines de DS</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -73,6 +73,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .metric .lbl{font-size:11px;color:#666}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-start;justify-content:center;padding-top:40px;z-index:100;overflow-y:auto}
 .modal{background:#fff;border-radius:14px;padding:1.5rem;width:96%;max-width:560px;border:1px solid #e5e3de;margin-bottom:40px}
+.modal input,.modal select,.modal textarea{-webkit-user-select:text;user-select:text;touch-action:manipulation;font-size:16px!important}
 .modal h3{font-size:15px;font-weight:500;margin-bottom:14px}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
 .contract-viewer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:flex;flex-direction:column}
@@ -1087,13 +1088,7 @@ function onEvtTypeChange(val){
     if(val==='Gratuit'){montantEl.value='0';montantEl.readOnly=true;montantEl.style.background='#f0eee8';montantEl.style.color='#888';}
     else{montantEl.readOnly=false;montantEl.style.background='';montantEl.style.color='';}
   }
-  // Décocher "avec contrat" pour les types sans contrat
-  const contratEl=document.getElementById('m-avec-contrat');
-  if(contratEl){
-    const noContrat=['Airbnb','Abritel','Booking','Gratuit','Déjeuner / Dîner'];
-    if(noContrat.includes(val))contratEl.checked=false;
-    else contratEl.checked=true;
-  }
+  // Avec досьє : décoché par défaut, l'utilisateur coche manuellement si besoin
   const depWrap=document.getElementById('dep-date-wrap');
   const arrDateEl=document.getElementById('m-arr-date'),depDateEl=document.getElementById('m-dep-date');
   if(depWrap){
@@ -3296,7 +3291,7 @@ function renderModalContent(){
           <div style="display:flex;align-items:center;gap:6px">
             <input type="number" id="m-montant" value="${r.typeEvenement==='Gratuit'?'0':(r.montant||'')}" placeholder="0" style="flex:1;font-weight:700${r.typeEvenement==='Gratuit'?';background:#f0eee8;color:#888':''}" ${r.typeEvenement==='Gratuit'?'readonly':''}>
             <span style="color:#555">€</span>
-            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.02em;border:1px solid #d5d3ce;border-radius:6px;padding:3px 7px;background:#fff"><input type="checkbox" id="m-avec-contrat" ${(['Airbnb','Abritel','Booking','Gratuit','Déjeuner / Dîner'].includes(r.typeEvenement||'')||r.avecContrat===false)?'':'checked'} style="width:auto;margin:0"> 📄 Avec досьє</label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.02em;border:1px solid #d5d3ce;border-radius:6px;padding:3px 7px;background:#fff"><input type="checkbox" id="m-avec-contrat" ${r.avecContrat===true?'checked':''} style="width:auto;margin:0"> 📄 Avec досьє</label>
           </div>
         </div>
         <div class="field"><label style="display:flex;align-items:center;gap:6px;white-space:nowrap">Note interne <span style="background:#ECE9E2;color:#666;font-size:9.5px;font-weight:600;padding:2px 6px;border-radius:4px;text-transform:none;letter-spacing:0">🔒 admin</span></label><input type="text" id="m-noteI" value="${r.noteInterne||''}" placeholder="Note rapide…"></div>
