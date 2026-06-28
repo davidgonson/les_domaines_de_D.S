@@ -146,26 +146,6 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .band-startend{border-radius:5px;padding:0 5px}
 .band-mid{border-radius:0}
 .band.option{color:#fff!important}
-.band.paid.band-startend.b0f,.band.paid.band-startend.b0l{box-shadow:inset 0 0 0 2px #5C1530}
-.band.paid.band-start.b0f,.band.paid.band-start.b0l{box-shadow:inset 2px 0 0 0 #5C1530,inset 0 2px 0 0 #5C1530,inset 0 -2px 0 0 #5C1530}
-.band.paid.band-end.b0f,.band.paid.band-end.b0l{box-shadow:inset -2px 0 0 0 #5C1530,inset 0 2px 0 0 #5C1530,inset 0 -2px 0 0 #5C1530}
-.band.paid.band-mid.b0f,.band.paid.band-mid.b0l{box-shadow:inset 0 2px 0 0 #5C1530,inset 0 -2px 0 0 #5C1530}
-.band.paid.band-startend.b1f,.band.paid.band-startend.b1l{box-shadow:inset 0 0 0 2px #7A5800}
-.band.paid.band-start.b1f,.band.paid.band-start.b1l{box-shadow:inset 2px 0 0 0 #7A5800,inset 0 2px 0 0 #7A5800,inset 0 -2px 0 0 #7A5800}
-.band.paid.band-end.b1f,.band.paid.band-end.b1l{box-shadow:inset -2px 0 0 0 #7A5800,inset 0 2px 0 0 #7A5800,inset 0 -2px 0 0 #7A5800}
-.band.paid.band-mid.b1f,.band.paid.band-mid.b1l{box-shadow:inset 0 2px 0 0 #7A5800,inset 0 -2px 0 0 #7A5800}
-.band.paid.band-startend.b2f,.band.paid.band-startend.b2l{box-shadow:inset 0 0 0 2px #1C3A07}
-.band.paid.band-start.b2f,.band.paid.band-start.b2l{box-shadow:inset 2px 0 0 0 #1C3A07,inset 0 2px 0 0 #1C3A07,inset 0 -2px 0 0 #1C3A07}
-.band.paid.band-end.b2f,.band.paid.band-end.b2l{box-shadow:inset -2px 0 0 0 #1C3A07,inset 0 2px 0 0 #1C3A07,inset 0 -2px 0 0 #1C3A07}
-.band.paid.band-mid.b2f,.band.paid.band-mid.b2l{box-shadow:inset 0 2px 0 0 #1C3A07,inset 0 -2px 0 0 #1C3A07}
-.band.paid.band-startend.b3f,.band.paid.band-startend.b3l{box-shadow:inset 0 0 0 2px #2A2566}
-.band.paid.band-start.b3f,.band.paid.band-start.b3l{box-shadow:inset 2px 0 0 0 #2A2566,inset 0 2px 0 0 #2A2566,inset 0 -2px 0 0 #2A2566}
-.band.paid.band-end.b3f,.band.paid.band-end.b3l{box-shadow:inset -2px 0 0 0 #2A2566,inset 0 2px 0 0 #2A2566,inset 0 -2px 0 0 #2A2566}
-.band.paid.band-mid.b3f,.band.paid.band-mid.b3l{box-shadow:inset 0 2px 0 0 #2A2566,inset 0 -2px 0 0 #2A2566}
-.band.paid.band-startend.b4f,.band.paid.band-startend.b4l{box-shadow:inset 0 0 0 2px #07335C}
-.band.paid.band-start.b4f,.band.paid.band-start.b4l{box-shadow:inset 2px 0 0 0 #07335C,inset 0 2px 0 0 #07335C,inset 0 -2px 0 0 #07335C}
-.band.paid.band-end.b4f,.band.paid.band-end.b4l{box-shadow:inset -2px 0 0 0 #07335C,inset 0 2px 0 0 #07335C,inset 0 -2px 0 0 #07335C}
-.band.paid.band-mid.b4f,.band.paid.band-mid.b4l{box-shadow:inset 0 2px 0 0 #07335C,inset 0 -2px 0 0 #07335C}
 .b0f{background:#F4C0D1;color:#72243E}
 .b0l{background:#FBEAF0;color:#993556;border:1px dashed #F4C0D1}
 .b1f{background:#F5D98B;color:#7A5800}
@@ -567,14 +547,14 @@ function runMigrations(){
     Object.values(r.prestaGarde||{}).forEach(pg=>{
       Object.keys(pg.nights||{}).forEach(date=>{
         if(typeof pg.nights[date]==='string')pg.nights[date]={duree:pg.nights[date],paid:false};
-        if(pg.nights[date].payMethod===undefined)pg.nights[date].payMethod='cash';
+        
         if(pg.nights[date].comment===undefined)pg.nights[date].comment='';
       });
     });
     if(r.menagePaid===undefined)r.menagePaid=false;
   });
   (D.dominiqueSchedule||[]).forEach(x=>{if(x.paid===undefined)x.paid=false;if(x.comment===undefined)x.comment='';});
-  (D.gardeSchedule||[]).forEach(x=>{if(x.payMethod===undefined)x.payMethod='cash';if(x.comment===undefined)x.comment='';});
+  (D.gardeSchedule||[]).forEach(x=>{if(x.comment===undefined)x.comment='';});
   (D.visites||[]).forEach(v=>{if(v.typeEvenement==='Famille / Cousinade'||v.typeEvenement==='Séjour amis'||v.typeEvenement==='Famille / Ami')v.typeEvenement='Famille / Amis';if(v.typeEvenement==='GDC (Gens de confiance)'||v.typeEvenement==='GDC / Home Exchange')v.typeEvenement='GDC';});
 }
 let S={view:'login',admin:null,presta:null,tab:'calendrier',prestaTab:'calendrier',modal:null,msg:null,selResa:null,selectedPresta:null,hiddenDomains:[],calYear:2026,calMonth:5,bilanYear:2026,bilanMonth:5,listeYear:2026,listeMonth:5,visiteYear:2026,visiteMonth:5,prestaBilanYear:2026,prestaBilanMonth:5,adminPrestaYear:2026,adminPrestaMonth:5,clientsSortBy:'date',clientsExportSub:'clients',resteAPayerDetail:null,searchQuery:null,bilanAnnualMonth:null};
@@ -762,7 +742,6 @@ function contractFileName(r,cd,ext){
 }
 function money(n){return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(Math.round(n||0));}
 function totPay(r){return(r.paiements||[]).reduce((a,p)=>a+(p.montant||0),0);}
-function isCash(pa){return/cash/i.test(pa.comment||pa.note||'');}
 function payStatus(r){const t=totPay(r),m=r.montant||0;if(m===0)return'none';if(t>=m)return'full';if(t>0)return'part';return'none';}
 function getMenageInfo(r){
   let info=null;
@@ -867,7 +846,7 @@ function buildBands(y,m){
       /* Heures pour position proportionnelle (fenêtre 8h-22h) */
       const hArr=ifr?(parseInt((r.heureArrivee||'12:00').split(':')[0])+(parseInt((r.heureArrivee||'12:00').split(':')[1]||0)/60)):8;
       const hDep=ilr?(parseInt((r.heureDepart||'12:00').split(':')[0])+(parseInt((r.heureDepart||'12:00').split(':')[1]||0)/60)):22;
-      bands.push({rid:r.id,slot,row:fc.row,colStart:fc.col,spanCols:lc.col-fc.col+1,shapeClass:sc,nameTxt,timeArr,timeDep,mainLine,bandCls:bc,optCls:oc,isJ,isPaid:payStatus(r)==='full',isPartPaid:payStatus(r)==='part',isFirstRow:ifr,isLastRow:ilr,hA:hArr,hD:hDep});
+      bands.push({rid:r.id,slot,row:fc.row,colStart:fc.col,spanCols:lc.col-fc.col+1,shapeClass:sc,nameTxt,timeArr,timeDep,mainLine,bandCls:bc,optCls:oc,isJ,isPaid:payStatus(r)==='full',isPartPaid:payStatus(r)==='part',isFirstRow:ifr,isLastRow:ilr,hA:hArr,hD:hDep,colorIdx:c});
     });
   });
   return{bands,tc,sd,dim,dip};
@@ -1263,8 +1242,17 @@ function injectBands(){
     } else {
       const topParts=[];
       if(b.nameTxt){
-        const dotHtml=b.isPartPaid?'<span style="font-size:11px;line-height:1;margin-right:2px">●</span>':'';
-        topParts.push(dotHtml+'<span style="font-weight:800">'+b.nameTxt+'</span>');
+        // Préfixe OPT pour les options
+        const optPrefix=b.optCls?' <span style="font-size:9px;font-weight:900;letter-spacing:.5px;opacity:.9">OPT</span> ':'';
+        // Point acompte (légèrement plus gros)
+        // Couleurs de texte par index domaine (bordeaux, doré, vert, violet, bleu)
+        const DOT_COLORS=['#72243E','#7A5800','#27500A','#3C3489','#0C447C'];
+        const dotColor=DOT_COLORS[b.colorIdx||0];
+        // Anneau coloré avec centre blanc — SVG inline centré sur la hauteur de ligne
+        const dotHtml=b.isPartPaid?`<svg width="12" height="12" viewBox="0 0 12 12" style="display:inline-block;vertical-align:middle;margin-right:3px;flex-shrink:0"><circle cx="6" cy="6" r="5.5" fill="${dotColor}"/><circle cx="6" cy="6" r="3" fill="white"/></svg>`:'';
+        // 100% très penché
+        const fullHtml=b.isPaid?`<span style="font-size:9px;font-weight:700;font-style:italic;color:#E8000D;margin-right:3px;letter-spacing:.5px;display:inline-block;transform:skewX(-12deg)">100%</span>`:'';
+        topParts.push(optPrefix+dotHtml+fullHtml+'<span style="font-weight:800">'+b.nameTxt+'</span>');
       }
       if(b.mainLine)topParts.push(b.mainLine);
       const topLine=topParts.join(' · ');
@@ -1312,7 +1300,7 @@ function injectVisiteMarkers(){
   const domIdx={};D.domaines.forEach((d,i)=>domIdx[d.id]=i);
   const gridRect=grid.getBoundingClientRect();
   const dayFrac=h=>Math.max(0,Math.min(1,(h-8)/14));
-  const dotColors=['#72243E','#F5D98B','#27500A','#3C3489','#0C447C']; /* jaune éclairci à la demande */
+  const dotColors=['#72243E','#7A5800','#27500A','#3C3489','#0C447C']; /* couleurs foncées = même que le texte des bandes */
   /* Bandes déjà posées par injectBands, pour éviter de superposer une visite sur une réservation */
   const existingBands=Array.from(grid.querySelectorAll('.band')).map(el=>({left:parseFloat(el.style.left),width:parseFloat(el.style.width),top:parseFloat(el.style.top)}));
   D.visites.filter(v=>(!CAL_DOMAIN_FILTER||CAL_DOMAIN_FILTER.includes(v.domaine))&&!(S.hiddenDomains||[]).includes(v.domaine)).forEach(v=>{
@@ -1363,11 +1351,11 @@ function doLogin(){
 }
 
 function renderAdmin(){
-  const tabs=[['calendrier','📅','Planning'],['liste','🎉','Liste<br>résas'],['visites','👀','Liste<br>visites'],['prestataires','🧑‍🔧','Équipe<br>Domaines'],['bilan','📊','Bilan €'],['clientsExport','📇','Clients<br>/ Export']];
+  const tabs=[['calendrier','📅','Planning'],['liste','🎉','Résa /<br>Visite'],['dernieres','🕓','Dernières'],['prestataires','🧑‍🔧','Équipe<br>Domaines'],['bilan','📊','Bilan €'],['clientsExport','📇','Clients<br>/ Export']];
   let content='';
   if(S.tab==='calendrier')content=renderCalendrier();
-  else if(S.tab==='liste')content=renderListe();
-  else if(S.tab==='visites')content=renderVisiteList();
+  else if(S.tab==='liste')content=renderListeMerged();
+  else if(S.tab==='dernieres')content=renderDernieres();
   else if(S.tab==='prestataires')content=renderPrestaList();
   else if(S.tab==='bilan')content=renderBilan();
   else if(S.tab==='clientsExport')content=renderClientsExport();
@@ -1496,11 +1484,57 @@ function renderListe(){
     <td>${isJ?'<span style="font-size:11px;color:#888">Journée</span>':`${dn(r.dateDepart)} ${ds(r.dateDepart)}<br><span style="font-size:11px;color:#888">${r.heureDepart||''}</span>`}</td>
     <td style="text-align:center">${r.nbPersonnes||'—'}</td><td style="text-align:center">${r.nbSoiree||'—'}</td><td><span class="status s-${r.status}">${r.status}</span></td>${readOnly?'':`<td>${payBadge(r)}</td>
     <td><button class="btn btn-xs" onclick="event.stopPropagation();openM('editResa','${r.id}')">Détail</button></td>`}</tr>`;}).join('');
+
+  /* ── HISTORIQUE DES DERNIÈRES MODIFICATIONS ── */
+  const recentItems=[
+    ...D.reservations.map(r=>({
+      ts:r.updatedAt||r.createdAt||0,
+      isNew:!r.updatedAt||(r.updatedAt===r.createdAt),
+      type:'résa',
+      label:r.client||r.societe||'—',
+      sub:`${gDom(r.domaine).name} · ${r.typeEvenement||''} · ${ds(r.dateArrivee||r.date)||''}`,
+      rid:r.id,
+      status:r.status
+    })),
+    ...D.visites.map(v=>({
+      ts:v.updatedAt||v.createdAt||0,
+      isNew:!v.updatedAt||(v.updatedAt===v.createdAt),
+      type:'visite',
+      label:v.client||'—',
+      sub:`${gDom(v.domaine).name} · ${ds(v.date)||''}`,
+      rid:null,vid:v.id
+    }))
+  ].filter(x=>x.ts).sort((a,b)=>b.ts-a.ts).slice(0,10);
+
+  const recentHtml=recentItems.length===0?'<div style="font-size:12px;color:#aaa">Aucune activité enregistrée.</div>':
+    recentItems.map(x=>{
+      const d=new Date(x.ts);
+      const when=d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+      const typeBadge=x.type==='résa'
+        ?`<span style="background:#FBEAF0;color:#993556;font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px">${x.isNew?'✚ Nouvelle résa':'✎ Résa modifiée'}</span>`
+        :`<span style="background:#F0F4FF;color:#3355AA;font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px">${x.isNew?'✚ Nouvelle visite':'✎ Visite modifiée'}</span>`;
+      const clickAttr=x.rid?`onclick="openM('editResa','${x.rid}')" style="cursor:pointer"`:'style="cursor:default"';
+      return`<div ${clickAttr} style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;transition:background .15s" onmouseover="this.style.background='#f5f4f1'" onmouseout="this.style.background=''">
+        <div style="flex:0 0 90px;font-size:10.5px;color:#aaa;white-space:nowrap">${when}</div>
+        <div style="flex:0 0 auto">${typeBadge}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${x.label}</div>
+          <div style="font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${x.sub}</div>
+        </div>
+        ${x.rid?'<span style="font-size:11px;color:#aaa">→ ouvrir</span>':''}
+      </div>`;
+    }).join('');
+
   return`<div class="cal-header" style="margin-bottom:10px">
     ${monthYearPicker('listeYear','listeMonth')}
     <div class="field" style="min-width:160px"><label style="font-size:10.5px">Trier par</label><select onchange="setListeSortBy(this.value)" style="font-size:12px;padding:5px 6px"><option value="date" ${sortBy==='date'?'selected':''}>Date d'arrivée</option><option value="domaine" ${sortBy==='domaine'?'selected':''}>Domaine</option></select></div>
     ${readOnly?'':`<button class="btn btn-primary btn-sm" onclick="openM('newResa')">+ Ajouter</button>`}
   </div>
+  ${readOnly?'':
+  `<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
+    <div style="font-weight:600;font-size:12px;color:#444;margin-bottom:8px;display:flex;align-items:center;gap:6px">🕓 Dernières modifications <span style="font-size:10px;color:#aaa;font-weight:400">(cliquer pour ouvrir)</span></div>
+    ${recentHtml}
+  </div>`}
   ${readOnly?'':`<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;font-size:12px">
     <span style="color:#666">CA total : <strong>${money(totalCA)}</strong></span>
     <span style="color:#27500A">Encaissé : <strong>${money(totalPaid)}</strong></span>
@@ -1541,26 +1575,37 @@ function navYearOnly(yKey,d){
 }
 function listeNav(d){S.listeMonth+=d;if(S.listeMonth>11){S.listeMonth=0;S.listeYear++;}if(S.listeMonth<0){S.listeMonth=11;S.listeYear--;}render();}
 
-const ARR_DEFAULT_HOUR={0:'16:00',1:'10:00',2:'10:00',3:'10:00',4:'10:00',5:'16:00',6:'10:00'};
-const DEP_DEFAULT_HOUR={0:'18:00',1:'18:00',2:'18:00',3:'18:00',4:'18:00',5:'18:00',6:'18:00'};
+const ARR_DEFAULT_HOUR={0:'17:00',1:'10:00',2:'10:00',3:'10:00',4:'10:00',5:'17:00',6:'10:00'};
+const DEP_DEFAULT_HOUR={0:'17:00',1:'18:00',2:'18:00',3:'18:00',4:'18:00',5:'17:00',6:'18:00'};
 function defaultArrHeure(dateStr){
   if(!dateStr)return;
   const el=document.getElementById('m-arr-heure');
-  if(el&&!el.value){const dow=new Date(dateStr+'T12:00:00').getDay();el.value=ARR_DEFAULT_HOUR[dow]||'';}
+  if(el){const dow=new Date(dateStr+'T12:00:00').getDay();el.value=ARR_DEFAULT_HOUR[dow]||'';}
 }
 function defaultDepDate(dateStr){
   if(!dateStr)return;
-  const el=document.getElementById('m-dep-date');
-  if(el&&!el.value){
-    const d=new Date(dateStr+'T12:00:00');d.setDate(d.getDate()+2);
-    el.value=d.toISOString().slice(0,10);
-    refreshAllGardNights();defaultDepHeure(el.value);
+  const elDep=document.getElementById('m-dep-date');
+  if(elDep&&!elDep.value){
+    const d=new Date(dateStr+'T12:00:00');
+    const dow=d.getDay(); // 5=vendredi
+    // Vendredi → dimanche (+2j), sinon +2j par défaut
+    const daysToAdd=(dow===5)?2:2;
+    d.setDate(d.getDate()+daysToAdd);
+    elDep.value=d.toISOString().slice(0,10);
+    refreshAllGardNights();defaultDepHeure(elDep.value);
   }
 }
 function defaultDepHeure(dateStr){
   if(!dateStr)return;
   const el=document.getElementById('m-dep-heure');
-  if(el&&!el.value){const dow=new Date(dateStr+'T12:00:00').getDay();el.value=DEP_DEFAULT_HOUR[dow]||'';}
+  if(el){
+    const depDow=new Date(dateStr+'T12:00:00').getDay();
+    const arrEl=document.getElementById('m-arr-date');
+    const arrDow=arrEl?new Date((arrEl.value||dateStr)+'T12:00:00').getDay():-1;
+    // Vendredi arrivée → dimanche départ → 17h
+    if(arrDow===5&&depDow===0){el.value='17:00';}
+    else{el.value=DEP_DEFAULT_HOUR[depDow]||'';}
+  }
 }
 function heureOptions(sel){
   const opts=[''].concat(Array.from({length:15},(_,i)=>`${String(i+8).padStart(2,'0')}:00`));
@@ -1619,7 +1664,150 @@ function renderVisiteList(){
     </table></div>
   </div>`;
 }
-function visiteNav(d){S.visiteMonth+=d;if(S.visiteMonth>11){S.visiteMonth=0;S.visiteYear++;}if(S.visiteMonth<0){S.visiteMonth=11;S.visiteYear--;}render();}
+function renderListeMerged(){
+  const readOnly=S.view!=='admin';
+  const view=S.listeSubView||'resa'; // 'resa' ou 'visite'
+  const y=S.listeYear,m=S.listeMonth;
+  const sortBy=S.listeSortBy||'date';
+
+  // Toggle Résa / Visite
+  const toggle=`<div style="display:flex;gap:0;border:1.5px solid #e5e3de;border-radius:8px;overflow:hidden;flex-shrink:0">
+    <button onclick="S.listeSubView='resa';render()" style="padding:5px 14px;font-size:12px;font-weight:600;border:none;cursor:pointer;background:${view==='resa'?'#993556':'#fff'};color:${view==='resa'?'#fff':'#888'}">🎉 Résas</button>
+    <button onclick="S.listeSubView='visite';render()" style="padding:5px 14px;font-size:12px;font-weight:600;border:none;cursor:pointer;background:${view==='visite'?'#993556':'#fff'};color:${view==='visite'?'#fff':'#888'}">👀 Visites</button>
+  </div>`;
+
+  if(view==='visite'){
+    const inMonth=v=>{if(!v.date)return false;const[vy,vm]=v.date.split('-').map(Number);return vy===y&&vm===(m+1);};
+    const list=D.visites.filter(inMonth).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+    return`<div class="cal-header" style="margin-bottom:10px">
+      ${toggle}
+      ${monthYearPicker('listeYear','listeMonth')}
+      ${readOnly?'':`<button class="btn btn-primary btn-sm" onclick="openM('newVisite')">+ Ajouter</button>`}
+    </div>
+    <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
+      ${list.length===0?'<div class="empty">Aucune visite ce mois-ci.</div>':''}
+      <div style="overflow-x:auto"><table class="list-tbl">
+        ${list.length>0?`<thead><tr><th>Client</th><th>Domaine</th><th>Date</th><th>Heure</th><th>Type</th><th>Statut</th>${readOnly?'':'<th></th>'}</tr></thead>
+        <tbody>${list.map(v=>{const dom=gDom(v.domaine);const stCls=v.status==='annulée'?'annulé':'option';
+          return`<tr ${readOnly?'':`onclick="openM('editVisite','${v.id}')"`}><td><div style="font-weight:500">${v.client||'—'}</div>${v.tel?`<div style="font-size:11px;color:#888">${v.tel}</div>`:''}</td>
+          <td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td>
+          <td>${dn(v.date)} ${ds(v.date)}</td><td>${v.heure||'—'}</td>
+          <td style="font-size:11px;color:#993556">${v.typeEvenement||'—'}</td>
+          <td><span class="status s-${stCls}">${v.status||'prévue'}</span></td>
+          ${readOnly?'':`<td><button class="btn btn-xs btn-danger" onclick="event.stopPropagation();delVisite('${v.id}')">✕</button></td>`}</tr>`;}).join('')}</tbody>`:''}
+      </table></div>
+    </div>`;
+  }
+
+  // Vue résas
+  const inMonth=r=>{const d=r.dateArrivee||r.date;if(!d)return false;const[ry,rm]=d.split('-').map(Number);return ry===y&&rm===(m+1);};
+  const list=D.reservations.filter(inMonth).sort((a,b)=>{
+    if(sortBy==='domaine'){const da=gDom(a.domaine).name||'',db=gDom(b.domaine).name||'';if(da!==db)return da.localeCompare(db);}
+    return(a.dateArrivee||a.date).localeCompare(b.dateArrivee||b.date);
+  });
+  const totalCA=list.reduce((a,r)=>a+(r.montant||0),0),totalPaid=list.reduce((a,r)=>a+totPay(r),0);
+  const rows=list.map(r=>{const dom=gDom(r.domaine);const isJ=r.dateArrivee===r.dateDepart;
+    return`<tr ${readOnly?'':`onclick="selectAndGoCal('${r.id}')"`}><td><div style="font-weight:500">${r.client||'—'}</div><div style="font-size:11px;color:#888">${displayTel(r.tel)||'<span style="color:#A32D2D">À renseigner</span>'}</div>${r.typeEvenement?`<div style="font-size:11px;color:#993556">${r.typeEvenement}</div>`:''}</td>
+    <td>${r.typeClient==='entreprise'&&r.societe?r.societe:'<span style="color:#ccc">—</span>'}</td>
+    <td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td>
+    <td>${dn(r.dateArrivee||r.date)} ${ds(r.dateArrivee||r.date)}<br><span style="font-size:11px;color:#888">${r.heureArrivee||''}</span></td>
+    <td>${isJ?'<span style="font-size:11px;color:#888">Journée</span>':`${dn(r.dateDepart)} ${ds(r.dateDepart)}<br><span style="font-size:11px;color:#888">${r.heureDepart||''}</span>`}</td>
+    <td style="text-align:center">${r.nbPersonnes||'—'}</td><td><span class="status s-${r.status}">${r.status}</span></td>
+    ${readOnly?'':`<td>${payBadge(r)}</td><td><button class="btn btn-xs" onclick="event.stopPropagation();openM('editResa','${r.id}')">Détail</button></td>`}</tr>`;}).join('');
+  return`<div class="cal-header" style="margin-bottom:10px">
+    ${toggle}
+    ${monthYearPicker('listeYear','listeMonth')}
+    <div class="field" style="min-width:130px"><label style="font-size:10.5px">Trier par</label><select onchange="setListeSortBy(this.value)" style="font-size:12px;padding:5px 6px"><option value="date" ${sortBy==='date'?'selected':''}>Date</option><option value="domaine" ${sortBy==='domaine'?'selected':''}>Domaine</option></select></div>
+    ${readOnly?'':`<button class="btn btn-primary btn-sm" onclick="openM('newResa')">+ Ajouter</button>`}
+  </div>
+  ${readOnly?'':`<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;font-size:12px">
+    <span style="color:#666">CA : <strong>${money(totalCA)}</strong></span>
+    <span style="color:#27500A">Encaissé : <strong>${money(totalPaid)}</strong></span>
+    <span style="color:${totalCA-totalPaid>0?'#A32D2D':'#27500A'}">Solde : <strong>${money(totalCA-totalPaid)}</strong></span>
+  </div>`}
+  <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
+    ${list.length===0?'<div class="empty">Aucune réservation ce mois-ci.</div>':''}
+    <div style="overflow-x:auto"><table class="list-tbl liste-evt-tbl">
+      ${list.length>0?`<thead><tr><th>Client</th><th>Entreprise</th><th>Domaine</th><th>Arrivée</th><th>Départ</th><th>Pers.</th><th>Statut</th>${readOnly?'':'<th>Paiement</th><th></th>'}</tr></thead>
+      <tbody>${rows}</tbody>`:''}
+    </table></div>
+  </div>`;
+}
+
+function renderDernieres(){
+  // Fusion résas + visites triées par updatedAt desc
+  const items=[
+    ...D.reservations.map(r=>({
+      ts:r.updatedAt||r.createdAt||0,
+      isNew:!r.updatedAt||(r.updatedAt===r.createdAt),
+      type:'resa',
+      client:r.client||r.societe||'—',
+      domaine:r.domaine,
+      typeEvt:r.typeEvenement||'',
+      dateArr:r.dateArrivee||r.date||'',
+      statut:r.status||'',
+      montant:r.montant||0,
+      paid:totPay(r),
+      nbPers:r.nbPersonnes||0,
+      noteInterne:r.noteInterne||'',
+      rid:r.id
+    })),
+    ...D.visites.map(v=>({
+      ts:v.updatedAt||v.createdAt||0,
+      isNew:!v.updatedAt||(v.updatedAt===v.createdAt),
+      type:'visite',
+      client:v.client||'—',
+      domaine:v.domaine,
+      typeEvt:v.typeEvenement||'',
+      dateArr:v.date||'',
+      statut:v.status||'prévue',
+      montant:0,paid:0,nbPers:0,
+      noteInterne:v.noteInterne||'',
+      rid:null,vid:v.id
+    }))
+  ].filter(x=>x.ts).sort((a,b)=>b.ts-a.ts).slice(0,20);
+
+  const rows=items.map(x=>{
+    const d=new Date(x.ts);
+    const when=d.toLocaleDateString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    const dom=gDom(x.domaine);
+    const isResa=x.type==='resa';
+    const actionLabel=x.isNew?(isResa?'Nouvelle résa':'Nouvelle visite'):(isResa?'Résa modifiée':'Visite modifiée');
+    const actionColor=x.isNew?'#27500A':'#993556';
+    const actionBg=x.isNew?'#EAF3DE':'#FBEAF0';
+    const clickAttr=x.rid?`onclick="openM('editResa','${x.rid}')" style="cursor:pointer"`
+      :x.vid?`onclick="openM('editVisite','${x.vid}')" style="cursor:pointer"`:'';
+    const details=[];
+    if(x.typeEvt)details.push(x.typeEvt);
+    if(x.dateArr)details.push(`${dn(x.dateArr)} ${ds(x.dateArr)}`);
+    if(isResa&&x.nbPers)details.push(`${x.nbPers} pers.`);
+    if(isResa&&x.montant)details.push(money(x.montant));
+    if(isResa&&x.paid&&x.paid<x.montant)details.push(`encaissé ${money(x.paid)}`);
+    if(isResa&&x.paid>=x.montant&&x.montant>0)details.push('✓ soldé');
+    if(x.statut&&x.statut!=='confirmé')details.push(x.statut);
+    if(x.noteInterne)details.push(`📝 ${x.noteInterne.slice(0,40)}${x.noteInterne.length>40?'…':''}`);
+    return`<div ${clickAttr} style="display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-radius:8px;border-bottom:1px solid #f0eee8;transition:background .12s" onmouseover="this.style.background='#faf9f7'" onmouseout="this.style.background=''">
+      <div style="flex:0 0 110px;font-size:10.5px;color:#aaa;white-space:nowrap;padding-top:2px">${when}</div>
+      <div style="flex:0 0 auto;padding-top:2px"><span style="background:${actionBg};color:${actionColor};font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap">${actionLabel}</span></div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+          <span style="font-weight:700;font-size:13px">${x.client}</span>
+          <span class="pill ${PILL[dom.color||0]}" style="font-size:10px">${dom.name}</span>
+        </div>
+        <div style="font-size:11px;color:#777;margin-top:3px">${details.join(' · ')}</div>
+      </div>
+      ${x.rid||x.vid?'<span style="font-size:11px;color:#ccc;padding-top:3px;flex-shrink:0">→</span>':''}
+    </div>`;
+  }).join('');
+
+  return`<div style="margin-bottom:12px">
+    <div style="font-size:12px;color:#888;margin-bottom:8px">Les 20 dernières créations et modifications — cliquer pour ouvrir.</div>
+  </div>
+  <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;overflow:hidden">
+    ${items.length===0?'<div class="empty">Aucune activité enregistrée.</div>':rows}
+  </div>`;
+}
+
 
 function saveVisite(id){
   const domaine=document.getElementById('v-domaine').value,date=document.getElementById('v-date').value,heure=document.getElementById('v-heure').value,status=document.getElementById('v-status').value,client=capWords(document.getElementById('v-client').value.trim()),typeEvenement=document.getElementById('v-evt').value,tel=document.getElementById('v-tel').value.trim(),email=document.getElementById('v-email').value.trim(),noteInterne=document.getElementById('v-note').value;
@@ -1633,7 +1821,7 @@ function saveVisite(id){
   if(id){const v=D.visites.find(x=>x.id===id);Object.assign(v,{domaine,date,heure,status,client,typeEvenement,tel,email,noteInterne});}
   else D.visites.push({id:gid(),domaine,date,heure,status,client,typeEvenement,tel,email,noteInterne});
   logActivity(isNew?'créée':(status==='annulée'?'annulée':'modifiée'),domaine,`Visite ${isNew?'créée':(status==='annulée'?'annulée':'modifiée')} — ${client||'—'} (${fmt(date)})`);
-  saveD();S.modal=null;S.tab='visites';showMsg('Visite enregistrée ✓');
+  saveD();S.modal=null;S.tab='liste';S.listeSubView='visite';showMsg('Visite enregistrée ✓');
 }
 function delVisite(id){if(!confirm('Supprimer cette visite ?'))return;const v=D.visites.find(x=>x.id===id);if(v)logActivity('supprimée',v.domaine,`Visite supprimée — ${v.client||'—'} (${fmt(v.date)})`);D.visites=D.visites.filter(x=>x.id!==id);saveD();render();}
 
@@ -1748,7 +1936,7 @@ function renderBilan(){
   D.reservations.filter(r=>r.status!=='annulé').forEach(r=>{
     const amt=viewMode==='year'?montantForYear(r,y):montantForMonth(r,y,m);
     const paid=viewMode==='year'?paidForYear(r,y):paidForMonth(r,y,m);
-    if(!revByDom[r.domaine])revByDom[r.domaine]={loc:0,paid:0,cash:0,virement:0,nuitees:0};
+    if(!revByDom[r.domaine])revByDom[r.domaine]={loc:0,paid:0,nuitees:0};
     if(amt>0||paid>0){
       revByDom[r.domaine].loc+=amt;
       revTotal+=amt;
@@ -1756,7 +1944,7 @@ function renderBilan(){
     const isPast=(r.dateDepart||r.dateArrivee||'')<todayStr;
     if(viewMode==='year'){
       const tgt=isPast?revByDomPast:revByDomFuture;
-      if(!tgt[r.domaine])tgt[r.domaine]={loc:0,paid:0,cash:0,virement:0,nuitees:0};
+      if(!tgt[r.domaine])tgt[r.domaine]={loc:0,paid:0,nuitees:0};
       if(amt>0||paid>0){
         tgt[r.domaine].loc+=amt;
         if(isPast)revTotalPast+=amt;else revTotalFuture+=amt;
@@ -1769,38 +1957,23 @@ function renderBilan(){
       const key=`${y}-${String(m+1).padStart(2,'0')}`;
       revByDom[r.domaine].nuitees+=counts[key]||0;
     }
-    /* La part payée (paid) ci-dessus est déjà rattachée à la période du séjour, pas à la date réelle
-       du règlement. On répartit ce montant entre cash/virement selon la même proportion que
-       l'ensemble des paiements de cette réservation, pour rester cohérent avec "où en est ce séjour". */
+    /* La part payée (paid) ci-dessus est déjà rattachée à la période du séjour. */
     if(paid>0){
-      const totalPaye=totPay(r)||1;
-      let cashSum=0,virSum=0;
-      (r.paiements||[]).forEach(pa=>{if(isCash(pa))cashSum+=pa.montant||0;else virSum+=pa.montant||0;});
-      const cashAmt=paid*(cashSum/totalPaye);
-      const virAmt=paid*(virSum/totalPaye);
-      revByDom[r.domaine].cash+=cashAmt;revByDom[r.domaine].virement+=virAmt;
       revByDom[r.domaine].paid+=paid;paidTotal+=paid;
       if(viewMode==='year'){
         const tgt=isPast?revByDomPast:revByDomFuture;
-        if(!tgt[r.domaine])tgt[r.domaine]={loc:0,paid:0,cash:0,virement:0,nuitees:0};
-        tgt[r.domaine].cash+=cashAmt;tgt[r.domaine].virement+=virAmt;
-        tgt[r.domaine].paid+=paid;
+        if(!tgt[r.domaine])tgt[r.domaine]={loc:0,paid:0,nuitees:0};
+                tgt[r.domaine].paid+=paid;
         if(isPast)paidTotalPast+=paid;else paidTotalFuture+=paid;
       }
     }
   });
-  const revRows=D.domaines.map(d=>({d,...(revByDom[d.id]||{loc:0,paid:0,cash:0,virement:0,nuitees:0})})).filter(x=>x.loc>0||x.paid>0||x.cash>0||x.virement>0||x.nuitees>0);
-  const revRowsPast=D.domaines.map(d=>({d,...(revByDomPast[d.id]||{loc:0,paid:0,cash:0,virement:0})})).filter(x=>x.loc>0||x.paid>0);
-  const revRowsFuture=D.domaines.map(d=>({d,...(revByDomFuture[d.id]||{loc:0,paid:0,cash:0,virement:0})})).filter(x=>x.loc>0||x.paid>0);
-  let cashTotal=0,virementTotal=0;
-  D.reservations.filter(r=>r.status!=='annulé').forEach(r=>{
+  const revRows=D.domaines.map(d=>({d,...(revByDom[d.id]||{loc:0,paid:0,nuitees:0})})).filter(x=>x.loc>0||x.paid>0||x.nuitees>0);
+  const revRowsPast=D.domaines.map(d=>({d,...(revByDomPast[d.id]||{loc:0,paid:0})})).filter(x=>x.loc>0||x.paid>0);
+  const revRowsFuture=D.domaines.map(d=>({d,...(revByDomFuture[d.id]||{loc:0,paid:0})})).filter(x=>x.loc>0||x.paid>0);
+    D.reservations.filter(r=>r.status!=='annulé').forEach(r=>{
     const paid=viewMode==='year'?paidForYear(r,y):paidForMonth(r,y,m);
     if(paid<=0)return;
-    const totalPaye=totPay(r)||1;
-    let cashSum=0,virSum=0;
-    (r.paiements||[]).forEach(pa=>{if(isCash(pa))cashSum+=pa.montant||0;else virSum+=pa.montant||0;});
-    cashTotal+=paid*(cashSum/totalPaye);
-    virementTotal+=paid*(virSum/totalPaye);
   });
   /* Forfaits ménage (sans commission, suivi à part) */
   const menageByP={};
@@ -1846,8 +2019,8 @@ function renderBilan(){
     <div style="margin-bottom:10px">
       <div style="font-size:12px;font-weight:700;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:.03em">📌 Déjà réalisé (jusqu'à aujourd'hui)</div>
       ${revRowsPast.length===0?'<div style="font-size:12px;color:#888;margin-bottom:10px">Rien à ce jour.</div>':`<table class="list-tbl"><thead><tr><th>Domaine</th><th>Montant location</th><th>Payé</th><th>Reste à payer</th></tr></thead>
-      <tbody>${revRowsPast.map(({d,loc,paid,cash,virement})=>{const reste=loc-paid;const dkey=resteAPayerKey(d.id,viewMode,y,m,'past');const isOpen=S.resteAPayerDetail===dkey;return`<tr><td><span class="pill ${PILL[d.color||0]}">${d.name}</span></td><td style="font-weight:500">${money(loc)}</td><td><div style="color:#27500A;font-weight:600">${money(paid)}</div><div style="font-size:10px;color:#999;margin-top:1px">virement ${money(virement||0)} · cash ${money(cash||0)}</div></td><td>${reste>0.5?`<span style="color:#A32D2D;cursor:pointer;text-decoration:underline dotted" onclick="toggleResteAPayerDetail('${d.id}','${viewMode}',${y},${m},'past')">${money(reste)}</span>`:`<span style="color:#27500A">${money(reste)}</span>`}</td></tr>${isOpen?`<tr><td colspan="4" style="padding:0;border:none">${renderResteAPayerDetailRows(d.id,viewMode,y,m,'past')}</td></tr>`:''}`;}).join('')}
-      <tr style="background:#f0eee8"><td style="font-weight:700;color:#000">Total réalisé</td><td style="font-weight:700;color:#000">${money(revTotalPast)}</td><td><div style="font-weight:700;color:#000">${money(paidTotalPast)}</div><div style="font-size:10px;color:#777;font-weight:500;margin-top:1px">virement ${money(revRowsPast.reduce((a,x)=>a+(x.virement||0),0))} · cash ${money(revRowsPast.reduce((a,x)=>a+(x.cash||0),0))}</div></td><td style="font-weight:700;color:#000">${money(revTotalPast-paidTotalPast)}</td></tr></tbody></table>`}
+      <tbody>${revRowsPast.map(({d,loc,paid})=>{const reste=loc-paid;const dkey=resteAPayerKey(d.id,viewMode,y,m,'past');const isOpen=S.resteAPayerDetail===dkey;return`<tr><td><span class="pill ${PILL[d.color||0]}">${d.name}</span></td><td style="font-weight:500">${money(loc)}</td><td><div style="color:#27500A;font-weight:600">${money(paid)}</div></td><td>${reste>0.5?`<span style="color:#A32D2D;cursor:pointer;text-decoration:underline dotted" onclick="toggleResteAPayerDetail('${d.id}','${viewMode}',${y},${m},'past')">${money(reste)}</span>`:`<span style="color:#27500A">${money(reste)}</span>`}</td></tr>${isOpen?`<tr><td colspan="4" style="padding:0;border:none">${renderResteAPayerDetailRows(d.id,viewMode,y,m,'past')}</td></tr>`:''}`;}).join('')}
+      <tr style="background:#f0eee8"><td style="font-weight:700;color:#000">Total réalisé</td><td style="font-weight:700;color:#000">${money(revTotalPast)}</td><td><div style="font-weight:700;color:#000">${money(paidTotalPast)}</div></td><td style="font-weight:700;color:#000">${money(revTotalPast-paidTotalPast)}</td></tr></tbody></table>`}
     </div>
     <div style="margin-bottom:10px">
       <div style="font-size:12px;font-weight:700;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:.03em">🔮 À venir (réservations futures)</div>
@@ -1867,8 +2040,8 @@ function renderBilan(){
     `:''}
     ${revRows.length===0?'<div class="empty">Aucune location sur cette période.</div>':''}
     ${revRows.length>0?`<table class="list-tbl"><thead><tr><th>Domaine</th><th>Montant location</th><th>Payé</th><th>Reste à payer</th><th>Occupation</th></tr></thead>
-    <tbody>${revRows.map(({d,loc,paid,cash,virement,nuitees})=>{const ct=getMenageInfo({domaine:d.id,nbPersonnes:0,nbSoiree:0});const ctP=ct?D.prestataires.find(x=>x.id===ct.pid):null;const reste=loc-paid;const dkey=resteAPayerKey(d.id,viewMode,y,m,null);const isOpen=S.resteAPayerDetail===dkey;return`<tr><td><span class="pill ${PILL[d.color||0]}">${d.name}</span>${ctP?` ${ctP.tel?`<a href="https://wa.me/${ctP.tel.replace(/\D/g,'')}" target="_blank" style="font-size:11px;color:#25D366;text-decoration:none" title="WhatsApp ${ctP.name}">💬 ${ctP.name}</a>`:`<span style="font-size:11px;color:#888">${ctP.name}</span>`}`:''}</td><td style="font-weight:500">${money(loc)}</td><td><div style="color:#27500A;font-weight:600">${money(paid)}</div><div style="font-size:10px;color:#999;margin-top:1px">virement ${money(virement)} · cash ${money(cash)}</div></td><td>${reste>0.5?`<span style="color:#A32D2D;cursor:pointer;text-decoration:underline dotted" onclick="toggleResteAPayerDetail('${d.id}','${viewMode}',${y},${m},null)">${money(reste)}</span>`:`<span style="color:#27500A">${money(reste)}</span>`}</td><td>${nuitees} / ${daysInPeriod} <span style="color:#888">(${(nuitees/daysInPeriod*100).toFixed(0)}%)</span></td></tr>${isOpen?`<tr><td colspan="5" style="padding:0;border:none">${renderResteAPayerDetailRows(d.id,viewMode,y,m,null)}</td></tr>`:''}`;}).join('')}
-    <tr style="background:#f0eee8"><td style="font-weight:700;color:#000">Total</td><td style="font-weight:700;color:#000">${money(revTotal)}</td><td><div style="font-weight:700;color:#000">${money(paidTotal)}</div><div style="font-size:10px;color:#777;font-weight:500;margin-top:1px">virement ${money(virementTotal)} · cash ${money(cashTotal)}</div></td><td style="font-weight:700;color:#000">${money(revTotal-paidTotal)}</td><td></td></tr></tbody></table>`:''}
+    <tbody>${revRows.map(({d,loc,paid,nuitees})=>{const ct=getMenageInfo({domaine:d.id,nbPersonnes:0,nbSoiree:0});const ctP=ct?D.prestataires.find(x=>x.id===ct.pid):null;const reste=loc-paid;const dkey=resteAPayerKey(d.id,viewMode,y,m,null);const isOpen=S.resteAPayerDetail===dkey;return`<tr><td><span class="pill ${PILL[d.color||0]}">${d.name}</span>${ctP?` ${ctP.tel?`<a href="https://wa.me/${ctP.tel.replace(/\D/g,'')}" target="_blank" style="font-size:11px;color:#25D366;text-decoration:none" title="WhatsApp ${ctP.name}">💬 ${ctP.name}</a>`:`<span style="font-size:11px;color:#888">${ctP.name}</span>`}`:''}</td><td style="font-weight:500">${money(loc)}</td><td><div style="color:#27500A;font-weight:600">${money(paid)}</div></td><td>${reste>0.5?`<span style="color:#A32D2D;cursor:pointer;text-decoration:underline dotted" onclick="toggleResteAPayerDetail('${d.id}','${viewMode}',${y},${m},null)">${money(reste)}</span>`:`<span style="color:#27500A">${money(reste)}</span>`}</td><td>${nuitees} / ${daysInPeriod} <span style="color:#888">(${(nuitees/daysInPeriod*100).toFixed(0)}%)</span></td></tr>${isOpen?`<tr><td colspan="5" style="padding:0;border:none">${renderResteAPayerDetailRows(d.id,viewMode,y,m,null)}</td></tr>`:''}`;}).join('')}
+    <tr style="background:#f0eee8"><td style="font-weight:700;color:#000">Total</td><td style="font-weight:700;color:#000">${money(revTotal)}</td><td><div style="font-weight:700;color:#000">${money(paidTotal)}</div></td><td style="font-weight:700;color:#000">${money(revTotal-paidTotal)}</td><td></td></tr></tbody></table>`:''}
   </div>
   <div class="g3" style="margin-bottom:14px">
     <div class="metric"><span class="lbl">Total prestations (commission)</span><span class="val">${money(totalGeneral)}</span></div>
@@ -2036,9 +2209,9 @@ function renderPrestaDetailAdmin(p){
     const rows=[];
     D.reservations.filter(r=>r.status!=='annulé').forEach(r=>{
       const pg=(r.prestaGarde||{})[p.id];if(!pg)return;
-      Object.entries(pg.nights||{}).forEach(([date,v])=>{if(inMonth(date))rows.push({date,duree:v.duree,paid:v.paid,payMethod:v.payMethod||'cash',comment:v.comment||'',resaId:r.id,client:displayClientName(r)||'—',domaine:pg.domaine,source:'resa'});});
+      Object.entries(pg.nights||{}).forEach(([date,v])=>{if(inMonth(date))rows.push({date,duree:v.duree,paid:v.paid,payMethod:v.payMethod||'',comment:v.comment||'',resaId:r.id,client:displayClientName(r)||'—',domaine:pg.domaine,source:'resa'});});
     });
-    (D.gardeSchedule||[]).filter(x=>x.pid===p.id&&inMonth(x.date)).forEach(x=>rows.push({date:x.date,duree:x.duree,paid:x.paid,payMethod:x.payMethod||'cash',comment:x.comment||'',resaId:null,schedId:x.id,client:'— (planning)',domaine:x.domaine,source:'planning'}));
+    (D.gardeSchedule||[]).filter(x=>x.pid===p.id&&inMonth(x.date)).forEach(x=>rows.push({date:x.date,duree:x.duree,paid:x.paid,payMethod:x.payMethod||'',comment:x.comment||'',resaId:null,schedId:x.id,client:'— (planning)',domaine:x.domaine,source:'planning'}));
     rows.sort((a,b)=>a.date.localeCompare(b.date));
     const total=rows.reduce((a,x)=>a+gardeRate(x.duree),0),paid=rows.filter(x=>x.paid).reduce((a,x)=>a+gardeRate(x.duree),0);
     gardeSection=`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
@@ -2050,7 +2223,7 @@ function renderPrestaDetailAdmin(p){
       </div>
       ${rows.length===0?'<div class="empty">Aucune nuit de gardiennage ce mois-ci.</div>':''}
       ${rows.length>0?`<div style="overflow-x:auto"><table class="list-tbl"><thead><tr><th>Nuit du</th><th>Lieu</th><th>Durée</th><th>Commentaire</th><th>Montant</th><th>Mode</th><th>Statut</th><th>Événement</th><th></th></tr></thead>
-      <tbody>${rows.map(x=>{const dom=gDom(x.domaine);const toggleCall=x.source==='resa'?`toggleGardeNightPaid('${x.resaId}','${p.id}','${x.date}')`:`toggleGardeSchedulePaid('${x.schedId}')`;const methodCall=x.source==='resa'?`setGardeNightPayMethod('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeSchedulePayMethod('${x.schedId}',this.value)`;const dureeCall=x.source==='resa'?`setGardeNightDuree('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleDuree('${x.schedId}',this.value)`;const commentCall=x.source==='resa'?`setGardeNightComment('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleComment('${x.schedId}',this.value)`;const delCall=x.source==='resa'?`delGardeNight('${x.resaId}','${p.id}','${x.date}')`:`delGardePlanning('${x.schedId}')`;return`<tr><td>${dn(x.date)} ${ds(x.date)}</td><td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td><td><select onchange="${dureeCall}" style="font-size:12px"><option value="courte" ${x.duree==='courte'?'selected':''}>Courte (22h-2h)</option><option value="longue" ${x.duree==='longue'?'selected':''}>Longue (22h-4h)</option></select></td><td><input type="text" value="${x.comment||''}" placeholder="Commentaire" onchange="${commentCall}" style="font-size:12px;padding:3px 5px;width:130px;color:#888"></td><td>${money(gardeRate(x.duree))}</td><td><select onchange="${methodCall}" style="font-size:12px"><option value="cash" ${x.payMethod==='cash'?'selected':''}>💵 Cash</option><option value="virement" ${x.payMethod==='virement'?'selected':''}>🏦 Virement</option></select></td><td><span class="pill" style="background:${x.paid?'#E8F3E0':'#FCEBEB'};color:${x.paid?'#27500A':'#791F1F'};cursor:pointer" onclick="${toggleCall}">${x.paid?'✓ Réglé':'✗ Régler'}</span></td><td>${x.client}</td><td><button class="btn btn-xs btn-danger" onclick="${delCall}">✕</button></td></tr>`;}).join('')}</tbody></table></div>`:''}
+      <tbody>${rows.map(x=>{const dom=gDom(x.domaine);const toggleCall=x.source==='resa'?`toggleGardeNightPaid('${x.resaId}','${p.id}','${x.date}')`:`toggleGardeSchedulePaid('${x.schedId}')`;const methodCall=x.source==='resa'?`setGardeNightPayMethod('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeSchedulePayMethod('${x.schedId}',this.value)`;const dureeCall=x.source==='resa'?`setGardeNightDuree('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleDuree('${x.schedId}',this.value)`;const commentCall=x.source==='resa'?`setGardeNightComment('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleComment('${x.schedId}',this.value)`;const delCall=x.source==='resa'?`delGardeNight('${x.resaId}','${p.id}','${x.date}')`:`delGardePlanning('${x.schedId}')`;return`<tr><td>${dn(x.date)} ${ds(x.date)}</td><td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td><td><select onchange="${dureeCall}" style="font-size:12px"><option value="courte" ${x.duree==='courte'?'selected':''}>Courte (22h-2h)</option><option value="longue" ${x.duree==='longue'?'selected':''}>Longue (22h-4h)</option></select></td><td><input type="text" value="${x.comment||''}" placeholder="Commentaire" onchange="${commentCall}" style="font-size:12px;padding:3px 5px;width:130px;color:#888"></td><td>${money(gardeRate(x.duree))}</td><td><span class="pill" style="background:${x.paid?'#E8F3E0':'#FCEBEB'};color:${x.paid?'#27500A':'#791F1F'};cursor:pointer" onclick="${toggleCall}">${x.paid?'✓ Réglé':'✗ Régler'}</span></td><td>${x.client}</td><td><button class="btn btn-xs btn-danger" onclick="${delCall}">✕</button></td></tr>`;}).join('')}</tbody></table></div>`:''}
     </div>`;
   }
 
@@ -2201,7 +2374,8 @@ function buildContractSections(r){
   const dom=gDom(r.domaine);
   const isJ=r.dateArrivee===r.dateDepart;
   const montant=r.montant||0;
-  const arrhes=r.arrhes||Math.round(montant*0.3/50)*50;
+  const arrhesFixe=r.domaine==='d3'?500:1500;
+  const arrhes=arrhesFixe;
   const solde=montant-arrhes;
   const depot=r.depotGarantie||(r.domaine==='d3'?1500:3000);
   const inclusTxt=cd.inclus.join(', ');
@@ -3059,7 +3233,7 @@ function renderModalContent(){
         <option ${pa.type==='Solde'?'selected':''}>Solde</option>
         <option ${pa.type==='Autre'?'selected':''}>Autre</option>
       </select>
-      <input type="text" class="pay-inline" value="${pa.comment||''}" placeholder="Commentaire (ex. cash)" onchange="updPay('${r.id}','${pa.id}','comment',this.value)" style="flex:1 1 130px;min-width:130px;color:#888">
+      <input type="text" class="pay-inline" value="${pa.comment||''}" placeholder="Commentaire…" onchange="updPay('${r.id}','${pa.id}','comment',this.value)" style="flex:1 1 130px;min-width:130px;color:#888">
       <button class="btn btn-xs btn-danger" onclick="delPay('${r.id||''}','${pa.id}')" style="flex-shrink:0">✕</button></div>`;}).join('');
     const comms=r.commentaires||[];
     return`<h3>${type==='newResa'?'➕ Nouvelle réservation':'✏️ Modifier — '+(displayClientName(r)||fmt(r.dateArrivee||''))}</h3>
@@ -3112,7 +3286,7 @@ function renderModalContent(){
           <div style="display:flex;align-items:center;gap:6px">
             <input type="number" id="m-montant" value="${r.typeEvenement==='Gratuit'?'0':(r.montant||'')}" placeholder="0" style="flex:1;font-weight:700${r.typeEvenement==='Gratuit'?';background:#f0eee8;color:#888':''}" ${r.typeEvenement==='Gratuit'?'readonly':''}>
             <span style="color:#555">€</span>
-            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.02em;border:1px solid #d5d3ce;border-radius:6px;padding:3px 7px;background:#fff"><input type="checkbox" id="m-avec-contrat" ${(['Airbnb','Abritel','Booking','Gratuit','Déjeuner / Dîner'].includes(r.typeEvenement||'')||r.avecContrat===false)?'':'checked'} style="width:auto;margin:0"> 📄 Contrat</label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.02em;border:1px solid #d5d3ce;border-radius:6px;padding:3px 7px;background:#fff"><input type="checkbox" id="m-avec-contrat" ${(['Airbnb','Abritel','Booking','Gratuit','Déjeuner / Dîner'].includes(r.typeEvenement||'')||r.avecContrat===false)?'':'checked'} style="width:auto;margin:0"> 📄 Avec досьє</label>
           </div>
         </div>
         <div class="field"><label style="display:flex;align-items:center;gap:6px;white-space:nowrap">Note interne <span style="background:#ECE9E2;color:#666;font-size:9.5px;font-weight:600;padding:2px 6px;border-radius:4px;text-transform:none;letter-spacing:0">🔒 admin</span></label><input type="text" id="m-noteI" value="${r.noteInterne||''}" placeholder="Note rapide…"></div>
@@ -3140,7 +3314,7 @@ function renderModalContent(){
       </div>`:''}
     </div>
     <hr style="border:none;border-top:1px solid #e5e3de;margin:14px 0">
-    <div style="font-size:13px;font-weight:500;margin-bottom:8px">💬 ${(()=>{const ct=getMenageInfo(r);return ct?`Commentaire visible par ${ct.name}`:'Commentaires visibles par les prestataires';})()} (${comms.length})</div>
+    <div style="font-size:13px;font-weight:500;margin-bottom:8px">💬 ${(()=>{const ct=getMenageInfo(r);return`Commentaire visible par ${ct?ct.name:'le gardien'}`;})()}  (${comms.length})</div>
     ${type==='editResa'?`
     ${comms.map(c=>`<div class="comment-item"><div class="meta"><span>${c.auteurNom} · ${fmt(c.date)}</span></div>${c.photoUrl?`<img src="${c.photoUrl}" style="max-width:100%;max-height:220px;border-radius:8px;margin-top:4px;display:block;cursor:pointer" onclick="window.open(this.src,'_blank')">`:''}${c.texte?`<div>${c.texte}</div>`:''}</div>`).join('')}
     <textarea id="com-txt" rows="2" placeholder="Nouveau commentaire ou instruction…" style="resize:none;margin-bottom:8px"></textarea>
@@ -3150,7 +3324,7 @@ function renderModalContent(){
       <button class="btn btn-sm btn-primary" style="margin-left:auto" onclick="addComment('${r.id}')">+ Commentaire</button>
     </div>
     `:`
-    <div style="font-size:13px;font-weight:500;margin-bottom:6px">💬 ${(()=>{const ct=getMenageInfo({domaine:defDomaine});return ct?`Commentaire visible par ${ct.name}`:'Commentaire visible par les prestataires assignés';})()}</div>
+    <div style="font-size:13px;font-weight:500;margin-bottom:6px">💬 ${(()=>{const ct=getMenageInfo({domaine:defDomaine});return`Commentaire visible par ${ct?ct.name:'le gardien'}`;})()}</div>
     <textarea id="com-txt-new" rows="2" placeholder="Ex : la maquilleuse arrive à 13h, le client a précisé que…" style="resize:none;margin-bottom:8px"></textarea>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
       <p style="font-size:11px;color:#888;margin:0">💡 Envoie le commentaire tout de suite — la réservation sera créée automatiquement si besoin.</p>
@@ -3234,7 +3408,7 @@ function renderModalContent(){
     ${rows.length===0?'<div class="empty" style="margin-bottom:10px">Aucune nuit programmée.</div>':''}
     ${rows.map(x=>{const dom=gDom(x.domaine);return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:13px;padding:6px;background:#f5f4f1;border-radius:6px;flex-wrap:wrap">
       <span style="flex:1">${dn(x.date)} ${ds(x.date)}</span><span class="pill ${PILL[dom.color||0]}">${dom.name}</span><span>${x.duree==='courte'?'Courte':'Longue'}</span><span style="font-weight:500">${money(gardeRate(x.duree))}</span>
-      <select onchange="setGardeSchedulePayMethod('${x.id}',this.value)" style="font-size:12px"><option value="cash" ${(x.payMethod||'cash')==='cash'?'selected':''}>💵 Cash</option><option value="virement" ${x.payMethod==='virement'?'selected':''}>🏦 Virement</option></select>
+      
       <span class="pill" style="background:${x.paid?'#E8F3E0':'#FCEBEB'};color:${x.paid?'#27500A':'#791F1F'};cursor:pointer" onclick="toggleGardeSchedulePaid('${x.id}')">${x.paid?'✓ Réglé':'✗ Régler'}</span>
       <button class="btn btn-xs btn-danger" onclick="delGardePlanning('${x.id}')">✕</button></div>`;}).join('')}
     <div class="modal-actions"><button class="btn" onclick="closeM()">Fermer</button></div>`;
@@ -3955,7 +4129,7 @@ function saveResaCore(id){
           const sel=document.querySelector(`.gard-sel[data-presta="${p.id}"][data-date="${chk.dataset.date}"]`);
           const duree=sel?sel.value:'longue';
           const prevNight=origR&&origR.prestaGarde&&origR.prestaGarde[p.id]&&origR.prestaGarde[p.id].nights&&origR.prestaGarde[p.id].nights[chk.dataset.date];
-          nights[chk.dataset.date]={duree,paid:(prevNight&&prevNight.paid)||false,payMethod:(prevNight&&prevNight.payMethod)||'cash'};
+          nights[chk.dataset.date]={duree,paid:(prevNight&&prevNight.paid)||false,payMethod:(prevNight&&prevNight.payMethod)||''};
         }
       });
       if(domSel&&Object.keys(nights).length)prestaGarde[p.id]={domaine:domSel.value,nights};
@@ -4085,7 +4259,7 @@ function addGardePlanning(pid){
   const domaine=document.getElementById('garde-pl-domaine').value,date=document.getElementById('garde-pl-date').value,duree=document.getElementById('garde-pl-duree').value;
   if(!domaine||!date)return;
   if(!D.gardeSchedule)D.gardeSchedule=[];
-  D.gardeSchedule.push({id:gid(),pid,domaine,date,duree,paid:false,payMethod:'cash'});
+  D.gardeSchedule.push({id:gid(),pid,domaine,date,duree,paid:false,payMethod:''});
   const p=D.prestataires.find(x=>x.id===pid);
   logActivity('créée',domaine,`Gardiennage planifié — ${p?p.name:''} (${fmt(date)})`,[pid]);
   saveD();S.modal={type:'gardePlanning',pid};render();
