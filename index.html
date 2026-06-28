@@ -1735,21 +1735,17 @@ function renderListeMerged(){
 }
 
 function renderDernieres(){
-  // Fusion résas + visites triées par updatedAt desc
   const items=[
     ...D.reservations.map(r=>({
       ts:r.updatedAt||r.createdAt||0,
       isNew:!r.updatedAt||(r.updatedAt===r.createdAt),
       type:'resa',
-      client:r.client||r.societe||'—',
+      client:r.typeClient==='entreprise'&&r.societe?r.societe:(r.client||'—'),
       domaine:r.domaine,
       typeEvt:r.typeEvenement||'',
       dateArr:r.dateArrivee||r.date||'',
       statut:r.status||'',
-      montant:r.montant||0,
-      paid:totPay(r),
-      nbPers:r.nbPersonnes||0,
-      noteInterne:r.noteInterne||'',
+      lastChange:r.lastChange||'',
       rid:r.id
     })),
     ...D.visites.map(v=>({
@@ -1761,48 +1757,42 @@ function renderDernieres(){
       typeEvt:v.typeEvenement||'',
       dateArr:v.date||'',
       statut:v.status||'prévue',
-      montant:0,paid:0,nbPers:0,
-      noteInterne:v.noteInterne||'',
+      lastChange:v.lastChange||'',
       rid:null,vid:v.id
     }))
   ].filter(x=>x.ts).sort((a,b)=>b.ts-a.ts).slice(0,20);
 
   const rows=items.map(x=>{
     const d=new Date(x.ts);
-    const when=d.toLocaleDateString('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    const when=d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
     const dom=gDom(x.domaine);
     const isResa=x.type==='resa';
-    const actionLabel=x.isNew?(isResa?'Nouvelle résa':'Nouvelle visite'):(isResa?'Résa modifiée':'Visite modifiée');
+    const actionLabel=x.isNew?(isResa?'✚ Nouvelle résa':'✚ Nouvelle visite'):(isResa?'✎ Résa modifiée':'✎ Visite modifiée');
     const actionColor=x.isNew?'#27500A':'#993556';
     const actionBg=x.isNew?'#EAF3DE':'#FBEAF0';
     const clickAttr=x.rid?`onclick="openM('editResa','${x.rid}')" style="cursor:pointer"`
       :x.vid?`onclick="openM('editVisite','${x.vid}')" style="cursor:pointer"`:'';
-    const details=[];
-    if(x.typeEvt)details.push(x.typeEvt);
-    if(x.dateArr)details.push(`${dn(x.dateArr)} ${ds(x.dateArr)}`);
-    if(isResa&&x.nbPers)details.push(`${x.nbPers} pers.`);
-    if(isResa&&x.montant)details.push(money(x.montant));
-    if(isResa&&x.paid&&x.paid<x.montant)details.push(`encaissé ${money(x.paid)}`);
-    if(isResa&&x.paid>=x.montant&&x.montant>0)details.push('✓ soldé');
-    if(x.statut&&x.statut!=='confirmé')details.push(x.statut);
-    if(x.noteInterne)details.push(`📝 ${x.noteInterne.slice(0,40)}${x.noteInterne.length>40?'…':''}`);
-    return`<div ${clickAttr} style="display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-radius:8px;border-bottom:1px solid #f0eee8;transition:background .12s" onmouseover="this.style.background='#faf9f7'" onmouseout="this.style.background=''">
-      <div style="flex:0 0 110px;font-size:10.5px;color:#aaa;white-space:nowrap;padding-top:2px">${when}</div>
-      <div style="flex:0 0 auto;padding-top:2px"><span style="background:${actionBg};color:${actionColor};font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap">${actionLabel}</span></div>
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
-          <span style="font-weight:700;font-size:13px">${x.client}</span>
-          <span class="pill ${PILL[dom.color||0]}" style="font-size:10px">${dom.name}</span>
-        </div>
-        <div style="font-size:11px;color:#777;margin-top:3px">${details.join(' · ')}</div>
+
+    // Ligne 2 : détail de la modification
+    const changeDetail=x.lastChange||'—';
+
+    return`<div ${clickAttr} style="padding:9px 14px;border-bottom:1px solid #f0eee8;transition:background .12s" onmouseover="this.style.background='#faf9f7'" onmouseout="this.style.background=''">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:10px;color:#bbb;white-space:nowrap;flex-shrink:0">${when}</span>
+        <span style="background:${actionBg};color:${actionColor};font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap;flex-shrink:0">${actionLabel}</span>
+        <span style="font-weight:700;font-size:13px;white-space:nowrap">${x.client}</span>
+        <span class="pill ${PILL[dom.color||0]}" style="font-size:10px;flex-shrink:0">${dom.name}</span>
+        ${x.typeEvt?`<span style="font-size:11px;color:#993556;white-space:nowrap">${x.typeEvt}</span>`:''}
+        ${x.dateArr?`<span style="font-size:11px;color:#aaa;white-space:nowrap">${dn(x.dateArr)} ${ds(x.dateArr)}</span>`:''}
+        ${x.rid||x.vid?'<span style="font-size:11px;color:#ccc;margin-left:auto;flex-shrink:0">→ ouvrir</span>':''}
       </div>
-      ${x.rid||x.vid?'<span style="font-size:11px;color:#ccc;padding-top:3px;flex-shrink:0">→</span>':''}
+      <div style="margin-top:4px;font-size:11px;color:#666;padding-left:2px">
+        <span style="color:#aaa;font-weight:600;margin-right:4px">Modification ·</span>${changeDetail}
+      </div>
     </div>`;
   }).join('');
 
-  return`<div style="margin-bottom:12px">
-    <div style="font-size:12px;color:#888;margin-bottom:8px">Les 20 dernières créations et modifications — cliquer pour ouvrir.</div>
-  </div>
+  return`<div style="margin-bottom:12px;font-size:12px;color:#aaa">Les 20 dernières créations et modifications — cliquer pour ouvrir.</div>
   <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;overflow:hidden">
     ${items.length===0?'<div class="empty">Aucune activité enregistrée.</div>':rows}
   </div>`;
@@ -3990,6 +3980,10 @@ function selectResa(rid,e){if(e)e.stopPropagation();S.selResa=rid;render();}
 function openNewResaOnDate(date){openM('newResa',null,{prefDate:date});}
 function openDayMenu(date){openM('dayMenu',null,{prefDate:date});}
 function selectAndGoCal(rid){const r=D.reservations.find(x=>x.id===rid);if(!r)return;const d=r.dateArrivee||r.date;const[y,m]=d.split('-');S.calYear=parseInt(y);S.calMonth=parseInt(m)-1;S.selResa=rid;S.tab='calendrier';render();}
+function stampChange(r,msg){
+  r.updatedAt=Date.now();
+  r.lastChange=msg;
+}
 function addPay(rid){
   if(!rid)return;
   const d=document.getElementById('pay-date').value,a=parseFloat(document.getElementById('pay-amt').value),ty=document.getElementById('pay-type').value,cm=(document.getElementById('pay-comment').value||'').trim();
@@ -3997,17 +3991,25 @@ function addPay(rid){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
   if(!r.paiements)r.paiements=[];
   r.paiements.push({id:gid(),date:d,montant:a,type:ty,comment:cm});
+  stampChange(r,`Paiement ajouté · ${ty} ${money(a)} le ${ds(d)}${cm?' ('+cm+')':''}`);
   saveD();S.modal={type:'editResa',id:rid};render();
 }
 function delPay(rid,pid){
   if(!rid)return;const r=D.reservations.find(x=>x.id===rid);if(!r)return;
+  const pa=(r.paiements||[]).find(p=>p.id===pid);
+  const desc=pa?`${pa.type||''} ${money(pa.montant||0)} du ${ds(pa.date)}`:'';
   r.paiements=(r.paiements||[]).filter(p=>p.id!==pid);
+  stampChange(r,`Paiement supprimé · ${desc}`);
   saveD();S.modal={type:'editResa',id:rid};render();
 }
 function updPay(rid,pid,field,value){
   if(!rid)return;const r=D.reservations.find(x=>x.id===rid);if(!r)return;
   const pa=(r.paiements||[]).find(p=>p.id===pid);if(!pa)return;
+  const oldVal=pa[field];
   pa[field]=field==='montant'?(parseFloat(value)||0):value;
+  if(field==='montant'||field==='type'||field==='date'){
+    stampChange(r,`Paiement modifié · ${pa.type||''} ${money(pa.montant||0)} le ${ds(pa.date)}`);
+  }
   saveD();render();
 }
 function togglePrestataireChecked(rid,pid,checked){
@@ -4028,7 +4030,16 @@ function updPrestaLine(rid,pid,lineId,field,value){
 function addPrestaLine(rid,pid){const r=D.reservations.find(x=>x.id===rid);if(!r)return;const lab=(document.getElementById('pline-label-'+pid).value||'').trim(),amt=parseFloat(document.getElementById('pline-amt-'+pid).value)||0,nt=(document.getElementById('pline-notes-'+pid).value||'').trim(),pd=document.getElementById('pline-paid-'+pid).value==='1';if(!lab&&!amt)return;if(!r.prestaLines)r.prestaLines={};if(!r.prestaLines[pid])r.prestaLines[pid]=[];r.prestaLines[pid].push({id:gid(),label:lab,montant:amt,notes:nt,paidDirect:pd,date:r.dateArrivee||''});saveD();S.modal={type:'editResa',id:rid};render();}
 function delPrestaLine(rid,pid,lineId){if(!rid)return;const r=D.reservations.find(x=>x.id===rid);if(!r||!r.prestaLines||!r.prestaLines[pid])return;r.prestaLines[pid]=r.prestaLines[pid].filter(l=>l.id!==lineId);saveD();render();}
 
-function addComment(rid){const r=D.reservations.find(x=>x.id===rid);if(!r)return;const txt=document.getElementById('com-txt').value.trim();if(!txt)return;if(!r.commentaires)r.commentaires=[];r.commentaires.push({id:gid(),auteur:'admin',auteurNom:S.admin.name,date:new Date().toISOString().slice(0,10),texte:txt,visible:true});const ct=getMenageInfo(r);if(ct)logActivity('commentaire',r.domaine,`💬 ${S.admin.name} → ${ct.name} : « ${txt} » — ${displayClientName(r)||'—'} (${fmt(r.dateArrivee)})`,[ct.pid]);saveD();S.modal={type:'editResa',id:rid};render();}
+function addComment(rid){
+  const r=D.reservations.find(x=>x.id===rid);if(!r)return;
+  const txt=document.getElementById('com-txt').value.trim();if(!txt)return;
+  if(!r.commentaires)r.commentaires=[];
+  r.commentaires.push({id:gid(),auteur:'admin',auteurNom:S.admin.name,date:new Date().toISOString().slice(0,10),texte:txt,visible:true});
+  const ct=getMenageInfo(r);
+  if(ct)logActivity('commentaire',r.domaine,`💬 ${S.admin.name} → ${ct.name} : « ${txt} » — ${displayClientName(r)||'—'} (${fmt(r.dateArrivee)})`,[ct.pid]);
+  stampChange(r,`Commentaire ajouté pour ${ct?ct.name:'le gardien'} · « ${txt.slice(0,60)}${txt.length>60?'…':''} »`);
+  saveD();S.modal={type:'editResa',id:rid};render();
+}
 function addPrestaComment(rid){
   const r=D.reservations.find(x=>x.id===rid);if(!r||!S.presta)return;
   const el=document.getElementById('dp-presta-com');const txt=(el&&el.value||'').trim();if(!txt)return;
@@ -4061,6 +4072,7 @@ function addPhotoComment(rid,inputEl){
   resizeImageFile(file,1000,dataUrl=>{
     if(!r.commentaires)r.commentaires=[];
     r.commentaires.push({id:gid(),auteur:isPresta?'presta':'admin',auteurNom:authorName,date:new Date().toISOString().slice(0,10),texte:'',photoUrl:dataUrl,visible:true});
+    stampChange(r,`Photo ajoutée par ${authorName}`);
     saveD();showMsg('Photo ajoutée ✓');inputEl.value='';render();
   });
 }
@@ -4159,10 +4171,44 @@ function saveResaCore(id){
   const newCommentTxt=(document.getElementById('com-txt-new')||{}).value||'';
   const initCommentaires=newCommentTxt.trim()?[{id:gid(),auteur:'admin',auteurNom:S.admin.name,date:new Date().toISOString().slice(0,10),texte:newCommentTxt.trim(),visible:true}]:[];
   let newId=id;
-  if(id){const r=D.reservations.find(x=>x.id===id);Object.assign(r,{domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,civilite1,prenom1,nom1,tel,email,prenom2,nom2,tel2,email2,adresse,typeClient,societe,typeEvenement,nbPersonnes,nbSoiree,nbAdultes,nbEnfants,prestaGarde,noteInterne,caviste,prestasExterieurs,montant,arrhes,depotGarantie,avecContrat,prestataires,updatedAt:nowTs});}
+
+  /* Calcul du résumé de modifications pour l'historique */
+  function buildChangeLog(prev,next){
+    if(!prev)return'Nouvelle réservation créée';
+    const labels={
+      domaine:'Domaine',dateArrivee:'Arrivée',heureArrivee:'Heure arrivée',
+      dateDepart:'Départ',heureDepart:'Heure départ',status:'Statut',
+      client:'Client',typeEvenement:'Type',nbPersonnes:'Couchages',
+      nbSoiree:'Soirée',montant:'Montant',arrhes:'Arrhes',
+      depotGarantie:'Dépôt',noteInterne:'Note',typeClient:'Type client',
+      societe:'Société',tel:'Téléphone',email:'Email'
+    };
+    const changes=[];
+    Object.keys(labels).forEach(k=>{
+      const pv=prev[k],nv=next[k];
+      if(String(pv||'')!==String(nv||'')){
+        if(k==='montant'||k==='arrhes'||k==='depotGarantie'){
+          changes.push(`${labels[k]} : ${money(pv||0)} → ${money(nv||0)}`);
+        } else if(k==='dateArrivee'||k==='dateDepart'){
+          changes.push(`${labels[k]} : ${ds(pv)||'—'} → ${ds(nv)||'—'}`);
+        } else {
+          changes.push(`${labels[k]} : ${pv||'—'} → ${nv||'—'}`);
+        }
+      }
+    });
+    return changes.length?changes.join(' · '):'Enregistrement (aucun changement détecté)';
+  }
+
+  if(id){
+    const r=D.reservations.find(x=>x.id===id);
+    const prevSnap={...r};
+    const nextSnap={domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,typeEvenement,nbPersonnes,nbSoiree,montant,arrhes,depotGarantie,noteInterne,typeClient,societe,tel,email};
+    const changeLog=buildChangeLog(prevSnap,nextSnap);
+    Object.assign(r,{domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,civilite1,prenom1,nom1,tel,email,prenom2,nom2,tel2,email2,adresse,typeClient,societe,typeEvenement,nbPersonnes,nbSoiree,nbAdultes,nbEnfants,prestaGarde,noteInterne,caviste,prestasExterieurs,montant,arrhes,depotGarantie,avecContrat,prestataires,updatedAt:nowTs,lastChange:changeLog});
+  }
   else{
     newId=gid();
-    D.reservations.push({id:newId,domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,civilite1,prenom1,nom1,tel,email,prenom2,nom2,tel2,email2,adresse,typeClient,societe,typeEvenement,nbPersonnes,nbSoiree,nbAdultes,nbEnfants,prestaLines:{},prestaGarde,noteInterne,caviste,prestasExterieurs,montant,arrhes,depotGarantie,avecContrat,paiements:[],prestataires,commentaires:initCommentaires,createdAt:nowTs,updatedAt:nowTs});
+    D.reservations.push({id:newId,domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,civilite1,prenom1,nom1,tel,email,prenom2,nom2,tel2,email2,adresse,typeClient,societe,typeEvenement,nbPersonnes,nbSoiree,nbAdultes,nbEnfants,prestaLines:{},prestaGarde,noteInterne,caviste,prestasExterieurs,montant,arrhes,depotGarantie,avecContrat,paiements:[],prestataires,commentaires:initCommentaires,createdAt:nowTs,updatedAt:nowTs,lastChange:'Nouvelle réservation créée'});
   }
   if(isNew&&newCommentTxt.trim()){
     const ct=getMenageInfo({domaine,nbPersonnes,nbSoiree,typeEvenement});
