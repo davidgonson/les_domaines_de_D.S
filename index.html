@@ -1326,6 +1326,8 @@ function injectBands(){
 function injectVisiteMarkers(){
   const inCalView=(S.view==='admin'&&S.tab==='calendrier')||(S.view==='presta'&&S.prestaTab==='calendrier');
   if(!inCalView)return;
+  // Pas de visites pour Dominique
+  if(S.presta&&S.presta.id==='p4')return;
   const grid=document.getElementById('cal-grid-main');if(!grid)return;
   const cells=grid.querySelectorAll('.cal-cell');if(!cells.length)return;
   const{dtc}=buildDateCellMap(S.calYear,S.calMonth);
@@ -1461,7 +1463,7 @@ function renderCalendrier(){
     var _showCircle=_dd&&_cp==='p4';
     var _showColor=_dd&&(_isAdminView||_cp==='p1'||_cp==='p2');
     var _dnSt=_showCircle?('background:'+_dd.s+';color:#fff;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;font-weight:700')
-              :_showColor?('color:'+_dd.s+';font-weight:700'):'';
+              :_showColor?('background:'+_dd.s+';color:#fff;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;font-weight:700'):'';
     var _dnAt=_dnSt?' style="'+_dnSt+'"':'';
     var _gg2=(gardeByDate[ds3]||[]).map(function(g){return'<span style="display:inline-flex;align-items:center;justify-content:center;width:10px;height:10px;border:1px solid '+g.col+';border-radius:50%;color:'+g.col+';font-size:5.5px;font-weight:700;margin-left:1px;line-height:1;flex-shrink:0">'+g.lbl+'</span>';}).join('');
     var _tg2=tag?'<span class="day-tag">'+tag+'</span>':'';
