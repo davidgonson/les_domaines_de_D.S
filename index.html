@@ -1269,18 +1269,21 @@ function injectBands(){
         // 100% — admin seulement
         const fullHtml=(!isPrestaView&&b.isPaid)?`<span style="font-size:9px;font-weight:700;font-style:italic;color:#E8000D;margin-right:3px;letter-spacing:.5px;display:inline-block;transform:skewX(-12deg)">100%</span>`:'';
         // Badge P bleu ciel — prestataire non-ménage assigné
-        const pSvg=`<svg width="13" height="13" viewBox="0 0 13 13" style="display:inline-block;vertical-align:middle;margin-left:2px;flex-shrink:0"><circle cx="6.5" cy="6.5" r="6" fill="none" stroke="#2E86C1" stroke-width="1.5"/><text x="6.5" y="9.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="#2E86C1" font-family="Arial,sans-serif">P</text></svg>`;
-        const pBadge=b.hasPresta?pSvg:'';
+        const pSvg=`<svg width="12" height="12" viewBox="0 0 13 13" style="display:inline-block;vertical-align:middle;flex-shrink:0"><circle cx="6.5" cy="6.5" r="6" fill="none" stroke="#2E86C1" stroke-width="1.5"/><text x="6.5" y="9.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="#2E86C1" font-family="Arial,sans-serif">P</text></svg>`;
         if(isPrestaView){
-          topParts.push(pBadge+'<span style="font-weight:800">'+b.nameTxt+'</span>');
+          topParts.push('<span style="font-weight:800">'+b.nameTxt+'</span>');
         } else {
-          topParts.push(optPrefix+dotHtml+fullHtml+pBadge+'<span style="font-weight:800">'+b.nameTxt+'</span>');
+          topParts.push(optPrefix+dotHtml+fullHtml+'<span style="font-weight:800">'+b.nameTxt+'</span>');
         }
       }
       if(b.mainLine)topParts.push(b.mainLine);
       const topLine=topParts.join(' · ');
-      // Ligne du bas : heures seulement, plus de P ici
-      label=(topLine||timeArrF||timeDepF)?`<div class="b-top">${topLine}</div><div class="b-bottom"><span>${timeArrF}</span><span>${timeDepF}</span></div>`:'';
+      const pCenter=b.hasPresta?pSvg:'';
+      if(S.view==='presta'){
+        label=`<div class="b-top">${topLine}</div><div class="b-bottom" style="display:flex;justify-content:space-between;align-items:center"><span>${timeArrF}</span>${pCenter}<span>${timeDepF}</span></div>`;
+      } else {
+        label=(topLine||timeArrF||timeDepF)?`<div class="b-top">${topLine}</div><div class="b-bottom" style="display:flex;justify-content:space-between;align-items:center"><span>${timeArrF}</span>${pCenter}<span>${timeDepF}</span></div>`:'';
+      };
     }
     div.innerHTML=label;
     div.title=label.replace(/<\/(div|span)>/g,' ').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim()+' — cliquer pour détail';
@@ -2336,19 +2339,42 @@ function renderClientsList(){
   }
   return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
     <div class="sec-hdr"><h2>📇 Liste clients</h2></div>
-    <div style="margin-bottom:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <span style="font-size:12px;color:#888">Trier par :</span>
-      <button class="btn btn-sm ${sortBy==='date'?'btn-primary':''}" onclick="setClientsSortBy('date')">Date</button>
-      <button class="btn btn-sm ${sortBy==='alpha'?'btn-primary':''}" onclick="setClientsSortBy('alpha')">Alphabétique</button>
-      <button class="btn btn-sm ${sortBy==='domaine'?'btn-primary':''}" onclick="setClientsSortBy('domaine')">Domaine</button>
-      <span style="width:1px;height:18px;background:#e5e3de;display:inline-block"></span>
+    <div style="margin-bottom:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
       <button class="btn btn-sm ${clientFilter==='tous'?'btn-primary':''}" onclick="S.clientsFilter='tous';render()">Tous</button>
       <button class="btn btn-sm ${clientFilter==='particuliers'?'btn-primary':''}" onclick="S.clientsFilter='particuliers';render()">👤 Particuliers</button>
       <button class="btn btn-sm ${clientFilter==='professionnels'?'btn-primary':''}" onclick="S.clientsFilter='professionnels';render()">🏢 Professionnels</button>
     </div>
+    <div style="margin-bottom:14px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      <span style="font-size:11px;color:#aaa">Trier :</span>
+      <button class="btn btn-sm ${sortBy==='date'?'btn-primary':''}" onclick="setClientsSortBy('date')">Date</button>
+      <button class="btn btn-sm ${sortBy==='alpha'?'btn-primary':''}" onclick="setClientsSortBy('alpha')">A→Z</button>
+      <button class="btn btn-sm ${sortBy==='domaine'?'btn-primary':''}" onclick="setClientsSortBy('domaine')">Domaine</button>
+    </div>
     ${rows.length===0?'<div class="empty">Aucun client enregistré.</div>':''}
-    ${rows.length>0?`<div style="overflow-x:auto"><table class="list-tbl"><thead><tr><th>Nom</th><th>Société</th><th>Téléphone</th><th>Email</th><th>Domaine</th><th>Date</th></tr></thead>
-    <tbody>${rows.map(({r,dom})=>`<tr onclick="selectAndGoCal('${r.id}')"><td style="font-weight:500">${r.client||'—'}</td><td>${r.typeClient==='entreprise'&&r.societe?r.societe:'<span style="color:#ccc">—</span>'}</td><td onclick="event.stopPropagation()"><input type="tel" value="${displayTel(r.tel)}" placeholder="À renseigner" onchange="updClientTel('${r.id}',this.value)" style="width:130px;font-size:12px;padding:4px 6px;border:1px solid transparent;background:transparent" onfocus="this.style.borderColor='#d5d3ce';this.style.background='#fff'" onblur="this.style.borderColor='transparent';this.style.background='transparent'"></td><td>${r.email?`<a href="mailto:${r.email}" onclick="event.stopPropagation()" style="color:#185FA5;text-decoration:none">${r.email}</a>`:'<span style="color:#ccc">—</span>'}</td><td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td><td>${fmt(r.dateArrivee)}</td></tr>`).join('')}</tbody></table></div>`:''}
+    ${rows.length>0?`<div style="overflow-x:auto"><table class="list-tbl"><thead><tr>
+        ${clientFilter==='professionnels'?'<th>Société</th><th>Contact</th>':'<th>Client</th><th>Société</th>'}
+        <th>Téléphone</th><th>Email</th><th>Domaine</th><th>Date</th></tr></thead>
+    <tbody>${rows.map(({r,dom})=>{
+      const isPro=r.typeClient==='entreprise';
+      if(clientFilter==='professionnels'){
+        return`<tr onclick="selectAndGoCal('${r.id}')">
+          <td><strong>${r.societe||'—'}</strong></td>
+          <td style="font-size:12px;color:#555">${isPro&&r.nom1?[r.civilite1||'',r.nom1].filter(Boolean).join(' '):'<span style="color:#ccc">—</span>'}</td>
+          <td onclick="event.stopPropagation()"><input type="tel" value="${displayTel(r.tel)}" placeholder="À renseigner" onchange="updClientTel('${r.id}',this.value)" style="width:120px;font-size:12px;padding:4px 6px;border:1px solid transparent;background:transparent" onfocus="this.style.borderColor='#d5d3ce';this.style.background='#fff'" onblur="this.style.borderColor='transparent';this.style.background='transparent'"></td>
+          <td>${r.email?`<a href="mailto:${r.email}" onclick="event.stopPropagation()" style="color:#185FA5;text-decoration:none">${r.email}</a>`:'<span style="color:#ccc">—</span>'}</td>
+          <td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td>
+          <td>${fmt(r.dateArrivee)}</td></tr>`;
+      } else {
+        const mainName=isPro&&r.societe?`<div style="font-weight:600">${r.societe}</div><div style="font-size:11px;color:#888">${displayClientName(r)||''}</div>`:`<div style="font-weight:500">${displayClientName(r)||'—'}</div>`;
+        return`<tr onclick="selectAndGoCal('${r.id}')">
+          <td>${mainName}</td>
+          <td>${isPro&&r.societe?`<span style="font-size:12px">${displayClientName(r)||'—'}</span>`:'<span style="color:#ccc">—</span>'}</td>
+          <td onclick="event.stopPropagation()"><input type="tel" value="${displayTel(r.tel)}" placeholder="À renseigner" onchange="updClientTel('${r.id}',this.value)" style="width:120px;font-size:12px;padding:4px 6px;border:1px solid transparent;background:transparent" onfocus="this.style.borderColor='#d5d3ce';this.style.background='#fff'" onblur="this.style.borderColor='transparent';this.style.background='transparent'"></td>
+          <td>${r.email?`<a href="mailto:${r.email}" onclick="event.stopPropagation()" style="color:#185FA5;text-decoration:none">${r.email}</a>`:'<span style="color:#ccc">—</span>'}</td>
+          <td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td>
+          <td>${fmt(r.dateArrivee)}</td></tr>`;
+      }
+    }).join('')}</tbody></table></div>`:''}
   </div>`;
 }
 
