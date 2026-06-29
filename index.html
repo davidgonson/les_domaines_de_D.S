@@ -1357,7 +1357,7 @@ function injectVisiteMarkers(){
     div.title=`Visite — ${v.client||''} ${v.heure||''}${cancelled?' (annulée)':''}`;
     div.onclick=ev=>{ev.stopPropagation();openM('editVisite',v.id);};
     const bgColors=['#D4748A','#C9A84C','#5A9E3A','#6B64C8','#3A7AB8'];
-    div.innerHTML=`<div style="width:11px;height:22px;border-radius:5px;background:${bgColors[c]};display:flex;align-items:center;justify-content:center;overflow:hidden;${cancelled?'opacity:.55':''}">
+    div.innerHTML=`<div style="width:8px;height:22px;border-radius:4px;background:${bgColors[c]};display:flex;align-items:center;justify-content:center;overflow:hidden;${cancelled?'opacity:.55':''}">
       <span style="font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:8.5px;font-weight:700;letter-spacing:.2px;color:#fff;transform:rotate(-90deg);white-space:nowrap;${cancelled?'text-decoration:line-through':''}">${heureLbl}</span>
     </div>`;
     grid.appendChild(div);
@@ -1445,7 +1445,7 @@ function renderCalendrier(){
     const dc=dayCls(ds3),tag=dayTag(ds3);
     let cls='cal-cell';if(isO)cls+=' other';if(ds3===todayStr)cls+=' today';if(dc)cls+=` ${dc}`;
     const cellClick=readOnly?'':` onclick="openDayMenu('${ds3}')"`;
-    gridHtml+=`<div class="${cls}"${cellClick}><div class="day-num-wrap"><span class="day-num">${day}${(gardeByDate[ds3]||[]).map(function(g){return'<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border:1.2px solid '+g.col+';border-radius:50%;color:'+g.col+';font-size:6.5px;font-weight:700;margin-left:2px;line-height:1;flex-shrink:0">'+g.lbl+'</span>';}).join('')}</span>${tag?`<span class="day-tag">${tag}</span>`:''}</div><div class="bands-area"></div></div>`;
+    gridHtml+=`<div class="${cls}"${cellClick}><div class="day-num-wrap"><span class="day-num">${day}${(gardeByDate[ds3]||[]).map(function(g){return'<span style="display:inline-flex;align-items:center;justify-content:center;width:10px;height:10px;border:1px solid '+g.col+';border-radius:50%;color:'+g.col+';font-size:5.5px;font-weight:700;margin-left:1px;line-height:1;flex-shrink:0">'+g.lbl+'</span>';}).join('')}</span>${tag?`<span class="day-tag">${tag}</span>`:''}</div><div class="bands-area"></div></div>`;
   }
   const selR=S.selResa?D.reservations.find(x=>x.id===S.selResa):null;
   return`<div class="panel-wrap">
