@@ -496,7 +496,8 @@ const DEF={
     {id:'p3',name:'Pascaline',role:'Ménage',tel:'',domaines:['d3'],accessMode:'calendrierSeul',inputMode:'notes',noteRows:2,flatRate:250,token:'tok_pascaline_lns3'},
     {id:'p4',name:'Dominique',role:'Jardinage',tel:'',domaines:['d1','d2','d3'],accessMode:'occupation',inputMode:'none',token:'tok_dominique_jrd4'},
     {id:'p5',name:'Sébastien',role:'Sécurité',tel:'',domaines:['d1'],accessMode:'manuel',inputMode:'garde',token:'tok_sebastien_sec5'},
-    {id:'p6',name:'Mathilde',role:'Sécurité',tel:'',domaines:['d2'],accessMode:'manuel',inputMode:'garde',token:'tok_mathilde_sec6'}
+    {id:'p6',name:'Mathilde',role:'Sécurité',tel:'',domaines:['d2'],accessMode:'manuel',inputMode:'garde',token:'tok_mathilde_sec6'},
+    {id:'p7',name:'Yana',role:'Assistante',tel:'',domaines:['d1','d2','d3'],accessMode:'readonly_nofinance',token:'tok_iana_coord7'}
   ],
   visites:[],
   activityLog:[],
@@ -540,6 +541,7 @@ function runMigrations(){
     if(p.role==='Gardien & Décoration')p.role='Gardien & Décoration ou Service';
     if(p.name==='Misha'||p.name==='Sasha')p.autoAssign=false;
     if(p.name==='Pascaline'){p.accessMode='calendrierSeul';if(p.flatRate===undefined)p.flatRate=250;}
+    if(p.name==='Yana')p.accessMode='readonly_nofinance';
   });
   (D.reservations||[]).forEach(r=>{
     if(r.typeEvenement==='Famille / Cousinade'||r.typeEvenement==='Séjour amis'||r.typeEvenement==='Famille / Ami')r.typeEvenement='Famille / Amis';
@@ -786,7 +788,13 @@ function buildVac(){
   const mid={},edge={};
   VAC.forEach(([s,e,n])=>{
     const sd=new Date(s+'T12:00:00'),ed=new Date(e+'T12:00:00');
-    let c=new Date(sd);while(c<=ed){mid[dstr(c)]=n;c=addDays(c,1);}
+    if(n==='Été'){
+      // Vacances d'été : seulement le 1er et le dernier jour
+      mid[dstr(sd)]=n;
+      mid[dstr(ed)]=n;
+    } else {
+      let cur=new Date(sd);while(cur<=ed){mid[dstr(cur)]=n;cur=addDays(cur,1);}
+    }
   });return{mid,edge};
 }
 const{mid:VM,edge:VE}=buildVac();
@@ -847,13 +855,11 @@ function buildBands(y,m){
       /* Heures pour position proportionnelle (fenêtre 8h-22h) */
       const hArr=ifr?(parseInt((r.heureArrivee||'12:00').split(':')[0])+(parseInt((r.heureArrivee||'12:00').split(':')[1]||0)/60)):8;
       const hDep=ilr?(parseInt((r.heureDepart||'12:00').split(':')[0])+(parseInt((r.heureDepart||'12:00').split(':')[1]||0)/60)):22;
-      // Badge P : prestataire connecté assigné (non-ménage) OU admin avec au moins 1 presta non-ménage
+      // Badge P : uniquement Misha(p1)/Sasha(p2) ou caviste/prestation extérieure
       const currentPid=S.presta?S.presta.id:null;
-      const menagePid=getMenageInfo(r)?getMenageInfo(r).pid:null;
-      const assignedNonMenage=(r.prestataires||[]).filter(pid=>pid!==menagePid);
-      const hasPresta=currentPid
-        ?(currentPid!==menagePid&&assignedNonMenage.includes(currentPid))
-        :(assignedNonMenage.length>0);
+      const mishaSashaInPresta=(r.prestataires||[]).some(pid=>pid==='p1'||pid==='p2');
+      const hasExtOrCav=!!(r.caviste&&r.caviste.trim())||(r.prestasExterieurs&&r.prestasExterieurs.length>0);
+      const hasPresta=(mishaSashaInPresta||hasExtOrCav)&&(!currentPid||currentPid==='p1'||currentPid==='p2');
       bands.push({rid:r.id,slot,row:fc.row,colStart:fc.col,spanCols:lc.col-fc.col+1,shapeClass:sc,nameTxt,timeArr,timeDep,mainLine,bandCls:bc,optCls:oc,isJ,isPaid:payStatus(r)==='full',isPartPaid:payStatus(r)==='part',isFirstRow:ifr,isLastRow:ilr,hA:hArr,hD:hDep,colorIdx:c,hasPresta});
     });
   });
@@ -1257,15 +1263,17 @@ function injectBands(){
         const pSvg=`<svg width="13" height="13" viewBox="0 0 13 13" style="display:inline-block;vertical-align:middle;margin-left:2px;flex-shrink:0"><circle cx="6.5" cy="6.5" r="6" fill="none" stroke="#2E86C1" stroke-width="1.5"/><text x="6.5" y="9.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="#2E86C1" font-family="Arial,sans-serif">P</text></svg>`;
         const pBadge=b.hasPresta?pSvg:'';
         if(isPrestaView){
-          topParts.push(pBadge+'<span style="font-weight:800">'+b.nameTxt+'</span>');
+          topParts.push('<span style="font-weight:800">'+b.nameTxt+'</span>');
         } else {
-          topParts.push(optPrefix+dotHtml+fullHtml+pBadge+'<span style="font-weight:800">'+b.nameTxt+'</span>');
+          topParts.push(optPrefix+dotHtml+fullHtml+'<span style="font-weight:800">'+b.nameTxt+'</span>');
         }
       }
       if(b.mainLine)topParts.push(b.mainLine);
       const topLine=topParts.join(' · ');
       // Ligne du bas : heures seulement, plus de P ici
-      label=(topLine||timeArrF||timeDepF)?`<div class="b-top">${topLine}</div><div class="b-bottom"><span>${timeArrF}</span><span>${timeDepF}</span></div>`:'';
+      const showP=b.hasPresta&&(S.view!=='presta'||(S.presta&&(S.presta.id==='p1'||S.presta.id==='p2')));
+      const pTxt=showP?'<span style="display:inline-flex;align-items:center;justify-content:center;width:10px;height:10px;border:1.2px solid #2E86C1;border-radius:50%;color:#2E86C1;font-weight:700;font-size:7px;line-height:1;flex-shrink:0;margin-left:2px">P</span>':'';
+      label=(topLine||timeArrF||timeDepF)?`<div class="b-top">${topLine}</div><div class="b-bottom"><span>${timeArrF}${pTxt}</span><span>${timeDepF}</span></div>`:'';
     }
     div.innerHTML=label;
     div.title=label.replace(/<\/(div|span)>/g,' ').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim()+' — cliquer pour détail';
@@ -1360,6 +1368,15 @@ function doLogin(){
 }
 
 function renderAdmin(){
+  if(!S.admin)return renderLogin();
+  var _myN=S.admin.name;
+  var _lsN=((S.adminLastSeen||{})[_myN])||0;
+  var _rO=D.reservations.filter(function(r){return r.updatedAt&&r.updatedAt>_lsN&&r.lastChangeBy&&r.lastChangeBy!==_myN;}).sort(function(a,b){return b.updatedAt-a.updatedAt;}).slice(0,5);
+  var notifBanner='';
+  if(_rO.length>0&&!S.notifDismissed){
+    var _oN=_myN==='David'?'Svitlana':'David';
+    notifBanner='<div style="background:#FFF8E6;border:1px solid #F5D98B;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;align-items:flex-start;gap:8px"><div style="flex:1"><div style="font-weight:600;font-size:12px;color:#7A5800;margin-bottom:3px">🔔 '+_rO.length+' modif(s) par '+_oN+'</div>'+ _rO.map(function(r){return'<div style="font-size:11px;color:#555">• '+(r.client||r.societe||'?')+(r.lastChange?' — '+r.lastChange.slice(0,50):'')+ '</div>';}).join('')+'</div><button class="btn btn-xs" onclick="S.notifDismissed=true;if(!S.adminLastSeen)S.adminLastSeen={};S.adminLastSeen[S.admin.name]=Date.now();saveD();render()">✓ Lu</button></div>';
+  }
   const tabs=[['calendrier','📅','Planning'],['liste','🎉','Résa /<br>Visite'],['dernieres','🕓','Dernières'],['prestataires','🧑‍🔧','Équipe<br>Domaines'],['bilan','📊','Bilan €'],['clientsExport','📇','Clients<br>/ Export']];
   let content='';
   if(S.tab==='calendrier')content=renderCalendrier();
@@ -1370,7 +1387,7 @@ function renderAdmin(){
   else if(S.tab==='clientsExport')content=renderClientsExport();
   const lastSeen=(D.adminLastSeen||{})[S.admin.id]||0;
   const notifs=(D.activityLog||[]).filter(it=>((it.authorId&&it.authorId!==S.admin.id)||it.forAdmin)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
-  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge ba" style="flex-shrink:0">Admin — ${S.admin.name}</span><button class="btn btn-sm" onclick="logout()" style="flex-shrink:0">Déconnexion</button></div>${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}${renderNotifBanner(notifs,'dismissAdminNotifs')}${renderMessagesHub()}<div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${S.tab===k?'active':''}" onclick="setTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>${content}${S.modal?renderModalWrap():''}`;
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge ba" style="flex-shrink:0">Admin — ${S.admin.name}</span><button class="btn btn-sm" onclick="logout()" style="flex-shrink:0">Déconnexion</button></div>${notifBanner}${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}${renderNotifBanner(notifs,'dismissAdminNotifs')}${renderMessagesHub()}<div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${S.tab===k?'active':''}" onclick="setTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>${content}${S.modal?renderModalWrap():''}`;
 }
 
 function renderCalendrier(){
@@ -1379,6 +1396,22 @@ function renderCalendrier(){
   const DAYS=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
   const y=S.calYear,m=S.calMonth,todayStr=dstr(new Date());
   const{tc,sd,dim,dip}=buildBands(y,m);
+  // Pré-calculer les gardes par date
+  const gardeByDate={};
+  const GARDE_COLORS=['#D4748A','#C9A84C','#5A9E3A','#6B64C8','#3A7AB8']; // rose, doré, vert, violet, bleu
+  D.reservations.forEach(function(r){
+    if(!r.prestaGarde)return;
+    const domColor=(gDom(r.domaine)||{}).color||0;
+    const col=GARDE_COLORS[domColor];
+    Object.values(r.prestaGarde).forEach(function(pg){
+      Object.keys(pg.nights||{}).forEach(function(date){
+        const g=pg.nights[date];
+        const lbl=g&&g.duree==='longue'?'GL':'GC';
+        if(!gardeByDate[date])gardeByDate[date]=[];
+        gardeByDate[date].push({lbl:lbl,col:col});
+      });
+    });
+  });
   let gridHtml=DAYS.map(d=>`<div class="cal-dow">${d}</div>`).join('');
   for(let ci=0;ci<tc;ci++){
     let day,mo=m,yr=y,isO=false;
@@ -1389,7 +1422,7 @@ function renderCalendrier(){
     const dc=dayCls(ds3),tag=dayTag(ds3);
     let cls='cal-cell';if(isO)cls+=' other';if(ds3===todayStr)cls+=' today';if(dc)cls+=` ${dc}`;
     const cellClick=readOnly?'':` onclick="openDayMenu('${ds3}')"`;
-    gridHtml+=`<div class="${cls}"${cellClick}><div class="day-num-wrap"><span class="day-num">${day}</span>${tag?`<span class="day-tag">${tag}</span>`:''}</div><div class="bands-area"></div></div>`;
+    gridHtml+=`<div class="${cls}"${cellClick}><div class="day-num-wrap"><span class="day-num">${day}${(gardeByDate[ds3]||[]).map(function(g){return'<span style="font-size:8px;font-weight:700;color:'+g.col+';margin-left:1px">'+g.lbl+'</span>';}).join('')}</span>${tag?`<span class="day-tag">${tag}</span>`:''}</div><div class="bands-area"></div></div>`;
   }
   const selR=S.selResa?D.reservations.find(x=>x.id===S.selResa):null;
   return`<div class="panel-wrap">
@@ -3601,6 +3634,35 @@ function renderPrestaCalendrierSeul(p){
   </div>
   ${content}`;
 }
+function renderPrestaReadOnly(p){
+  const tab=S.prestaTab||'calendrier';
+  const tabs=[['calendrier','📅','Planning'],['liste','🎉','Résas'],['dernieres','🕓','Dernières'],['clientsExport','📇','Clients']];
+  let content='';
+  if(tab==='calendrier')content=renderCalendrier();
+  else if(tab==='liste')content=renderListeYana();
+  else if(tab==='dernieres')content=renderDernieres();
+  else if(tab==='clientsExport')content=renderClientsExport();
+  return renderPrestaShell(p,tabs,tab,content);
+}
+function renderListeYana(){
+  const y=S.listeYear,m=S.listeMonth;
+  const inM=r=>{const d=r.dateArrivee||r.date;if(!d)return false;const[ry,rm]=d.split('-').map(Number);return ry===y&&rm===(m+1);};
+  const list=D.reservations.filter(r=>r.status!=='annulé').filter(inM).sort((a,b)=>(a.dateArrivee||a.date).localeCompare(b.dateArrivee||b.date));
+  const rows=list.map(r=>{
+    const dom=gDom(r.domaine);const isJ=r.dateArrivee===r.dateDepart;
+    return '<tr><td><div style="font-weight:500">'+(r.client||r.societe||'—')+'</div><div style="font-size:11px;color:#888">'+(displayTel(r.tel)||'')+'</div>'+(r.typeEvenement?'<div style="font-size:11px;color:#993556">'+r.typeEvenement+'</div>':'')+'</td>'
+      +'<td><span class="pill '+PILL[dom.color||0]+'">'+dom.name+'</span></td>'
+      +'<td>'+dn(r.dateArrivee||r.date)+' '+ds(r.dateArrivee||r.date)+'</td>'
+      +'<td>'+(isJ?'Journée':dn(r.dateDepart)+' '+ds(r.dateDepart))+'</td>'
+      +'<td>'+(r.nbPersonnes||'—')+'</td>'
+      +'<td><span class="status s-'+r.status+'">'+r.status+'</span></td></tr>';
+  }).join('');
+  return '<div class="cal-header" style="margin-bottom:10px">'+monthYearPicker('listeYear','listeMonth')+'</div>'
+    +'<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">'
+    +(list.length===0?'<div class="empty">Aucune réservation ce mois-ci.</div>':'')
+    +(list.length>0?'<div style="overflow-x:auto"><table class="list-tbl"><thead><tr><th>Client</th><th>Domaine</th><th>Arrivée</th><th>Départ</th><th>Pers.</th><th>Statut</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'')
+    +'</div>';
+}
 function renderPrestaFull(p){
   const tab=S.prestaTab||'calendrier';
   const tabs=[['calendrier','📅','Planning'],['liste','🎉','Événements'],['visites','👀','Visites']];
@@ -3625,6 +3687,7 @@ function renderPresta(){
   if(mode==='occupation')return renderPrestaDominique(p);
   if(mode==='horaires')return renderPrestaHoraires(p);
   if(mode==='calendrierSeul')return renderPrestaCalendrierSeul(p);
+  if(mode==='readonly_nofinance')return renderPrestaReadOnly(p);
   if(mode==='domaine')return renderPrestaFull(p);
   if(p.inputMode==='garde')return renderPrestaGardePersonnel(p);
   let myR=D.reservations.filter(r=>r.status!=='annulé'&&(r.prestataires||[]).includes(p.id));
@@ -3998,6 +4061,7 @@ function selectAndGoCal(rid){const r=D.reservations.find(x=>x.id===rid);if(!r)re
 function stampChange(r,msg){
   r.updatedAt=Date.now();
   r.lastChange=msg;
+  r.lastChangeBy=S.admin?S.admin.name:(S.presta?S.presta.name:'');
 }
 function addPay(rid){
   if(!rid)return;
