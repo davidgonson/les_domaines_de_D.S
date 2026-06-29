@@ -1530,10 +1530,35 @@ function renderDetailPanel(r){
       <input type="file" id="dp-admin-photo" accept="image/*" style="display:none" onchange="addAdminQuickPhoto('${r.id}',this)">
       <div style="display:flex;gap:8px"><button class="btn btn-sm" onclick="document.getElementById('dp-admin-photo').click()">📷 Photo</button><button class="btn btn-sm btn-primary" onclick="addAdminQuickComment('${r.id}')">Envoyer</button></div>
     </div>`;})():''}
-    ${readOnly&&S.presta?`<div class="dp-section"><label>💬 Commentaire de ${S.presta.name} à David / Svitlana</label>
-      <textarea id="dp-presta-com" rows="2" placeholder="Écrire un message…" style="resize:none;width:100%;box-sizing:border-box;margin-bottom:6px"></textarea>
-      <button class="btn btn-sm btn-primary" onclick="addPrestaComment('${r.id}')">Envoyer</button>
-    </div>`:''}
+    ${(()=>{
+      if(!readOnly||!S.presta)return '';
+      const _pid=S.presta.id;
+      const _lines=((r.prestaLines||{})[_pid]||[]);
+      let _html='';
+      if(_pid==='p1'||_pid==='p2'){
+        _html+='<div class="dp-section"><label>📋 Prestation de '+S.presta.name+'</label>';
+        _html+='<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:8px">';
+        _html+='<input type="text" id="pself-lbl-'+r.id+'" placeholder="Description…" style="font-size:13px;padding:5px 7px">';
+        _html+='<div style="display:flex;gap:5px;flex-wrap:wrap">';
+        _html+='<input type="number" id="pself-amt-'+r.id+'" placeholder="Montant €" style="width:85px;font-size:13px;padding:5px 6px">';
+        _html+='<select id="pself-paid-'+r.id+'" style="flex:1;min-width:100px;font-size:11px;padding:5px"><option value="0">Via DS</option><option value="1">Direct client</option></select>';
+        _html+='<select id="pself-comm-'+r.id+'" style="width:65px;font-size:11px;padding:5px"><option value="10">10%</option><option value="50">50%</option><option value="0">0%</option></select>';
+        _html+='</div>';
+        _html+='<input type="text" id="pself-note-'+r.id+'" placeholder="Note…" style="font-size:12px;padding:5px 7px">';
+        _html+='<button class="btn btn-sm btn-primary" onclick="addPrestaLineSelf(\''+r.id+'\',\''+_pid+'\')">';
+        _html+='+ Ajouter</button></div>';
+        _lines.forEach(function(l){
+          _html+='<div style="background:#f0f4e8;border-radius:7px;padding:7px;margin-bottom:4px;font-size:12px;display:flex;justify-content:space-between;align-items:center">';
+          _html+='<span><strong>'+(l.label||'—')+'</strong> · '+money(l.montant||0)+' · '+(l.paidDirect?'Direct':'DS')+(l.notes?' · '+l.notes:'')+'</span>';
+          _html+='<button class="btn btn-xs btn-danger" onclick="delPrestaLineSelf(\''+r.id+'\',\''+_pid+'\',\''+l.id+'\')" >✕</button></div>';
+        });
+        _html+='</div>';
+      }
+      _html+='<div class="dp-section"><label>💬 Commentaire de '+S.presta.name+' à David / Svitlana</label>';
+      _html+='<textarea id="dp-presta-com" rows="2" placeholder="Écrire un message…" style="resize:none;width:100%;box-sizing:border-box;margin-bottom:6px"></textarea>';
+      _html+='<button class="btn btn-sm btn-primary" onclick="addPrestaComment(\''+r.id+'\')" >Envoyer</button></div>';
+      return _html;
+    })()}
     ${readOnly?'':`<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary btn-sm" style="flex:1" onclick="openM('editResa','${r.id}')">✏️ Modifier</button><button class="btn btn-sm btn-danger" onclick="delResa('${r.id}')">Suppr.</button><button class="btn btn-sm" onclick="closePanel()">Fermer</button></div>
     <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sm" style="flex:1;border-color:#993556;color:#993556" onclick="downloadContractPdf('${r.id}')">📄 Voir contrat PDF</button><button class="btn btn-sm" style="flex:1;border-color:#185FA5;color:#185FA5" onclick="downloadContractDocx('${r.id}')">📝 Contrat Word</button></div>`}
     ${readOnly&&S.presta&&S.presta.accessMode==='readonly_nofinance'?`<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sm" style="flex:1;border-color:#993556;color:#993556" onclick="downloadContractPdf('${r.id}')">📄 Voir contrat PDF</button><button class="btn btn-sm" style="flex:1;border-color:#185FA5;color:#185FA5" onclick="downloadContractDocx('${r.id}')">📝 Contrat Word</button></div>`:''}
@@ -4180,6 +4205,24 @@ function updPrestaLine(rid,pid,lineId,field,value){
   else if(field==='paidDirect')line[field]=value==='1'||value===true;
   else line[field]=value;
   saveD();render();
+}
+function addPrestaLineSelf(rid,pid){
+  const r=D.reservations.find(x=>x.id===rid);if(!r)return;
+  const lbl=(document.getElementById('pself-lbl-'+rid)||{}).value||'';
+  const amt=parseFloat((document.getElementById('pself-amt-'+rid)||{}).value)||0;
+  const paid=(document.getElementById('pself-paid-'+rid)||{}).value==='1';
+  const comm=parseFloat((document.getElementById('pself-comm-'+rid)||{}).value)||10;
+  const note=(document.getElementById('pself-note-'+rid)||{}).value||'';
+  if(!lbl&&!amt)return;
+  if(!r.prestaLines)r.prestaLines={};
+  if(!r.prestaLines[pid])r.prestaLines[pid]=[];
+  r.prestaLines[pid].push({id:gid(),label:lbl,montant:amt,paidDirect:paid,commission:comm,notes:note,date:r.dateArrivee||''});
+  saveD();showMsg('Prestation ajoutée ✓');S.selResa=rid;render();
+}
+function delPrestaLineSelf(rid,pid,lid){
+  const r=D.reservations.find(x=>x.id===rid);if(!r||!r.prestaLines||!r.prestaLines[pid])return;
+  r.prestaLines[pid]=r.prestaLines[pid].filter(l=>l.id!==lid);
+  saveD();showMsg('Supprimée');S.selResa=rid;render();
 }
 function addPrestaLine(rid,pid){const r=D.reservations.find(x=>x.id===rid);if(!r)return;const lab=(document.getElementById('pline-label-'+pid).value||'').trim(),amt=parseFloat(document.getElementById('pline-amt-'+pid).value)||0,nt=(document.getElementById('pline-notes-'+pid).value||'').trim(),pd=document.getElementById('pline-paid-'+pid).value==='1';if(!lab&&!amt)return;if(!r.prestaLines)r.prestaLines={};if(!r.prestaLines[pid])r.prestaLines[pid]=[];r.prestaLines[pid].push({id:gid(),label:lab,montant:amt,notes:nt,paidDirect:pd,date:r.dateArrivee||''});saveD();S.modal={type:'editResa',id:rid};render();}
 function delPrestaLine(rid,pid,lineId){if(!rid)return;const r=D.reservations.find(x=>x.id===rid);if(!r||!r.prestaLines||!r.prestaLines[pid])return;r.prestaLines[pid]=r.prestaLines[pid].filter(l=>l.id!==lineId);saveD();render();}
