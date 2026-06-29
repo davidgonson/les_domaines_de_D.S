@@ -1418,15 +1418,9 @@ function renderCalendrier(){
   var _DL=['#E8A0B0','#F5D98B','#A8D080'];
   var _DS=['#D4748A','#C9A84C','#5A9E3A'];
   var _cp=S.presta?S.presta.id:null;
-  D.reservations.forEach(function(r){
-    if(!(r.prestataires||[]).includes('p4'))return;
-    var dc=(gDom(r.domaine)||{}).color||0;
-    var cur=new Date((r.dateArrivee||r.date)+'T12:00:00');
-    var fs=r.dateDepart||r.dateArrivee||r.date;
-    for(var ni=0;dstr(cur)<=fs&&ni<60;ni++,cur=addDays(cur,1)){
-      var d4=dstr(cur);if(!dtc[d4])continue;
-      _domDay[d4]={l:_DL[dc<3?dc:0],s:_DS[dc<3?dc:0]};
-    }
+  (D.dominiqueSchedule||[]).forEach(function(x){
+    var dc=(gDom(x.domaine)||{}).color||0;
+    _domDay[x.date]={l:_DL[dc<3?dc:0],s:_DS[dc<3?dc:0]};
   });
   const gardeByDate={};
   const GARDE_COLORS=['#D4748A','#C9A84C','#5A9E3A','#6B64C8','#3A7AB8'];
@@ -1467,7 +1461,7 @@ function renderCalendrier(){
     var _showCircle=_dd&&_cp==='p4';
     var _showColor=_dd&&(_isAdminView||_cp==='p1'||_cp==='p2');
     var _dnSt=_showCircle?('background:'+_dd.s+';color:#fff;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;font-weight:700')
-              :_showColor?('color:'+_dd.l+';font-weight:700'):'';
+              :_showColor?('color:'+_dd.s+';font-weight:700'):'';
     var _dnAt=_dnSt?' style="'+_dnSt+'"':'';
     var _gg2=(gardeByDate[ds3]||[]).map(function(g){return'<span style="display:inline-flex;align-items:center;justify-content:center;width:10px;height:10px;border:1px solid '+g.col+';border-radius:50%;color:'+g.col+';font-size:5.5px;font-weight:700;margin-left:1px;line-height:1;flex-shrink:0">'+g.lbl+'</span>';}).join('');
     var _tg2=tag?'<span class="day-tag">'+tag+'</span>':'';
