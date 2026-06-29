@@ -2760,7 +2760,7 @@ function generateContractHtml(r){
     </div>
     <div class="signature-col">
       <div class="sig-name">David et Svitlana GONSON<br><span style="font-size:9.5pt;font-weight:400;color:#666">Les Domaines de D.S</span></div>
-      <div class="sig-space" style="position:relative;min-height:80px;display:flex;justify-content:center;align-items:flex-end">${typeof SIGNATURE_GONSON!=='undefined'&&SIGNATURE_GONSON?`<img src="${SIGNATURE_GONSON}" style="display:block;margin:0 auto;height:70px;opacity:0.92">`:''}</div>
+      <div class="sig-space" style="position:relative;min-height:80px;display:flex;justify-content:center;align-items:flex-end">${typeof SIGNATURE_GONSON!=='undefined'&&SIGNATURE_GONSON?`<img src="${SIGNATURE_GONSON}" style="display:block;margin:0 auto;height:52px;opacity:0.92">`:''}</div>
       <div class="sig-line">Date : ${dateLong(r.contratDate||dstr(new Date()))}</div>
     </div>
   </div>
@@ -2794,8 +2794,6 @@ function downloadContractPdf(rid){
   S._contractFileName=baseName+'.pdf';
   S.modal={type:'contractViewer'};
   render();
-  // Téléchargement automatique dès l'ouverture
-  setTimeout(()=>_savePdfFromHtml(html,baseName+'.pdf'),400);
 }
 function _savePdfFromHtml(html,fileName){
   if(typeof html2pdf!=='undefined'){
@@ -3205,23 +3203,65 @@ function renderContractViewer(){
     <div class="contract-viewer-bar">
       <span>📄 ${name}</span>
       <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);flex-shrink:0" onclick="printContractViewer()">🖨 Imprimer</button>
-      <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);flex-shrink:0" onclick="saveContractPdf('${rid||''}')">💾 Télécharger PDF</button>
+      <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);flex-shrink:0" onclick="saveAsContractViewer()">💾 Enregistrer sous</button>
       <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);flex-shrink:0" onclick="closeContractViewer()">✕ Fermer</button>
     </div>
     <iframe id="contract-viewer-frame" class="contract-viewer-frame" src="${url}"></iframe>
   </div>`;
 }
 function printContractViewer(){
-  const frame=document.getElementById('contract-viewer-frame');
-  if(!frame)return;
-  const doPrint=()=>{try{frame.contentWindow.focus();frame.contentWindow.print();}catch(e){alert('Pour imprimer, utilisez Ctrl+P depuis la visionneuse.');}};
-  if(frame.contentDocument&&frame.contentDocument.readyState==='complete'){doPrint();}
-  else{frame.onload=doPrint;}
+  const html=S._contractHtml;
+  if(!html)return;
+  // Créer un iframe caché, charger le contrat, lancer print()
+  const old=document.getElementById('print-frame-hidden');
+  if(old)old.remove();
+  const frame=document.createElement('iframe');
+  frame.id='print-frame-hidden';
+  frame.style.cssText='position:fixed;left:-9999px;top:0;width:210mm;height:297mm;border:none;';
+  document.body.appendChild(frame);
+  frame.contentDocument.open();
+  frame.contentDocument.write(html);
+  frame.contentDocument.close();
+  setTimeout(function(){
+    frame.contentWindow.focus();
+    frame.contentWindow.print();
+  },800);
 }
 function saveContractPdf(rid){
   const html=S._contractHtml;
-  const fileName=S._contractFileName||'contrat.pdf';
-  if(html)_savePdfFromHtml(html,fileName);
+  if(!html)return;
+  const r=rid?D.reservations.find(x=>x.id===rid):null;
+  const cd=r?(CONTRACT_DATA[r.domaine]||CONTRACT_DATA.d1):CONTRACT_DATA.d1;
+  const fileName=r?contractFileName(r,cd,'pdf'):(S._contractFileName||'contrat.pdf');
+  // Ouvrir dans nouvel onglet avec auto-print pour enregistrement PDF
+  const htmlWithPrint=html.replace('</body>',
+    '<script>window.addEventListener("load",function(){setTimeout(function(){window.print();},500);});<\/script></body>');
+  const blob=new Blob([htmlWithPrint],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const win=window.open(url,'_blank');
+  if(!win){
+    // Popup bloqué - télécharger le HTML
+    const a=document.createElement('a');
+    a.href=url;a.download=fileName.replace('.pdf','.html');
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    showMsg('Ouvrez le fichier et faites Ctrl+P pour enregistrer en PDF');
+  }
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+function saveAsContractViewer(){
+  // Enregistrer sous : télécharger le HTML - l'utilisateur choisit où et sous quel nom
+  const html=S._contractHtml;
+  if(!html)return;
+  const fileName=(S._contractFileName||'contrat').replace(/\.pdf$/,'')+'.html';
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),5000);
 }
 function closeContractViewer(){
   if(S._contractBlobUrl){URL.revokeObjectURL(S._contractBlobUrl);S._contractBlobUrl=null;}
