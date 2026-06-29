@@ -858,7 +858,7 @@ function buildBands(y,m){
       // Badge P : uniquement Misha(p1)/Sasha(p2) ou caviste/prestation extérieure
       const currentPid=S.presta?S.presta.id:null;
       const mishaSashaInPresta=(r.prestataires||[]).some(pid=>pid==='p1'||pid==='p2');
-      const hasExtOrCav=!!(r.caviste&&r.caviste.trim())||(r.prestasExterieurs&&r.prestasExterieurs.length>0);
+      const hasExtOrCav=!!(r.caviste&&r.caviste.trim())||!!(r.prestasExterieurs&&r.prestasExterieurs.length>0);
       const hasPresta=(mishaSashaInPresta||hasExtOrCav)&&(!currentPid||currentPid==='p1'||currentPid==='p2');
       bands.push({rid:r.id,slot,row:fc.row,colStart:fc.col,spanCols:lc.col-fc.col+1,shapeClass:sc,nameTxt,timeArr,timeDep,mainLine,bandCls:bc,optCls:oc,isJ,isPaid:payStatus(r)==='full',isPartPaid:payStatus(r)==='part',isFirstRow:ifr,isLastRow:ilr,hA:hArr,hD:hDep,colorIdx:c,hasPresta});
     });
@@ -1273,7 +1273,11 @@ function injectBands(){
       const topLine=topParts.join(' · ');
       const showP=b.hasPresta&&(S.view!=='presta'||(S.presta&&(S.presta.id==='p1'||S.presta.id==='p2')));
       const pTxt=showP?'<span style="display:inline-flex;align-items:center;justify-content:center;width:10px;height:10px;border:1.2px solid #2E86C1;border-radius:50%;color:#2E86C1;font-weight:700;font-size:7px;line-height:1;flex-shrink:0;margin-left:2px">P</span>':'';
-      label=(topLine||timeArrF||timeDepF)?`<div class="b-top">${topLine}</div><div class="b-bottom"><span>${timeArrF}</span><span>${timeDepF}${pTxt}</span></div>`:'';
+      // Priorité : b-top = paiement+nom | b-bottom = arrF+P
+      // Sur bande très étroite : tout sur une ligne
+      if(topLine||timeArrF){
+        label=`<div class="b-top">${topLine?topLine:timeArrF+pTxt}</div>${topLine&&timeArrF?'<div class="b-bottom"><span>'+timeArrF+pTxt+'</span></div>':''}`;
+      } else { label=''; }
     }
     div.innerHTML=label;
     div.title=label.replace(/<\/(div|span)>/g,' ').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim()+' — cliquer pour détail';
@@ -1415,7 +1419,7 @@ function renderCalendrier(){
     Object.values(r.prestaGarde).forEach(function(pg){
       Object.keys(pg.nights||{}).forEach(function(date){
         const g=pg.nights[date];
-        const lbl=g&&g.duree==='longue'?'GL':'GC';
+        const lbl=g&&g.duree==='longue'?'L':'C';
         if(!gardeByDate[date])gardeByDate[date]=[];
         gardeByDate[date].push({lbl:lbl,col:col});
       });
@@ -1519,7 +1523,9 @@ function renderDetailPanel(r){
       <button class="btn btn-sm btn-primary" onclick="addPrestaComment('${r.id}')">Envoyer</button>
     </div>`:''}
     ${readOnly?'':`<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary btn-sm" style="flex:1" onclick="openM('editResa','${r.id}')">✏️ Modifier</button><button class="btn btn-sm btn-danger" onclick="delResa('${r.id}')">Suppr.</button><button class="btn btn-sm" onclick="closePanel()">Fermer</button></div>
-    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sm" style="flex:1;border-color:#993556;color:#993556" onclick="downloadContractPdf('${r.id}')">📄 Voir contrat PDF</button><button class="btn btn-sm" style="flex:1;border-color:#185FA5;color:#185FA5" onclick="downloadContractDocx('${r.id}')">📝 Contrat Word</button></div>`}  </div>`;
+    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sm" style="flex:1;border-color:#993556;color:#993556" onclick="downloadContractPdf('${r.id}')">📄 Voir contrat PDF</button><button class="btn btn-sm" style="flex:1;border-color:#185FA5;color:#185FA5" onclick="downloadContractDocx('${r.id}')">📝 Contrat Word</button></div>`}
+    ${readOnly&&S.presta&&S.presta.accessMode==='readonly_nofinance'?`<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sm" style="flex:1;border-color:#993556;color:#993556" onclick="downloadContractPdf('${r.id}')">📄 Voir contrat PDF</button><button class="btn btn-sm" style="flex:1;border-color:#185FA5;color:#185FA5" onclick="downloadContractDocx('${r.id}')">📝 Contrat Word</button></div>`:''}
+    </div>`;
 }
 
 function renderListe(){
