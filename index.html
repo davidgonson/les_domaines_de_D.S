@@ -1356,8 +1356,9 @@ function injectVisiteMarkers(){
     div.style.width='12px';div.style.height='28px';
     div.title=`Visite — ${v.client||''} ${v.heure||''}${cancelled?' (annulée)':''}`;
     div.onclick=ev=>{ev.stopPropagation();openM('editVisite',v.id);};
-    div.innerHTML=`<div style="width:12px;height:28px;border-radius:6px;background:#fff;border:1.4px solid ${dotColors[c]};display:flex;align-items:center;justify-content:center;overflow:hidden;${cancelled?'opacity:.55':''}">
-      <span style="font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:8.5px;font-weight:600;letter-spacing:.2px;color:${dotColors[c]};transform:rotate(-90deg);white-space:nowrap;${cancelled?'text-decoration:line-through':''}">${heureLbl}</span>
+    const bgColors=['#D4748A','#C9A84C','#5A9E3A','#6B64C8','#3A7AB8'];
+    div.innerHTML=`<div style="width:11px;height:22px;border-radius:5px;background:${bgColors[c]};display:flex;align-items:center;justify-content:center;overflow:hidden;${cancelled?'opacity:.55':''}">
+      <span style="font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:8.5px;font-weight:700;letter-spacing:.2px;color:#fff;transform:rotate(-90deg);white-space:nowrap;${cancelled?'text-decoration:line-through':''}">${heureLbl}</span>
     </div>`;
     grid.appendChild(div);
   });
