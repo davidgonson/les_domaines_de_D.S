@@ -547,6 +547,7 @@ function runMigrations(){
     if(r.typeEvenement==='Famille / Cousinade'||r.typeEvenement==='Séjour amis'||r.typeEvenement==='Famille / Ami')r.typeEvenement='Famille / Amis';
     if(r.typeEvenement==='GDC (Gens de confiance)')r.typeEvenement='GDC';
     if(r.typeEvenement==='GDC / Home Exchange')r.typeEvenement='GDC';
+    // Migration : retirer avecContrat auto-coché sur les anciennes réservations (avant le mode "décoché par défaut")
     if(r.avecContrat===true&&!r._contratManuel)r.avecContrat=false;
     Object.values(r.prestaGarde||{}).forEach(pg=>{
       Object.keys(pg.nights||{}).forEach(date=>{
@@ -851,17 +852,12 @@ function buildBands(y,m){
       const hArr=ifr?(parseInt((r.heureArrivee||'12:00').split(':')[0])+(parseInt((r.heureArrivee||'12:00').split(':')[1]||0)/60)):8;
       const hDep=ilr?(parseInt((r.heureDepart||'12:00').split(':')[0])+(parseInt((r.heureDepart||'12:00').split(':')[1]||0)/60)):22;
       // Badge P : prestataire connecté assigné (non-ménage) OU admin avec au moins 1 presta non-ménage
-      // P uniquement si Misha (p1) ou Sasha (p2) ont une prestation hors ménage
       const currentPid=S.presta?S.presta.id:null;
-      const mishaSashaInPresta=(r.prestataires||[]).some(pid=>pid==='p1'||pid==='p2');
-      const hasExtPrestaOrCaviste=!!(
-        (r.caviste&&r.caviste.trim())||
-        (r.prestasExterieurs&&r.prestasExterieurs.length>0)
-      );
-      const hasMishaSashaPresta=mishaSashaInPresta||hasExtPrestaOrCaviste;
-      // Visible pour : admins (pas de currentPid) + Misha (p1) + Sasha (p2)
-      const canSeeP=!currentPid||currentPid==='p1'||currentPid==='p2';
-      const hasPresta=hasMishaSashaPresta&&canSeeP;
+      const menagePid=getMenageInfo(r)?getMenageInfo(r).pid:null;
+      const assignedNonMenage=(r.prestataires||[]).filter(pid=>pid!==menagePid);
+      const hasPresta=currentPid
+        ?(currentPid!==menagePid&&assignedNonMenage.includes(currentPid))
+        :(assignedNonMenage.length>0);
       bands.push({rid:r.id,slot,row:fc.row,colStart:fc.col,spanCols:lc.col-fc.col+1,shapeClass:sc,nameTxt,timeArr,timeDep,mainLine,bandCls:bc,optCls:oc,isJ,isPaid:payStatus(r)==='full',isPartPaid:payStatus(r)==='part',isFirstRow:ifr,isLastRow:ilr,hA:hArr,hD:hDep,colorIdx:c,hasPresta});
     });
   });
@@ -1145,7 +1141,7 @@ function extPrestaRowHtml(x){
         <select class="ext-sens" style="flex:1;min-width:120px;font-size:11px;padding:4px 4px">
           <option value="paye_par_nous" ${(x.sens||'paye_par_nous')==='paye_par_nous'?'selected':''}>Payé par nous</option>
           <option value="client_nous_reverse" ${x.sens==='client_nous_reverse'?'selected':''}>Client paie, on reverse</option>
-          <option value="presta_nous_reverse" ${x.sens==='presta_nous_reverse'?'selected':''}>Presta reversé par client</option>
+          <option value="presta_nous_reverse" ${x.sens==='presta_nous_reverse'?'selected':''}>Client paie presta, presta reverse</option>
         </select>
         <span style="display:flex;align-items:center;gap:3px;flex-shrink:0">
           <select class="ext-comm-sel" style="font-size:11px;padding:4px 4px;width:70px" onchange="(function(sel){const row=sel.closest('.ext-presta-row');const inp=row.querySelector('.ext-comm-input');if(sel.value==='autre'){inp.style.display='inline-block';inp.focus();}else{inp.style.display='none';}})(this)">
@@ -1274,20 +1270,23 @@ function injectBands(){
         // 100% — admin seulement
         const fullHtml=(!isPrestaView&&b.isPaid)?`<span style="font-size:9px;font-weight:700;font-style:italic;color:#E8000D;margin-right:3px;letter-spacing:.5px;display:inline-block;transform:skewX(-12deg)">100%</span>`:'';
         // Badge P bleu ciel — prestataire non-ménage assigné
-        const pSvg=`<svg width="12" height="12" viewBox="0 0 13 13" style="display:inline-block;vertical-align:middle;flex-shrink:0"><circle cx="6.5" cy="6.5" r="6" fill="none" stroke="#2E86C1" stroke-width="1.5"/><text x="6.5" y="9.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="#2E86C1" font-family="Arial,sans-serif">P</text></svg>`;
+        const pSvg=`<svg width="13" height="13" viewBox="0 0 13 13" style="display:inline-block;vertical-align:middle;margin-left:2px;flex-shrink:0"><circle cx="6.5" cy="6.5" r="6" fill="none" stroke="#2E86C1" stroke-width="1.5"/><text x="6.5" y="9.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="#2E86C1" font-family="Arial,sans-serif">P</text></svg>`;
+        const pBadge=b.hasPresta?pSvg:'';
         if(isPrestaView){
-          topParts.push('<span style="font-weight:800">'+b.nameTxt+'</span>');
+          topParts.push(pBadge+'<span style="font-weight:800">'+b.nameTxt+'</span>');
         } else {
           topParts.push(optPrefix+dotHtml+fullHtml+'<span style="font-weight:800">'+b.nameTxt+'</span>');
         }
       }
       if(b.mainLine)topParts.push(b.mainLine);
       const topLine=topParts.join(' · ');
-      const pCenter=b.hasPresta?pSvg:'';
-      if(S.view==='presta'){
-        label=`<div class="b-top">${topLine}</div><div class="b-bottom" style="display:flex;justify-content:space-between;align-items:center"><span>${timeArrF}</span>${pCenter}<span>${timeDepF}</span></div>`;
+      if(isPrestaView){
+        label=topLine?`<div class="b-top">${topLine}</div>`:'';
+      } else if(b.hasPresta){
+        const pC=`<svg width="13" height="13" viewBox="0 0 13 13" style="display:inline-block;vertical-align:middle"><circle cx="6.5" cy="6.5" r="6" fill="none" stroke="#2E86C1" stroke-width="1.5"/><text x="6.5" y="9.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="#2E86C1" font-family="Arial,sans-serif">P</text></svg>`;
+        label=(topLine||timeArrF||timeDepF)?`<div class="b-top">${topLine}</div><div class="b-bottom" style="justify-content:space-between;align-items:center"><span>${timeArrF}</span><span>${pC}</span><span>${timeDepF}</span></div>`:'';
       } else {
-        label=(topLine||timeArrF||timeDepF)?`<div class="b-top">${topLine}</div><div class="b-bottom" style="display:flex;justify-content:space-between;align-items:center"><span>${timeArrF}</span>${pCenter}<span>${timeDepF}</span></div>`:'';
+        label=(topLine||timeArrF||timeDepF)?`<div class="b-top">${topLine}</div><div class="b-bottom"><span>${timeArrF}</span><span>${timeDepF}</span></div>`:'';
       };
     }
     div.innerHTML=label;
@@ -1798,7 +1797,7 @@ function renderDernieres(){
       lastChange:v.lastChange||'Visite existante',
       rid:null,vid:v.id
     }))
-  ].filter(x=>x.client&&x.client!=='—'||x.domaine).sort((a,b)=>b.ts-a.ts).slice(0,20);
+  ].filter(x=>(x.client&&x.client!=='—'||x.domaine)&&(x.ts<=1||x.ts>Date.now()-30*24*3600*1000)).sort((a,b)=>b.ts-a.ts).slice(0,20);
 
   const rows=items.map(x=>{
     const d=new Date(x.ts);
@@ -2331,12 +2330,16 @@ function renderClientsExport(){
 }
 function renderClientsList(){
   const sortBy=S.clientsSortBy||'date';
-  const clientFilter=S.clientsFilter||'tous';
+  const clientFilter=S.clientsFilter||'tous'; // 'tous','particuliers','professionnels'
   let rows=D.reservations.filter(r=>r.status!=='annulé'&&(r.client||r.societe)).map(r=>({r,dom:gDom(r.domaine)}));
   if(clientFilter==='particuliers')rows=rows.filter(({r})=>r.typeClient!=='entreprise');
   if(clientFilter==='professionnels')rows=rows.filter(({r})=>r.typeClient==='entreprise');
   if(sortBy==='alpha'){
-    rows.sort((a,b)=>{const na=a.r.typeClient==='entreprise'?a.r.societe:displayClientName(a.r);const nb=b.r.typeClient==='entreprise'?b.r.societe:displayClientName(b.r);return(na||'').localeCompare(nb||'','fr',{sensitivity:'base'});});
+    rows.sort((a,b)=>{
+      const na=a.r.typeClient==='entreprise'?a.r.societe:displayClientName(a.r);
+      const nb=b.r.typeClient==='entreprise'?b.r.societe:displayClientName(b.r);
+      return(na||'').localeCompare(nb||'','fr',{sensitivity:'base'});
+    });
   } else if(sortBy==='domaine'){
     rows.sort((a,b)=>(a.dom.name||'').localeCompare(b.dom.name||'','fr')||(a.r.dateArrivee||'').localeCompare(b.r.dateArrivee||''));
   } else {
@@ -2344,41 +2347,28 @@ function renderClientsList(){
   }
   return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
     <div class="sec-hdr"><h2>📇 Liste clients</h2></div>
-    <div style="margin-bottom:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+    <div style="margin-bottom:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-size:12px;color:#888">Trier par :</span>
+      <button class="btn btn-sm ${sortBy==='date'?'btn-primary':''}" onclick="setClientsSortBy('date')">Date</button>
+      <button class="btn btn-sm ${sortBy==='alpha'?'btn-primary':''}" onclick="setClientsSortBy('alpha')">Alphabétique</button>
+      <button class="btn btn-sm ${sortBy==='domaine'?'btn-primary':''}" onclick="setClientsSortBy('domaine')">Domaine</button>
+      <span style="width:1px;height:18px;background:#e5e3de;display:inline-block"></span>
       <button class="btn btn-sm ${clientFilter==='tous'?'btn-primary':''}" onclick="S.clientsFilter='tous';render()">Tous</button>
       <button class="btn btn-sm ${clientFilter==='particuliers'?'btn-primary':''}" onclick="S.clientsFilter='particuliers';render()">👤 Particuliers</button>
       <button class="btn btn-sm ${clientFilter==='professionnels'?'btn-primary':''}" onclick="S.clientsFilter='professionnels';render()">🏢 Professionnels</button>
     </div>
-    <div style="margin-bottom:14px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-      <span style="font-size:11px;color:#aaa">Trier :</span>
-      <button class="btn btn-sm ${sortBy==='date'?'btn-primary':''}" onclick="setClientsSortBy('date')">Date</button>
-      <button class="btn btn-sm ${sortBy==='alpha'?'btn-primary':''}" onclick="setClientsSortBy('alpha')">A→Z</button>
-      <button class="btn btn-sm ${sortBy==='domaine'?'btn-primary':''}" onclick="setClientsSortBy('domaine')">Domaine</button>
-    </div>
     ${rows.length===0?'<div class="empty">Aucun client enregistré.</div>':''}
-    ${rows.length>0?`<div style="overflow-x:auto"><table class="list-tbl"><thead><tr>
-        ${clientFilter==='professionnels'?'<th>Société</th><th>Contact</th>':'<th>Client</th><th>Société</th>'}
-        <th>Téléphone</th><th>Email</th><th>Domaine</th><th>Date</th></tr></thead>
+    ${rows.length>0?`<div style="overflow-x:auto"><table class="list-tbl"><thead><tr><th>Client / Société</th><th>Contact</th><th>Téléphone</th><th>Email</th><th>Domaine</th><th>Date</th></tr></thead>
     <tbody>${rows.map(({r,dom})=>{
       const isPro=r.typeClient==='entreprise';
-      if(clientFilter==='professionnels'){
-        return`<tr onclick="selectAndGoCal('${r.id}')">
-          <td><strong>${r.societe||'—'}</strong></td>
-          <td style="font-size:12px;color:#555">${isPro&&r.nom1?[r.civilite1||'',r.nom1].filter(Boolean).join(' '):'<span style="color:#ccc">—</span>'}</td>
-          <td onclick="event.stopPropagation()"><input type="tel" value="${displayTel(r.tel)}" placeholder="À renseigner" onchange="updClientTel('${r.id}',this.value)" style="width:120px;font-size:12px;padding:4px 6px;border:1px solid transparent;background:transparent" onfocus="this.style.borderColor='#d5d3ce';this.style.background='#fff'" onblur="this.style.borderColor='transparent';this.style.background='transparent'"></td>
-          <td>${r.email?`<a href="mailto:${r.email}" onclick="event.stopPropagation()" style="color:#185FA5;text-decoration:none">${r.email}</a>`:'<span style="color:#ccc">—</span>'}</td>
-          <td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td>
-          <td>${fmt(r.dateArrivee)}</td></tr>`;
-      } else {
-        const mainName=isPro&&r.societe?`<div style="font-weight:600">${r.societe}</div><div style="font-size:11px;color:#888">${displayClientName(r)||''}</div>`:`<div style="font-weight:500">${displayClientName(r)||'—'}</div>`;
-        return`<tr onclick="selectAndGoCal('${r.id}')">
-          <td>${mainName}</td>
-          <td>${isPro&&r.societe?`<span style="font-size:12px">${displayClientName(r)||'—'}</span>`:'<span style="color:#ccc">—</span>'}</td>
-          <td onclick="event.stopPropagation()"><input type="tel" value="${displayTel(r.tel)}" placeholder="À renseigner" onchange="updClientTel('${r.id}',this.value)" style="width:120px;font-size:12px;padding:4px 6px;border:1px solid transparent;background:transparent" onfocus="this.style.borderColor='#d5d3ce';this.style.background='#fff'" onblur="this.style.borderColor='transparent';this.style.background='transparent'"></td>
-          <td>${r.email?`<a href="mailto:${r.email}" onclick="event.stopPropagation()" style="color:#185FA5;text-decoration:none">${r.email}</a>`:'<span style="color:#ccc">—</span>'}</td>
-          <td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td>
-          <td>${fmt(r.dateArrivee)}</td></tr>`;
-      }
+      const mainName=isPro&&r.societe?`<div style="font-weight:600">${r.societe}</div>`:`<div style="font-weight:500">${displayClientName(r)||'—'}</div>`;
+      const contact=isPro&&r.nom1?`<div style="font-size:11px;color:#888">${[r.civilite1||'',r.nom1].filter(Boolean).join(' ')}</div>`:'';
+      return`<tr onclick="selectAndGoCal('${r.id}')"><td>${mainName}${contact}</td>
+        <td>${isPro&&r.societe?displayClientName(r)||'—':'<span style="color:#ccc">—</span>'}</td>
+        <td onclick="event.stopPropagation()"><input type="tel" value="${displayTel(r.tel)}" placeholder="À renseigner" onchange="updClientTel('${r.id}',this.value)" style="width:130px;font-size:12px;padding:4px 6px;border:1px solid transparent;background:transparent" onfocus="this.style.borderColor='#d5d3ce';this.style.background='#fff'" onblur="this.style.borderColor='transparent';this.style.background='transparent'"></td>
+        <td>${r.email?`<a href="mailto:${r.email}" onclick="event.stopPropagation()" style="color:#185FA5;text-decoration:none">${r.email}</a>`:'<span style="color:#ccc">—</span>'}</td>
+        <td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td>
+        <td>${fmt(r.dateArrivee)}</td></tr>`;
     }).join('')}</tbody></table></div>`:''}
   </div>`;
 }
@@ -2753,7 +2743,8 @@ function generateContractHtml(r){
     </div>
     <div class="signature-col">
       <div class="sig-name">David et Svitlana GONSON<br><span style="font-size:9.5pt;font-weight:400;color:#666">Les Domaines de D.S</span></div>
-      <div class="sig-space" style="position:relative">${typeof SIGNATURE_GONSON!=='undefined'&&SIGNATURE_GONSON?`<img src="${SIGNATURE_GONSON}" alt="Signature" style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);height:55px;opacity:.92">`:''}
+      <div class="sig-space" style="position:relative">
+        ${SIGNATURE_GONSON?`<img src="${SIGNATURE_GONSON}" alt="Signature D. Gonson" style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);height:55px;opacity:.92">`:''}
       </div>
       <div class="sig-line">Signature — Date : ${dateLong(dstr(new Date()))}</div>
     </div>
@@ -2920,8 +2911,21 @@ async function downloadContractDocx(rid){
   children.push(new Paragraph({
     tabStops:[{type:'right',position:9000}],
     children:[new TextRun({text:'Le Preneur',bold:true,size:21}),new TextRun({text:'\t'}),new TextRun({text:'David et Svitlana GONSON — Les Domaines de D.S',bold:true,size:21})],
-    spacing:{after:700}
+    spacing:{after:200}
   }));
+  // Signature image côté bailleur
+  if(typeof SIGNATURE_GONSON!=='undefined'&&SIGNATURE_GONSON){
+    try{
+      const sigBytes=base64ToUint8Array(SIGNATURE_GONSON);
+      children.push(new Paragraph({
+        tabStops:[{type:'right',position:9000}],
+        children:[new TextRun({text:'\t'}),new ImageRun({data:sigBytes,transformation:{width:110,height:80},type:'png'})],
+        spacing:{after:60}
+      }));
+    }catch(e){}
+  } else {
+    children.push(new Paragraph({text:'',spacing:{after:300}}));
+  }
   children.push(new Paragraph({
     tabStops:[{type:'right',position:9000}],
     children:[new TextRun({text:'Signature précédée de « lu et approuvé » — Date :',size:19,color:'888888'}),new TextRun({text:'\t'}),new TextRun({text:`Signature — Date : ${dateLong(dstr(new Date()))}`,size:19,color:'888888'})]
@@ -4053,68 +4057,23 @@ function stampChange(r,msg){
   r.updatedAt=Date.now();
   r.lastChange=msg;
 }
-function autoSaveFormFields(rid){
-  const r=D.reservations.find(x=>x.id===rid);if(!r)return;
-  const g=id=>{const el=document.getElementById(id);return el?el.value:null;};
-  const gn=id=>{const v=g(id);return v!==null&&v!==''?parseFloat(v)||0:null;};
-  const gi=id=>{const v=g(id);return v!==null&&v!==''?parseInt(v)||0:null;};
-  // Identité
-  const nom1=g('m-nom1');if(nom1!==null)r.nom1=nom1;
-  const prenom1=g('m-prenom1');if(prenom1!==null)r.prenom1=prenom1;
-  const nom2=g('m-nom2');if(nom2!==null)r.nom2=nom2;
-  const prenom2=g('m-prenom2');if(prenom2!==null)r.prenom2=prenom2;
-  const soc=g('m-societe');if(soc!==null)r.societe=soc;
-  const tel=g('m-tel');if(tel!==null)r.tel=tel;
-  const email=g('m-email');if(email!==null)r.email=email;
-  const tel2=g('m-tel2');if(tel2!==null)r.tel2=tel2;
-  const email2=g('m-email2');if(email2!==null)r.email2=email2;
-  const adresse=g('m-adresse');if(adresse!==null)r.adresse=adresse;
-  const civ1=g('m-civilite1');if(civ1)r.civilite1=civ1;
-  const civ2=g('m-civilite2');if(civ2)r.civilite2=civ2;
-  // Capacité
-  const nb=gi('m-nbp');if(nb!==null)r.nbPersonnes=nb;
-  const nbs=gi('m-nbs');if(nbs!==null)r.nbSoiree=nbs;
-  const na=gi('m-adultes');if(na!==null)r.nbAdultes=na;
-  const ne=gi('m-enfants');if(ne!==null)r.nbEnfants=ne;
-  // Dates/heures
-  const arrD=g('m-arr-date');if(arrD)r.dateArrivee=arrD;
-  const depD=g('m-dep-date');if(depD)r.dateDepart=depD;
-  const arrH=g('m-arr-heure');if(arrH!==null)r.heureArrivee=arrH;
-  const depH=g('m-dep-heure');if(depH!==null)r.heureDepart=depH;
-  // Statut / Type
-  const statusEl=document.getElementById('m-status');if(statusEl)r.status=statusEl.value;
-  const evtEl=document.getElementById('m-evt');if(evtEl)r.typeEvenement=evtEl.value;
-  // Montants
-  const mont=gn('m-montant');if(mont!==null)r.montant=mont;
-  const arrhes=gn('m-arrhes');if(arrhes!==null)r.arrhes=arrhes;
-  const depot=gn('m-depot');if(depot!==null)r.depotGarantie=depot;
-  const noteI=g('m-noteI');if(noteI!==null)r.noteInterne=noteI;
-  const contratEl=document.getElementById('m-avec-contrat');
-  if(contratEl)r.avecContrat=contratEl.checked;
-  // Prestataires
-  const cavEl=document.getElementById('m-caviste');if(cavEl)r.caviste=cavEl.value;
-  // Domaine
-  const domEl=document.getElementById('m-domaine');if(domEl&&domEl.value)r.domaine=domEl.value;
-}
 function addPay(rid){
   if(!rid)return;
   const d=document.getElementById('pay-date').value,a=parseFloat(document.getElementById('pay-amt').value),ty=document.getElementById('pay-type').value,cm=(document.getElementById('pay-comment').value||'').trim();
   if(!d||!a)return;
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
-  autoSaveFormFields(rid);
   if(!r.paiements)r.paiements=[];
   r.paiements.push({id:gid(),date:d,montant:a,type:ty,comment:cm});
   stampChange(r,`Paiement ajouté · ${ty} ${money(a)} le ${ds(d)}${cm?' ('+cm+')':''}`);
-  autoSaveFormFields(rid);saveD();S.modal={type:'editResa',id:rid};render();
+  saveD();S.modal={type:'editResa',id:rid};render();
 }
 function delPay(rid,pid){
   if(!rid)return;const r=D.reservations.find(x=>x.id===rid);if(!r)return;
-  autoSaveFormFields(rid);
   const pa=(r.paiements||[]).find(p=>p.id===pid);
   const desc=pa?`${pa.type||''} ${money(pa.montant||0)} du ${ds(pa.date)}`:'';
   r.paiements=(r.paiements||[]).filter(p=>p.id!==pid);
   stampChange(r,`Paiement supprimé · ${desc}`);
-  autoSaveFormFields(rid);saveD();S.modal={type:'editResa',id:rid};render();
+  saveD();S.modal={type:'editResa',id:rid};render();
 }
 function updPay(rid,pid,field,value){
   if(!rid)return;const r=D.reservations.find(x=>x.id===rid);if(!r)return;
@@ -4128,7 +4087,6 @@ function updPay(rid,pid,field,value){
 }
 function togglePrestataireChecked(rid,pid,checked){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
-  autoSaveFormFields(rid);
   if(!r.prestataires)r.prestataires=[];
   if(checked){if(!r.prestataires.includes(pid))r.prestataires.push(pid);}
   else{r.prestataires=r.prestataires.filter(x=>x!==pid);}
@@ -4136,26 +4094,24 @@ function togglePrestataireChecked(rid,pid,checked){
 }
 function updPrestaLine(rid,pid,lineId,field,value){
   if(!rid)return;const r=D.reservations.find(x=>x.id===rid);if(!r||!r.prestaLines||!r.prestaLines[pid])return;
-  autoSaveFormFields(rid);
   const line=r.prestaLines[pid].find(l=>l.id===lineId);if(!line)return;
   if(field==='montant')line[field]=parseFloat(value)||0;
   else if(field==='paidDirect')line[field]=value==='1'||value===true;
   else line[field]=value;
   saveD();render();
 }
-function addPrestaLine(rid,pid){const r=D.reservations.find(x=>x.id===rid);if(!r)return;const lab=(document.getElementById('pline-label-'+pid).value||'').trim(),amt=parseFloat(document.getElementById('pline-amt-'+pid).value)||0,nt=(document.getElementById('pline-notes-'+pid).value||'').trim(),pd=document.getElementById('pline-paid-'+pid).value==='1';if(!lab&&!amt)return;if(!r.prestaLines)r.prestaLines={};if(!r.prestaLines[pid])r.prestaLines[pid]=[];r.prestaLines[pid].push({id:gid(),label:lab,montant:amt,notes:nt,paidDirect:pd,date:r.dateArrivee||''});autoSaveFormFields(rid);saveD();S.modal={type:'editResa',id:rid};render();}
+function addPrestaLine(rid,pid){const r=D.reservations.find(x=>x.id===rid);if(!r)return;const lab=(document.getElementById('pline-label-'+pid).value||'').trim(),amt=parseFloat(document.getElementById('pline-amt-'+pid).value)||0,nt=(document.getElementById('pline-notes-'+pid).value||'').trim(),pd=document.getElementById('pline-paid-'+pid).value==='1';if(!lab&&!amt)return;if(!r.prestaLines)r.prestaLines={};if(!r.prestaLines[pid])r.prestaLines[pid]=[];r.prestaLines[pid].push({id:gid(),label:lab,montant:amt,notes:nt,paidDirect:pd,date:r.dateArrivee||''});saveD();S.modal={type:'editResa',id:rid};render();}
 function delPrestaLine(rid,pid,lineId){if(!rid)return;const r=D.reservations.find(x=>x.id===rid);if(!r||!r.prestaLines||!r.prestaLines[pid])return;r.prestaLines[pid]=r.prestaLines[pid].filter(l=>l.id!==lineId);saveD();render();}
 
 function addComment(rid){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
-  autoSaveFormFields(rid);
   const txt=document.getElementById('com-txt').value.trim();if(!txt)return;
   if(!r.commentaires)r.commentaires=[];
   r.commentaires.push({id:gid(),auteur:'admin',auteurNom:S.admin.name,date:new Date().toISOString().slice(0,10),texte:txt,visible:true});
   const ct=getMenageInfo(r);
   if(ct)logActivity('commentaire',r.domaine,`💬 ${S.admin.name} → ${ct.name} : « ${txt} » — ${displayClientName(r)||'—'} (${fmt(r.dateArrivee)})`,[ct.pid]);
   stampChange(r,`Commentaire ajouté pour ${ct?ct.name:'le gardien'} · « ${txt.slice(0,60)}${txt.length>60?'…':''} »`);
-  autoSaveFormFields(rid);saveD();S.modal={type:'editResa',id:rid};render();
+  saveD();S.modal={type:'editResa',id:rid};render();
 }
 function addPrestaComment(rid){
   const r=D.reservations.find(x=>x.id===rid);if(!r||!S.presta)return;
@@ -4227,7 +4183,8 @@ function saveResaCore(id){
   const client=[prenom1,nom1].filter(Boolean).join(' ')+((prenom2||nom2)?(' et '+[prenom2,nom2].filter(Boolean).join(' ')):'');
   const typeEvenement=(document.getElementById('m-evt')||{}).value||'',noteInterne=document.getElementById('m-noteI').value,caviste=(document.getElementById('m-caviste')||{}).value||'',montant=parseFloat(document.getElementById('m-montant').value)||0,arrhes=parseFloat((document.getElementById('m-arrhes')||{}).value)||0,depotGarantie=parseFloat((document.getElementById('m-depot')||{}).value)||0;
   const avecContratEl=document.getElementById('m-avec-contrat');
-  const avecContrat=avecContratEl?avecContratEl.checked:true;
+  const avecContrat=avecContratEl?avecContratEl.checked:false;
+  const _contratManuel=avecContrat?true:undefined;
   const prestasExterieurs=Array.from(document.querySelectorAll('.ext-presta-row')).map(row=>({
     id:row.dataset.extid||gid(),
     intitule:(row.querySelector('.ext-intitule')||{}).value||'',
@@ -4322,7 +4279,7 @@ function saveResaCore(id){
     const prevSnap={...r};
     const nextSnap={domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,typeEvenement,nbPersonnes,nbSoiree,montant,arrhes,depotGarantie,noteInterne,typeClient,societe,tel,email};
     const changeLog=buildChangeLog(prevSnap,nextSnap);
-    Object.assign(r,{domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,civilite1,prenom1,nom1,tel,email,prenom2,nom2,tel2,email2,adresse,typeClient,societe,typeEvenement,nbPersonnes,nbSoiree,nbAdultes,nbEnfants,prestaGarde,noteInterne,caviste,prestasExterieurs,montant,arrhes,depotGarantie,avecContrat,prestataires,updatedAt:nowTs,lastChange:changeLog});
+    Object.assign(r,{domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,civilite1,prenom1,nom1,tel,email,prenom2,nom2,tel2,email2,adresse,typeClient,societe,typeEvenement,nbPersonnes,nbSoiree,nbAdultes,nbEnfants,prestaGarde,noteInterne,caviste,prestasExterieurs,montant,arrhes,depotGarantie,avecContrat,_contratManuel:avecContrat?true:r._contratManuel,prestataires,updatedAt:nowTs,lastChange:changeLog});
   }
   else{
     newId=gid();
@@ -4377,19 +4334,16 @@ function toggleGardeNightPaid(rid,pid,date){
 }
 function toggleMenagePaid(rid){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
-  autoSaveFormFields(rid);
   r.menagePaid=!r.menagePaid;
   saveD();render();
 }
 function updMenageMontant(rid,value){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
-  autoSaveFormFields(rid);
   r.menageMontant=parseFloat(value)||0;
   saveD();render();
 }
 function updMenageComment(rid,value){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
-  autoSaveFormFields(rid);
   r.menageComment=value;
   saveD();render();
 }
