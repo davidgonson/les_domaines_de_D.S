@@ -851,12 +851,17 @@ function buildBands(y,m){
       const hArr=ifr?(parseInt((r.heureArrivee||'12:00').split(':')[0])+(parseInt((r.heureArrivee||'12:00').split(':')[1]||0)/60)):8;
       const hDep=ilr?(parseInt((r.heureDepart||'12:00').split(':')[0])+(parseInt((r.heureDepart||'12:00').split(':')[1]||0)/60)):22;
       // Badge P : prestataire connecté assigné (non-ménage) OU admin avec au moins 1 presta non-ménage
+      // P uniquement si Misha (p1) ou Sasha (p2) ont une prestation hors ménage
       const currentPid=S.presta?S.presta.id:null;
-      const menagePid=getMenageInfo(r)?getMenageInfo(r).pid:null;
-      const assignedNonMenage=(r.prestataires||[]).filter(pid=>pid!==menagePid);
-      const hasPresta=currentPid
-        ?(currentPid!==menagePid&&assignedNonMenage.includes(currentPid))
-        :(assignedNonMenage.length>0);
+      const mishaSashaInPresta=(r.prestataires||[]).some(pid=>pid==='p1'||pid==='p2');
+      const hasExtPrestaOrCaviste=!!(
+        (r.caviste&&r.caviste.trim())||
+        (r.prestasExterieurs&&r.prestasExterieurs.length>0)
+      );
+      const hasMishaSashaPresta=mishaSashaInPresta||hasExtPrestaOrCaviste;
+      // Visible pour : admins (pas de currentPid) + Misha (p1) + Sasha (p2)
+      const canSeeP=!currentPid||currentPid==='p1'||currentPid==='p2';
+      const hasPresta=hasMishaSashaPresta&&canSeeP;
       bands.push({rid:r.id,slot,row:fc.row,colStart:fc.col,spanCols:lc.col-fc.col+1,shapeClass:sc,nameTxt,timeArr,timeDep,mainLine,bandCls:bc,optCls:oc,isJ,isPaid:payStatus(r)==='full',isPartPaid:payStatus(r)==='part',isFirstRow:ifr,isLastRow:ilr,hA:hArr,hD:hDep,colorIdx:c,hasPresta});
     });
   });
@@ -4048,23 +4053,68 @@ function stampChange(r,msg){
   r.updatedAt=Date.now();
   r.lastChange=msg;
 }
+function autoSaveFormFields(rid){
+  const r=D.reservations.find(x=>x.id===rid);if(!r)return;
+  const g=id=>{const el=document.getElementById(id);return el?el.value:null;};
+  const gn=id=>{const v=g(id);return v!==null&&v!==''?parseFloat(v)||0:null;};
+  const gi=id=>{const v=g(id);return v!==null&&v!==''?parseInt(v)||0:null;};
+  // Identité
+  const nom1=g('m-nom1');if(nom1!==null)r.nom1=nom1;
+  const prenom1=g('m-prenom1');if(prenom1!==null)r.prenom1=prenom1;
+  const nom2=g('m-nom2');if(nom2!==null)r.nom2=nom2;
+  const prenom2=g('m-prenom2');if(prenom2!==null)r.prenom2=prenom2;
+  const soc=g('m-societe');if(soc!==null)r.societe=soc;
+  const tel=g('m-tel');if(tel!==null)r.tel=tel;
+  const email=g('m-email');if(email!==null)r.email=email;
+  const tel2=g('m-tel2');if(tel2!==null)r.tel2=tel2;
+  const email2=g('m-email2');if(email2!==null)r.email2=email2;
+  const adresse=g('m-adresse');if(adresse!==null)r.adresse=adresse;
+  const civ1=g('m-civilite1');if(civ1)r.civilite1=civ1;
+  const civ2=g('m-civilite2');if(civ2)r.civilite2=civ2;
+  // Capacité
+  const nb=gi('m-nbp');if(nb!==null)r.nbPersonnes=nb;
+  const nbs=gi('m-nbs');if(nbs!==null)r.nbSoiree=nbs;
+  const na=gi('m-adultes');if(na!==null)r.nbAdultes=na;
+  const ne=gi('m-enfants');if(ne!==null)r.nbEnfants=ne;
+  // Dates/heures
+  const arrD=g('m-arr-date');if(arrD)r.dateArrivee=arrD;
+  const depD=g('m-dep-date');if(depD)r.dateDepart=depD;
+  const arrH=g('m-arr-heure');if(arrH!==null)r.heureArrivee=arrH;
+  const depH=g('m-dep-heure');if(depH!==null)r.heureDepart=depH;
+  // Statut / Type
+  const statusEl=document.getElementById('m-status');if(statusEl)r.status=statusEl.value;
+  const evtEl=document.getElementById('m-evt');if(evtEl)r.typeEvenement=evtEl.value;
+  // Montants
+  const mont=gn('m-montant');if(mont!==null)r.montant=mont;
+  const arrhes=gn('m-arrhes');if(arrhes!==null)r.arrhes=arrhes;
+  const depot=gn('m-depot');if(depot!==null)r.depotGarantie=depot;
+  const noteI=g('m-noteI');if(noteI!==null)r.noteInterne=noteI;
+  const contratEl=document.getElementById('m-avec-contrat');
+  if(contratEl)r.avecContrat=contratEl.checked;
+  // Prestataires
+  const cavEl=document.getElementById('m-caviste');if(cavEl)r.caviste=cavEl.value;
+  // Domaine
+  const domEl=document.getElementById('m-domaine');if(domEl&&domEl.value)r.domaine=domEl.value;
+}
 function addPay(rid){
   if(!rid)return;
   const d=document.getElementById('pay-date').value,a=parseFloat(document.getElementById('pay-amt').value),ty=document.getElementById('pay-type').value,cm=(document.getElementById('pay-comment').value||'').trim();
   if(!d||!a)return;
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
+  autoSaveFormFields(rid);
   if(!r.paiements)r.paiements=[];
   r.paiements.push({id:gid(),date:d,montant:a,type:ty,comment:cm});
   stampChange(r,`Paiement ajouté · ${ty} ${money(a)} le ${ds(d)}${cm?' ('+cm+')':''}`);
-  saveD();S.modal={type:'editResa',id:rid};render();
+  autoSaveFormFields(rid);saveD();S.modal={type:'editResa',id:rid};render();
 }
 function delPay(rid,pid){
   if(!rid)return;const r=D.reservations.find(x=>x.id===rid);if(!r)return;
+  autoSaveFormFields(rid);
   const pa=(r.paiements||[]).find(p=>p.id===pid);
   const desc=pa?`${pa.type||''} ${money(pa.montant||0)} du ${ds(pa.date)}`:'';
   r.paiements=(r.paiements||[]).filter(p=>p.id!==pid);
   stampChange(r,`Paiement supprimé · ${desc}`);
-  saveD();S.modal={type:'editResa',id:rid};render();
+  autoSaveFormFields(rid);saveD();S.modal={type:'editResa',id:rid};render();
 }
 function updPay(rid,pid,field,value){
   if(!rid)return;const r=D.reservations.find(x=>x.id===rid);if(!r)return;
@@ -4078,6 +4128,7 @@ function updPay(rid,pid,field,value){
 }
 function togglePrestataireChecked(rid,pid,checked){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
+  autoSaveFormFields(rid);
   if(!r.prestataires)r.prestataires=[];
   if(checked){if(!r.prestataires.includes(pid))r.prestataires.push(pid);}
   else{r.prestataires=r.prestataires.filter(x=>x!==pid);}
@@ -4085,24 +4136,26 @@ function togglePrestataireChecked(rid,pid,checked){
 }
 function updPrestaLine(rid,pid,lineId,field,value){
   if(!rid)return;const r=D.reservations.find(x=>x.id===rid);if(!r||!r.prestaLines||!r.prestaLines[pid])return;
+  autoSaveFormFields(rid);
   const line=r.prestaLines[pid].find(l=>l.id===lineId);if(!line)return;
   if(field==='montant')line[field]=parseFloat(value)||0;
   else if(field==='paidDirect')line[field]=value==='1'||value===true;
   else line[field]=value;
   saveD();render();
 }
-function addPrestaLine(rid,pid){const r=D.reservations.find(x=>x.id===rid);if(!r)return;const lab=(document.getElementById('pline-label-'+pid).value||'').trim(),amt=parseFloat(document.getElementById('pline-amt-'+pid).value)||0,nt=(document.getElementById('pline-notes-'+pid).value||'').trim(),pd=document.getElementById('pline-paid-'+pid).value==='1';if(!lab&&!amt)return;if(!r.prestaLines)r.prestaLines={};if(!r.prestaLines[pid])r.prestaLines[pid]=[];r.prestaLines[pid].push({id:gid(),label:lab,montant:amt,notes:nt,paidDirect:pd,date:r.dateArrivee||''});saveD();S.modal={type:'editResa',id:rid};render();}
+function addPrestaLine(rid,pid){const r=D.reservations.find(x=>x.id===rid);if(!r)return;const lab=(document.getElementById('pline-label-'+pid).value||'').trim(),amt=parseFloat(document.getElementById('pline-amt-'+pid).value)||0,nt=(document.getElementById('pline-notes-'+pid).value||'').trim(),pd=document.getElementById('pline-paid-'+pid).value==='1';if(!lab&&!amt)return;if(!r.prestaLines)r.prestaLines={};if(!r.prestaLines[pid])r.prestaLines[pid]=[];r.prestaLines[pid].push({id:gid(),label:lab,montant:amt,notes:nt,paidDirect:pd,date:r.dateArrivee||''});autoSaveFormFields(rid);saveD();S.modal={type:'editResa',id:rid};render();}
 function delPrestaLine(rid,pid,lineId){if(!rid)return;const r=D.reservations.find(x=>x.id===rid);if(!r||!r.prestaLines||!r.prestaLines[pid])return;r.prestaLines[pid]=r.prestaLines[pid].filter(l=>l.id!==lineId);saveD();render();}
 
 function addComment(rid){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
+  autoSaveFormFields(rid);
   const txt=document.getElementById('com-txt').value.trim();if(!txt)return;
   if(!r.commentaires)r.commentaires=[];
   r.commentaires.push({id:gid(),auteur:'admin',auteurNom:S.admin.name,date:new Date().toISOString().slice(0,10),texte:txt,visible:true});
   const ct=getMenageInfo(r);
   if(ct)logActivity('commentaire',r.domaine,`💬 ${S.admin.name} → ${ct.name} : « ${txt} » — ${displayClientName(r)||'—'} (${fmt(r.dateArrivee)})`,[ct.pid]);
   stampChange(r,`Commentaire ajouté pour ${ct?ct.name:'le gardien'} · « ${txt.slice(0,60)}${txt.length>60?'…':''} »`);
-  saveD();S.modal={type:'editResa',id:rid};render();
+  autoSaveFormFields(rid);saveD();S.modal={type:'editResa',id:rid};render();
 }
 function addPrestaComment(rid){
   const r=D.reservations.find(x=>x.id===rid);if(!r||!S.presta)return;
@@ -4324,16 +4377,19 @@ function toggleGardeNightPaid(rid,pid,date){
 }
 function toggleMenagePaid(rid){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
+  autoSaveFormFields(rid);
   r.menagePaid=!r.menagePaid;
   saveD();render();
 }
 function updMenageMontant(rid,value){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
+  autoSaveFormFields(rid);
   r.menageMontant=parseFloat(value)||0;
   saveD();render();
 }
 function updMenageComment(rid,value){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
+  autoSaveFormFields(rid);
   r.menageComment=value;
   saveD();render();
 }
