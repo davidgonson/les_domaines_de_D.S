@@ -1268,16 +1268,25 @@ function injectBands(){
           topParts.push(optPrefix+dotHtml+fullHtml+'<span style="font-weight:800">'+b.nameTxt+'</span>');
         }
       }
-      // mainLine (type/nb personnes) : optionnel, ajouté seulement si pas d'arbitrage
-      // Priorité : 100%/anneau > nom > arrF > depF > P > mainLine
+      if(b.mainLine)topParts.push(b.mainLine);
       const topLine=topParts.join(' · ');
       const showP=b.hasPresta&&(S.view!=='presta'||(S.presta&&(S.presta.id==='p1'||S.presta.id==='p2')));
       const pTxt=showP?'<span style="display:inline-flex;align-items:center;justify-content:center;width:10px;height:10px;border:1.2px solid #2E86C1;border-radius:50%;color:#2E86C1;font-weight:700;font-size:7px;line-height:1;flex-shrink:0;margin-left:2px">P</span>':'';
-      // Priorité : b-top = paiement+nom | b-bottom = arrF+P
-      // Sur bande très étroite : tout sur une ligne
-      if(topLine||timeArrF){
-        label=`<div class="b-top">${topLine?topLine:timeArrF+pTxt}</div>${topLine&&timeArrF?'<div class="b-bottom"><span>'+timeArrF+pTxt+'</span></div>':''}`;
-      } else { label=''; }
+      // Durée réelle du séjour
+      const _rFull=D.reservations.find(function(x){return x.id===b.rid;});
+      var _durTot=99;
+      if(_rFull&&_rFull.dateArrivee&&_rFull.dateDepart){
+        const _dA=new Date(_rFull.dateArrivee+'T'+(_rFull.heureArrivee||'12:00')+':00');
+        const _dD=new Date(_rFull.dateDepart+'T'+(_rFull.heureDepart||'12:00')+':00');
+        _durTot=(_dD-_dA)/3600000;
+      }
+      if(_durTot<5){
+        // <5h : 100%/anneau + nom + arrF + P (pas depF, pas nb/type)
+        label=(topLine||timeArrF)?`<div class="b-top">${topLine}</div><div class="b-bottom"><span>${timeArrF}${pTxt}</span></div>`:'';
+      } else {
+        // ≥5h : affichage complet
+        label=(topLine||timeArrF||timeDepF)?`<div class="b-top">${topLine}</div><div class="b-bottom"><span>${timeArrF}${pTxt}</span><span>${timeDepF}</span></div>`:'';
+      }
     }
     div.innerHTML=label;
     div.title=label.replace(/<\/(div|span)>/g,' ').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim()+' — cliquer pour détail';
