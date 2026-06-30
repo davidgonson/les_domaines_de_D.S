@@ -886,7 +886,7 @@ function identiteFieldsHtml(typeClient,r){
       <div class="g2" style="margin-bottom:8px">
         <div class="field">
           <label style="font-weight:700;color:#111">Raison sociale *</label>
-          <input type="text" id="m-societe" value="${(r.societe||'').replace(/"/g,'&quot;')}" placeholder="Raison sociale" style="font-weight:700">
+          <input type="text" id="m-societe" value="${(r.societe||'').replace(/"/g,'&quot;')}" placeholder="Raison sociale" style="font-weight:700;border-color:#8a8678;border-width:2px">
         </div>
         <div class="field">
           <label>Nom du contact</label>
@@ -897,7 +897,7 @@ function identiteFieldsHtml(typeClient,r){
               <span onclick="pickCivilite('m-civilite1','dom-picker-civ1',this.parentElement.children[1])" data-id="Mme" style="cursor:pointer;padding:4px 8px;border-radius:6px;font-size:12px;border:1.5px solid #c2bfb6;${(r.civilite1||'Mme')==='Mme'?'background:#993556;color:#fff;border-color:#993556':'background:#fff;color:#888'}">Mme</span>
             </div>
             <div id="dom-picker-civ1" style="display:none"></div>
-            <input type="text" id="m-nom1" value="${(r.nom1||'').replace(/"/g,'&quot;')}" placeholder="Nom" style="flex:1">
+            <input type="text" id="m-nom1" value="${(r.nom1||'').replace(/"/g,'&quot;')}" placeholder="Nom" style="flex:1;border-color:#8a8678;border-width:2px">
           </div>
         </div>
       </div>
@@ -996,8 +996,8 @@ function nbFieldsHtml(domaine,r){
     </div>`;
   }
   return`<div class="g2" style="margin-bottom:4px">
-    <div class="field"><label>🛏 Nb de couchages nécessaires</label><input type="number" id="m-nbp" style="padding:3.5px 7px;font-size:12px" value="${r.nbPersonnes||''}" placeholder="0" min="0" onchange="syncNb('m-nbp','m-nbs')"></div>
-    <div class="field"><label>🥂 Nb d'invités soirée</label><input type="number" id="m-nbs" value="${r.nbSoiree||''}" placeholder="0" min="0" onchange="syncNb('m-nbs','m-nbp')"></div>
+    <div class="field"><label>🛏 Nb de couchages nécessaires</label><input type="number" id="m-nbp" style="padding:3.5px 7px;font-size:12px;border-color:#8a8678;border-width:2px" value="${r.nbPersonnes||''}" placeholder="0" min="0" onchange="syncNb('m-nbp','m-nbs')"></div>
+    <div class="field"><label>🥂 Nb d'invités soirée</label><input type="number" id="m-nbs" style="padding:3.5px 7px;font-size:12px" value="${r.nbSoiree||''}" placeholder="0" min="0" onchange="syncNb('m-nbs','m-nbp')"></div>
   </div>`;
 }
 function syncNb(srcId,tgtId){
@@ -1040,8 +1040,8 @@ function pickDomaine(hiddenId,pickerId,el){
 function pickTypeClient(el){
   document.getElementById('m-typeclient').value=el.dataset.id;
   document.querySelectorAll('#dom-picker-tc .dom-box').forEach(b=>{
-    if(b===el){b.classList.add('sel');b.classList.remove('fade');}
-    else{b.classList.remove('sel');b.classList.add('fade');}
+    if(b===el){b.style.cssText='background:#fff;color:#993556;box-shadow:0 0 0 2px #993556 inset;opacity:1';}
+    else{b.style.cssText='background:transparent;color:#999;opacity:.5';}
   });
   onTypeClientChangeIdentite(el.dataset.id);
 }
@@ -3421,25 +3421,24 @@ function renderModalContent(){
       <input type="hidden" id="m-domaine" value="${defDomaine}">
       <div class="dom-picker" id="dom-picker-m">${D.domaines.map(d=>`<div class="dom-box ${PILL[d.color||0]} ${defDomaine?(defDomaine===d.id?'sel':'fade'):''}" data-id="${d.id}" onclick="pickDomaine('m-domaine','dom-picker-m',this)">${d.name}</div>`).join('')}</div>
     </div>
-    <div class="field" style="margin-bottom:12px"><label>Type de client</label>
-      <input type="hidden" id="m-typeclient" value="${r.typeClient||'particulier'}">
-      <div class="dom-picker" id="dom-picker-tc">
-        <div class="dom-box ${(r.typeClient||'particulier')==='particulier'?'sel':'fade'}" data-id="particulier" onclick="pickTypeClient(this)">Particulier</div>
-        <div class="dom-box ${r.typeClient==='entreprise'?'sel':'fade'}" data-id="entreprise" onclick="pickTypeClient(this)">Entreprise</div>
-      </div>
-    </div>
-    <div class="g2" style="margin-bottom:12px">
-      <div class="field"><label>Type d’événement *</label>
-        <select id="m-evt" onchange="onEvtTypeChange(this.value)">
-          <option value="">&#8212; Choisir —</option>
-          ${EVENT_TYPES.map(ev=>`<option value="${ev}" ${r.typeEvenement===ev?'selected':''}>${ev}</option>`).join('')}
-        </select>
-      </div>
-      <div class="field"><label>Statut</label><select id="m-status">${sO}</select></div>
-    </div>
-    <div id="identite-wrap">${identiteFieldsHtml(r.typeClient||'particulier',r)}</div>
     <div class="form-section">
-      <div class="form-section-title">🏡 Capacité</div>
+      <div class="form-section-title">🎉 Événement</div>
+      <div class="field" style="margin-bottom:8px"><label>Type de client</label>
+        <input type="hidden" id="m-typeclient" value="${r.typeClient||'particulier'}">
+        <div class="dom-picker" id="dom-picker-tc">
+          <div class="dom-box" style="${(r.typeClient||'particulier')==='particulier'?'background:#fff;color:#993556;box-shadow:0 0 0 2px #993556 inset;opacity:1':'background:transparent;color:#999;opacity:.5'}" data-id="particulier" onclick="pickTypeClient(this)">Particulier</div>
+          <div class="dom-box" style="${r.typeClient==='entreprise'?'background:#fff;color:#993556;box-shadow:0 0 0 2px #993556 inset;opacity:1':'background:transparent;color:#999;opacity:.5'}" data-id="entreprise" onclick="pickTypeClient(this)">Entreprise</div>
+        </div>
+      </div>
+      <div class="g2" style="margin-bottom:8px">
+        <div class="field"><label>Type d’événement *</label>
+          <select id="m-evt" onchange="onEvtTypeChange(this.value)" style="border-color:#8a8678;border-width:2px">
+            <option value="">&#8212; Choisir —</option>
+            ${EVENT_TYPES.map(ev=>`<option value="${ev}" ${r.typeEvenement===ev?'selected':''}>${ev}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label>Statut</label><select id="m-status">${sO}</select></div>
+      </div>
       <div id="nb-fields-wrap">${nbFieldsHtml(defDomaine,r)}</div>
       <div style="font-size:11px;color:#888">* Le nombre de couchages est obligatoire (sauf Gratuit ou Déjeuner / Dîner)</div>
     </div>
@@ -3447,22 +3446,23 @@ function renderModalContent(){
       <div class="form-section-title">📅 Dates et horaires</div>
       <div id="datesheures-wrap" style="display:flex;flex-direction:column;gap:10px">
         <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px">
-          <div class="field"><label>Date arrivée *</label><div class="date-row"><input type="date" id="m-arr-date" style="padding:3.5px 7px;font-size:12px" value="${iA}" onchange="refreshAllGardNights();defaultArrHeure(this.value);defaultDepDate(this.value);if((document.getElementById('m-evt')||{}).value==='Déjeuner / Dîner'){document.getElementById('m-dep-date').value=this.value;}refreshDefaultArrhes();"><button type="button" class="date-btn" onclick="document.getElementById('m-arr-date').showPicker&&document.getElementById('m-arr-date').showPicker()" title="Choisir une date">📅</button></div></div>
+          <div class="field"><label>Date arrivée *</label><div class="date-row"><input type="date" id="m-arr-date" style="padding:3.5px 5px;font-size:12px;width:118px;border-color:#8a8678;border-width:2px" value="${iA}" onchange="refreshAllGardNights();defaultArrHeure(this.value);defaultDepDate(this.value);if((document.getElementById('m-evt')||{}).value==='Déjeuner / Dîner'){document.getElementById('m-dep-date').value=this.value;}refreshDefaultArrhes();"><button type="button" class="date-btn" onclick="document.getElementById('m-arr-date').showPicker&&document.getElementById('m-arr-date').showPicker()" title="Choisir une date">📅</button></div></div>
           <div class="field"><label>Heure arrivée *</label><div style="display:flex;gap:4px;align-items:center"><select id="m-arr-heure-h" style="flex:1;padding:3.5px 5px;font-size:12px" onchange="syncHeureField('m-arr-heure')">${heureHOptions((initArrHeure||'').split(':')[0]||'')}</select><span>:</span><select id="m-arr-heure-m" style="flex:1;padding:3.5px 5px;font-size:12px" onchange="syncHeureField('m-arr-heure')">${heureMOptions((initArrHeure||'').split(':')[1]||'00')}</select><input type="hidden" id="m-arr-heure" value="${initArrHeure||''}"></div></div>
         </div>
         <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px">
-          <div class="field" id="dep-date-wrap" style="${r.typeEvenement==='Déjeuner / Dîner'?'visibility:hidden':''}"><label>Date départ *</label><div class="date-row"><input type="date" id="m-dep-date" style="padding:3.5px 7px;font-size:12px" value="${iD}" onchange="refreshAllGardNights();defaultDepHeure(this.value);refreshDefaultArrhes();"><button type="button" class="date-btn" onclick="document.getElementById('m-dep-date').showPicker&&document.getElementById('m-dep-date').showPicker()" title="Choisir une date">📅</button></div></div>
+          <div class="field" id="dep-date-wrap" style="${r.typeEvenement==='Déjeuner / Dîner'?'visibility:hidden':''}"><label>Date départ *</label><div class="date-row"><input type="date" id="m-dep-date" style="padding:3.5px 5px;font-size:12px;width:118px;border-color:#8a8678;border-width:2px" value="${iD}" onchange="refreshAllGardNights();defaultDepHeure(this.value);refreshDefaultArrhes();"><button type="button" class="date-btn" onclick="document.getElementById('m-dep-date').showPicker&&document.getElementById('m-dep-date').showPicker()" title="Choisir une date">📅</button></div></div>
           <div class="field"><label>Heure départ *</label><div style="display:flex;gap:4px;align-items:center"><select id="m-dep-heure-h" style="flex:1;padding:3.5px 5px;font-size:12px" onchange="syncHeureField('m-dep-heure')">${heureHOptions((initDepHeure||'').split(':')[0]||'')}</select><span>:</span><select id="m-dep-heure-m" style="flex:1;padding:3.5px 5px;font-size:12px" onchange="syncHeureField('m-dep-heure')">${heureMOptions((initDepHeure||'').split(':')[1]||'00')}</select><input type="hidden" id="m-dep-heure" value="${initDepHeure||''}"></div></div>
         </div>
       </div>
     </div>
+    <div id="identite-wrap">${identiteFieldsHtml(r.typeClient||'particulier',r)}</div>
     <div class="form-section">
       <div class="form-section-title">💶 Montants</div>
       <div class="g2" style="margin-bottom:10px">
         <div class="field">
           <label style="color:#111;font-weight:700">Montant de la réservation (€) *</label>
           <div style="display:flex;align-items:center;gap:6px">
-            <input type="number" id="m-montant" value="${r.typeEvenement==='Gratuit'?'0':(r.montant||'')}" placeholder="0" style="flex:1;font-weight:700${r.typeEvenement==='Gratuit'?';background:#f0eee8;color:#888':''}" ${r.typeEvenement==='Gratuit'?'readonly':''}>
+            <input type="number" id="m-montant" value="${r.typeEvenement==='Gratuit'?'0':(r.montant||'')}" placeholder="0" style="flex:1;font-weight:700;border-color:#8a8678;border-width:2px${r.typeEvenement==='Gratuit'?';background:#f0eee8;color:#888':''}" ${r.typeEvenement==='Gratuit'?'readonly':''}>
             <span style="color:#555">€</span>
             <label style="display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.02em;border:1px solid #d5d3ce;border-radius:6px;padding:3px 7px;background:#fff"><input type="checkbox" id="m-avec-contrat" ${r.avecContrat===true?'checked':''} style="width:auto;margin:0"> 📄 Avec досьє</label>
           </div>
@@ -3475,12 +3475,12 @@ function renderModalContent(){
       </div>
       ${(()=>{
         const existingRows=pays.map(p=>({date:p.date,montant:p.montant,type:p.type,comment:p.comment,id:p.id}));
-        const emptyRows=Math.max(0,5-existingRows.length);
+        const emptyRows=Math.max(0,Math.max(3,S.payExtraRows||0)-existingRows.length);
         let payRowsHtml='';
         existingRows.forEach((p,i)=>{
           payRowsHtml+='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:4px 0;border-bottom:1px solid #f0eee8">'
             +'<div class="field" style="flex:1.2;min-width:110px;margin:0"><input type="date" style="padding:3.5px 7px;font-size:12px" value="'+p.date+'" onchange="updPayRow(\''+id+'\',\''+p.id+'\',this,\'date\')"></div>'
-            +'<div class="field" style="flex:0.8;min-width:65px;margin:0"><input type="number" style="padding:3.5px 7px;font-size:12px" value="'+(p.montant||'')+'" placeholder="0" onchange="updPayRow(\''+id+'\',\''+p.id+'\',this,\'montant\')"></div>'
+            +'<div class="field" style="flex:0;width:70px;margin:0"><input type="number" style="padding:3.5px 7px;font-size:12px;width:70px" value="'+(p.montant||'')+'" placeholder="0" onchange="updPayRow(\''+id+'\',\''+p.id+'\',this,\'montant\')"></div>'
             +'<div class="field" style="flex:0.9;min-width:85px;margin:0"><select style="padding:3.5px 7px;font-size:12px" onchange="updPayRow(\''+id+'\',\''+p.id+'\',this,\'type\')">'
             +['Acompte','Intermédiaire','Solde','Autre'].map(t=>'<option value="'+t+'"'+(p.type===t?' selected':'')+'>'+t+'</option>').join('')
             +'</select></div>'
@@ -3492,7 +3492,7 @@ function renderModalContent(){
           const rowN=existingRows.length+i;
           payRowsHtml+='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:4px 0;border-bottom:1px solid #f0eee8">'
             +'<div class="field" style="flex:1.2;min-width:110px;margin:0"><input type="date" style="padding:3.5px 7px;font-size:12px" id="pay-new-date-'+rowN+'" value="'+new Date().toISOString().slice(0,10)+'" onchange="maybeAddPayRow(\''+id+'\','+rowN+')"></div>'
-            +'<div class="field" style="flex:0.8;min-width:65px;margin:0"><input type="number" style="padding:3.5px 7px;font-size:12px" id="pay-new-amt-'+rowN+'" placeholder="0" onchange="maybeAddPayRow(\''+id+'\','+rowN+')"></div>'
+            +'<div class="field" style="flex:0;width:70px;margin:0"><input type="number" style="padding:3.5px 7px;font-size:12px;width:70px" id="pay-new-amt-'+rowN+'" placeholder="0" onchange="maybeAddPayRow(\''+id+'\','+rowN+')"></div>'
             +'<div class="field" style="flex:0.9;min-width:85px;margin:0"><select style="padding:3.5px 7px;font-size:12px" id="pay-new-type-'+rowN+'">'
             +['Acompte','Intermédiaire','Solde','Autre'].map((t,ti)=>'<option value="'+t+'"'+((rowN===0&&ti===0)?' selected':'')+'>'+t+'</option>').join('')
             +'</select></div>'
@@ -3506,11 +3506,12 @@ function renderModalContent(){
           +'<span style="font-size:11px">Encaissé : <strong style="color:#27500A">'+money(tot)+'</strong> · Solde : <strong style="color:'+(((r.montant||0)-tot>0)?'#A32D2D':'#27500A')+'">'+money((r.montant||0)-tot)+'</strong></span>'
           +'</div>'
           +'<div style="background:#fff;border:1px solid #e3e0d8;border-radius:8px;padding:6px 10px">'+payRowsHtml+'</div>'
-          +'</div>';
+          +'</div>'
+          +'<button type="button" class="btn btn-xs" style="margin-top:6px" onclick="S.payExtraRows=(S.payExtraRows||3)+1;render();">+ Ajouter une ligne</button>';
       })()}
     </div>
     <hr style="border:none;border-top:1px solid #e5e3de;margin:14px 0">
-    <div style="font-size:13px;font-weight:500;margin-bottom:8px">💬 ${(()=>{const ct=getMenageInfo(r);return`Commentaire visible par ${ct?ct.name:'le gardien'}`;})()}  (${comms.length})</div>
+    <div style="font-size:13px;font-weight:500;margin-bottom:8px">💬 ${(()=>{const ct=getMenageInfo(r);return`Commentaire visible par ${ct?ct.name:'le gardien'}`;})()}</div>
     ${type==='editResa'?`
     ${comms.map(c=>`<div class="comment-item"><div class="meta"><span>${c.auteurNom} · ${fmt(c.date)}</span></div>${c.photoUrl?`<img src="${c.photoUrl}" style="max-width:100%;max-height:220px;border-radius:8px;margin-top:4px;display:block;cursor:pointer" onclick="window.open(this.src,'_blank')">`:''}${c.texte?`<div>${c.texte}</div>`:''}</div>`).join('')}
     <textarea id="com-txt" rows="1" placeholder="Nouveau commentaire ou instruction…" style="resize:none;margin-bottom:8px;padding:3.5px 7px;font-size:12px"></textarea>
@@ -3520,8 +3521,7 @@ function renderModalContent(){
       <button class="btn btn-sm btn-primary" style="margin-left:auto" onclick="addComment('${r.id}')">+ Commentaire</button>
     </div>
     `:`
-    <div style="font-size:13px;font-weight:500;margin-bottom:6px">💬 ${(()=>{const ct=getMenageInfo({domaine:defDomaine});return`Commentaire visible par ${ct?ct.name:'le gardien'}`;})()}</div>
-    <textarea id="com-txt-new" rows="2" placeholder="Ex : la maquilleuse arrive à 13h, le client a précisé que…" style="resize:none;margin-bottom:8px"></textarea>
+    <textarea id="com-txt-new" rows="1" placeholder="Ex : la maquilleuse arrive à 13h, le client a précisé que…" style="resize:none;margin-bottom:8px;padding:3.5px 7px;font-size:12px"></textarea>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
       <p style="font-size:11px;color:#888;margin:0">💡 Envoie le commentaire tout de suite — la réservation sera créée automatiquement si besoin.</p>
       <button class="btn btn-sm btn-primary" style="margin-left:auto;white-space:nowrap" onclick="addCommentBeforeSave()">+ Commentaire</button>
@@ -4209,7 +4209,7 @@ function renderBilanMonthDetail(y,m){
     </div>`;}).join('')}
   </div>`;
 }
-function openM(type,id,extra){S.modal={type,id,...(extra||{})};render();}
+function openM(type,id,extra){if(type==='newResa'||type==='editResa')S.payExtraRows=0;S.modal={type,id,...(extra||{})};render();}
 function closeM(){S.modal=null;render();}
 function closePanel(){S.selResa=null;render();}
 function showMsg(m){S.msg=m;render();setTimeout(()=>{S.msg=null;render();},3000);}
