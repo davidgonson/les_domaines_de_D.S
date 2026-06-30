@@ -891,10 +891,10 @@ function identiteFieldsHtml(typeClient,r){
         <div class="field">
           <label>Nom du contact</label>
           <div style="display:flex;align-items:center;gap:6px">
-            <input type="hidden" id="m-civilite1" value="${r.civilite1||'M.'}">
+            <input type="hidden" id="m-civilite1" value="${r.civilite1||'Mme'}">
             <div style="display:flex;gap:4px;flex-shrink:0">
-              <span onclick="pickCivilite('m-civilite1','dom-picker-civ1',this.parentElement.children[0])" data-id="M." style="cursor:pointer;padding:4px 8px;border-radius:6px;font-size:12px;border:1.5px solid #c2bfb6;${(r.civilite1||'M.')==='M.'?'background:#993556;color:#fff;border-color:#993556':'background:#fff;color:#888'}">M.</span>
-              <span onclick="pickCivilite('m-civilite1','dom-picker-civ1',this.parentElement.children[1])" data-id="Mme" style="cursor:pointer;padding:4px 8px;border-radius:6px;font-size:12px;border:1.5px solid #c2bfb6;${r.civilite1==='Mme'?'background:#993556;color:#fff;border-color:#993556':'background:#fff;color:#888'}">Mme</span>
+              <span onclick="pickCivilite('m-civilite1','dom-picker-civ1',this.parentElement.children[0])" data-id="M." style="cursor:pointer;padding:4px 8px;border-radius:6px;font-size:12px;border:1.5px solid #c2bfb6;${(r.civilite1||'Mme')==='M.'?'background:#993556;color:#fff;border-color:#993556':'background:#fff;color:#888'}">M.</span>
+              <span onclick="pickCivilite('m-civilite1','dom-picker-civ1',this.parentElement.children[1])" data-id="Mme" style="cursor:pointer;padding:4px 8px;border-radius:6px;font-size:12px;border:1.5px solid #c2bfb6;${(r.civilite1||'Mme')==='Mme'?'background:#993556;color:#fff;border-color:#993556':'background:#fff;color:#888'}">Mme</span>
             </div>
             <div id="dom-picker-civ1" style="display:none"></div>
             <input type="text" id="m-nom1" value="${(r.nom1||'').replace(/"/g,'&quot;')}" placeholder="Nom" style="flex:1">
@@ -904,7 +904,7 @@ function identiteFieldsHtml(typeClient,r){
       <div class="g2">
         <div class="field">
           <label>Adresse postale de la société</label>
-          <input type="text" id="m-adresse" value="${(r.adresse||'').replace(/"/g,'&quot;')}" placeholder="Adresse postale">
+          <input type="text" id="m-adresse" style="padding:3.5px 7px;font-size:12px" value="${(r.adresse||'').replace(/"/g,'&quot;')}" placeholder="Adresse postale">
         </div>
         <div class="g2" style="gap:6px">
           <div class="field"><label>Téléphone</label><input type="tel" id="m-tel" value="${r.tel&&r.tel!=='À compléter'?r.tel:''}" placeholder="06 XX XX XX XX"></div>
@@ -924,7 +924,7 @@ function identiteFieldsHtml(typeClient,r){
       <div class="field"><label>Téléphone</label><input type="tel" id="m-tel" value="${r.tel&&r.tel!=='À compléter'?r.tel:''}" placeholder="06 XX XX XX XX"></div>
       <div class="field"><label>Email</label><input type="email" id="m-email" value="${r.email||''}" placeholder="nom@email.com"></div>
     </div>
-    <div class="field"><label>Adresse postale <span style="color:#999;font-weight:400;text-transform:none">(commune aux deux signataires)</span></label><input type="text" id="m-adresse" value="${(r.adresse||'').replace(/"/g,'&quot;')}" placeholder="Adresse postale"></div>
+    <div class="field"><label>Adresse postale <span style="color:#999;font-weight:400;text-transform:none">(commune aux deux signataires)</span></label><input type="text" id="m-adresse" style="padding:3.5px 7px;font-size:12px" value="${(r.adresse||'').replace(/"/g,'&quot;')}" placeholder="Adresse postale"></div>
     ${(()=>{
       const hasClient2=!!(r.prenom2||r.nom2||r.tel2||r.email2);
       return`<div style="margin-top:10px">
@@ -986,17 +986,17 @@ function nbFieldsHtml(domaine,r){
   const isRepasSeul=(evt==='Déjeuner / Dîner');
   if(isRepasSeul){
     return`<div class="g2" style="margin-bottom:4px">
-      <div class="field"><label>🥂 Nb d'invités</label><input type="number" id="m-nbs" value="${r.nbSoiree||r.nbPersonnes||''}" placeholder="0" min="0"></div>
+      <div class="field"><label>🥂 Nb d'invités</label><input type="number" id="m-nbs" style="padding:3.5px 7px;font-size:12px" value="${r.nbSoiree||r.nbPersonnes||''}" placeholder="0" min="0"></div>
     </div><input type="hidden" id="m-nbp" value="0">`;
   }
   if(domaine==='d3'){
     return`<div class="g2" style="margin-bottom:4px">
-      <div class="field"><label>🧑 Nombre d'adultes</label><input type="number" id="m-adultes" value="${r.nbAdultes||''}" placeholder="0" min="0"></div>
-      <div class="field"><label>🧒 Nombre d'enfants</label><input type="number" id="m-enfants" value="${r.nbEnfants||''}" placeholder="0" min="0"></div>
+      <div class="field"><label>🧑 Nombre d'adultes</label><input type="number" id="m-adultes" style="padding:3.5px 7px;font-size:12px" value="${r.nbAdultes||''}" placeholder="0" min="0"></div>
+      <div class="field"><label>🧒 Nombre d'enfants</label><input type="number" id="m-enfants" style="padding:3.5px 7px;font-size:12px" value="${r.nbEnfants||''}" placeholder="0" min="0"></div>
     </div>`;
   }
   return`<div class="g2" style="margin-bottom:4px">
-    <div class="field"><label>🛏 Nb de couchages nécessaires</label><input type="number" id="m-nbp" value="${r.nbPersonnes||''}" placeholder="0" min="0" onchange="syncNb('m-nbp','m-nbs')"></div>
+    <div class="field"><label>🛏 Nb de couchages nécessaires</label><input type="number" id="m-nbp" style="padding:3.5px 7px;font-size:12px" value="${r.nbPersonnes||''}" placeholder="0" min="0" onchange="syncNb('m-nbp','m-nbs')"></div>
     <div class="field"><label>🥂 Nb d'invités soirée</label><input type="number" id="m-nbs" value="${r.nbSoiree||''}" placeholder="0" min="0" onchange="syncNb('m-nbs','m-nbp')"></div>
   </div>`;
 }
@@ -1697,10 +1697,24 @@ function listeNav(d){S.listeMonth+=d;if(S.listeMonth>11){S.listeMonth=0;S.listeY
 
 const ARR_DEFAULT_HOUR={0:'17:00',1:'10:00',2:'10:00',3:'10:00',4:'10:00',5:'17:00',6:'10:00'};
 const DEP_DEFAULT_HOUR={0:'17:00',1:'18:00',2:'18:00',3:'18:00',4:'18:00',5:'17:00',6:'18:00'};
+function syncHeureField(prefix){
+  const h=(document.getElementById(prefix+'-h')||{}).value||'';
+  const m=(document.getElementById(prefix+'-m')||{}).value||'00';
+  const hidden=document.getElementById(prefix);
+  if(hidden)hidden.value=h?(h+':'+m):'';
+}
+function setHeureSelects(prefix,val){
+  const parts=(val||'').split(':');
+  const h=parts[0]||'',m=parts[1]||'00';
+  const elH=document.getElementById(prefix+'-h'),elM=document.getElementById(prefix+'-m'),elHidden=document.getElementById(prefix);
+  if(elH)elH.value=h;
+  if(elM)elM.value=m;
+  if(elHidden)elHidden.value=val||'';
+}
 function defaultArrHeure(dateStr){
   if(!dateStr)return;
-  const el=document.getElementById('m-arr-heure');
-  if(el){const dow=new Date(dateStr+'T12:00:00').getDay();el.value=ARR_DEFAULT_HOUR[dow]||'';}
+  const dow=new Date(dateStr+'T12:00:00').getDay();
+  setHeureSelects('m-arr-heure',ARR_DEFAULT_HOUR[dow]||'');
 }
 function defaultDepDate(dateStr){
   if(!dateStr)return;
@@ -1717,19 +1731,29 @@ function defaultDepDate(dateStr){
 }
 function defaultDepHeure(dateStr){
   if(!dateStr)return;
-  const el=document.getElementById('m-dep-heure');
-  if(el){
-    const depDow=new Date(dateStr+'T12:00:00').getDay();
-    const arrEl=document.getElementById('m-arr-date');
-    const arrDow=arrEl?new Date((arrEl.value||dateStr)+'T12:00:00').getDay():-1;
-    // Vendredi arrivée → dimanche départ → 17h
-    if(arrDow===5&&depDow===0){el.value='17:00';}
-    else{el.value=DEP_DEFAULT_HOUR[depDow]||'';}
-  }
+  const depDow=new Date(dateStr+'T12:00:00').getDay();
+  const arrEl=document.getElementById('m-arr-date');
+  const arrDow=arrEl?new Date((arrEl.value||dateStr)+'T12:00:00').getDay():-1;
+  if(arrDow===5&&depDow===0){setHeureSelects('m-dep-heure','17:00');}
+  else{setHeureSelects('m-dep-heure',DEP_DEFAULT_HOUR[depDow]||'');}
 }
 function heureOptions(sel){
+  // Conservé pour compat — non utilisé dans le nouveau formulaire à deux sélecteurs
   const opts=[''].concat(Array.from({length:15},(_,i)=>`${String(i+8).padStart(2,'0')}:00`));
   return opts.map(t=>t===''?`<option value="">— heure —</option>`:`<option value="${t}" ${sel===t?'selected':''}>${t}</option>`).join('');
+}
+function heureHOptions(selH){
+  const opts=Array.from({length:16},(_,i)=>String(i+7).padStart(2,'0'));
+  return opts.map(h=>`<option value="${h}" ${selH===h?'selected':''}>${h}h</option>`).join('');
+}
+function heureMOptions(selM){
+  const opts=['00','15','30','45'];
+  return opts.map(m=>`<option value="${m}" ${selM===m?'selected':''}>${m}</option>`).join('');
+}
+function combineHeureMin(prefix){
+  const h=(document.getElementById(prefix+'-h')||{}).value||'';
+  const m=(document.getElementById(prefix+'-m')||{}).value||'00';
+  return h?(h+':'+m):'';
 }
 
 function renderGardiennageList(){
@@ -3423,12 +3447,12 @@ function renderModalContent(){
       <div class="form-section-title">📅 Dates et horaires</div>
       <div id="datesheures-wrap" style="display:flex;flex-direction:column;gap:10px">
         <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px">
-          <div class="field"><label>Date arrivée *</label><div class="date-row"><input type="date" id="m-arr-date" value="${iA}" onchange="refreshAllGardNights();defaultArrHeure(this.value);defaultDepDate(this.value);if((document.getElementById('m-evt')||{}).value==='Déjeuner / Dîner'){document.getElementById('m-dep-date').value=this.value;}refreshDefaultArrhes();"><button type="button" class="date-btn" onclick="document.getElementById('m-arr-date').showPicker&&document.getElementById('m-arr-date').showPicker()" title="Choisir une date">📅</button></div></div>
-          <div class="field"><label>Heure arrivée *</label><select id="m-arr-heure">${heureOptions(initArrHeure)}</select></div>
+          <div class="field"><label>Date arrivée *</label><div class="date-row"><input type="date" id="m-arr-date" style="padding:3.5px 7px;font-size:12px" value="${iA}" onchange="refreshAllGardNights();defaultArrHeure(this.value);defaultDepDate(this.value);if((document.getElementById('m-evt')||{}).value==='Déjeuner / Dîner'){document.getElementById('m-dep-date').value=this.value;}refreshDefaultArrhes();"><button type="button" class="date-btn" onclick="document.getElementById('m-arr-date').showPicker&&document.getElementById('m-arr-date').showPicker()" title="Choisir une date">📅</button></div></div>
+          <div class="field"><label>Heure arrivée *</label><div style="display:flex;gap:4px;align-items:center"><select id="m-arr-heure-h" style="flex:1;padding:3.5px 5px;font-size:12px" onchange="syncHeureField('m-arr-heure')">${heureHOptions((initArrHeure||'').split(':')[0]||'')}</select><span>:</span><select id="m-arr-heure-m" style="flex:1;padding:3.5px 5px;font-size:12px" onchange="syncHeureField('m-arr-heure')">${heureMOptions((initArrHeure||'').split(':')[1]||'00')}</select><input type="hidden" id="m-arr-heure" value="${initArrHeure||''}"></div></div>
         </div>
         <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px">
-          <div class="field" id="dep-date-wrap" style="${r.typeEvenement==='Déjeuner / Dîner'?'visibility:hidden':''}"><label>Date départ *</label><div class="date-row"><input type="date" id="m-dep-date" value="${iD}" onchange="refreshAllGardNights();defaultDepHeure(this.value);refreshDefaultArrhes();"><button type="button" class="date-btn" onclick="document.getElementById('m-dep-date').showPicker&&document.getElementById('m-dep-date').showPicker()" title="Choisir une date">📅</button></div></div>
-          <div class="field"><label>Heure départ *</label><select id="m-dep-heure">${heureOptions(initDepHeure)}</select></div>
+          <div class="field" id="dep-date-wrap" style="${r.typeEvenement==='Déjeuner / Dîner'?'visibility:hidden':''}"><label>Date départ *</label><div class="date-row"><input type="date" id="m-dep-date" style="padding:3.5px 7px;font-size:12px" value="${iD}" onchange="refreshAllGardNights();defaultDepHeure(this.value);refreshDefaultArrhes();"><button type="button" class="date-btn" onclick="document.getElementById('m-dep-date').showPicker&&document.getElementById('m-dep-date').showPicker()" title="Choisir une date">📅</button></div></div>
+          <div class="field"><label>Heure départ *</label><div style="display:flex;gap:4px;align-items:center"><select id="m-dep-heure-h" style="flex:1;padding:3.5px 5px;font-size:12px" onchange="syncHeureField('m-dep-heure')">${heureHOptions((initDepHeure||'').split(':')[0]||'')}</select><span>:</span><select id="m-dep-heure-m" style="flex:1;padding:3.5px 5px;font-size:12px" onchange="syncHeureField('m-dep-heure')">${heureMOptions((initDepHeure||'').split(':')[1]||'00')}</select><input type="hidden" id="m-dep-heure" value="${initDepHeure||''}"></div></div>
         </div>
       </div>
     </div>
@@ -3446,32 +3470,50 @@ function renderModalContent(){
         <div class="field"><label style="display:flex;align-items:center;gap:6px;white-space:nowrap">Note interne <span style="background:#ECE9E2;color:#666;font-size:9.5px;font-weight:600;padding:2px 6px;border-radius:4px;text-transform:none;letter-spacing:0">🔒 admin</span></label><input type="text" id="m-noteI" value="${r.noteInterne||''}" placeholder="Note rapide…"></div>
       </div>
       <div class="g2" style="margin-bottom:${type==='editResa'?'12px':'0'}">
-        <div class="field"><label>Arrhes prévues (€)</label><input type="number" id="m-arrhes" value="${r.arrhes||computeDefaultArrhes(defDomaine,r.typeEvenement||'',iA,iD,r.montant||0)}" placeholder="Ex : 1500" data-user-edited="${r.arrhes?'1':'0'}" oninput="this.dataset.userEdited='1'"></div>
-        <div class="field"><label>Dépôt de garantie (€)</label><input type="number" id="m-depot" value="${r.depotGarantie||computeDefaultDepot(defDomaine)}" placeholder="Ex : 3000" data-user-edited="${r.depotGarantie?'1':'0'}" oninput="this.dataset.userEdited='1'"></div>
+        <div class="field"><label>Arrhes prévues (€)</label><input type="number" id="m-arrhes" style="padding:3.5px 7px;font-size:12px" value="${r.arrhes||computeDefaultArrhes(defDomaine,r.typeEvenement||'',iA,iD,r.montant||0)}" placeholder="Ex : 1500" data-user-edited="${r.arrhes?'1':'0'}" oninput="this.dataset.userEdited='1'"></div>
+        <div class="field"><label>Dépôt de garantie (€)</label><input type="number" id="m-depot" style="padding:3.5px 7px;font-size:12px" value="${r.depotGarantie||computeDefaultDepot(defDomaine)}" placeholder="Ex : 3000" data-user-edited="${r.depotGarantie?'1':'0'}" oninput="this.dataset.userEdited='1'"></div>
       </div>
-      ${type==='editResa'?`<div style="border-top:1px solid #e3e0d8;padding-top:10px">
-        <div style="font-size:12px;font-weight:600;color:#444;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
-          <span>💳 Paiements</span>
-          <span style="font-size:11px">Encaissé : <strong style="color:#27500A">${money(tot)}</strong> · Solde : <strong style="color:${(r.montant||0)-tot>0?'#A32D2D':'#27500A'}">${money((r.montant||0)-tot)}</strong></span>
-        </div>
-        ${pR||'<div style="font-size:12px;color:#888;margin-bottom:8px">Aucun paiement enregistré.</div>'}
-        <div style="background:#fff;border:1px solid #e3e0d8;border-radius:8px;padding:8px 10px;margin-top:6px">
-          <div style="font-size:10.5px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Ajouter un règlement</div>
-          <div style="display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap">
-            <div class="field" style="flex:1.2;min-width:110px"><label>Date</label><div class="date-row"><input type="date" id="pay-date" value="${new Date().toISOString().slice(0,10)}"><button type="button" class="date-btn" onclick="document.getElementById('pay-date').showPicker&&document.getElementById('pay-date').showPicker()" title="Choisir">📅</button></div></div>
-            <div class="field" style="flex:0.8;min-width:65px"><label>Montant €</label><input type="number" id="pay-amt" placeholder="0"></div>
-            <div class="field" style="flex:0.9;min-width:85px"><label>Type</label><select id="pay-type"><option value="Acompte" ${pays.length===0?'selected':''}>Acompte</option><option value="Intermédiaire">Intermédiaire</option><option value="Solde" ${pays.length>0?'selected':''}>Solde</option><option value="Autre">Autre</option></select></div>
-            <div class="field" style="flex:1;min-width:80px"><label>Commentaire</label><input type="text" id="pay-comment" placeholder="Optionnel…"></div>
-            <button class="btn btn-sm btn-primary" style="white-space:nowrap;align-self:flex-end;margin-bottom:1px" onclick="addPay('${id}')">+ Ajouter</button>
-          </div>
-        </div>
-      </div>`:''}
+      ${(()=>{
+        const existingRows=pays.map(p=>({date:p.date,montant:p.montant,type:p.type,comment:p.comment,id:p.id}));
+        const emptyRows=Math.max(0,5-existingRows.length);
+        let payRowsHtml='';
+        existingRows.forEach((p,i)=>{
+          payRowsHtml+='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:4px 0;border-bottom:1px solid #f0eee8">'
+            +'<div class="field" style="flex:1.2;min-width:110px;margin:0"><input type="date" style="padding:3.5px 7px;font-size:12px" value="'+p.date+'" onchange="updPayRow(\''+id+'\',\''+p.id+'\',this,\'date\')"></div>'
+            +'<div class="field" style="flex:0.8;min-width:65px;margin:0"><input type="number" style="padding:3.5px 7px;font-size:12px" value="'+(p.montant||'')+'" placeholder="0" onchange="updPayRow(\''+id+'\',\''+p.id+'\',this,\'montant\')"></div>'
+            +'<div class="field" style="flex:0.9;min-width:85px;margin:0"><select style="padding:3.5px 7px;font-size:12px" onchange="updPayRow(\''+id+'\',\''+p.id+'\',this,\'type\')">'
+            +['Acompte','Intermédiaire','Solde','Autre'].map(t=>'<option value="'+t+'"'+(p.type===t?' selected':'')+'>'+t+'</option>').join('')
+            +'</select></div>'
+            +'<div class="field" style="flex:1;min-width:80px;margin:0"><input type="text" style="padding:3.5px 7px;font-size:12px" value="'+(p.comment||'').replace(/"/g,'&quot;')+'" placeholder="Commentaire…" onchange="updPayRow(\''+id+'\',\''+p.id+'\',this,\'comment\')"></div>'
+            +'<button class="btn btn-xs btn-danger" onclick="delPay(\''+id+'\',\''+p.id+'\')" style="flex-shrink:0">✕</button>'
+          +'</div>';
+        });
+        for(let i=0;i<emptyRows;i++){
+          const rowN=existingRows.length+i;
+          payRowsHtml+='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:4px 0;border-bottom:1px solid #f0eee8">'
+            +'<div class="field" style="flex:1.2;min-width:110px;margin:0"><input type="date" style="padding:3.5px 7px;font-size:12px" id="pay-new-date-'+rowN+'" value="'+new Date().toISOString().slice(0,10)+'" onchange="maybeAddPayRow(\''+id+'\','+rowN+')"></div>'
+            +'<div class="field" style="flex:0.8;min-width:65px;margin:0"><input type="number" style="padding:3.5px 7px;font-size:12px" id="pay-new-amt-'+rowN+'" placeholder="0" onchange="maybeAddPayRow(\''+id+'\','+rowN+')"></div>'
+            +'<div class="field" style="flex:0.9;min-width:85px;margin:0"><select style="padding:3.5px 7px;font-size:12px" id="pay-new-type-'+rowN+'">'
+            +['Acompte','Intermédiaire','Solde','Autre'].map((t,ti)=>'<option value="'+t+'"'+((rowN===0&&ti===0)?' selected':'')+'>'+t+'</option>').join('')
+            +'</select></div>'
+            +'<div class="field" style="flex:1;min-width:80px;margin:0"><input type="text" style="padding:3.5px 7px;font-size:12px" id="pay-new-comment-'+rowN+'" placeholder="Commentaire…" onchange="maybeAddPayRow(\''+id+'\','+rowN+')"></div>'
+            +'<span style="width:24px;flex-shrink:0"></span>'
+          +'</div>';
+        }
+        return '<div style="border-top:1px solid #e3e0d8;padding-top:10px">'
+          +'<div style="font-size:12px;font-weight:600;color:#444;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">'
+          +'<span>💳 Paiements</span>'
+          +'<span style="font-size:11px">Encaissé : <strong style="color:#27500A">'+money(tot)+'</strong> · Solde : <strong style="color:'+(((r.montant||0)-tot>0)?'#A32D2D':'#27500A')+'">'+money((r.montant||0)-tot)+'</strong></span>'
+          +'</div>'
+          +'<div style="background:#fff;border:1px solid #e3e0d8;border-radius:8px;padding:6px 10px">'+payRowsHtml+'</div>'
+          +'</div>';
+      })()}
     </div>
     <hr style="border:none;border-top:1px solid #e5e3de;margin:14px 0">
     <div style="font-size:13px;font-weight:500;margin-bottom:8px">💬 ${(()=>{const ct=getMenageInfo(r);return`Commentaire visible par ${ct?ct.name:'le gardien'}`;})()}  (${comms.length})</div>
     ${type==='editResa'?`
     ${comms.map(c=>`<div class="comment-item"><div class="meta"><span>${c.auteurNom} · ${fmt(c.date)}</span></div>${c.photoUrl?`<img src="${c.photoUrl}" style="max-width:100%;max-height:220px;border-radius:8px;margin-top:4px;display:block;cursor:pointer" onclick="window.open(this.src,'_blank')">`:''}${c.texte?`<div>${c.texte}</div>`:''}</div>`).join('')}
-    <textarea id="com-txt" rows="2" placeholder="Nouveau commentaire ou instruction…" style="resize:none;margin-bottom:8px"></textarea>
+    <textarea id="com-txt" rows="1" placeholder="Nouveau commentaire ou instruction…" style="resize:none;margin-bottom:8px;padding:3.5px 7px;font-size:12px"></textarea>
     <input type="file" id="com-photo" accept="image/*" style="display:none" onchange="addPhotoComment('${r.id}',this)">
     <div style="display:flex;align-items:center;gap:10px">
       <button class="btn btn-sm" onclick="document.getElementById('com-photo').click()">📷 Photo</button>
@@ -4182,6 +4224,26 @@ function stampChange(r,msg){
   r.updatedAt=Date.now();
   r.lastChange=msg;
   r.lastChangeBy=S.admin?S.admin.name:(S.presta?S.presta.name:'');
+}
+function updPayRow(rid,pid,el,field){
+  const r=D.reservations.find(x=>x.id===rid);if(!r)return;
+  const p=(r.paiements||[]).find(x=>x.id===pid);if(!p)return;
+  if(field==='montant')p[field]=parseFloat(el.value)||0;
+  else p[field]=el.value;
+  stampChange(r,'Paiement modifié');
+  saveD();S.modal={type:'editResa',id:rid};render();
+}
+function maybeAddPayRow(rid,rowN){
+  const r=D.reservations.find(x=>x.id===rid);if(!r)return;
+  const d=(document.getElementById('pay-new-date-'+rowN)||{}).value;
+  const a=parseFloat((document.getElementById('pay-new-amt-'+rowN)||{}).value)||0;
+  const ty=(document.getElementById('pay-new-type-'+rowN)||{}).value||'Autre';
+  const cm=((document.getElementById('pay-new-comment-'+rowN)||{}).value||'').trim();
+  if(!d||!a)return;
+  if(!r.paiements)r.paiements=[];
+  r.paiements.push({id:gid(),date:d,montant:a,type:ty,comment:cm});
+  stampChange(r,'Paiement ajouté · '+ty+' '+money(a)+' le '+ds(d)+(cm?' ('+cm+')':''));
+  saveD();S.modal={type:'editResa',id:rid};render();
 }
 function addPay(rid){
   if(!rid)return;
