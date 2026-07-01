@@ -849,8 +849,10 @@ function buildBands(y,m){
       /* Données brutes du label : l'arbitrage selon la largeur réelle se fait dans injectBands */
       const mainParts=[];
       const maxNb=Math.max(r.nbPersonnes||0,r.nbSoiree||0);
-      if(maxNb>0)mainParts.push(maxNb+' pers.');
-      const singlePerson=maxNb===1;
+      if(maxNb>0){
+        if(maxNb===1){mainParts.push('<span style="color:#FF2200;font-weight:900;letter-spacing:.3px">⚠ 1</span> pers.');}
+        else{mainParts.push(maxNb+' pers.');}
+      }
       if(r.typeEvenement&&!HIDE_EVENT_TYPE)mainParts.push(r.typeEvenement);
       const mainLine=mainParts.join(' · ');
       const _calName=r.typeClient==='entreprise'?(r.societe||r.client||''):([r.prenom1,r.nom1].filter(Boolean).join(' ')||r.client||'');
@@ -866,7 +868,7 @@ function buildBands(y,m){
       const hasExtOrCav=!!(r.caviste&&r.caviste.trim())||!!(r.prestasExterieurs&&r.prestasExterieurs.length>0);
       const hasPresta=(mishaSashaInPresta||hasExtOrCav)&&(!currentPid||currentPid==='p1'||currentPid==='p2');
       const incompleteContact=hasIncompleteContact(r);
-      bands.push({rid:r.id,slot,row:fc.row,colStart:fc.col,spanCols:lc.col-fc.col+1,shapeClass:sc,nameTxt,timeArr,timeDep,mainLine,bandCls:bc,optCls:oc,isJ,isPaid:payStatus(r)==='full',isPartPaid:payStatus(r)==='part',isFirstRow:ifr,isLastRow:ilr,hA:hArr,hD:hDep,colorIdx:c,hasPresta,incompleteContact,singlePerson});
+      bands.push({rid:r.id,slot,row:fc.row,colStart:fc.col,spanCols:lc.col-fc.col+1,shapeClass:sc,nameTxt,timeArr,timeDep,mainLine,bandCls:bc,optCls:oc,isJ,isPaid:payStatus(r)==='full',isPartPaid:payStatus(r)==='part',isFirstRow:ifr,isLastRow:ilr,hA:hArr,hD:hDep,colorIdx:c,hasPresta,incompleteContact});
     });
   });
   return{bands,tc,sd,dim,dip};
@@ -1324,17 +1326,11 @@ function injectBands(){
         if(isPrestaView){
           topParts.push('<span style="font-weight:800">'+b.nameTxt+'</span>');
         } else {
-          const nameStyle='font-weight:800'+(b.incompleteContact?';text-decoration:underline dotted;text-decoration-color:rgba(180,50,50,0.45);text-decoration-thickness:1px':'');
+          const nameStyle='font-weight:800'+(b.incompleteContact?';text-decoration:underline;text-decoration-color:#FF2200;text-decoration-style:solid;text-decoration-thickness:1.5px':'');
           topParts.push(optPrefix+dotHtml+fullHtml+'<span style="'+nameStyle+'">'+b.nameTxt+'</span>');
         }
       }
-      if(b.mainLine){
-        if(!isPrestaView&&b.singlePerson){
-          topParts.push(b.mainLine.replace(/^1 pers\./,'<span style="color:#CC3333;font-weight:900">⚠ 1</span> pers.'));
-        } else {
-          topParts.push(b.mainLine);
-        }
-      }
+      if(b.mainLine)topParts.push(b.mainLine);
       const topLine=topParts.join(' · ');
       const showP=b.hasPresta&&(S.view!=='presta'||(S.presta&&(S.presta.id==='p1'||S.presta.id==='p2')));
       const pTxt=showP?'<span style="display:inline-flex;align-items:center;justify-content:center;width:10px;height:10px;border:1.2px solid #2E86C1;border-radius:50%;color:#2E86C1;font-weight:700;font-size:7px;line-height:1;flex-shrink:0;margin-left:2px">P</span>':'';
