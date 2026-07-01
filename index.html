@@ -563,6 +563,7 @@ function runMigrations(){
   (D.visites||[]).forEach(v=>{if(v.typeEvenement==='Famille / Cousinade'||v.typeEvenement==='Séjour amis'||v.typeEvenement==='Famille / Ami')v.typeEvenement='Famille / Amis';if(v.typeEvenement==='GDC (Gens de confiance)'||v.typeEvenement==='GDC / Home Exchange')v.typeEvenement='GDC';});
 }
 let S={view:'login',admin:null,presta:null,tab:'calendrier',prestaTab:'calendrier',modal:null,msg:null,selResa:null,selectedPresta:null,hiddenDomains:[],calYear:2026,calMonth:5,bilanYear:2026,bilanMonth:5,listeYear:2026,listeMonth:5,visiteYear:2026,visiteMonth:5,prestaBilanYear:2026,prestaBilanMonth:5,adminPrestaYear:2026,adminPrestaMonth:5,clientsSortBy:'date',clientsExportSub:'clients',resteAPayerDetail:null,searchQuery:null,bilanAnnualMonth:null};
+let _payRowRenderTimer=null;
 
 function loadD(){try{const r=localStorage.getItem(SK);if(r)return JSON.parse(r);}catch(e){}return JSON.parse(JSON.stringify(DEF));}
 function saveD(){try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}pushRemoteD(D);}
@@ -849,9 +850,11 @@ function buildBands(y,m){
       const mainParts=[];
       const maxNb=Math.max(r.nbPersonnes||0,r.nbSoiree||0);
       if(maxNb>0)mainParts.push(maxNb+' pers.');
+      const singlePerson=maxNb===1;
       if(r.typeEvenement&&!HIDE_EVENT_TYPE)mainParts.push(r.typeEvenement);
       const mainLine=mainParts.join(' · ');
-      const nameTxt=displayClientName(r)?shortName(displayClientName(r)):'';
+      const _calName=r.typeClient==='entreprise'?(r.societe||r.client||''):([r.prenom1,r.nom1].filter(Boolean).join(' ')||r.client||'');
+      const nameTxt=_calName?shortName(_calName):'';
       const timeArr=ifr?(r.heureArrivee||''):'';
       const timeDep=ilr?(r.heureDepart||''):'';
       /* Heures pour position proportionnelle (fenêtre 8h-22h) */
@@ -862,7 +865,8 @@ function buildBands(y,m){
       const mishaSashaInPresta=(r.prestataires||[]).some(pid=>pid==='p1'||pid==='p2');
       const hasExtOrCav=!!(r.caviste&&r.caviste.trim())||!!(r.prestasExterieurs&&r.prestasExterieurs.length>0);
       const hasPresta=(mishaSashaInPresta||hasExtOrCav)&&(!currentPid||currentPid==='p1'||currentPid==='p2');
-      bands.push({rid:r.id,slot,row:fc.row,colStart:fc.col,spanCols:lc.col-fc.col+1,shapeClass:sc,nameTxt,timeArr,timeDep,mainLine,bandCls:bc,optCls:oc,isJ,isPaid:payStatus(r)==='full',isPartPaid:payStatus(r)==='part',isFirstRow:ifr,isLastRow:ilr,hA:hArr,hD:hDep,colorIdx:c,hasPresta});
+      const incompleteContact=hasIncompleteContact(r);
+      bands.push({rid:r.id,slot,row:fc.row,colStart:fc.col,spanCols:lc.col-fc.col+1,shapeClass:sc,nameTxt,timeArr,timeDep,mainLine,bandCls:bc,optCls:oc,isJ,isPaid:payStatus(r)==='full',isPartPaid:payStatus(r)==='part',isFirstRow:ifr,isLastRow:ilr,hA:hArr,hD:hDep,colorIdx:c,hasPresta,incompleteContact,singlePerson});
     });
   });
   return{bands,tc,sd,dim,dip};
@@ -904,11 +908,11 @@ function identiteFieldsHtml(typeClient,r){
       <div class="g2">
         <div class="field">
           <label>Adresse postale de la société</label>
-          <input type="text" id="m-adresse" style="padding:3.5px 7px;font-size:12px" value="${(r.adresse||'').replace(/"/g,'&quot;')}" placeholder="Adresse postale">
+          <input type="text" id="m-adresse" style="padding:3.5px 7px;font-size:12px" value="${(r.adresse||'').replace(/"/g,'&quot;')}" placeholder="Adresse postale" oninput="checkContactFields()">
         </div>
         <div class="g2" style="gap:6px">
-          <div class="field"><label>Téléphone</label><input type="tel" id="m-tel" value="${r.tel&&r.tel!=='À compléter'?r.tel:''}" placeholder="06 XX XX XX XX"></div>
-          <div class="field"><label>Email</label><input type="email" id="m-email" value="${r.email||''}" placeholder="nom@email.com"></div>
+          <div class="field"><label>Téléphone</label><input type="tel" id="m-tel" value="${r.tel&&r.tel!=='À compléter'?r.tel:''}" placeholder="06 XX XX XX XX" oninput="checkContactFields()"></div>
+          <div class="field"><label>Email</label><input type="email" id="m-email" value="${r.email||''}" placeholder="nom@email.com" oninput="checkContactFields()"></div>
         </div>
       </div>
       <input type="hidden" id="m-prenom1" value="">
@@ -917,14 +921,14 @@ function identiteFieldsHtml(typeClient,r){
   return`<div class="form-section">
     <div class="form-section-title">Client 1</div>
     <div class="g2">
-      <div class="field" style="margin-bottom:8px"><label style="font-weight:700;color:#111">Nom *</label><input type="text" id="m-nom1" value="${(r.nom1||'').replace(/"/g,'&quot;')}" placeholder="Nom" style="font-weight:700"></div>
-      <div class="field" style="margin-bottom:8px"><label>Prénom</label><input type="text" id="m-prenom1" value="${(r.prenom1||'').replace(/"/g,'&quot;')}" placeholder="Prénom"></div>
+      <div class="field" style="margin-bottom:8px"><label style="font-weight:700;color:#111">Nom *</label><input type="text" id="m-nom1" value="${(r.nom1||'').replace(/"/g,'&quot;')}" placeholder="Nom" style="font-weight:700" oninput="checkContactFields()"></div>
+      <div class="field" style="margin-bottom:8px"><label>Prénom</label><input type="text" id="m-prenom1" value="${(r.prenom1||'').replace(/"/g,'&quot;')}" placeholder="Prénom" oninput="checkContactFields()"></div>
     </div>
     <div class="g2" style="margin-bottom:8px">
-      <div class="field"><label>Téléphone</label><input type="tel" id="m-tel" value="${r.tel&&r.tel!=='À compléter'?r.tel:''}" placeholder="06 XX XX XX XX"></div>
-      <div class="field"><label>Email</label><input type="email" id="m-email" value="${r.email||''}" placeholder="nom@email.com"></div>
+      <div class="field"><label>Téléphone</label><input type="tel" id="m-tel" value="${r.tel&&r.tel!=='À compléter'?r.tel:''}" placeholder="06 XX XX XX XX" oninput="checkContactFields()"></div>
+      <div class="field"><label>Email</label><input type="email" id="m-email" value="${r.email||''}" placeholder="nom@email.com" oninput="checkContactFields()"></div>
     </div>
-    <div class="field"><label>Adresse postale <span style="color:#999;font-weight:400;text-transform:none">(commune aux deux signataires)</span></label><input type="text" id="m-adresse" style="padding:3.5px 7px;font-size:12px" value="${(r.adresse||'').replace(/"/g,'&quot;')}" placeholder="Adresse postale"></div>
+    <div class="field"><label>Adresse postale <span style="color:#999;font-weight:400;text-transform:none">(commune aux deux signataires)</span></label><input type="text" id="m-adresse" style="padding:3.5px 7px;font-size:12px" value="${(r.adresse||'').replace(/"/g,'&quot;')}" placeholder="Adresse postale" oninput="checkContactFields()"></div>
     ${(()=>{
       const hasClient2=!!(r.prenom2||r.nom2||r.tel2||r.email2);
       return`<div style="margin-top:10px">
@@ -980,6 +984,47 @@ function onTypeClientChangeIdentite(typeClient){
     civilite1:(document.getElementById('m-civilite1')||{}).value||'M.'
   };
   wrap.innerHTML=identiteFieldsHtml(typeClient,cur);
+  setTimeout(checkContactFields,0);
+}
+function checkContactFields(){
+  const tc=(document.getElementById('m-typeclient')||{}).value||'particulier';
+  let fields;
+  if(tc==='entreprise'){
+    fields=[
+      {id:'m-tel',label:'Téléphone'},
+      {id:'m-email',label:'Email'},
+      {id:'m-adresse',label:'Adresse postale de la société'}
+    ];
+  } else {
+    fields=[
+      {id:'m-prenom1',label:'Prénom'},
+      {id:'m-nom1',label:'Nom'},
+      {id:'m-tel',label:'Téléphone'},
+      {id:'m-email',label:'Email'},
+      {id:'m-adresse',label:'Adresse postale'}
+    ];
+  }
+  fields.forEach(function(f){
+    const el=document.getElementById(f.id);
+    if(!el)return;
+    const empty=!el.value.trim()||(el.value.trim()==='À compléter');
+    if(empty){
+      el.style.borderColor='#CC0000';el.style.borderWidth='1.5px';
+      const lbl=el.closest&&el.closest('.field')&&el.closest('.field').querySelector('label');
+      if(lbl){lbl.style.color='#CC0000';lbl.style.textDecoration='underline dotted';}
+    } else {
+      el.style.borderColor='';el.style.borderWidth='';
+      const lbl=el.closest&&el.closest('.field')&&el.closest('.field').querySelector('label');
+      if(lbl){lbl.style.color='';lbl.style.textDecoration='';}
+    }
+  });
+}
+function hasIncompleteContact(r){
+  if(r._isVisite)return false;
+  if(r.typeClient==='entreprise'){
+    return !r.tel||r.tel==='À compléter'||!r.email||!r.adresse;
+  }
+  return !r.prenom1||!r.nom1||!r.tel||r.tel==='À compléter'||!r.email||!r.adresse;
 }
 function nbFieldsHtml(domaine,r){
   const evt=r.typeEvenement||(document.getElementById('m-evt')?document.getElementById('m-evt').value:'');
@@ -1079,6 +1124,16 @@ function refreshDefaultDepot(){
   const domaine=(document.getElementById('m-domaine')||{}).value||'';
   depotEl.value=computeDefaultDepot(domaine);
 }
+function refreshSoldeDisplay(){
+  const total=parseFloat((document.getElementById('m-montant')||{}).value)||0;
+  let paid=0;
+  document.querySelectorAll('.pay-amt-input').forEach(function(el){paid+=parseFloat(el.value)||0;});
+  const solde=total-paid;
+  const encEl=document.getElementById('pay-enc-val');
+  const solEl=document.getElementById('pay-sol-val');
+  if(encEl)encEl.textContent=money(paid);
+  if(solEl){solEl.textContent=money(solde);solEl.style.color=solde>0?'#A32D2D':'#27500A';}
+}
 function onEvtTypeChange(val){
   if(val==='Séminaire'){
     const entBox=document.querySelector('#dom-picker-tc .dom-box[data-id="entreprise"]');
@@ -1095,6 +1150,7 @@ function onEvtTypeChange(val){
   if(montantEl){
     if(val==='Gratuit'){montantEl.value='0';montantEl.readOnly=true;montantEl.style.background='#f0eee8';montantEl.style.color='#888';}
     else{montantEl.readOnly=false;montantEl.style.background='';montantEl.style.color='';}
+    refreshSoldeDisplay();
   }
   // Avec досьє : décoché par défaut, l'utilisateur coche manuellement si besoin
   const depWrap=document.getElementById('dep-date-wrap');
@@ -1200,6 +1256,7 @@ function render(){const r=document.getElementById('root');CAL_DOMAIN_FILTER=(S.v
   if(S.view==='login')r.innerHTML=renderLogin();else if(S.view==='admin')r.innerHTML=renderAdmin();else if(S.view==='presta')r.innerHTML=renderPresta();
   if(wasSearchFocused){const newSearch=document.getElementById('search-input');if(newSearch){newSearch.focus();try{newSearch.setSelectionRange(prevSelStart,prevSelEnd);}catch(e){}}}
   injectBands();injectVisiteMarkers();
+  if(S.modal)setTimeout(checkContactFields,0);
 }
 function injectBands(){
   const inCalView=(S.view==='admin'&&S.tab==='calendrier')||(S.view==='presta'&&S.prestaTab==='calendrier');
@@ -1267,10 +1324,17 @@ function injectBands(){
         if(isPrestaView){
           topParts.push('<span style="font-weight:800">'+b.nameTxt+'</span>');
         } else {
-          topParts.push(optPrefix+dotHtml+fullHtml+'<span style="font-weight:800">'+b.nameTxt+'</span>');
+          const nameStyle='font-weight:800'+(b.incompleteContact?';text-decoration:underline dotted;text-decoration-color:rgba(180,50,50,0.45);text-decoration-thickness:1px':'');
+          topParts.push(optPrefix+dotHtml+fullHtml+'<span style="'+nameStyle+'">'+b.nameTxt+'</span>');
         }
       }
-      if(b.mainLine)topParts.push(b.mainLine);
+      if(b.mainLine){
+        if(!isPrestaView&&b.singlePerson){
+          topParts.push(b.mainLine.replace(/^1 pers\./,'<span style="color:#CC3333;font-weight:900">⚠ 1</span> pers.'));
+        } else {
+          topParts.push(b.mainLine);
+        }
+      }
       const topLine=topParts.join(' · ');
       const showP=b.hasPresta&&(S.view!=='presta'||(S.presta&&(S.presta.id==='p1'||S.presta.id==='p2')));
       const pTxt=showP?'<span style="display:inline-flex;align-items:center;justify-content:center;width:10px;height:10px;border:1.2px solid #2E86C1;border-radius:50%;color:#2E86C1;font-weight:700;font-size:7px;line-height:1;flex-shrink:0;margin-left:2px">P</span>':'';
@@ -1395,7 +1459,7 @@ function renderAdmin(){
     var _oN=_myN==='David'?'Svitlana':'David';
     notifBanner='<div style="background:#FFF8E6;border:1px solid #F5D98B;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;align-items:flex-start;gap:8px"><div style="flex:1"><div style="font-weight:600;font-size:12px;color:#7A5800;margin-bottom:3px">🔔 '+_rO.length+' modif(s) par '+_oN+'</div>'+ _rO.map(function(r){return'<div style="font-size:11px;color:#555">• '+(r.client||r.societe||'?')+(r.lastChange?' — '+r.lastChange.slice(0,50):'')+ '</div>';}).join('')+'</div><button class="btn btn-xs" onclick="S.notifDismissed=true;if(!S.adminLastSeen)S.adminLastSeen={};S.adminLastSeen[S.admin.name]=Date.now();saveD();render()">✓ Lu</button></div>';
   }
-  const tabs=[['calendrier','📅','Planning'],['liste','🎉','Résa /<br>Visite'],['dernieres','🕓','Dernières'],['prestataires','🧑‍🔧','Équipe<br>Domaines'],['bilan','📊','Bilan €'],['clientsExport','📇','Clients<br>/ Export']];
+  const tabs=[['calendrier','📅','Planning'],['liste','🎉','Résa /<br>Visite'],['dernieres','🕓','Dernières<br>modifs'],['prestataires','🧑‍🔧','Équipe<br>Domaines'],['bilan','📊','Bilan €'],['clientsExport','📇','Clients<br>/ Export']];
   let content='';
   if(S.tab==='calendrier')content=renderCalendrier();
   else if(S.tab==='liste')content=renderListeMerged();
@@ -3462,7 +3526,7 @@ function renderModalContent(){
         <div class="field">
           <label style="color:#111;font-weight:700">Montant de la réservation (€) *</label>
           <div style="display:flex;align-items:center;gap:6px">
-            <input type="number" id="m-montant" value="${r.typeEvenement==='Gratuit'?'0':(r.montant||'')}" placeholder="0" style="flex:1;font-weight:700;border-color:#8a8678;border-width:2px${r.typeEvenement==='Gratuit'?';background:#f0eee8;color:#888':''}" ${r.typeEvenement==='Gratuit'?'readonly':''}>
+            <input type="number" id="m-montant" value="${r.typeEvenement==='Gratuit'?'0':(r.montant||'')}" placeholder="0" style="flex:1;font-weight:700;border-color:#8a8678;border-width:2px${r.typeEvenement==='Gratuit'?';background:#f0eee8;color:#888':''}" ${r.typeEvenement==='Gratuit'?'readonly':''} oninput="refreshSoldeDisplay();refreshDefaultArrhes()">
             <span style="color:#555">€</span>
             <label style="display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.02em;border:1px solid #d5d3ce;border-radius:6px;padding:3px 7px;background:#fff"><input type="checkbox" id="m-avec-contrat" ${r.avecContrat===true?'checked':''} style="width:auto;margin:0"> 📄 Avec досьє</label>
           </div>
@@ -3479,8 +3543,8 @@ function renderModalContent(){
         let payRowsHtml='';
         existingRows.forEach((p,i)=>{
           payRowsHtml+='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:4px 0;border-bottom:1px solid #f0eee8">'
-            +'<div class="field" style="flex:1.2;min-width:110px;margin:0"><input type="date" style="padding:3.5px 7px;font-size:12px" value="'+p.date+'" onchange="updPayRow(\''+id+'\',\''+p.id+'\',this,\'date\')"></div>'
-            +'<div class="field" style="flex:0;width:70px;margin:0"><input type="number" style="padding:3.5px 7px;font-size:12px;width:70px" value="'+(p.montant||'')+'" placeholder="0" onchange="updPayRow(\''+id+'\',\''+p.id+'\',this,\'montant\')"></div>'
+            +'<div class="field" style="flex:1.2;min-width:110px;margin:0"><div class="date-row"><input type="date" style="padding:3.5px 7px;font-size:12px" id="pay-ex-date-'+p.id+'" value="'+p.date+'" onchange="updPayRow(\''+id+'\',\''+p.id+'\',this,\'date\')"><button type="button" class="date-btn" onclick="var el=document.getElementById(\'pay-ex-date-'+p.id+'\');if(el&&el.showPicker)el.showPicker();" title="Choisir une date">📅</button></div></div>'
+            +'<div class="field" style="flex:0;width:70px;margin:0"><input type="number" class="pay-amt-input" style="padding:3.5px 7px;font-size:12px;width:70px" value="'+(p.montant||'')+'" placeholder="0" onchange="updPayRow(\''+id+'\',\''+p.id+'\',this,\'montant\')" oninput="refreshSoldeDisplay()"></div>'
             +'<div class="field" style="flex:0.9;min-width:85px;margin:0"><select style="padding:3.5px 7px;font-size:12px" onchange="updPayRow(\''+id+'\',\''+p.id+'\',this,\'type\')">'
             +['Acompte','Intermédiaire','Solde','Autre'].map(t=>'<option value="'+t+'"'+(p.type===t?' selected':'')+'>'+t+'</option>').join('')
             +'</select></div>'
@@ -3491,8 +3555,8 @@ function renderModalContent(){
         for(let i=0;i<emptyRows;i++){
           const rowN=existingRows.length+i;
           payRowsHtml+='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:4px 0;border-bottom:1px solid #f0eee8">'
-            +'<div class="field" style="flex:1.2;min-width:110px;margin:0"><input type="date" style="padding:3.5px 7px;font-size:12px" id="pay-new-date-'+rowN+'" value="'+new Date().toISOString().slice(0,10)+'" onchange="maybeAddPayRow(\''+id+'\','+rowN+')"></div>'
-            +'<div class="field" style="flex:0;width:70px;margin:0"><input type="number" style="padding:3.5px 7px;font-size:12px;width:70px" id="pay-new-amt-'+rowN+'" placeholder="0" onchange="maybeAddPayRow(\''+id+'\','+rowN+')"></div>'
+            +'<div class="field" style="flex:1.2;min-width:110px;margin:0"><div class="date-row"><input type="date" style="padding:3.5px 7px;font-size:12px" id="pay-new-date-'+rowN+'" value="'+new Date().toISOString().slice(0,10)+'" onchange="maybeAddPayRow(\''+id+'\','+rowN+')"><button type="button" class="date-btn" onclick="var el=document.getElementById(\'pay-new-date-'+rowN+'\');if(el&&el.showPicker)el.showPicker();" title="Choisir une date">📅</button></div></div>'
+            +'<div class="field" style="flex:0;width:70px;margin:0"><input type="number" class="pay-amt-input" style="padding:3.5px 7px;font-size:12px;width:70px" id="pay-new-amt-'+rowN+'" placeholder="0" onchange="maybeAddPayRow(\''+id+'\','+rowN+')" oninput="refreshSoldeDisplay()"></div>'
             +'<div class="field" style="flex:0.9;min-width:85px;margin:0"><select style="padding:3.5px 7px;font-size:12px" id="pay-new-type-'+rowN+'">'
             +['Acompte','Intermédiaire','Solde','Autre'].map((t,ti)=>'<option value="'+t+'"'+((rowN===0&&ti===0)?' selected':'')+'>'+t+'</option>').join('')
             +'</select></div>'
@@ -3503,20 +3567,20 @@ function renderModalContent(){
         return '<div style="border-top:1px solid #e3e0d8;padding-top:10px">'
           +'<div style="font-size:12px;font-weight:600;color:#444;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">'
           +'<span>💳 Paiements</span>'
-          +'<span style="font-size:11px">Encaissé : <strong style="color:#27500A">'+money(tot)+'</strong> · Solde : <strong style="color:'+(((r.montant||0)-tot>0)?'#A32D2D':'#27500A')+'">'+money((r.montant||0)-tot)+'</strong></span>'
+          +'<span id="pay-solde-line" style="font-size:11px">Encaissé : <strong id="pay-enc-val" style="color:#27500A">'+money(tot)+'</strong> · Solde : <strong id="pay-sol-val" style="color:'+(((r.montant||0)-tot>0)?'#A32D2D':'#27500A')+'">'+money((r.montant||0)-tot)+'</strong></span>'
           +'</div>'
           +'<div style="background:#fff;border:1px solid #e3e0d8;border-radius:8px;padding:6px 10px">'+payRowsHtml+'</div>'
           +'</div>'
           +'<button type="button" class="btn btn-xs" style="margin-top:6px" onclick="S.payExtraRows=(S.payExtraRows||3)+1;render();">+ Ajouter une ligne</button>';
       })()}
     </div>
-    <hr style="border:none;border-top:1px solid #e5e3de;margin:14px 0">
-    <div style="font-size:13px;font-weight:500;margin-bottom:8px">💬 ${(()=>{const ct=getMenageInfo(r);return`Commentaire visible par ${ct?ct.name:'le gardien'}`;})()}</div>
+    <hr style="border:none;border-top:1px solid #e5e3de;margin:8px 0">
+    <div style="font-size:12px;font-weight:500;margin-bottom:5px;color:#555">💬 ${(()=>{const ct=getMenageInfo(r);return`Commentaire visible par ${ct?ct.name:'le gardien'}`;})()}</div>
     ${type==='editResa'?`
-    ${comms.map(c=>`<div class="comment-item"><div class="meta"><span>${c.auteurNom} · ${fmt(c.date)}</span></div>${c.photoUrl?`<img src="${c.photoUrl}" style="max-width:100%;max-height:220px;border-radius:8px;margin-top:4px;display:block;cursor:pointer" onclick="window.open(this.src,'_blank')">`:''}${c.texte?`<div>${c.texte}</div>`:''}</div>`).join('')}
-    <textarea id="com-txt" rows="1" placeholder="Nouveau commentaire ou instruction…" style="resize:none;margin-bottom:8px;padding:3.5px 7px;font-size:12px"></textarea>
+    ${comms.map(c=>`<div class="comment-item"><div class="meta"><span>${c.auteurNom} · ${fmt(c.date)}</span><button type="button" onclick="delComment('${r.id}','${c.id}')" style="background:none;border:none;color:#bbb;cursor:pointer;font-size:13px;padding:0 2px;line-height:1" title="Supprimer">✕</button></div>${c.photoUrl?`<img src="${c.photoUrl}" style="max-width:100%;max-height:220px;border-radius:8px;margin-top:4px;display:block;cursor:pointer" onclick="window.open(this.src,'_blank')">`:''}${(c.texte!==undefined)?`<textarea rows="1" style="resize:none;width:100%;box-sizing:border-box;font-size:12px;padding:3px 5px;border:1px solid transparent;border-radius:4px;background:transparent;font-family:inherit;color:#333;margin-top:2px;overflow:hidden" onfocus="this.style.borderColor='#8a8678';this.style.background='#fff';this.style.overflow='auto'" onblur="this.style.borderColor='transparent';this.style.background='transparent';this.style.overflow='hidden';updComment('${r.id}','${c.id}',this.value)">${(c.texte||'').replace(/</g,'&lt;')}</textarea>`:''}</div>`).join('')}
+    <textarea id="com-txt" rows="1" placeholder="Nouveau commentaire ou instruction…" style="resize:none;margin-bottom:4px;padding:3.5px 7px;font-size:12px"></textarea>
     <input type="file" id="com-photo" accept="image/*" style="display:none" onchange="addPhotoComment('${r.id}',this)">
-    <div style="display:flex;align-items:center;gap:10px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
       <button class="btn btn-sm" onclick="document.getElementById('com-photo').click()">📷 Photo</button>
       <button class="btn btn-sm btn-primary" style="margin-left:auto" onclick="addComment('${r.id}')">+ Commentaire</button>
     </div>
@@ -4231,7 +4295,9 @@ function updPayRow(rid,pid,el,field){
   if(field==='montant')p[field]=parseFloat(el.value)||0;
   else p[field]=el.value;
   stampChange(r,'Paiement modifié');
-  saveD();S.modal={type:'editResa',id:rid};render();
+  saveD();
+  if(_payRowRenderTimer)clearTimeout(_payRowRenderTimer);
+  _payRowRenderTimer=setTimeout(function(){_payRowRenderTimer=null;S.modal={type:'editResa',id:rid};render();},80);
 }
 function maybeAddPayRow(rid,rowN){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
@@ -4243,7 +4309,9 @@ function maybeAddPayRow(rid,rowN){
   if(!r.paiements)r.paiements=[];
   r.paiements.push({id:gid(),date:d,montant:a,type:ty,comment:cm});
   stampChange(r,'Paiement ajouté · '+ty+' '+money(a)+' le '+ds(d)+(cm?' ('+cm+')':''));
-  saveD();S.modal={type:'editResa',id:rid};render();
+  saveD();
+  if(_payRowRenderTimer)clearTimeout(_payRowRenderTimer);
+  _payRowRenderTimer=setTimeout(function(){_payRowRenderTimer=null;S.modal={type:'editResa',id:rid};render();},80);
 }
 function addPay(rid){
   if(!rid)return;
@@ -4319,6 +4387,19 @@ function addComment(rid){
   stampChange(r,`Commentaire ajouté pour ${ct?ct.name:'le gardien'} · « ${txt.slice(0,60)}${txt.length>60?'…':''} »`);
   saveD();S.modal={type:'editResa',id:rid};render();
 }
+function updComment(rid,cid,val){
+  const r=D.reservations.find(x=>x.id===rid);if(!r)return;
+  const c=(r.commentaires||[]).find(x=>x.id===cid);if(!c)return;
+  c.texte=val;
+  saveD();
+}
+function delComment(rid,cid){
+  if(!confirm('Supprimer ce commentaire ?'))return;
+  const r=D.reservations.find(x=>x.id===rid);if(!r)return;
+  r.commentaires=(r.commentaires||[]).filter(x=>x.id!==cid);
+  stampChange(r,'Commentaire supprimé');
+  saveD();S.modal={type:'editResa',id:rid};render();
+}
 function addPrestaComment(rid){
   const r=D.reservations.find(x=>x.id===rid);if(!r||!S.presta)return;
   const el=document.getElementById('dp-presta-com');const txt=(el&&el.value||'').trim();if(!txt)return;
@@ -4376,6 +4457,7 @@ function addAdminQuickComment(rid){
   saveD();showMsg('Commentaire envoyé ✓');render();
 }
 function saveResaCore(id){
+  if(_payRowRenderTimer){clearTimeout(_payRowRenderTimer);_payRowRenderTimer=null;}
   const domaine=document.getElementById('m-domaine').value,dateArrivee=document.getElementById('m-arr-date').value;let dateDepart=document.getElementById('m-dep-date').value;const heureArrivee=document.getElementById('m-arr-heure').value,heureDepart=document.getElementById('m-dep-heure').value,status=document.getElementById('m-status').value;
   const prenom1=capWords((document.getElementById('m-prenom1')||{}).value||'').trim(),nom1=capWords((document.getElementById('m-nom1')||{}).value||'').trim();
   const civilite1=(document.getElementById('m-civilite1')||{}).value||'M.';
@@ -4493,17 +4575,21 @@ function saveResaCore(id){
     const ct=getMenageInfo({domaine,nbPersonnes,nbSoiree,typeEvenement});
     if(ct)logActivity('commentaire',domaine,`💬 ${S.admin.name} → ${ct.name} : « ${newCommentTxt.trim()} » — ${(typeClient==='entreprise'&&societe)?societe:client||'—'} (${fmt(dateArrivee)})`,[ct.pid]);
   }
-  /* Si une ligne de paiement a été remplie mais que le bouton "+ Ajouter" n'a pas été cliqué,
-     on l'ajoute automatiquement au moment d'enregistrer la réservation. */
-  const payDateEl=document.getElementById('pay-date'),payAmtEl=document.getElementById('pay-amt');
-  if(payDateEl&&payAmtEl){
-    const pendingDate=payDateEl.value,pendingAmt=parseFloat(payAmtEl.value);
-    if(pendingDate&&pendingAmt){
-      const payTypeEl=document.getElementById('pay-type'),payCommentEl=document.getElementById('pay-comment');
-      const newR=D.reservations.find(x=>x.id===newId);
-      if(newR){
-        if(!newR.paiements)newR.paiements=[];
-        newR.paiements.push({id:gid(),date:pendingDate,montant:pendingAmt,type:payTypeEl?payTypeEl.value:'Autre',comment:(payCommentEl&&payCommentEl.value||'').trim()});
+  /* Récupère les lignes de paiement saisies mais non encore enregistrées (nouvelles réservations
+     ou lignes non encore auto-sauvegardées via maybeAddPayRow). */
+  const _newR=D.reservations.find(x=>x.id===newId);
+  if(_newR){
+    for(let _rn=0;_rn<20;_rn++){
+      const _dEl=document.getElementById('pay-new-date-'+_rn);
+      if(!_dEl)break;
+      const _aEl=document.getElementById('pay-new-amt-'+_rn);
+      const _d=_dEl.value,_a=parseFloat(_aEl?_aEl.value:'')||0;
+      if(_d&&_a){
+        const _ty=(document.getElementById('pay-new-type-'+_rn)||{}).value||'Autre';
+        const _cm=((document.getElementById('pay-new-comment-'+_rn)||{}).value||'').trim();
+        if(!_newR.paiements)_newR.paiements=[];
+        const _dup=(_newR.paiements||[]).some(p=>p.date===_d&&Math.abs(p.montant-_a)<0.01&&p.type===_ty);
+        if(!_dup)_newR.paiements.push({id:gid(),date:_d,montant:_a,type:_ty,comment:_cm});
       }
     }
   }
