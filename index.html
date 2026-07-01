@@ -1326,7 +1326,7 @@ function injectBands(){
         if(isPrestaView){
           topParts.push('<span style="font-weight:800">'+b.nameTxt+'</span>');
         } else {
-          const nameStyle='font-weight:800'+(b.incompleteContact?';text-decoration:underline;text-decoration-color:#FF2200;text-decoration-style:solid;text-decoration-thickness:1.5px':'');
+          const nameStyle='font-weight:800'+(b.incompleteContact?';text-decoration:underline solid #CC3333;text-decoration-thickness:1px':'');
           topParts.push(optPrefix+dotHtml+fullHtml+'<span style="'+nameStyle+'">'+b.nameTxt+'</span>');
         }
       }
