@@ -51,6 +51,18 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .pay-inline{border:1px solid transparent;background:transparent;font:inherit;color:inherit;padding:2px 4px;font-size:13px;border-radius:4px}
 .pay-inline:hover{border-color:#ddd}
 .pay-inline:focus{background:#fff;border-color:#999;outline:none}
+/* Lignes de paiement en grille : date · montant · type sur une ligne, commentaire + suppression à côté.
+   Sur téléphone, le commentaire et la suppression passent proprement sur une 2e ligne. */
+.payrow{display:grid;grid-template-columns:1.25fr 74px 96px 1fr 26px;gap:6px;align-items:center;padding:4px 0;border-bottom:1px solid #f0eee8}
+.payrow>.field{margin:0;min-width:0}
+.modal .payrow input,.modal .payrow select{width:100%;font-size:12.5px!important;padding:4px 6px!important}
+.payrow .pr-del{display:flex;align-items:center;justify-content:center}
+@media(max-width:640px){
+  .payrow{grid-template-columns:1fr 66px 84px;column-gap:5px;row-gap:4px}
+  .payrow .pr-com{grid-column:1/3}
+  .payrow .pr-del{grid-column:3/4;justify-self:end}
+  .modal .payrow input,.modal .payrow select{font-size:11.5px!important;padding:4px 5px!important}
+}
 .g2-compact{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .g2-compact .field{gap:2px}
 .g2-compact .field label{font-size:10.5px}
@@ -116,14 +128,16 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .cal-header .month-label{font-size:18px;font-weight:500;flex:1;text-align:center}
 .cal-nav{padding:6px 12px;border-radius:8px;border:1px solid #d5d3ce;cursor:pointer;background:#fff;font-size:18px;color:#1a1a1a;line-height:1}
 .cal-nav:hover{background:#f0eeea}
-.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-radius:10px;overflow:hidden;border:1px solid #d5d3ce;background:#fff;position:relative}
-.cal-dow{background:#f0eeea;text-align:center;padding:7px 2px;font-size:11px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.04em;border-right:1px solid #d5d3ce;border-bottom:1px solid #d5d3ce}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-radius:14px;overflow:hidden;border:1px solid #e2dfd8;background:#fff;position:relative;box-shadow:0 10px 30px -16px rgba(80,50,60,.32),0 1px 3px rgba(0,0,0,.04)}
+.cal-grid.cal-anim{animation:calFade .4s cubic-bezier(.22,.61,.36,1) both}
+@keyframes calFade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.cal-dow{background:linear-gradient(180deg,#f8f6f2,#efece5);text-align:center;padding:9px 2px;font-size:11px;font-weight:700;color:#8c857a;text-transform:uppercase;letter-spacing:.07em;border-right:1px solid #e7e4dc;border-bottom:1px solid #ddd9d0}
 .cal-dow:nth-child(7n){border-right:none}
-.cal-cell{background:#fff;min-height:120px;position:relative;cursor:pointer;padding:4px 4px 4px;border-right:1px solid #e5e3de;border-bottom:1px solid #e5e3de}
+.cal-cell{background:#fff;min-height:132px;position:relative;cursor:pointer;padding:4px 4px 4px;border-right:1px solid #edeae4;border-bottom:1px solid #edeae4;transition:background .18s ease}
 .cal-cell:nth-child(7n){border-right:none}
-.cal-cell:hover{background:#faf9f7}
-.cal-cell.other{background:#f8f7f4;opacity:.75}
-.cal-cell.today{outline:2px solid #993556;outline-offset:-2px;z-index:1}
+.cal-cell:hover{background:#f7f5f1}
+.cal-cell.other{background:#f8f7f4;opacity:.72}
+.cal-cell.today{box-shadow:inset 0 0 0 2px #993556;z-index:2}
 .cal-cell.vac-mid{background:#F3F0FF}
 .cal-cell.vac-mid.other{background:#EEE9F8}
 .cal-cell.vac-edge{background:#DDD6F8}
@@ -139,14 +153,18 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .cal-cell.vac-edge .day-num,.cal-cell.ferie .day-num{color:#3C3489;font-weight:700}
 .day-tag{font-size:9px;font-weight:600;color:#534AB7;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;line-height:1.2}
 .bands-area{position:absolute;left:0;right:0;top:24px;bottom:2px;pointer-events:none}
-.band{position:absolute;height:26px;font-size:9px;font-weight:600;cursor:pointer;pointer-events:all;z-index:2;padding:1px 4px;text-align:left;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;gap:1px;overflow:hidden}
+.band{position:absolute;height:26px;font-size:9px;font-weight:600;cursor:pointer;pointer-events:all;z-index:2;padding:1px 4px;text-align:left;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;gap:1px;overflow:hidden;box-shadow:0 1px 2px rgba(60,40,50,.14);transition:transform .12s ease,box-shadow .12s ease}
+.band:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(60,40,50,.22);z-index:6!important}
 .band .b-top{font-weight:500;font-size:9.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left;line-height:13px}
 .band .b-bottom{display:flex;justify-content:space-between;font-size:8px;font-weight:700;opacity:.95;line-height:10px}
 .band-start{border-radius:5px 0 0 5px}
 .band-end{border-radius:0 5px 5px 0}
 .band-startend{border-radius:5px;padding:0 5px}
 .band-mid{border-radius:0}
-.band.option{color:#fff!important}
+/* Option = « tentative » : même couleur claire de domaine + rayures diagonales claires
+   et liseré léger. Le texte reste foncé (comme les bandes confirmées). */
+.band.option{background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.62) 0,rgba(255,255,255,.62) 4px,rgba(255,255,255,0) 4px,rgba(255,255,255,0) 9px)!important;box-shadow:inset 0 0 0 1.5px rgba(90,60,70,.28),0 1px 2px rgba(60,40,50,.14)}
+.band.option:hover{box-shadow:inset 0 0 0 1.5px rgba(90,60,70,.28),0 4px 10px rgba(60,40,50,.22)}
 .b0f{background:#F4C0D1;color:#72243E}
 .b0l{background:#FBEAF0;color:#993556;border:1px dashed #F4C0D1}
 .b1f{background:#F5D98B;color:#7A5800}
@@ -178,6 +196,13 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
   .liste-evt-tbl th:nth-child(5),.liste-evt-tbl td:nth-child(5){display:table-cell}
   .liste-evt-tbl th:nth-child(2),.liste-evt-tbl td:nth-child(2){display:none}
   .liste-evt-tbl th:nth-child(6),.liste-evt-tbl td:nth-child(6){display:none}
+  .modal{padding:1rem;width:100%}
+  .modal input,.modal select,.modal textarea{padding:4.5px 9px;line-height:1.15}
+  .modal .field{gap:3px}
+  .modal .field label{font-size:10px;margin-bottom:0}
+  .form-section{padding:9px 10px;margin-bottom:10px}
+  .g2,.g3{gap:7px}
+  .modal h3{margin-bottom:10px}
 }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -562,7 +587,7 @@ function runMigrations(){
   (D.gardeSchedule||[]).forEach(x=>{if(x.comment===undefined)x.comment='';});
   (D.visites||[]).forEach(v=>{if(v.typeEvenement==='Famille / Cousinade'||v.typeEvenement==='Séjour amis'||v.typeEvenement==='Famille / Ami')v.typeEvenement='Famille / Amis';if(v.typeEvenement==='GDC (Gens de confiance)'||v.typeEvenement==='GDC / Home Exchange')v.typeEvenement='GDC';});
 }
-let S={view:'login',admin:null,presta:null,tab:'calendrier',prestaTab:'calendrier',modal:null,msg:null,selResa:null,selectedPresta:null,hiddenDomains:[],calYear:2026,calMonth:5,bilanYear:2026,bilanMonth:5,listeYear:2026,listeMonth:5,visiteYear:2026,visiteMonth:5,prestaBilanYear:2026,prestaBilanMonth:5,adminPrestaYear:2026,adminPrestaMonth:5,clientsSortBy:'date',clientsExportSub:'clients',resteAPayerDetail:null,searchQuery:null,bilanAnnualMonth:null};
+let S={view:'login',admin:null,presta:null,tab:'calendrier',prestaTab:'calendrier',calAnim:true,modal:null,msg:null,selResa:null,selectedPresta:null,hiddenDomains:[],calYear:2026,calMonth:5,bilanYear:2026,bilanMonth:5,listeYear:2026,listeMonth:5,visiteYear:2026,visiteMonth:5,prestaBilanYear:2026,prestaBilanMonth:5,adminPrestaYear:2026,adminPrestaMonth:5,clientsSortBy:'date',clientsExportSub:'clients',resteAPayerDetail:null,searchQuery:null,bilanAnnualMonth:null};
 let _payRowRenderTimer=null;
 
 function loadD(){try{const r=localStorage.getItem(SK);if(r)return JSON.parse(r);}catch(e){}return JSON.parse(JSON.stringify(DEF));}
@@ -577,6 +602,9 @@ function logActivity(action,domaine,label,concernsPresta,forAdmin){
 }
 function dismissAdminNotifs(){if(!S.admin)return;D.adminLastSeen=D.adminLastSeen||{};D.adminLastSeen[S.admin.id]=Date.now();saveD();render();}
 function dismissPrestaNotifs(){if(!S.presta)return;D.prestaLastSeen=D.prestaLastSeen||{};D.prestaLastSeen[S.presta.id]=Date.now();saveD();render();}
+/* Fusionne deux tables de marqueurs « lu » en gardant, pour chaque utilisateur, la date la plus récente.
+   Utilisé lors des rafraîchissements distants pour ne jamais faire réapparaître ce qui a déjà été lu. */
+function mergeSeen(local,remote){var out={};local=local||{};remote=remote||{};Object.keys(local).concat(Object.keys(remote)).forEach(function(k){out[k]=Math.max(local[k]||0,remote[k]||0);});return out;}
 function renderMessagesPanel(pid,pname){
   const thread=(D.messages||[]).filter(msg=>msg.fromId===pid||msg.toId===pid).sort((a,b)=>a.ts-b.ts);
   return`<div style="max-height:80px;overflow-y:auto;margin-bottom:5px;display:flex;flex-direction:column;gap:3px">
@@ -990,43 +1018,51 @@ function onTypeClientChangeIdentite(typeClient){
 }
 function checkContactFields(){
   const tc=(document.getElementById('m-typeclient')||{}).value||'particulier';
-  let fields;
+  // Champs contact à remplir (bordure rouge tant que vide)
+  let contact;
   if(tc==='entreprise'){
-    fields=[
-      {id:'m-tel',label:'Téléphone'},
-      {id:'m-email',label:'Email'},
-      {id:'m-adresse',label:'Adresse postale de la société'}
-    ];
+    contact=['m-societe','m-adresse','m-tel','m-email'];
   } else {
-    fields=[
-      {id:'m-prenom1',label:'Prénom'},
-      {id:'m-nom1',label:'Nom'},
-      {id:'m-tel',label:'Téléphone'},
-      {id:'m-email',label:'Email'},
-      {id:'m-adresse',label:'Adresse postale'}
-    ];
+    contact=['m-prenom1','m-nom1','m-tel','m-email','m-adresse'];
   }
-  fields.forEach(function(f){
-    const el=document.getElementById(f.id);
-    if(!el)return;
-    const empty=!el.value.trim()||(el.value.trim()==='À compléter');
+  // Champs « cœur de réservation » toujours obligatoires
+  const core=['m-evt','m-nbp','m-arr-date','m-dep-date','m-montant'];
+  contact.concat(core).forEach(function(fid){
+    const el=document.getElementById(fid);
+    if(!el||el.type==='hidden')return;
+    const cs=window.getComputedStyle(el);
+    if(cs.visibility==='hidden'||cs.display==='none')return; // ignorer les champs masqués (ex. date de départ pour un déjeuner)
+    const empty=!String(el.value||'').trim()||String(el.value).trim()==='À compléter';
+    const lbl=el.closest&&el.closest('.field')&&el.closest('.field').querySelector('label');
     if(empty){
       el.style.borderColor='#CC0000';el.style.borderWidth='1.5px';
-      const lbl=el.closest&&el.closest('.field')&&el.closest('.field').querySelector('label');
       if(lbl){lbl.style.color='#CC0000';lbl.style.textDecoration='underline dotted';}
     } else {
       el.style.borderColor='';el.style.borderWidth='';
-      const lbl=el.closest&&el.closest('.field')&&el.closest('.field').querySelector('label');
       if(lbl){lbl.style.color='';lbl.style.textDecoration='';}
     }
+  });
+  // Les heures (partie heure seulement, pas les minutes) suivent leur date :
+  // on les signale en rouge tant que la date correspondante n'est pas saisie.
+  [['m-arr-heure-h','m-arr-date'],['m-dep-heure-h','m-dep-date']].forEach(function(pair){
+    const el=document.getElementById(pair[0]),dateEl=document.getElementById(pair[1]);
+    if(!el||!dateEl)return;
+    const cs=window.getComputedStyle(el);
+    if(cs.visibility==='hidden'||cs.display==='none')return;
+    const need=!String(dateEl.value||'').trim();
+    const lbl=el.closest&&el.closest('.field')&&el.closest('.field').querySelector('label');
+    if(need){el.style.borderColor='#CC0000';el.style.borderWidth='1.5px';if(lbl){lbl.style.color='#CC0000';lbl.style.textDecoration='underline dotted';}}
+    else{el.style.borderColor='';el.style.borderWidth='';if(lbl){lbl.style.color='';lbl.style.textDecoration='';}}
   });
 }
 function hasIncompleteContact(r){
   if(r._isVisite)return false;
   if(r.typeClient==='entreprise'){
-    return !r.tel||r.tel==='À compléter'||!r.email||!r.adresse;
+    // Entreprise : raison sociale + adresse postale indispensables
+    return !r.societe||!r.adresse;
   }
-  return !r.prenom1||!r.nom1||!r.tel||r.tel==='À compléter'||!r.email||!r.adresse;
+  // Particulier : nom + téléphone + email indispensables (le prénom et l'adresse n'entrent pas en compte)
+  return !r.nom1||!r.tel||r.tel==='À compléter'||!r.email;
 }
 function nbFieldsHtml(domaine,r){
   const evt=r.typeEvenement||(document.getElementById('m-evt')?document.getElementById('m-evt').value:'');
@@ -1297,7 +1333,7 @@ function injectBands(){
       leftPx=(sRect.left-gridRect.left);
       widthPx=(eRect.left+eRect.width-gridRect.left)-leftPx;
     }
-    const topPx=(sRect.top-gridRect.top)+24+(b.slot*28);
+    const topPx=(sRect.top-gridRect.top)+24+(b.slot*31);
     const div=document.createElement('div');
     div.className=`band ${b.shapeClass} ${b.bandCls}${b.optCls}${b.isPaid?' paid':''}`;
     div.style.position='absolute';
@@ -1326,7 +1362,7 @@ function injectBands(){
         if(isPrestaView){
           topParts.push('<span style="font-weight:800">'+b.nameTxt+'</span>');
         } else {
-          const nameStyle='font-weight:800'+(b.incompleteContact?';text-decoration:underline solid #CC3333;text-decoration-thickness:1px':'');
+          const nameStyle='font-weight:800'+(b.incompleteContact?';text-decoration:underline dotted #CC3333;text-decoration-thickness:1px;text-underline-offset:2px':'');
           topParts.push(optPrefix+dotHtml+fullHtml+'<span style="'+nameStyle+'">'+b.nameTxt+'</span>');
         }
       }
@@ -1405,7 +1441,7 @@ function injectVisiteMarkers(){
     const cellLeft=cRect.left-gridRect.left;
     const hh=v.heure?(parseInt(v.heure.split(':')[0])+(parseInt(v.heure.split(':')[1]||0)/60)):15;
     let leftPx=cellLeft+dayFrac(hh)*cRect.width;
-    const rowTopPx=(cRect.top-gridRect.top)+24+(slot*28);
+    const rowTopPx=(cRect.top-gridRect.top)+24+(slot*31);
     /* Anti-collision : si une bande de réservation occupe déjà cet endroit sur cette ligne, on décale */
     const collide=existingBands.find(b=>Math.abs(b.top-rowTopPx)<4&&leftPx>=b.left-7&&leftPx<=b.left+b.width+7);
     if(collide){
@@ -1447,14 +1483,10 @@ function doLogin(){
 
 function renderAdmin(){
   if(!S.admin)return renderLogin();
-  var _myN=S.admin.name;
-  var _lsN=((S.adminLastSeen||{})[_myN])||0;
-  var _rO=D.reservations.filter(function(r){return r.updatedAt&&r.updatedAt>_lsN&&r.lastChangeBy&&r.lastChangeBy!==_myN;}).sort(function(a,b){return b.updatedAt-a.updatedAt;}).slice(0,5);
+  /* Bannière jaune supprimée : elle stockait l'état « lu » dans S (session, non enregistré),
+     donc les modifs réapparaissaient au retour sur l'app. On ne garde que la bannière bleue
+     ci-dessous (renderNotifBanner), dont l'état « lu » est enregistré dans D.adminLastSeen. */
   var notifBanner='';
-  if(_rO.length>0&&!S.notifDismissed){
-    var _oN=_myN==='David'?'Svitlana':'David';
-    notifBanner='<div style="background:#FFF8E6;border:1px solid #F5D98B;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;align-items:flex-start;gap:8px"><div style="flex:1"><div style="font-weight:600;font-size:12px;color:#7A5800;margin-bottom:3px">🔔 '+_rO.length+' modif(s) par '+_oN+'</div>'+ _rO.map(function(r){return'<div style="font-size:11px;color:#555">• '+(r.client||r.societe||'?')+(r.lastChange?' — '+r.lastChange.slice(0,50):'')+ '</div>';}).join('')+'</div><button class="btn btn-xs" onclick="S.notifDismissed=true;if(!S.adminLastSeen)S.adminLastSeen={};S.adminLastSeen[S.admin.name]=Date.now();saveD();render()">✓ Lu</button></div>';
-  }
   const tabs=[['calendrier','📅','Planning'],['liste','🎉','Résa /<br>Visite'],['dernieres','🕓','Dernières<br>modifs'],['prestataires','🧑‍🔧','Équipe<br>Domaines'],['bilan','📊','Bilan €'],['clientsExport','📇','Clients<br>/ Export']];
   let content='';
   if(S.tab==='calendrier')content=renderCalendrier();
@@ -1525,11 +1557,12 @@ function renderCalendrier(){
     var _dnSt=_showCircle?('background:'+_dd.s+';color:#fff;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;font-weight:700')
               :_showColor?('color:'+_dd.s+';font-weight:700'):'';
     var _dnAt=_dnSt?' style="'+_dnSt+'"':'';
-    var _gg2=(gardeByDate[ds3]||[]).map(function(g){return'<span style="display:inline-flex;align-items:center;justify-content:center;width:10px;height:10px;border:1px solid '+g.col+';border-radius:50%;color:'+g.col+';font-size:5.5px;font-weight:700;margin-left:1px;line-height:1;flex-shrink:0">'+g.lbl+'</span>';}).join('');
+    var _gg2=(gardeByDate[ds3]||[]).map(function(g){return'<span style="display:inline-flex;align-items:center;justify-content:center;width:11px;height:11px;background:'+g.col+';border-radius:50%;color:#fff;font-size:6px;font-weight:800;margin-left:1px;line-height:1;flex-shrink:0">'+g.lbl+'</span>';}).join('');
     var _tg2=tag?'<span class="day-tag">'+tag+'</span>':'';
     gridHtml+='<div class="'+cls+'"'+cellClick+'><div class="day-num-wrap"><span class="day-num"'+_dnAt+'>'+day+_gg2+'</span>'+_tg2+'</div><div class="bands-area"></div></div>';
   }
   const selR=S.selResa?D.reservations.find(x=>x.id===S.selResa):null;
+  if(S.calAnim)setTimeout(function(){S.calAnim=false;},0);
   return`<div class="panel-wrap">
     <div class="cal-side">
       <div class="cal-header">
@@ -1543,7 +1576,7 @@ function renderCalendrier(){
       <div class="leg">
         ${D.domaines.filter(d=>!CAL_DOMAIN_FILTER||CAL_DOMAIN_FILTER.includes(d.id)).map(d=>{const hidden=(S.hiddenDomains||[]).includes(d.id);return`<span class="leg-item" style="cursor:pointer" onclick="toggleHiddenDomaine('${d.id}')" title="${hidden?'Cliquer pour afficher':'Cliquer pour masquer'} ${d.name}"><span class="leg-dot" style="background:${LEG_BG[d.color||0]};position:relative;display:inline-flex;align-items:center;justify-content:center">${hidden?'<span style="color:#000;font-size:9px;font-weight:800;line-height:1">✕</span>':''}</span>${d.name}</span>`;}).join('')}
       </div>
-      <div class="cal-grid" id="cal-grid-main">${gridHtml}</div>
+      <div class="cal-grid${S.calAnim?' cal-anim':''}" id="cal-grid-main">${gridHtml}</div>
       <div style="margin-top:8px;font-size:11px;color:#888">${readOnly?'Clic sur une bande colorée = détail (lecture seule)':'Clic sur une case vide = nouvelle réservation · Clic sur une bande colorée = détail'}</div>
     </div>
     ${selR?`<div class="dp-backdrop" onclick="closePanel()"></div>${renderDetailPanel(selR)}`:''}
@@ -3538,26 +3571,26 @@ function renderModalContent(){
         const emptyRows=Math.max(0,Math.max(3,S.payExtraRows||0)-existingRows.length);
         let payRowsHtml='';
         existingRows.forEach((p,i)=>{
-          payRowsHtml+='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:4px 0;border-bottom:1px solid #f0eee8">'
-            +'<div class="field" style="flex:1.2;min-width:110px;margin:0"><div class="date-row"><input type="date" style="padding:3.5px 7px;font-size:12px" id="pay-ex-date-'+p.id+'" value="'+p.date+'" onchange="updPayRow(\''+id+'\',\''+p.id+'\',this,\'date\')"><button type="button" class="date-btn" onclick="var el=document.getElementById(\'pay-ex-date-'+p.id+'\');if(el&&el.showPicker)el.showPicker();" title="Choisir une date">📅</button></div></div>'
-            +'<div class="field" style="flex:0;width:70px;margin:0"><input type="number" class="pay-amt-input" style="padding:3.5px 7px;font-size:12px;width:70px" value="'+(p.montant||'')+'" placeholder="0" onchange="updPayRow(\''+id+'\',\''+p.id+'\',this,\'montant\')" oninput="refreshSoldeDisplay()"></div>'
-            +'<div class="field" style="flex:0.9;min-width:85px;margin:0"><select style="padding:3.5px 7px;font-size:12px" onchange="updPayRow(\''+id+'\',\''+p.id+'\',this,\'type\')">'
+          payRowsHtml+='<div class="payrow">'
+            +'<div class="field pr-date"><div class="date-row"><input type="date" style="padding:3.5px 7px" id="pay-ex-date-'+p.id+'" value="'+p.date+'" onchange="updPayRow(\''+id+'\',\''+p.id+'\',this,\'date\')"><button type="button" class="date-btn" onclick="var el=document.getElementById(\'pay-ex-date-'+p.id+'\');if(el&&el.showPicker)el.showPicker();" title="Choisir une date">📅</button></div></div>'
+            +'<div class="field pr-amt"><input type="number" class="pay-amt-input" style="padding:3.5px 7px" value="'+(p.montant||'')+'" placeholder="0 €" onchange="updPayRow(\''+id+'\',\''+p.id+'\',this,\'montant\')" oninput="refreshSoldeDisplay()"></div>'
+            +'<div class="field pr-type"><select style="padding:3.5px 7px" onchange="updPayRow(\''+id+'\',\''+p.id+'\',this,\'type\')">'
             +['Acompte','Intermédiaire','Solde','Autre'].map(t=>'<option value="'+t+'"'+(p.type===t?' selected':'')+'>'+t+'</option>').join('')
             +'</select></div>'
-            +'<div class="field" style="flex:1;min-width:80px;margin:0"><input type="text" style="padding:3.5px 7px;font-size:12px" value="'+(p.comment||'').replace(/"/g,'&quot;')+'" placeholder="Commentaire…" onchange="updPayRow(\''+id+'\',\''+p.id+'\',this,\'comment\')"></div>'
-            +'<button class="btn btn-xs btn-danger" onclick="delPay(\''+id+'\',\''+p.id+'\')" style="flex-shrink:0">✕</button>'
+            +'<div class="field pr-com"><input type="text" style="padding:3.5px 7px" value="'+(p.comment||'').replace(/"/g,'&quot;')+'" placeholder="Commentaire…" onchange="updPayRow(\''+id+'\',\''+p.id+'\',this,\'comment\')"></div>'
+            +'<div class="pr-del"><button class="btn btn-xs btn-danger" onclick="delPay(\''+id+'\',\''+p.id+'\')">✕</button></div>'
           +'</div>';
         });
         for(let i=0;i<emptyRows;i++){
           const rowN=existingRows.length+i;
-          payRowsHtml+='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:4px 0;border-bottom:1px solid #f0eee8">'
-            +'<div class="field" style="flex:1.2;min-width:110px;margin:0"><div class="date-row"><input type="date" style="padding:3.5px 7px;font-size:12px" id="pay-new-date-'+rowN+'" value="'+new Date().toISOString().slice(0,10)+'" onchange="maybeAddPayRow(\''+id+'\','+rowN+')"><button type="button" class="date-btn" onclick="var el=document.getElementById(\'pay-new-date-'+rowN+'\');if(el&&el.showPicker)el.showPicker();" title="Choisir une date">📅</button></div></div>'
-            +'<div class="field" style="flex:0;width:70px;margin:0"><input type="number" class="pay-amt-input" style="padding:3.5px 7px;font-size:12px;width:70px" id="pay-new-amt-'+rowN+'" placeholder="0" onchange="maybeAddPayRow(\''+id+'\','+rowN+')" oninput="refreshSoldeDisplay()"></div>'
-            +'<div class="field" style="flex:0.9;min-width:85px;margin:0"><select style="padding:3.5px 7px;font-size:12px" id="pay-new-type-'+rowN+'">'
+          payRowsHtml+='<div class="payrow">'
+            +'<div class="field pr-date"><div class="date-row"><input type="date" style="padding:3.5px 7px" id="pay-new-date-'+rowN+'" value="'+new Date().toISOString().slice(0,10)+'" onchange="maybeAddPayRow(\''+id+'\','+rowN+')"><button type="button" class="date-btn" onclick="var el=document.getElementById(\'pay-new-date-'+rowN+'\');if(el&&el.showPicker)el.showPicker();" title="Choisir une date">📅</button></div></div>'
+            +'<div class="field pr-amt"><input type="number" class="pay-amt-input" style="padding:3.5px 7px" id="pay-new-amt-'+rowN+'" placeholder="0 €" onchange="maybeAddPayRow(\''+id+'\','+rowN+')" oninput="refreshSoldeDisplay()"></div>'
+            +'<div class="field pr-type"><select style="padding:3.5px 7px" id="pay-new-type-'+rowN+'">'
             +['Acompte','Intermédiaire','Solde','Autre'].map((t,ti)=>'<option value="'+t+'"'+((rowN===0&&ti===0)?' selected':'')+'>'+t+'</option>').join('')
             +'</select></div>'
-            +'<div class="field" style="flex:1;min-width:80px;margin:0"><input type="text" style="padding:3.5px 7px;font-size:12px" id="pay-new-comment-'+rowN+'" placeholder="Commentaire…" onchange="maybeAddPayRow(\''+id+'\','+rowN+')"></div>'
-            +'<span style="width:24px;flex-shrink:0"></span>'
+            +'<div class="field pr-com"><input type="text" style="padding:3.5px 7px" id="pay-new-comment-'+rowN+'" placeholder="Commentaire…" onchange="maybeAddPayRow(\''+id+'\','+rowN+')"></div>'
+            +'<div class="pr-del"></div>'
           +'</div>';
         }
         return '<div style="border-top:1px solid #e3e0d8;padding-top:10px">'
@@ -3903,7 +3936,7 @@ function renderPrestaFull(p){
   <div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${tab===k?'active':''}" onclick="setPrestaTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>
   ${content}${S.modal?renderModalWrap():''}`;
 }
-function setPrestaTab(t){S.prestaTab=t;S.selResa=null;S.modal=null;render();}
+function setPrestaTab(t){S.prestaTab=t;S.calAnim=(t==='calendrier');S.selResa=null;S.modal=null;render();}
 function renderPresta(){
   const p=S.presta,today=new Date().toISOString().slice(0,10),mode=p.accessMode||'manuel';
   if(mode==='occupation')return renderPrestaDominique(p);
@@ -4273,7 +4306,7 @@ function openM(type,id,extra){if(type==='newResa'||type==='editResa')S.payExtraR
 function closeM(){S.modal=null;render();}
 function closePanel(){S.selResa=null;render();}
 function showMsg(m){S.msg=m;render();setTimeout(()=>{S.msg=null;render();},3000);}
-function setTab(t){S.tab=t;S.msg=null;S.selResa=null;S.searchQuery=null;render();}
+function setTab(t){S.tab=t;S.calAnim=(t==='calendrier');S.msg=null;S.selResa=null;S.searchQuery=null;render();}
 function logout(){S.view='login';S.admin=null;S.presta=null;S.msg=null;S.selResa=null;S.searchQuery=null;render();}
 function calNav(d){S.calMonth+=d;if(S.calMonth>11){S.calMonth=0;S.calYear++;}if(S.calMonth<0){S.calMonth=11;S.calYear--;}S.selResa=null;render();}
 function selectResa(rid,e){if(e)e.stopPropagation();S.selResa=rid;render();}
@@ -4740,8 +4773,16 @@ document.addEventListener('keydown',e=>{
 });
 window.addEventListener('resize',()=>injectBands());
 async function initApp(){
+  const localSeenA=(D&&D.adminLastSeen)||{};
+  const localSeenP=(D&&D.prestaLastSeen)||{};
   const remote=await fetchRemoteD();
-  if(remote)D=remote;
+  if(remote){
+    /* On reprend les données du serveur, mais on conserve les marqueurs « lu » les plus récents
+       (locaux ou distants) pour que rien de déjà lu ne réapparaisse au lancement. */
+    remote.adminLastSeen=mergeSeen(localSeenA,remote.adminLastSeen);
+    remote.prestaLastSeen=mergeSeen(localSeenP,remote.prestaLastSeen);
+    D=remote;
+  }
   runMigrations();
   saveD();
   if(!checkToken())render();else render();
@@ -4749,6 +4790,12 @@ async function initApp(){
     if(S.modal)return;
     const fresh=await fetchRemoteD();
     if(fresh&&JSON.stringify(fresh)!==JSON.stringify(D)){
+      /* On préserve les marqueurs « lu » locaux (adminLastSeen / prestaLastSeen) :
+         un marqueur ne recule jamais dans le temps. Sans ça, un rafraîchissement distant
+         arrivant juste après un « Marquer comme lu » (avant que le push soit remonté)
+         réaffichait les notifications déjà lues. */
+      fresh.adminLastSeen=mergeSeen(D.adminLastSeen,fresh.adminLastSeen);
+      fresh.prestaLastSeen=mergeSeen(D.prestaLastSeen,fresh.prestaLastSeen);
       D=fresh;
       try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}
       render();
@@ -4756,6 +4803,10 @@ async function initApp(){
   },8000);
 }
 let touchStartX=null,touchStartY=null;
+/* Tant que la fiche réservation est ouverte, on rafraîchit le repérage des champs obligatoires
+   (bordure rouge) à chaque saisie ou changement, où qu'il ait lieu dans le formulaire. */
+document.addEventListener('input',function(){if(document.getElementById('m-typeclient'))checkContactFields();});
+document.addEventListener('change',function(){if(document.getElementById('m-typeclient'))checkContactFields();});
 document.addEventListener('touchstart',e=>{
   const grid=e.target.closest('.cal-grid');
   if(!grid){touchStartX=null;return;}
