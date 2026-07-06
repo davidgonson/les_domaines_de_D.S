@@ -1544,13 +1544,16 @@ function renderCalendrier(){
   });
   const gardeByDate={};
   const GARDE_COLORS=['#D4748A','#C9A84C','#5A9E3A','#6B64C8','#3A7AB8'];
-  // GC/GL visibles : admins + Misha(p1) pour d1 + Sacha(p2) pour d2
+  // GC/GL visibles : David (admin) + Misha(p1) pour d1 + Sacha(p2) pour d2 — pas Svitlana
   const _gpid=S.presta?S.presta.id:null;
   const _isAdm=S.view==='admin';
+  const _isDavid=_isAdm&&S.admin&&S.admin.id==='a1';
   D.reservations.forEach(function(r){
     if(!r.prestaGarde)return;
     // Filtre visibilité
-    if(!_isAdm){
+    if(_isAdm){
+      if(!_isDavid)return; // Svitlana : affichage simplifié, pas de détail gardiennage
+    } else {
       if(_gpid==='p1'&&r.domaine!=='d1')return;
       if(_gpid==='p2'&&r.domaine!=='d2')return;
       if(_gpid!=='p1'&&_gpid!=='p2')return;
@@ -4904,6 +4907,29 @@ document.addEventListener('touchend',e=>{
     if(dx<0)navMonthOnly('calMonth','calYear',1);
     else navMonthOnly('calMonth','calYear',-1);
   }
+},{passive:true});
+/* Fermeture d'une fenêtre (nouvelle résa, modification, etc.) par glissement vers le bas,
+   comme dans plusieurs applications mobiles : on n'a pas besoin de taper « Fermer » ni de
+   cliquer en dehors. Un glissement franc vers le bas, depuis n'importe quel endroit de la
+   fenêtre, la referme — pour tout le monde (David, Svitlana, prestataires). On ne déclenche
+   la fermeture que si la fenêtre est déjà remontée tout en haut de son défilement, pour ne
+   jamais entrer en conflit avec un simple geste de défilement dans un long formulaire. */
+let modalTouchStartY=null,modalTouchStartTime=0,modalAtTop=false;
+document.addEventListener('touchstart',e=>{
+  const modal=e.target.closest('.modal');
+  if(!modal){modalTouchStartY=null;return;}
+  const overlay=modal.closest('.overlay');
+  modalTouchStartY=e.touches[0].clientY;
+  modalTouchStartTime=Date.now();
+  modalAtTop=!overlay||overlay.scrollTop<=2;
+},{passive:true});
+document.addEventListener('touchend',e=>{
+  if(modalTouchStartY===null)return;
+  const dy=e.changedTouches[0].clientY-modalTouchStartY;
+  const dt=Math.max(1,Date.now()-modalTouchStartTime);
+  const velocity=dy/dt;
+  modalTouchStartY=null;
+  if(modalAtTop&&dy>90&&velocity>0.35&&S.modal)closeM();
 },{passive:true});
 initApp();
 </script>
