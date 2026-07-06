@@ -53,14 +53,14 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .pay-inline:focus{background:#fff;border-color:#999;outline:none}
 /* Lignes de paiement en grille : date · montant · type sur une ligne, commentaire + suppression à côté.
    Sur téléphone, le commentaire et la suppression passent proprement sur une 2e ligne. */
-.payrow{display:grid;grid-template-columns:1.25fr 74px 96px 1fr 26px;gap:6px;align-items:center;padding:4px 0;border-bottom:1px solid #f0eee8}
+.payrow{display:grid;grid-template-columns:118px 72px 96px 1fr 26px;gap:6px;align-items:center;padding:4px 0;border-bottom:1px solid #f0eee8}
 .payrow>.field{margin:0;min-width:0}
 .modal .payrow input,.modal .payrow select{width:100%;font-size:12.5px!important;padding:4px 6px!important}
 .payrow .pr-del{display:flex;align-items:center;justify-content:center}
 @media(max-width:640px){
-  .payrow{grid-template-columns:1fr 66px 84px;column-gap:5px;row-gap:4px}
-  .payrow .pr-com{grid-column:1/3}
-  .payrow .pr-del{grid-column:3/4;justify-self:end}
+  .payrow{grid-template-columns:104px 56px 1fr 26px;column-gap:5px;row-gap:4px}
+  .payrow .pr-del{grid-column:4;grid-row:1;justify-self:end}
+  .payrow .pr-com{grid-column:1 / -1;grid-row:2}
   .modal .payrow input,.modal .payrow select{font-size:11.5px!important;padding:4px 5px!important}
 }
 .g2-compact{display:grid;grid-template-columns:1fr 1fr;gap:6px}
@@ -68,7 +68,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .g2-compact .field label{font-size:10.5px}
 .g2-compact .field input,.g2-compact .field select{font-size:12px;padding:6px 7px}
 .field label{font-size:11px;color:#444;font-weight:600;text-transform:uppercase;letter-spacing:.03em}
-.form-section{background:#f5f4f1;border:1px solid #e3e0d8;border-radius:10px;padding:12px 14px;margin-bottom:14px}
+.form-section{background:#f5f4f1;border:1px solid #e3e0d8;border-radius:10px;padding:10px 12px;margin-bottom:11px}
 .form-section-title{font-size:10.5px;color:#993556;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .form-section-title::before{content:'';width:4px;height:13px;background:#993556;border-radius:2px;display:inline-block}
 .pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
@@ -85,7 +85,9 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .metric .lbl{font-size:11px;color:#666}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-start;justify-content:center;padding-top:40px;z-index:100;overflow-y:auto}
 .modal{background:#fff;border-radius:14px;padding:1.5rem;width:96%;max-width:560px;border:1px solid #e5e3de;margin-bottom:40px}
-.modal input,.modal select,.modal textarea{-webkit-user-select:text;user-select:text;touch-action:manipulation;font-size:16px!important}
+.modal input,.modal select,.modal textarea{-webkit-user-select:text;user-select:text;touch-action:manipulation;font-size:13px!important;padding:4px 8px}
+.modal .field{gap:3px}
+.modal .field label{font-size:10.5px}
 .modal h3{font-size:15px;font-weight:500;margin-bottom:14px}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
 .contract-viewer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:flex;flex-direction:column}
@@ -146,12 +148,12 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .cal-cell.pont.other{background:#DAD2EC}
 .cal-cell.ferie{background:#D2C7F0}
 .cal-cell.ferie.other{background:#C7BAEA}
-.day-num-wrap{display:flex;align-items:baseline;justify-content:space-between;padding:0 2px;margin-bottom:3px}
-.day-num{font-size:12px;font-weight:500;color:#666}
+.day-num-wrap{display:flex;align-items:center;justify-content:space-between;gap:3px;padding:0 2px;margin-bottom:3px;flex-wrap:nowrap;overflow:hidden}
+.day-num{font-size:12px;font-weight:500;color:#666;white-space:nowrap;flex-shrink:0;display:inline-flex;align-items:center}
 .cal-cell.today .day-num{color:#993556;font-weight:700}
 .cal-cell.other .day-num{color:#bbb}
 .cal-cell.vac-edge .day-num,.cal-cell.ferie .day-num{color:#3C3489;font-weight:700}
-.day-tag{font-size:9px;font-weight:600;color:#534AB7;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;line-height:1.2}
+.day-tag{font-size:9px;font-weight:600;color:#534AB7;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;line-height:1.2}
 .bands-area{position:absolute;left:0;right:0;top:24px;bottom:2px;pointer-events:none}
 .band{position:absolute;height:26px;font-size:9px;font-weight:600;cursor:pointer;pointer-events:all;z-index:2;padding:1px 4px;text-align:left;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;gap:1px;overflow:hidden;box-shadow:0 1px 2px rgba(60,40,50,.14);transition:transform .12s ease,box-shadow .12s ease}
 .band:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(60,40,50,.22);z-index:6!important}
@@ -193,6 +195,8 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
   .g3{grid-template-columns:1fr 1fr}
   .g2{grid-template-columns:1fr}
   .list-tbl th:nth-child(5),.list-tbl td:nth-child(5){display:none}
+  .clients-tbl th:nth-child(5),.clients-tbl td:nth-child(5){display:table-cell}
+  .clients-tbl th:nth-child(6),.clients-tbl td:nth-child(6){display:none}
   .liste-evt-tbl th:nth-child(5),.liste-evt-tbl td:nth-child(5){display:table-cell}
   .liste-evt-tbl th:nth-child(2),.liste-evt-tbl td:nth-child(2){display:none}
   .liste-evt-tbl th:nth-child(6),.liste-evt-tbl td:nth-child(6){display:none}
@@ -2007,19 +2011,19 @@ function renderDernieres(){
     const actionLabel=x.isNew?(isResa?'✚ Nouvelle résa':'✚ Nouvelle visite'):(isResa?'✎ Résa modifiée':'✎ Visite modifiée');
     const actionColor=x.isNew?'#27500A':'#993556';
     const actionBg=x.isNew?'#EAF3DE':'#FBEAF0';
-    const clickAttr=x.rid?`onclick="openM('editResa','${x.rid}')" style="cursor:pointer"`
-      :x.vid?`onclick="openM('editVisite','${x.vid}')" style="cursor:pointer"`:'';
+    const clickAttr=x.rid?`onclick="openM('editResa','${x.rid}')"`
+      :x.vid?`onclick="openM('editVisite','${x.vid}')"`:'';
+    const cursorCss=(x.rid||x.vid)?'cursor:pointer;':'';
 
     // Ligne 2 : détail de la modification
     const changeDetail=x.lastChange||'—';
 
-    return`<div ${clickAttr} style="padding:9px 14px;border-bottom:1px solid #f0eee8;transition:background .12s" onmouseover="this.style.background='#faf9f7'" onmouseout="this.style.background=''">
+    return`<div ${clickAttr} style="${cursorCss}padding:10px 12px 10px 13px;border-bottom:2px solid #efece5;border-left:4px solid ${actionColor};transition:background .12s" onmouseover="this.style.background='#faf9f7'" onmouseout="this.style.background=''">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <span style="font-size:10px;color:#bbb;white-space:nowrap;flex-shrink:0">${when}</span>
         <span style="background:${actionBg};color:${actionColor};font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap;flex-shrink:0">${actionLabel}</span>
         <span style="font-weight:700;font-size:13px;white-space:nowrap">${x.client}</span>
         <span class="pill ${PILL[dom.color||0]}" style="font-size:10px;flex-shrink:0">${dom.name}</span>
-        ${x.typeEvt?`<span style="font-size:11px;color:#993556;white-space:nowrap">${x.typeEvt}</span>`:''}
         ${x.dateArr?`<span style="font-size:11px;color:#aaa;white-space:nowrap">${dn(x.dateArr)} ${ds(x.dateArr)}</span>`:''}
         ${x.rid||x.vid?'<span style="font-size:11px;color:#ccc;margin-left:auto;flex-shrink:0">→ ouvrir</span>':''}
       </div>
@@ -2519,6 +2523,41 @@ function updClientTel(rid,val){
   r.tel=v||'À compléter';
   saveD();showMsg('Téléphone enregistré ✓');
 }
+function updClientField(rid,field,val){
+  const r=D.reservations.find(x=>x.id===rid);if(!r)return;
+  const v=(val||'').trim();
+  if(field==='email')r.email=v;
+  else if(field==='societe')r.societe=v;
+  else if(field==='adresse')r.adresse=v;
+  else if(field==='nom'){r.nom1=v;r.client=[r.prenom1,r.nom1].filter(Boolean).join(' ').trim()||v;}
+  saveD();showMsg('Enregistré ✓');
+}
+function clientCellInput(rid,field,value,missing,ph){
+  const safe=(value||'').replace(/"/g,'&quot;');
+  const bc=missing?'#CC0000':'transparent';const bg=missing?'#fff':'transparent';
+  return '<input type="text" value="'+safe+'" placeholder="'+ph+'" onchange="updClientField(\''+rid+'\',\''+field+'\',this.value)" style="width:100%;min-width:90px;font-size:12px;padding:4px 6px;border:1px solid '+bc+';border-radius:4px;background:'+bg+'" onfocus="this.style.borderColor=\'#8a8678\';this.style.background=\'#fff\'" onblur="this.style.borderColor=this.value.trim()?\'transparent\':\'#CC0000\';this.style.background=this.value.trim()?\'transparent\':\'#fff\'">';
+}
+function clientRow(r,dom){
+  const isEnt=r.typeClient==='entreprise';
+  const telMissing=!r.tel||r.tel==='À compléter'||!isValidPhone(r.tel);
+  const emailMissing=!r.email;
+  const nomVal=r.client||[r.prenom1,r.nom1].filter(Boolean).join(' ');
+  const nomMissing=!isEnt&&!(r.nom1||nomVal);
+  const socMissing=isEnt&&!r.societe;
+  const telBc=telMissing?'#CC0000':'transparent';const telBg=telMissing?'#fff':'transparent';
+  const telInput='<input type="tel" value="'+displayTel(r.tel)+'" placeholder="À renseigner" onchange="updClientTel(\''+r.id+'\',this.value)" style="width:100%;min-width:110px;font-size:12px;padding:4px 6px;border:1px solid '+telBc+';border-radius:4px;background:'+telBg+'" onfocus="this.style.borderColor=\'#8a8678\';this.style.background=\'#fff\'" onblur="this.style.borderColor=this.value.trim()?\'transparent\':\'#CC0000\';this.style.background=this.value.trim()?\'transparent\':\'#fff\'">';
+  const socCell=isEnt?clientCellInput(r.id,'societe',r.societe,socMissing,'Raison sociale'):'<span style="color:#ccc">—</span>';
+  const adrMissing=isEnt&&!r.adresse; // adresse indispensable seulement pour une société
+  return '<tr onclick="selectAndGoCal(\''+r.id+'\')">'
+    +'<td onclick="event.stopPropagation()" style="font-weight:500;min-width:110px">'+clientCellInput(r.id,'nom',nomVal,nomMissing,'Nom')+'</td>'
+    +'<td onclick="event.stopPropagation()">'+socCell+'</td>'
+    +'<td onclick="event.stopPropagation()">'+telInput+'</td>'
+    +'<td onclick="event.stopPropagation()">'+clientCellInput(r.id,'email',r.email,emailMissing,'Email')+'</td>'
+    +'<td onclick="event.stopPropagation()" style="min-width:130px">'+clientCellInput(r.id,'adresse',r.adresse,adrMissing,'Adresse postale')+'</td>'
+    +'<td><span class="pill '+PILL[dom.color||0]+'">'+dom.name+'</span></td>'
+    +'<td style="white-space:nowrap">'+fmt(r.dateArrivee)+'</td>'
+  +'</tr>';
+}
 function setClientsExportSub(v){S.clientsExportSub=v;render();}
 function renderClientsExport(){
   const sub=S.clientsExportSub||'clients';
@@ -2547,8 +2586,8 @@ function renderClientsList(){
       <button class="btn btn-sm ${sortBy==='domaine'?'btn-primary':''}" onclick="setClientsSortBy('domaine')">Domaine</button>
     </div>
     ${rows.length===0?'<div class="empty">Aucun client enregistré.</div>':''}
-    ${rows.length>0?`<div style="overflow-x:auto"><table class="list-tbl"><thead><tr><th>Nom</th><th>Société</th><th>Téléphone</th><th>Email</th><th>Domaine</th><th>Date</th></tr></thead>
-    <tbody>${rows.map(({r,dom})=>`<tr onclick="selectAndGoCal('${r.id}')"><td style="font-weight:500">${r.client||'—'}</td><td>${r.typeClient==='entreprise'&&r.societe?r.societe:'<span style="color:#ccc">—</span>'}</td><td onclick="event.stopPropagation()"><input type="tel" value="${displayTel(r.tel)}" placeholder="À renseigner" onchange="updClientTel('${r.id}',this.value)" style="width:130px;font-size:12px;padding:4px 6px;border:1px solid transparent;background:transparent" onfocus="this.style.borderColor='#d5d3ce';this.style.background='#fff'" onblur="this.style.borderColor='transparent';this.style.background='transparent'"></td><td>${r.email?`<a href="mailto:${r.email}" onclick="event.stopPropagation()" style="color:#185FA5;text-decoration:none">${r.email}</a>`:'<span style="color:#ccc">—</span>'}</td><td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td><td>${fmt(r.dateArrivee)}</td></tr>`).join('')}</tbody></table></div>`:''}
+    ${rows.length>0?`<div style="overflow-x:auto"><table class="list-tbl clients-tbl"><thead><tr><th>Nom</th><th>Société</th><th>Téléphone</th><th>Email</th><th>Adresse</th><th>Domaine</th><th>Date</th></tr></thead>
+    <tbody>${rows.map(({r,dom})=>clientRow(r,dom)).join('')}</tbody></table></div>`:''}
   </div>`;
 }
 
