@@ -167,11 +167,11 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
    et liseré léger. Le texte reste foncé (comme les bandes confirmées). */
 .band.option{background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.62) 0,rgba(255,255,255,.62) 4px,rgba(255,255,255,0) 4px,rgba(255,255,255,0) 9px)!important;box-shadow:inset 0 0 0 1.5px rgba(90,60,70,.28),0 1px 2px rgba(60,40,50,.14)}
 .band.option:hover{box-shadow:inset 0 0 0 1.5px rgba(90,60,70,.28),0 4px 10px rgba(60,40,50,.22)}
-.b0f{background:#F4C0D1;color:#72243E}
+.b0f{background:#F6CCDA;color:#72243E}
 .b0l{background:#FBEAF0;color:#993556;border:1px dashed #F4C0D1}
-.b1f{background:#F5D98B;color:#7A5800}
+.b1f{background:#F8E1A3;color:#7A5800}
 .b1l{background:#FFF8E6;color:#BA8800;border:1px dashed #F5D98B}
-.b2f{background:#C0DD97;color:#27500A}
+.b2f{background:#CBE5A8;color:#27500A}
 .b2l{background:#EAF3DE;color:#3B6D11;border:1px dashed #C0DD97}
 .b3f{background:#CECBF6;color:#3C3489}
 .b3l{background:#EEEDFE;color:#534AB7;border:1px dashed #CECBF6}
@@ -195,8 +195,10 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
   .g3{grid-template-columns:1fr 1fr}
   .g2{grid-template-columns:1fr}
   .list-tbl th:nth-child(5),.list-tbl td:nth-child(5){display:none}
-  .clients-tbl th:nth-child(5),.clients-tbl td:nth-child(5){display:table-cell}
-  .clients-tbl th:nth-child(6),.clients-tbl td:nth-child(6){display:none}
+  .clients-tbl th:nth-child(3),.clients-tbl td:nth-child(3){display:none} /* Société */
+  .clients-tbl th:nth-child(5),.clients-tbl td:nth-child(5){display:none} /* Email */
+  .clients-tbl th:nth-child(6),.clients-tbl td:nth-child(6){display:table-cell} /* Adresse : on la garde */
+  .clients-tbl th:nth-child(7),.clients-tbl td:nth-child(7){display:none} /* Domaine */
   .liste-evt-tbl th:nth-child(5),.liste-evt-tbl td:nth-child(5){display:table-cell}
   .liste-evt-tbl th:nth-child(2),.liste-evt-tbl td:nth-child(2){display:none}
   .liste-evt-tbl th:nth-child(6),.liste-evt-tbl td:nth-child(6){display:none}
@@ -1029,8 +1031,8 @@ function checkContactFields(){
   } else {
     contact=['m-prenom1','m-nom1','m-tel','m-email','m-adresse'];
   }
-  // Champs « cœur de réservation » toujours obligatoires
-  const core=['m-evt','m-nbp','m-arr-date','m-dep-date','m-montant'];
+  // Champs « cœur de réservation » toujours obligatoires (hors date/heure, gérées à part ci-dessous)
+  const core=['m-evt','m-nbp','m-montant'];
   contact.concat(core).forEach(function(fid){
     const el=document.getElementById(fid);
     if(!el||el.type==='hidden')return;
@@ -1039,24 +1041,37 @@ function checkContactFields(){
     const empty=!String(el.value||'').trim()||String(el.value).trim()==='À compléter';
     const lbl=el.closest&&el.closest('.field')&&el.closest('.field').querySelector('label');
     if(empty){
-      el.style.borderColor='#CC0000';el.style.borderWidth='1.5px';
+      el.style.borderColor='#CC0000';el.style.borderWidth='2px';el.style.background='#FFF3F2';
       if(lbl){lbl.style.color='#CC0000';lbl.style.textDecoration='underline dotted';}
     } else {
-      el.style.borderColor='';el.style.borderWidth='';
+      el.style.borderColor='';el.style.borderWidth='';el.style.background='';
       if(lbl){lbl.style.color='';lbl.style.textDecoration='';}
     }
   });
-  // Les heures (partie heure seulement, pas les minutes) suivent leur date :
-  // on les signale en rouge tant que la date correspondante n'est pas saisie.
-  [['m-arr-heure-h','m-arr-date'],['m-dep-heure-h','m-dep-date']].forEach(function(pair){
-    const el=document.getElementById(pair[0]),dateEl=document.getElementById(pair[1]);
-    if(!el||!dateEl)return;
+  // Date d'arrivée / date de départ : rouge tant que vide OU jamais vue par un humain
+  // (un remplissage automatique en cascade ne compte pas comme une vérification réelle).
+  if(!S.rvwConfirm)S.rvwConfirm={};
+  [['m-arr-date','arrDate'],['m-dep-date','depDate']].forEach(function(pair){
+    const el=document.getElementById(pair[0]);
+    if(!el)return;
     const cs=window.getComputedStyle(el);
     if(cs.visibility==='hidden'||cs.display==='none')return;
-    const need=!String(dateEl.value||'').trim();
+    const bad=!String(el.value||'').trim()||!S.rvwConfirm[pair[1]];
     const lbl=el.closest&&el.closest('.field')&&el.closest('.field').querySelector('label');
-    if(need){el.style.borderColor='#CC0000';el.style.borderWidth='1.5px';if(lbl){lbl.style.color='#CC0000';lbl.style.textDecoration='underline dotted';}}
-    else{el.style.borderColor='';el.style.borderWidth='';if(lbl){lbl.style.color='';lbl.style.textDecoration='';}}
+    if(bad){el.style.borderColor='#CC0000';el.style.borderWidth='2px';el.style.background='#FFF3F2';if(lbl){lbl.style.color='#CC0000';lbl.style.textDecoration='underline dotted';}}
+    else{el.style.borderColor='';el.style.borderWidth='';el.style.background='';if(lbl){lbl.style.color='';lbl.style.textDecoration='';}}
+  });
+  // Les heures (partie heure seulement, pas les minutes) : rouge tant que non vues par un humain,
+  // même si une heure par défaut a déjà été suggérée automatiquement.
+  [['m-arr-heure-h','arrHeure'],['m-dep-heure-h','depHeure']].forEach(function(pair){
+    const el=document.getElementById(pair[0]);
+    if(!el)return;
+    const cs=window.getComputedStyle(el);
+    if(cs.visibility==='hidden'||cs.display==='none')return;
+    const need=!S.rvwConfirm[pair[1]];
+    const lbl=el.closest&&el.closest('.field')&&el.closest('.field').querySelector('label');
+    if(need){el.style.borderColor='#CC0000';el.style.borderWidth='2px';el.style.background='#FFF3F2';if(lbl){lbl.style.color='#CC0000';lbl.style.textDecoration='underline dotted';}}
+    else{el.style.borderColor='';el.style.borderWidth='';el.style.background='';if(lbl){lbl.style.color='';lbl.style.textDecoration='';}}
   });
 }
 function hasIncompleteContact(r){
@@ -1970,7 +1985,9 @@ function renderDernieres(){
      ajout de prestation, ajout/modification de paiement ou de montant. Pas les petites
      modifications de champs (téléphone, email…) ni les événements automatiques. */
   const SHOW={'créée':1,'commentaire':1,'paiement':1,'prestation':1};
-  const items=(D.activityLog||[]).filter(it=>SHOW[it.action]).sort((a,b)=>b.ts-a.ts).slice(0,20);
+  const items=(D.activityLog||[])
+    .filter(it=>SHOW[it.action]&&it.rid&&D.reservations.some(x=>x.id===it.rid))
+    .sort((a,b)=>b.ts-a.ts).slice(0,20);
   const rows=items.map(it=>{
     const d=new Date(it.ts);
     const when=(it.ts>1)?(d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})):'—';
@@ -2494,7 +2511,10 @@ function updClientField(rid,field,val){
   if(field==='email')r.email=v;
   else if(field==='societe')r.societe=v;
   else if(field==='adresse')r.adresse=v;
-  else if(field==='nom'){r.nom1=v;r.client=[r.prenom1,r.nom1].filter(Boolean).join(' ').trim()||v;}
+  else if(field==='nom1'){r.nom1=v;r.client=[r.prenom1,r.nom1].filter(Boolean).join(' ').trim()||v;}
+  else if(field==='prenom1'){r.prenom1=v;r.client=[r.prenom1,r.nom1].filter(Boolean).join(' ').trim()||r.nom1||'';}
+  else if(field==='nom2')r.nom2=v;
+  else if(field==='prenom2')r.prenom2=v;
   saveD();showMsg('Enregistré ✓');
 }
 function clientCellInput(rid,field,value,missing,ph){
@@ -2506,15 +2526,22 @@ function clientRow(r,dom){
   const isEnt=r.typeClient==='entreprise';
   const telMissing=!r.tel||r.tel==='À compléter'||!isValidPhone(r.tel);
   const emailMissing=!r.email;
-  const nomVal=r.client||[r.prenom1,r.nom1].filter(Boolean).join(' ');
-  const nomMissing=!isEnt&&!(r.nom1||nomVal);
+  const nomMissing=!isEnt&&!r.nom1;
   const socMissing=isEnt&&!r.societe;
+  const hasSecond=!!(r.nom2||r.prenom2);
   const telBc=telMissing?'#CC0000':'transparent';const telBg=telMissing?'#fff':'transparent';
   const telInput='<input type="tel" value="'+displayTel(r.tel)+'" placeholder="À renseigner" onchange="updClientTel(\''+r.id+'\',this.value)" style="width:100%;min-width:110px;font-size:12px;padding:4px 6px;border:1px solid '+telBc+';border-radius:4px;background:'+telBg+'" onfocus="this.style.borderColor=\'#8a8678\';this.style.background=\'#fff\'" onblur="this.style.borderColor=this.value.trim()?\'transparent\':\'#CC0000\';this.style.background=this.value.trim()?\'transparent\':\'#fff\'">';
   const socCell=isEnt?clientCellInput(r.id,'societe',r.societe,socMissing,'Raison sociale'):'<span style="color:#ccc">—</span>';
   const adrMissing=isEnt&&!r.adresse; // adresse indispensable seulement pour une société
+  const nomCell=hasSecond
+    ?'<div style="display:flex;flex-direction:column;gap:3px">'+clientCellInput(r.id,'nom1',r.nom1,nomMissing,'Nom')+'<div style="opacity:.75">'+clientCellInput(r.id,'nom2',r.nom2,false,'Nom (2)')+'</div></div>'
+    :clientCellInput(r.id,'nom1',r.nom1,nomMissing,'Nom');
+  const prenomCell=isEnt?'<span style="color:#ccc">—</span>':(hasSecond
+    ?'<div style="display:flex;flex-direction:column;gap:3px">'+clientCellInput(r.id,'prenom1',r.prenom1,false,'Prénom')+'<div style="opacity:.75">'+clientCellInput(r.id,'prenom2',r.prenom2,false,'Prénom (2)')+'</div></div>'
+    :clientCellInput(r.id,'prenom1',r.prenom1,false,'Prénom'));
   return '<tr onclick="selectAndGoCal(\''+r.id+'\')">'
-    +'<td onclick="event.stopPropagation()" style="font-weight:500;min-width:110px">'+clientCellInput(r.id,'nom',nomVal,nomMissing,'Nom')+'</td>'
+    +'<td onclick="event.stopPropagation()" style="font-weight:500;min-width:110px">'+nomCell+'</td>'
+    +'<td onclick="event.stopPropagation()" style="min-width:100px">'+prenomCell+'</td>'
     +'<td onclick="event.stopPropagation()">'+socCell+'</td>'
     +'<td onclick="event.stopPropagation()">'+telInput+'</td>'
     +'<td onclick="event.stopPropagation()">'+clientCellInput(r.id,'email',r.email,emailMissing,'Email')+'</td>'
@@ -2551,7 +2578,7 @@ function renderClientsList(){
       <button class="btn btn-sm ${sortBy==='domaine'?'btn-primary':''}" onclick="setClientsSortBy('domaine')">Domaine</button>
     </div>
     ${rows.length===0?'<div class="empty">Aucun client enregistré.</div>':''}
-    ${rows.length>0?`<div style="overflow-x:auto"><table class="list-tbl clients-tbl"><thead><tr><th>Nom</th><th>Société</th><th>Téléphone</th><th>Email</th><th>Adresse</th><th>Domaine</th><th>Date</th></tr></thead>
+    ${rows.length>0?`<div style="overflow-x:auto"><table class="list-tbl clients-tbl"><thead><tr><th>Nom</th><th>Prénom</th><th>Société</th><th>Téléphone</th><th>Email</th><th>Adresse</th><th>Domaine</th><th>Date</th></tr></thead>
     <tbody>${rows.map(({r,dom})=>clientRow(r,dom)).join('')}</tbody></table></div>`:''}
   </div>`;
 }
@@ -3449,6 +3476,13 @@ function renderModalContent(){
     if(!iD)iD=prefDate||'';
     const initArrHeure=r.heureArrivee||(iA?(ARR_DEFAULT_HOUR[new Date(iA+'T12:00:00').getDay()]||''):'');
     const initDepHeure=r.heureDepart||(iD?(DEP_DEFAULT_HOUR[new Date(iD+'T12:00:00').getDay()]||''):'');
+    /* Suivi « vu par un humain » pour les 4 cases date/heure : une valeur auto-suggérée
+       (départ, heures) ne compte pas comme confirmée tant que Svitlana/David n'a pas
+       cliqué dans le champ lui-même — évite qu'un remplissage automatique fasse
+       disparaître le rouge d'un champ jamais réellement vérifié. */
+    if(!S.rvwConfirm||S.rvwConfirm._id!==(id||'__new__')){
+      S.rvwConfirm={_id:id||'__new__',arrDate:!!r.dateArrivee,arrHeure:!!r.heureArrivee,depDate:!!r.dateDepart,depHeure:!!r.heureDepart};
+    }
     const sO=['confirmé','option','annulé'].map(s=>`<option ${r.status===s?'selected':''}>${s}</option>`).join('');
     const defDomaine=r.domaine||'';
     const initNights=nightsList(iA,iD);
@@ -3543,12 +3577,12 @@ function renderModalContent(){
       <div class="form-section-title">📅 Dates et horaires</div>
       <div id="datesheures-wrap" style="display:flex;flex-direction:column;gap:10px">
         <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px">
-          <div class="field"><label>Date arrivée *</label><div class="date-row"><input type="date" id="m-arr-date" style="padding:3.5px 5px;font-size:12px;width:118px;border-color:#8a8678;border-width:2px" value="${iA}" onchange="refreshAllGardNights();defaultArrHeure(this.value);defaultDepDate(this.value);if((document.getElementById('m-evt')||{}).value==='Déjeuner / Dîner'){document.getElementById('m-dep-date').value=this.value;}refreshDefaultArrhes();"><button type="button" class="date-btn" onclick="document.getElementById('m-arr-date').showPicker&&document.getElementById('m-arr-date').showPicker()" title="Choisir une date">📅</button></div></div>
-          <div class="field"><label>Heure arrivée *</label><div style="display:flex;gap:4px;align-items:center"><select id="m-arr-heure-h" style="flex:1;padding:3.5px 5px;font-size:12px" onchange="syncHeureField('m-arr-heure')">${heureHOptions((initArrHeure||'').split(':')[0]||'')}</select><span>:</span><select id="m-arr-heure-m" style="flex:1;padding:3.5px 5px;font-size:12px" onchange="syncHeureField('m-arr-heure')">${heureMOptions((initArrHeure||'').split(':')[1]||'00')}</select><input type="hidden" id="m-arr-heure" value="${initArrHeure||''}"></div></div>
+          <div class="field"><label>Date arrivée *</label><div class="date-row"><input type="date" id="m-arr-date" style="padding:3.5px 5px;font-size:12px;width:118px;border-color:#8a8678;border-width:2px" value="${iA}" onfocus="S.rvwConfirm.arrDate=true;checkContactFields();" onchange="S.rvwConfirm.arrDate=true;refreshAllGardNights();defaultArrHeure(this.value);defaultDepDate(this.value);if((document.getElementById('m-evt')||{}).value==='Déjeuner / Dîner'){document.getElementById('m-dep-date').value=this.value;}refreshDefaultArrhes();"><button type="button" class="date-btn" onclick="document.getElementById('m-arr-date').showPicker&&document.getElementById('m-arr-date').showPicker()" title="Choisir une date">📅</button></div></div>
+          <div class="field"><label>Heure arrivée *</label><div style="display:flex;gap:4px;align-items:center"><select id="m-arr-heure-h" style="flex:1;padding:3.5px 5px;font-size:12px" onfocus="S.rvwConfirm.arrHeure=true;checkContactFields();" onchange="S.rvwConfirm.arrHeure=true;syncHeureField('m-arr-heure')">${heureHOptions((initArrHeure||'').split(':')[0]||'')}</select><span>:</span><select id="m-arr-heure-m" style="flex:1;padding:3.5px 5px;font-size:12px" onchange="syncHeureField('m-arr-heure')">${heureMOptions((initArrHeure||'').split(':')[1]||'00')}</select><input type="hidden" id="m-arr-heure" value="${initArrHeure||''}"></div></div>
         </div>
         <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px">
-          <div class="field" id="dep-date-wrap" style="${r.typeEvenement==='Déjeuner / Dîner'?'visibility:hidden':''}"><label>Date départ *</label><div class="date-row"><input type="date" id="m-dep-date" style="padding:3.5px 5px;font-size:12px;width:118px;border-color:#8a8678;border-width:2px" value="${iD}" onchange="refreshAllGardNights();defaultDepHeure(this.value);refreshDefaultArrhes();"><button type="button" class="date-btn" onclick="document.getElementById('m-dep-date').showPicker&&document.getElementById('m-dep-date').showPicker()" title="Choisir une date">📅</button></div></div>
-          <div class="field"><label>Heure départ *</label><div style="display:flex;gap:4px;align-items:center"><select id="m-dep-heure-h" style="flex:1;padding:3.5px 5px;font-size:12px" onchange="syncHeureField('m-dep-heure')">${heureHOptions((initDepHeure||'').split(':')[0]||'')}</select><span>:</span><select id="m-dep-heure-m" style="flex:1;padding:3.5px 5px;font-size:12px" onchange="syncHeureField('m-dep-heure')">${heureMOptions((initDepHeure||'').split(':')[1]||'00')}</select><input type="hidden" id="m-dep-heure" value="${initDepHeure||''}"></div></div>
+          <div class="field" id="dep-date-wrap" style="${r.typeEvenement==='Déjeuner / Dîner'?'visibility:hidden':''}"><label>Date départ *</label><div class="date-row"><input type="date" id="m-dep-date" style="padding:3.5px 5px;font-size:12px;width:118px;border-color:#8a8678;border-width:2px" value="${iD}" onfocus="S.rvwConfirm.depDate=true;checkContactFields();" onchange="S.rvwConfirm.depDate=true;refreshAllGardNights();defaultDepHeure(this.value);refreshDefaultArrhes();"><button type="button" class="date-btn" onclick="document.getElementById('m-dep-date').showPicker&&document.getElementById('m-dep-date').showPicker()" title="Choisir une date">📅</button></div></div>
+          <div class="field"><label>Heure départ *</label><div style="display:flex;gap:4px;align-items:center"><select id="m-dep-heure-h" style="flex:1;padding:3.5px 5px;font-size:12px" onfocus="S.rvwConfirm.depHeure=true;checkContactFields();" onchange="S.rvwConfirm.depHeure=true;syncHeureField('m-dep-heure')">${heureHOptions((initDepHeure||'').split(':')[0]||'')}</select><span>:</span><select id="m-dep-heure-m" style="flex:1;padding:3.5px 5px;font-size:12px" onchange="syncHeureField('m-dep-heure')">${heureMOptions((initDepHeure||'').split(':')[1]||'00')}</select><input type="hidden" id="m-dep-heure" value="${initDepHeure||''}"></div></div>
         </div>
       </div>
     </div>
