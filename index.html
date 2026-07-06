@@ -599,9 +599,9 @@ function saveD(){try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}pushR
 function gDom(id){return D.domaines.find(d=>d.id===id)||{name:'—',color:0};}
 function gPre(id){return D.prestataires.find(p=>p.id===id)||{name:'—',role:''};}
 function gid(){return 'x'+Math.random().toString(36).slice(2,9);}
-function logActivity(action,domaine,label,concernsPresta,forAdmin){
+function logActivity(action,domaine,label,concernsPresta,forAdmin,rid){
   if(!D.activityLog)D.activityLog=[];
-  D.activityLog.push({id:gid(),ts:Date.now(),authorId:S.admin?S.admin.id:null,authorName:S.admin?S.admin.name:(S.presta?S.presta.name:'Système'),domaine,action,label,concernsPresta:concernsPresta||[],forAdmin:!!forAdmin});
+  D.activityLog.push({id:gid(),ts:Date.now(),authorId:S.admin?S.admin.id:null,authorName:S.admin?S.admin.name:(S.presta?S.presta.name:'Système'),domaine,action,label,concernsPresta:concernsPresta||[],forAdmin:!!forAdmin,rid:rid||null});
   if(D.activityLog.length>200)D.activityLog=D.activityLog.slice(-200);
 }
 function dismissAdminNotifs(){if(!S.admin)return;D.adminLastSeen=D.adminLastSeen||{};D.adminLastSeen[S.admin.id]=Date.now();saveD();render();}
@@ -1133,18 +1133,8 @@ function pickTypeClient(el){
   onTypeClientChangeIdentite(el.dataset.id);
 }
 function computeDefaultArrhes(domaine,typeEvenement,dateArrivee,dateDepart,montant){
-  if(domaine==='d1'||domaine==='d2'){
-    if(typeEvenement==='Séminaire')return Math.round((montant||0)*0.3/50)*50;
-    return 1500;
-  }
-  if(domaine==='d3'){
-    if(typeEvenement==='Séminaire')return 500;
-    if(dateArrivee&&dateDepart&&dateArrivee!==dateDepart){
-      const nbJours=Math.round((new Date(dateDepart+'T12:00:00')-new Date(dateArrivee+'T12:00:00'))/86400000);
-      return nbJours>5?1500:500;
-    }
-    return 500;
-  }
+  if(domaine==='d1'||domaine==='d2')return 2000;
+  if(domaine==='d3')return 1000;
   return Math.round((montant||0)*0.3/50)*50;
 }
 function refreshDefaultArrhes(){
@@ -1976,64 +1966,39 @@ function renderListeMerged(){
 }
 
 function renderDernieres(){
-  const items=[
-    ...D.reservations.map(r=>({
-      ts:r.updatedAt||r.createdAt||0,
-      isNew:!r.updatedAt||(r.updatedAt===r.createdAt),
-      type:'resa',
-      client:r.typeClient==='entreprise'&&r.societe?r.societe:(r.client||'—'),
-      domaine:r.domaine,
-      typeEvt:r.typeEvenement||'',
-      dateArr:r.dateArrivee||r.date||'',
-      statut:r.status||'',
-      lastChange:r.lastChange||(r.updatedAt&&r.updatedAt!==r.createdAt?'Modifiée avant le suivi automatique':'Réservation existante'),
-      rid:r.id
-    })),
-    ...D.visites.map(v=>({
-      ts:v.updatedAt||v.createdAt||0,
-      isNew:!v.updatedAt||(v.updatedAt===v.createdAt),
-      type:'visite',
-      client:v.client||'—',
-      domaine:v.domaine,
-      typeEvt:v.typeEvenement||'',
-      dateArr:v.date||'',
-      statut:v.status||'prévue',
-      lastChange:v.lastChange||'Visite existante',
-      rid:null,vid:v.id
-    }))
-  ].filter(x=>x.client&&x.client!=='—'||x.domaine).sort((a,b)=>b.ts-a.ts).slice(0,20);
-
-  const rows=items.map(x=>{
-    const d=new Date(x.ts);
-    const when=x.ts>1?d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'—';
-    const dom=gDom(x.domaine);
-    const isResa=x.type==='resa';
-    const actionLabel=x.isNew?(isResa?'✚ Nouvelle résa':'✚ Nouvelle visite'):(isResa?'✎ Résa modifiée':'✎ Visite modifiée');
-    const actionColor=x.isNew?'#27500A':'#993556';
-    const actionBg=x.isNew?'#EAF3DE':'#FBEAF0';
-    const clickAttr=x.rid?`onclick="openM('editResa','${x.rid}')"`
-      :x.vid?`onclick="openM('editVisite','${x.vid}')"`:'';
-    const cursorCss=(x.rid||x.vid)?'cursor:pointer;':'';
-
-    // Ligne 2 : détail de la modification
-    const changeDetail=x.lastChange||'—';
-
-    return`<div ${clickAttr} style="${cursorCss}padding:10px 12px 10px 13px;border-bottom:2px solid #efece5;border-left:4px solid ${actionColor};transition:background .12s" onmouseover="this.style.background='#faf9f7'" onmouseout="this.style.background=''">
+  /* On ne montre que les vraies actions humaines : création de fiche, ajout de commentaire,
+     ajout de prestation, ajout/modification de paiement ou de montant. Pas les petites
+     modifications de champs (téléphone, email…) ni les événements automatiques. */
+  const SHOW={'créée':1,'commentaire':1,'paiement':1,'prestation':1};
+  const items=(D.activityLog||[]).filter(it=>SHOW[it.action]).sort((a,b)=>b.ts-a.ts).slice(0,20);
+  const rows=items.map(it=>{
+    const d=new Date(it.ts);
+    const when=(it.ts>1)?(d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})):'—';
+    const isCreation=it.action==='créée';
+    const r=it.rid?D.reservations.find(x=>x.id===it.rid):null;
+    const dom=gDom(it.domaine||(r&&r.domaine));
+    const name=r?(displayClientName(r)||'—'):'—';
+    const arr=r?(r.dateArrivee||''):'';
+    const badgeLabel=isCreation?'✚ Nouvelle résa':'✎ Résa modifiée';
+    const badgeColor=isCreation?'#27500A':'#993556';
+    const badgeBg=isCreation?'#EAF3DE':'#FBEAF0';
+    const detail=isCreation?'Création de la fiche':(it.label||'—');
+    const author=it.authorName||'';
+    const line2=isCreation?(`Création de la fiche · ${author?author+' · ':''}${when}`):(`Modification · ${author?author+' · ':''}${when} : ${detail}`);
+    const clickAttr=r?`onclick="openM('editResa','${r.id}')"`:'';
+    const cursorCss=r?'cursor:pointer;':'';
+    return`<div ${clickAttr} style="${cursorCss}padding:10px 12px 10px 13px;border-bottom:2px solid #efece5;border-left:4px solid ${badgeColor};transition:background .12s" onmouseover="this.style.background='#faf9f7'" onmouseout="this.style.background=''">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <span style="font-size:10px;color:#bbb;white-space:nowrap;flex-shrink:0">${when}</span>
-        <span style="background:${actionBg};color:${actionColor};font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap;flex-shrink:0">${actionLabel}</span>
-        <span style="font-weight:700;font-size:13px;white-space:nowrap">${x.client}</span>
-        <span class="pill ${PILL[dom.color||0]}" style="font-size:10px;flex-shrink:0">${dom.name}</span>
-        ${x.dateArr?`<span style="font-size:11px;color:#aaa;white-space:nowrap">${dn(x.dateArr)} ${ds(x.dateArr)}</span>`:''}
-        ${x.rid||x.vid?'<span style="font-size:11px;color:#ccc;margin-left:auto;flex-shrink:0">→ ouvrir</span>':''}
+        <span style="background:${badgeBg};color:${badgeColor};font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap;flex-shrink:0">${badgeLabel}</span>
+        <span style="font-weight:700;font-size:13px;white-space:nowrap">${name}</span>
+        ${dom?`<span class="pill ${PILL[dom.color||0]}" style="font-size:10px;flex-shrink:0">${dom.name}</span>`:''}
+        ${arr?`<span style="font-size:11px;color:#aaa;white-space:nowrap">${dn(arr)} ${ds(arr)}</span>`:''}
+        ${r?'<span style="font-size:11px;color:#ccc;margin-left:auto;flex-shrink:0">→ ouvrir</span>':''}
       </div>
-      <div style="margin-top:4px;font-size:11px;color:#666;padding-left:2px">
-        <span style="color:#aaa;font-weight:600;margin-right:4px">Modification ·</span>${changeDetail}
-      </div>
+      <div style="margin-top:4px;font-size:11px;color:#666;padding-left:2px">${line2}</div>
     </div>`;
   }).join('');
-
-  return`<div style="margin-bottom:12px;font-size:12px;color:#aaa">Les 20 dernières créations et modifications — cliquer pour ouvrir.</div>
+  return`<div style="margin-bottom:12px;font-size:12px;color:#aaa">Les 20 dernières créations, ajouts de commentaire, de prestation et de paiement — cliquer pour ouvrir.</div>
   <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;overflow:hidden">
     ${items.length===0?'<div class="empty">Aucune activité enregistrée.</div>':rows}
   </div>`;
@@ -2640,7 +2605,7 @@ function buildContractSections(r){
   const dom=gDom(r.domaine);
   const isJ=r.dateArrivee===r.dateDepart;
   const montant=r.montant||0;
-  const arrhesFixe=r.domaine==='d3'?500:1500;
+  const arrhesFixe=r.arrhes||(r.domaine==='d3'?1000:2000);
   const arrhes=arrhesFixe;
   const solde=montant-arrhes;
   const depot=r.depotGarantie||(r.domaine==='d3'?1500:3000);
@@ -4377,6 +4342,7 @@ function maybeAddPayRow(rid,rowN){
   if(!r.paiements)r.paiements=[];
   r.paiements.push({id:gid(),date:d,montant:a,type:ty,comment:cm});
   stampChange(r,'Paiement ajouté · '+ty+' '+money(a)+' le '+ds(d)+(cm?' ('+cm+')':''));
+  logActivity('paiement',r.domaine,'Paiement ajouté : '+ty+' '+money(a)+' le '+ds(d),[],false,rid);
   saveD();
   if(_payRowRenderTimer)clearTimeout(_payRowRenderTimer);
   _payRowRenderTimer=setTimeout(function(){_payRowRenderTimer=null;S.modal={type:'editResa',id:rid};render();},80);
@@ -4389,6 +4355,7 @@ function addPay(rid){
   if(!r.paiements)r.paiements=[];
   r.paiements.push({id:gid(),date:d,montant:a,type:ty,comment:cm});
   stampChange(r,`Paiement ajouté · ${ty} ${money(a)} le ${ds(d)}${cm?' ('+cm+')':''}`);
+  logActivity('paiement',r.domaine,'Paiement ajouté : '+ty+' '+money(a)+' le '+ds(d),[],false,rid);
   saveD();S.modal={type:'editResa',id:rid};render();
 }
 function delPay(rid,pid){
@@ -4435,6 +4402,7 @@ function addPrestaLineSelf(rid,pid){
   if(!r.prestaLines)r.prestaLines={};
   if(!r.prestaLines[pid])r.prestaLines[pid]=[];
   r.prestaLines[pid].push({id:gid(),label:lbl,montant:amt,paidDirect:paid,commission:comm,notes:note,date:r.dateArrivee||''});
+  logActivity('prestation',r.domaine,'Prestation ajoutée : '+((lbl||'—')+(amt?' · '+money(amt):'')),[],false,rid);
   saveD();showMsg('Prestation ajoutée ✓');S.selResa=rid;render();
 }
 function delPrestaLineSelf(rid,pid,lid){
@@ -4442,7 +4410,7 @@ function delPrestaLineSelf(rid,pid,lid){
   r.prestaLines[pid]=r.prestaLines[pid].filter(l=>l.id!==lid);
   saveD();showMsg('Supprimée');S.selResa=rid;render();
 }
-function addPrestaLine(rid,pid){const r=D.reservations.find(x=>x.id===rid);if(!r)return;const lab=(document.getElementById('pline-label-'+pid).value||'').trim(),amt=parseFloat(document.getElementById('pline-amt-'+pid).value)||0,nt=(document.getElementById('pline-notes-'+pid).value||'').trim(),pd=document.getElementById('pline-paid-'+pid).value==='1';if(!lab&&!amt)return;if(!r.prestaLines)r.prestaLines={};if(!r.prestaLines[pid])r.prestaLines[pid]=[];r.prestaLines[pid].push({id:gid(),label:lab,montant:amt,notes:nt,paidDirect:pd,date:r.dateArrivee||''});saveD();S.modal={type:'editResa',id:rid};render();}
+function addPrestaLine(rid,pid){const r=D.reservations.find(x=>x.id===rid);if(!r)return;const lab=(document.getElementById('pline-label-'+pid).value||'').trim(),amt=parseFloat(document.getElementById('pline-amt-'+pid).value)||0,nt=(document.getElementById('pline-notes-'+pid).value||'').trim(),pd=document.getElementById('pline-paid-'+pid).value==='1';if(!lab&&!amt)return;if(!r.prestaLines)r.prestaLines={};if(!r.prestaLines[pid])r.prestaLines[pid]=[];r.prestaLines[pid].push({id:gid(),label:lab,montant:amt,notes:nt,paidDirect:pd,date:r.dateArrivee||''});logActivity('prestation',r.domaine,'Prestation ajoutée : '+((lab||'—')+(amt?' · '+money(amt):'')),[],false,rid);saveD();S.modal={type:'editResa',id:rid};render();}
 function delPrestaLine(rid,pid,lineId){if(!rid)return;const r=D.reservations.find(x=>x.id===rid);if(!r||!r.prestaLines||!r.prestaLines[pid])return;r.prestaLines[pid]=r.prestaLines[pid].filter(l=>l.id!==lineId);saveD();render();}
 
 function addComment(rid){
@@ -4451,7 +4419,7 @@ function addComment(rid){
   if(!r.commentaires)r.commentaires=[];
   r.commentaires.push({id:gid(),auteur:'admin',auteurNom:S.admin.name,date:new Date().toISOString().slice(0,10),texte:txt,visible:true});
   const ct=getMenageInfo(r);
-  if(ct)logActivity('commentaire',r.domaine,`💬 ${S.admin.name} → ${ct.name} : « ${txt} » — ${displayClientName(r)||'—'} (${fmt(r.dateArrivee)})`,[ct.pid]);
+  if(ct)logActivity('commentaire',r.domaine,`💬 ${S.admin.name} → ${ct.name} : « ${txt} »`,[ct.pid],false,r.id);
   stampChange(r,`Commentaire ajouté pour ${ct?ct.name:'le gardien'} · « ${txt.slice(0,60)}${txt.length>60?'…':''} »`);
   saveD();S.modal={type:'editResa',id:rid};render();
 }
@@ -4473,7 +4441,7 @@ function addPrestaComment(rid){
   const el=document.getElementById('dp-presta-com');const txt=(el&&el.value||'').trim();if(!txt)return;
   if(!r.commentaires)r.commentaires=[];
   r.commentaires.push({id:gid(),auteur:'presta',auteurNom:S.presta.name,date:new Date().toISOString().slice(0,10),texte:txt,visible:true});
-  logActivity('commentaire',r.domaine,`💬 ${S.presta.name} : « ${txt} » — ${displayClientName(r)||'—'} (${fmt(r.dateArrivee)})`,[],true);
+  logActivity('commentaire',r.domaine,`💬 ${S.presta.name} : « ${txt} »`,[],true,r.id);
   saveD();showMsg('Commentaire envoyé ✓');render();
 }
 function resizeImageFile(file,maxDim,callback){
@@ -4511,7 +4479,7 @@ function addAdminQuickPhoto(rid,inputEl){
   resizeImageFile(file,1000,dataUrl=>{
     if(!r.commentaires)r.commentaires=[];
     r.commentaires.push({id:gid(),auteur:'admin',auteurNom:S.admin.name,date:new Date().toISOString().slice(0,10),texte:'',photoUrl:dataUrl,visible:true});
-    if(ct)logActivity('commentaire',r.domaine,`💬 ${S.admin.name} → ${ct.name} : photo ajoutée — ${displayClientName(r)||'—'} (${fmt(r.dateArrivee)})`,[ct.pid]);
+    if(ct)logActivity('commentaire',r.domaine,`💬 ${S.admin.name} → ${ct.name} : photo ajoutée`,[ct.pid],false,r.id);
     saveD();showMsg('Photo envoyée ✓');inputEl.value='';render();
   });
 }
@@ -4521,7 +4489,7 @@ function addAdminQuickComment(rid){
   const ct=getMenageInfo(r);
   if(!r.commentaires)r.commentaires=[];
   r.commentaires.push({id:gid(),auteur:'admin',auteurNom:S.admin.name,date:new Date().toISOString().slice(0,10),texte:txt,visible:true});
-  if(ct)logActivity('commentaire',r.domaine,`💬 ${S.admin.name} → ${ct.name} : « ${txt} » — ${displayClientName(r)||'—'} (${fmt(r.dateArrivee)})`,[ct.pid]);
+  if(ct)logActivity('commentaire',r.domaine,`💬 ${S.admin.name} → ${ct.name} : « ${txt} »`,[ct.pid],false,r.id);
   saveD();showMsg('Commentaire envoyé ✓');render();
 }
 function saveResaCore(id){
@@ -4628,9 +4596,12 @@ function saveResaCore(id){
     return changes.length?changes.join(' · '):'Enregistrement (aucun changement détecté)';
   }
 
+  let montantChanged=false,prevMontantVal=0;
   if(id){
     const r=D.reservations.find(x=>x.id===id);
     const prevSnap={...r};
+    prevMontantVal=prevSnap.montant||0;
+    montantChanged=(String(prevMontantVal)!==String(montant||0));
     const nextSnap={domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,typeEvenement,nbPersonnes,nbSoiree,montant,arrhes,depotGarantie,noteInterne,typeClient,societe,tel,email};
     const changeLog=buildChangeLog(prevSnap,nextSnap);
     Object.assign(r,{domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,civilite1,prenom1,nom1,tel,email,prenom2,nom2,tel2,email2,adresse,typeClient,societe,typeEvenement,nbPersonnes,nbSoiree,nbAdultes,nbEnfants,prestaGarde,noteInterne,caviste,prestasExterieurs,montant,arrhes,depotGarantie,avecContrat,prestataires,updatedAt:nowTs,lastChange:changeLog});
@@ -4641,11 +4612,12 @@ function saveResaCore(id){
   }
   if(isNew&&newCommentTxt.trim()){
     const ct=getMenageInfo({domaine,nbPersonnes,nbSoiree,typeEvenement});
-    if(ct)logActivity('commentaire',domaine,`💬 ${S.admin.name} → ${ct.name} : « ${newCommentTxt.trim()} » — ${(typeClient==='entreprise'&&societe)?societe:client||'—'} (${fmt(dateArrivee)})`,[ct.pid]);
+    if(ct)logActivity('commentaire',domaine,`💬 ${S.admin.name} → ${ct.name} : « ${newCommentTxt.trim()} »`,[ct.pid],false,newId);
   }
   /* Récupère les lignes de paiement saisies mais non encore enregistrées (nouvelles réservations
      ou lignes non encore auto-sauvegardées via maybeAddPayRow). */
   const _newR=D.reservations.find(x=>x.id===newId);
+  const _paysAdded=[];
   if(_newR){
     for(let _rn=0;_rn<20;_rn++){
       const _dEl=document.getElementById('pay-new-date-'+_rn);
@@ -4657,13 +4629,20 @@ function saveResaCore(id){
         const _cm=((document.getElementById('pay-new-comment-'+_rn)||{}).value||'').trim();
         if(!_newR.paiements)_newR.paiements=[];
         const _dup=(_newR.paiements||[]).some(p=>p.date===_d&&Math.abs(p.montant-_a)<0.01&&p.type===_ty);
-        if(!_dup)_newR.paiements.push({id:gid(),date:_d,montant:_a,type:_ty,comment:_cm});
+        if(!_dup){_newR.paiements.push({id:gid(),date:_d,montant:_a,type:_ty,comment:_cm});_paysAdded.push(_ty+' '+money(_a)+' le '+ds(_d));}
       }
     }
   }
-  logActivity(isNew?'créée':'modifiée',domaine,`Réservation ${isNew?'créée':'modifiée'} — ${(typeClient==='entreprise'&&societe)?societe:client||'—'} (${fmt(dateArrivee)})`);
+  /* Journal — uniquement les vraies actions : création, paiements ajoutés, changement de montant.
+     Les petites modifs de champs (téléphone, email, dates…) ne sont pas journalisées. */
+  if(isNew){
+    logActivity('créée',domaine,'Création de la fiche',[],false,newId);
+  } else {
+    if(montantChanged)logActivity('paiement',domaine,`Montant de la réservation : ${money(prevMontantVal)} → ${money(montant||0)}`,[],false,id);
+  }
+  _paysAdded.forEach(function(desc){logActivity('paiement',domaine,'Paiement ajouté : '+desc,[],false,newId);});
   Object.keys(prestaGarde).forEach(pid=>{
-    logActivity(isNew?'créée':'modifiée',domaine,`Gardiennage ${isNew?'ajouté':'mis à jour'} — ${(typeClient==='entreprise'&&societe)?societe:client||'—'} (${fmt(dateArrivee)})`,[pid]);
+    logActivity('garde',domaine,`Gardiennage ${isNew?'ajouté':'mis à jour'} — ${(typeClient==='entreprise'&&societe)?societe:client||'—'} (${fmt(dateArrivee)})`,[pid]);
   });
   saveD();
   return{newId,dateArrivee};
