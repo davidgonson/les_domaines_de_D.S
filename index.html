@@ -13,8 +13,8 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a;background:#f5f4f1;font-size:14px;min-height:100vh}
-.app{max-width:920px;margin:0 auto;padding:1rem}
-.topbar{display:flex;align-items:center;gap:6px;padding:10px 0 14px;border-bottom:1px solid #e5e3de;margin-bottom:14px;flex-wrap:nowrap}
+.app{max-width:920px;margin:0 auto;padding:0.6rem 1rem 1rem}
+.topbar{display:flex;align-items:center;gap:6px;padding:5px 0 7px;border-bottom:1px solid #e5e3de;margin-bottom:7px;flex-wrap:nowrap}
 .topbar h1{font-size:13px;font-weight:600;flex:1;margin-left:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500}
 .ba{background:#FBEAF0;color:#72243E}.bp{background:#E1F5EE;color:#085041}
@@ -26,12 +26,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1
 .btn-prestation{background:#E6F1FB;color:#185FA5;border-color:#B5D4F4}.btn-prestation:hover{background:#D8EAF8}
 .btn-sm{padding:4px 10px;font-size:12px}.btn-xs{padding:2px 7px;font-size:11px}
 .btn-danger{color:#A32D2D;border-color:#F7C1C1;background:#fff}.btn-danger:hover{background:#FCEBEB}
-.tabs{display:flex;gap:3px;margin-bottom:14px;background:#ebe9e4;border-radius:8px;padding:3px}
+.tabs{display:flex;gap:3px;margin-bottom:8px;background:#ebe9e4;border-radius:8px;padding:2px}
 .dom-picker{display:flex;gap:8px}
 .dom-box{flex:1;text-align:center;padding:12px 6px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s;user-select:none}
 .dom-box.sel{opacity:1;box-shadow:0 0 0 2px rgba(0,0,0,.3) inset}
 .dom-box.fade{opacity:.3}
-.tab{flex:1;padding:7px 1px;text-align:center;border-radius:6px;cursor:pointer;font-size:12px;border:none;background:transparent;color:#666;font-family:inherit;transition:background .15s;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0}
+.tab{flex:1;padding:4px 1px;text-align:center;border-radius:6px;cursor:pointer;font-size:12px;border:none;background:transparent;color:#666;font-family:inherit;transition:background .15s;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
 .tab .tab-ic{font-size:16px;line-height:1}
 .tab .tab-lbl{font-weight:500;text-transform:uppercase;font-size:8px;letter-spacing:.02em;line-height:1.1}
 .tab.active{background:#fff;color:#1a1a1a;font-weight:500;border:1px solid #d5d3ce}
@@ -126,16 +126,19 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .pin-in{text-align:center;font-size:24px;letter-spacing:8px;font-weight:500}
 
 /* CALENDRIER */
-.cal-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.cal-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
 .cal-header .month-label{font-size:18px;font-weight:500;flex:1;text-align:center}
 .cal-nav{padding:6px 12px;border-radius:8px;border:1px solid #d5d3ce;cursor:pointer;background:#fff;font-size:18px;color:#1a1a1a;line-height:1}
+.cal-plus-btn{padding:6px 10px;border-radius:8px;border:1px solid #0055A4;background:#0055A4;color:#fff;font-size:18px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.cal-plus-btn:hover{background:#004080}
 .cal-nav:hover{background:#f0eeea}
 .cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-radius:14px;overflow:hidden;border:1px solid #e2dfd8;background:#fff;position:relative;box-shadow:0 10px 30px -16px rgba(80,50,60,.32),0 1px 3px rgba(0,0,0,.04)}
 .cal-grid.cal-anim{animation:calFade .4s cubic-bezier(.22,.61,.36,1) both}
 @keyframes calFade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.cal-dow{background:linear-gradient(180deg,#f8f6f2,#efece5);text-align:center;padding:9px 2px;font-size:11px;font-weight:700;color:#8c857a;text-transform:uppercase;letter-spacing:.07em;border-right:1px solid #e7e4dc;border-bottom:1px solid #ddd9d0}
+.cal-dow{background:linear-gradient(180deg,#f8f6f2,#efece5);text-align:center;padding:5px 2px;font-size:11px;font-weight:700;color:#1a1a1a;text-transform:uppercase;letter-spacing:.07em;border-right:1px solid #e7e4dc;border-bottom:1px solid #ddd9d0}
 .cal-dow:nth-child(7n){border-right:none}
-.cal-cell{background:#fff;min-height:132px;position:relative;cursor:pointer;padding:4px 4px 4px;border-right:1px solid #edeae4;border-bottom:1px solid #edeae4;transition:background .18s ease}
+.cal-cell{background:#fff;min-height:124px;position:relative;cursor:pointer;padding:3px 3px 3px;border-right:1px solid #edeae4;border-bottom:1px solid #edeae4;transition:background .18s ease}
+.cal-grid.compact-cell .cal-cell{min-height:83px}
 .cal-cell:nth-child(7n){border-right:none}
 .cal-cell:hover{background:#f7f5f1}
 .cal-cell.other{background:#f8f7f4;opacity:.72}
@@ -167,17 +170,17 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
    et liseré léger. Le texte reste foncé (comme les bandes confirmées). */
 .band.option{background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.62) 0,rgba(255,255,255,.62) 4px,rgba(255,255,255,0) 4px,rgba(255,255,255,0) 9px)!important;box-shadow:inset 0 0 0 1.5px rgba(90,60,70,.28),0 1px 2px rgba(60,40,50,.14)}
 .band.option:hover{box-shadow:inset 0 0 0 1.5px rgba(90,60,70,.28),0 4px 10px rgba(60,40,50,.22)}
-.b0f{background:#F6CCDA;color:#72243E}
+.b0f{background:#D46B8A;color:#fff}
 .b0l{background:#FBEAF0;color:#993556;border:1px dashed #F4C0D1}
-.b1f{background:#F8E1A3;color:#7A5800}
+.b1f{background:#D9A428;color:#fff}
 .b1l{background:#FFF8E6;color:#BA8800;border:1px dashed #F5D98B}
-.b2f{background:#CBE5A8;color:#27500A}
+.b2f{background:#6FA842;color:#fff}
 .b2l{background:#EAF3DE;color:#3B6D11;border:1px dashed #C0DD97}
 .b3f{background:#CECBF6;color:#3C3489}
 .b3l{background:#EEEDFE;color:#534AB7;border:1px dashed #CECBF6}
 .b4f{background:#B5D4F4;color:#0C447C}
 .b4l{background:#E6F1FB;color:#185FA5;border:1px dashed #B5D4F4}
-.leg{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px;align-items:center}
+.leg{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:7px;align-items:center}
 .leg-item{display:flex;align-items:center;gap:4px;font-size:11px;color:#555}
 .leg-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
 .search-bar{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid #c2bfb6;border-radius:10px;padding:6px 12px;margin-bottom:12px;transition:border-color .15s}
@@ -896,14 +899,16 @@ function buildBands(y,m){
       if(ifr&&ilr)sc='band-startend';else if(ifr)sc='band-start';else if(ilr)sc='band-end';
       /* Données brutes du label : l'arbitrage selon la largeur réelle se fait dans injectBands */
       const mainParts=[];
+      const PLATFORM_TYPES=['Airbnb','Abritel','Booking'];
       const maxNb=Math.max(r.nbPersonnes||0,r.nbSoiree||0);
       if(maxNb>0){
         if(maxNb===1){mainParts.push('<span style="color:#FF2200;font-weight:900;letter-spacing:.3px">⚠ 1</span> pers.');}
         else{mainParts.push(maxNb+' pers.');}
       }
-      if(r.typeEvenement&&!HIDE_EVENT_TYPE)mainParts.push(r.typeEvenement);
+      if(r.typeEvenement&&!HIDE_EVENT_TYPE&&!PLATFORM_TYPES.includes(r.typeEvenement))mainParts.push(r.typeEvenement);
       const mainLine=mainParts.join(' · ');
-      const _calName=r.typeClient==='entreprise'?(r.societe||r.client||''):([r.prenom1,r.nom1].filter(Boolean).join(' ')||r.client||'');
+      const _personName=r.typeClient==='entreprise'?(r.societe||r.client||''):([r.prenom1,r.nom1].filter(Boolean).join(' ')||r.client||'');
+      const _calName=PLATFORM_TYPES.includes(r.typeEvenement)?(r.typeEvenement+(_personName?' '+_personName:'')):_personName;
       const nameTxt=_calName?shortName(_calName):'';
       const timeArr=ifr?(r.heureArrivee||''):'';
       const timeDep=ilr?(r.heureDepart||''):'';
@@ -1381,13 +1386,16 @@ function injectBands(){
       leftPx=(sRect.left-gridRect.left);
       widthPx=(eRect.left+eRect.width-gridRect.left)-leftPx;
     }
-    const topPx=(sRect.top-gridRect.top)+24+(b.slot*31);
+    const _isSvit=S.admin&&S.admin.id==='a2';
+    const _pitch=_isSvit?19:31,_offTop=_isSvit?18:24,_bandH=_isSvit?15:26;
+    const topPx=(sRect.top-gridRect.top)+_offTop+(b.slot*_pitch);
     const div=document.createElement('div');
     div.className=`band ${b.shapeClass} ${b.bandCls}${b.optCls}${b.isPaid?' paid':''}`;
     div.style.position='absolute';
     div.style.top=topPx+'px';
     div.style.left=leftPx+'px';
     div.style.width=widthPx+'px';
+    if(_isSvit){div.style.height=_bandH+'px';div.style.fontSize='8.5px';div.style.padding='0 4px';}
     const timeArrF=fmtHeureCourt(b.timeArr),timeDepF=fmtHeureCourt(b.timeDep);
     let label;
     if(STRIP_BAND_INFO){
@@ -1410,12 +1418,17 @@ function injectBands(){
         if(isPrestaView){
           topParts.push('<span style="font-weight:800">'+b.nameTxt+'</span>');
         } else {
-          const nameStyle='font-weight:800'+(b.incompleteContact?';text-decoration:underline dotted #CC3333;text-decoration-thickness:1px;text-underline-offset:2px':'');
+          const nameStyle='font-weight:800'+(b.incompleteContact?';text-decoration:underline dotted #FFE066;text-decoration-thickness:1.5px;text-underline-offset:2px':'');
           topParts.push(optPrefix+dotHtml+fullHtml+'<span style="'+nameStyle+'">'+b.nameTxt+'</span>');
         }
       }
       if(b.mainLine)topParts.push(b.mainLine);
       const topLine=topParts.join(' · ');
+      const isSvitlana=S.view==='admin'&&!S.presta&&S.admin&&S.admin.id==='a2';
+      if(isSvitlana){
+        // Affichage simplifié pour Svitlana : tout sur une seule ligne, pas d'horaires, pas de badge P.
+        label=topLine?`<div class="b-top" style="white-space:nowrap">${topLine}</div>`:'';
+      } else {
       const showP=b.hasPresta&&(S.view!=='presta'||(S.presta&&(S.presta.id==='p1'||S.presta.id==='p2')));
       const pTxt=showP?'<span style="display:inline-flex;align-items:center;justify-content:center;width:10px;height:10px;border:1.2px solid #2E86C1;border-radius:50%;color:#2E86C1;font-weight:700;font-size:7px;line-height:1;flex-shrink:0;margin-left:2px">P</span>':'';
       // Durée réelle du séjour
@@ -1432,6 +1445,7 @@ function injectBands(){
       } else {
         // ≥5h : affichage complet
         label=(topLine||timeArrF||timeDepF)?`<div class="b-top">${topLine}</div><div class="b-bottom"><span>${timeArrF}${pTxt}</span><span>${timeDepF}</span></div>`:'';
+      }
       }
     }
     div.innerHTML=label;
@@ -1489,7 +1503,8 @@ function injectVisiteMarkers(){
     const cellLeft=cRect.left-gridRect.left;
     const hh=v.heure?(parseInt(v.heure.split(':')[0])+(parseInt(v.heure.split(':')[1]||0)/60)):15;
     let leftPx=cellLeft+dayFrac(hh)*cRect.width;
-    const rowTopPx=(cRect.top-gridRect.top)+24+(slot*31);
+    const _isSvitV=S.admin&&S.admin.id==='a2';
+    const rowTopPx=(cRect.top-gridRect.top)+(_isSvitV?18:24)+(slot*(_isSvitV?19:31));
     /* Anti-collision : si une bande de réservation occupe déjà cet endroit sur cette ligne, on décale */
     const collide=existingBands.find(b=>Math.abs(b.top-rowTopPx)<4&&leftPx>=b.left-7&&leftPx<=b.left+b.width+7);
     if(collide){
@@ -1535,17 +1550,19 @@ function renderAdmin(){
      donc les modifs réapparaissaient au retour sur l'app. On ne garde que la bannière bleue
      ci-dessous (renderNotifBanner), dont l'état « lu » est enregistré dans D.adminLastSeen. */
   var notifBanner='';
-  const tabs=[['calendrier','📅','Planning'],['liste','🎉','Résa /<br>Visite'],['dernieres','🕓','Dernières<br>modifs'],['prestataires','🧑‍🔧','Équipe<br>Domaines'],['bilan','📊','Bilan €'],['clientsExport','📇','Clients<br>/ Export']];
+  const _isSvitlanaTabs=S.admin&&S.admin.id==='a2';
+  const tabs=[['calendrier','📅','Planning'],['liste','🎉','Résa /<br>Visite'],...(_isSvitlanaTabs?[]:[['dernieres','🕓','Dernières<br>modifs']]),['prestataires','🧑‍🔧','Équipe<br>Domaines'],['bilan','📊','Bilan €'],['clientsExport','📇','Clients<br>/ Export']];
+  if(_isSvitlanaTabs&&S.tab==='dernieres')S.tab='calendrier';
   let content='';
   if(S.tab==='calendrier')content=renderCalendrier();
   else if(S.tab==='liste')content=renderListeMerged();
-  else if(S.tab==='dernieres')content=renderDernieres();
+  else if(S.tab==='dernieres'&&!_isSvitlanaTabs)content=renderDernieres();
   else if(S.tab==='prestataires')content=renderPrestaList();
   else if(S.tab==='bilan')content=renderBilan();
   else if(S.tab==='clientsExport')content=renderClientsExport();
   const lastSeen=(D.adminLastSeen||{})[S.admin.id]||0;
   const notifs=(D.activityLog||[]).filter(it=>((it.authorId&&it.authorId!==S.admin.id)||it.forAdmin)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
-  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge ba" style="flex-shrink:0">Admin — ${S.admin.name}</span><button class="btn btn-sm" onclick="logout()" style="flex-shrink:0">Déconnexion</button></div>${notifBanner}${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}${renderNotifBanner(notifs,'dismissAdminNotifs')}${renderMessagesHub()}<div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${S.tab===k?'active':''}" onclick="setTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>${content}${S.modal?renderModalWrap():''}`;
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge ba" style="flex-shrink:0">Admin — ${S.admin.name}</span><button class="btn btn-sm" onclick="logout()" style="flex-shrink:0">Déconnexion</button></div>${notifBanner}${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}${renderNotifBanner(notifs,'dismissAdminNotifs')}<div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${S.tab===k?'active':''}" onclick="setTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>${content}${S.modal?renderModalWrap():''}`;
 }
 
 function renderCalendrier(){
@@ -1618,16 +1635,12 @@ function renderCalendrier(){
     <div class="cal-side">
       <div class="cal-header">
         ${monthYearPicker('calYear','calMonth')}
-        ${readOnly?'':`<div style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;min-width:0">
-          <button class="btn btn-resa btn-sm" onclick="openM('newResa')">NEW Résa</button>
-          <button class="btn btn-visite btn-sm" onclick="openM('newVisite')">NEW Visite</button>
-          <button class="btn btn-prestation btn-sm" onclick="openM('pickPrestationResa')">NEW Presta</button>
-        </div>`}
+        ${readOnly?'':`<button class="cal-plus-btn" onclick="openM('quickAdd')" title="Nouvelle réservation, visite ou prestation">+</button>`}
       </div>
       <div class="leg">
         ${D.domaines.filter(d=>!CAL_DOMAIN_FILTER||CAL_DOMAIN_FILTER.includes(d.id)).map(d=>{const hidden=(S.hiddenDomains||[]).includes(d.id);return`<span class="leg-item" style="cursor:pointer" onclick="toggleHiddenDomaine('${d.id}')" title="${hidden?'Cliquer pour afficher':'Cliquer pour masquer'} ${d.name}"><span class="leg-dot" style="background:${LEG_BG[d.color||0]};position:relative;display:inline-flex;align-items:center;justify-content:center">${hidden?'<span style="color:#000;font-size:9px;font-weight:800;line-height:1">✕</span>':''}</span>${d.name}</span>`;}).join('')}
       </div>
-      <div class="cal-grid${S.calAnim?' cal-anim':''}" id="cal-grid-main">${gridHtml}</div>
+      <div class="cal-grid${S.calAnim?' cal-anim':''}${(S.admin&&S.admin.id==='a2')?' compact-cell':''}" id="cal-grid-main">${gridHtml}</div>
       <div style="margin-top:8px;font-size:11px;color:#888">${readOnly?'Clic sur une bande colorée = détail (lecture seule)':'Clic sur une case vide = nouvelle réservation · Clic sur une bande colorée = détail'}</div>
     </div>
     ${selR?`<div class="dp-backdrop" onclick="closePanel()"></div>${renderDetailPanel(selR)}`:''}
@@ -3780,6 +3793,15 @@ function renderModalContent(){
       
       <span class="pill" style="background:${x.paid?'#E8F3E0':'#FCEBEB'};color:${x.paid?'#27500A':'#791F1F'};cursor:pointer" onclick="toggleGardeSchedulePaid('${x.id}')">${x.paid?'✓ Réglé':'✗ Régler'}</span>
       <button class="btn btn-xs btn-danger" onclick="delGardePlanning('${x.id}')">✕</button></div>`;}).join('')}
+    <div class="modal-actions"><button class="btn" onclick="closeM()">Fermer</button></div>`;
+  }
+  if(type==='quickAdd'){
+    return`<h3>Nouveau…</h3>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
+      <button class="btn btn-resa" style="text-align:left;padding:12px 16px;font-size:14px" onclick="openM('newResa')">🛏️ Nouvelle réservation</button>
+      <button class="btn btn-visite" style="text-align:left;padding:12px 16px;font-size:14px" onclick="openM('newVisite')">👀 Nouvelle visite</button>
+      <button class="btn btn-prestation" style="text-align:left;padding:12px 16px;font-size:14px" onclick="openM('pickPrestationResa')">🧰 Nouvelle prestation</button>
+    </div>
     <div class="modal-actions"><button class="btn" onclick="closeM()">Fermer</button></div>`;
   }
   if(type==='dayMenu'){
