@@ -1370,8 +1370,9 @@ function adjustCalGridHeight(){
   const gridTop=grid.getBoundingClientRect().top;
   const bottomMargin=18; // petite marge de respiration en bas de fenêtre
   const available=window.innerHeight-gridTop-dowH-bottomMargin;
-  const isSvitMobile=S.admin&&S.admin.id==='a2'&&window.innerWidth<=640;
-  const floor=isSvitMobile?75:124;
+  const isMobile=window.innerWidth<=640;
+  const isSvitMobile=S.admin&&S.admin.id==='a2'&&isMobile;
+  const floor=isSvitMobile?75:(isMobile?95:124);
   let cellH=Math.floor(available/numRows);
   if(cellH<floor)cellH=floor;
   cells.forEach(c=>{c.style.minHeight=cellH+'px';});
@@ -1416,8 +1417,9 @@ function injectBands(){
       leftPx=(sRect.left-gridRect.left);
       widthPx=(eRect.left+eRect.width-gridRect.left)-leftPx;
     }
-    const _isSvit=S.admin&&S.admin.id==='a2'&&window.innerWidth<=640;
-    const _pitch=_isSvit?19:31,_offTop=_isSvit?18:24,_bandH=_isSvit?15:26;
+    const _isMobileNow=window.innerWidth<=640;
+    const _isSvit=S.admin&&S.admin.id==='a2'&&_isMobileNow;
+    const _pitch=_isSvit?19:(_isMobileNow?24:31),_offTop=_isSvit?18:(_isMobileNow?18:24),_bandH=_isSvit?15:(_isMobileNow?20:26);
     const topPx=(sRect.top-gridRect.top)+_offTop+(b.slot*_pitch);
     const div=document.createElement('div');
     div.className=`band ${b.shapeClass} ${b.bandCls}${b.optCls}${b.isPaid?' paid':''}`;
@@ -1426,6 +1428,7 @@ function injectBands(){
     div.style.left=leftPx+'px';
     div.style.width=widthPx+'px';
     if(_isSvit){div.style.height=_bandH+'px';div.style.fontSize='8.5px';div.style.padding='0 4px';}
+    else if(_isMobileNow){div.style.height=_bandH+'px';div.style.fontSize='8px';div.style.padding='1px 4px';}
     if(b.optCls)div.style.color='#1a1a1a';
     const timeArrF=fmtHeureCourt(b.timeArr),timeDepF=fmtHeureCourt(b.timeDep);
     let label;
@@ -1532,8 +1535,10 @@ function injectVisiteMarkers(){
     const cellLeft=cRect.left-gridRect.left;
     const hh=v.heure?(parseInt(v.heure.split(':')[0])+(parseInt(v.heure.split(':')[1]||0)/60)):15;
     let leftPx=cellLeft+dayFrac(hh)*cRect.width;
-    const _isSvitV=S.admin&&S.admin.id==='a2'&&window.innerWidth<=640;
-    const rowTopPx=(cRect.top-gridRect.top)+(_isSvitV?18:24)+(slot*(_isSvitV?19:31));
+    const _isMobileNowV=window.innerWidth<=640;
+    const _isSvitV=S.admin&&S.admin.id==='a2'&&_isMobileNowV;
+    const _pitchV=_isSvitV?19:(_isMobileNowV?24:31),_offV=_isSvitV?18:(_isMobileNowV?18:24);
+    const rowTopPx=(cRect.top-gridRect.top)+_offV+(slot*_pitchV);
     /* Anti-collision : si une bande de réservation occupe déjà cet endroit sur cette ligne, on décale */
     const collide=existingBands.find(b=>Math.abs(b.top-rowTopPx)<4&&leftPx>=b.left-7&&leftPx<=b.left+b.width+7);
     if(collide){
@@ -1679,7 +1684,8 @@ function renderCalendrier(){
 function renderDetailPanel(r){
   const readOnly=S.view!=='admin';
   const dom=gDom(r.domaine);const c=dom.color||0;
-  const prs=(r.prestataires||[]).map(pid=>{const p=gPre(pid);return p.name?`<span class="pill ${PILL[c]}" style="margin-right:4px">${p.name}</span>`:''}).join('');
+  const _isSvitDP=S.admin&&S.admin.id==='a2';
+  const prs=(r.prestataires||[]).map(pid=>{const p=gPre(pid);if(_isSvitDP&&(p.name==='Dominique'||p.name==='Mathilde'||p.name==='Sébastien'))return'';return p.name?`<span class="pill ${PILL[c]}" style="margin-right:4px">${p.name}</span>`:''}).join('');
   const pays=r.paiements||[];const tot=totPay(r);const solde=(r.montant||0)-tot;
   const comms=(readOnly?(r.commentaires||[]).filter(cm=>cm.visible):(r.commentaires||[]));
   const isJ=r.dateArrivee===r.dateDepart;
@@ -4650,11 +4656,23 @@ function saveResaCore(id){
     nbPersonnes=parseInt((document.getElementById('m-nbp')||{}).value)||0;
     nbSoiree=parseInt((document.getElementById('m-nbs')||{}).value)||0;
   }
-  const cbs=document.querySelectorAll('#root input[type=checkbox]');const prestataires=Array.from(cbs).filter(c=>c.checked).map(c=>c.value);
+  const cbs=document.querySelectorAll('#root input[type=checkbox]');let prestataires=Array.from(cbs).filter(c=>c.checked).map(c=>c.value);
   const origR=id?D.reservations.find(x=>x.id===id):null;
+  // Svitlana ne voit pas Mathilde/Sébastien dans son formulaire : on préserve leur affectation existante
+  // telle quelle, pour ne jamais l'effacer simplement parce que leur case n'apparaît pas chez elle.
+  const _isSvitSave=S.admin&&S.admin.id==='a2';
+  if(_isSvitSave&&origR){
+    const _hiddenIds=D.prestataires.filter(p=>p.name==='Mathilde'||p.name==='Sébastien').map(p=>p.id);
+    _hiddenIds.forEach(hid=>{if((origR.prestataires||[]).includes(hid)&&!prestataires.includes(hid))prestataires.push(hid);});
+  }
   const prestaGarde={};
   D.prestataires.forEach(p=>{
     if(!prestataires.includes(p.id))return;
+    if(_isSvitSave&&(p.name==='Mathilde'||p.name==='Sébastien')){
+      // Champs invisibles pour Svitlana : on reprend tel quel ce qui existait déjà.
+      if(origR&&origR.prestaGarde&&origR.prestaGarde[p.id])prestaGarde[p.id]=origR.prestaGarde[p.id];
+      return;
+    }
     if(p.inputMode==='garde'){
       const domSel=document.getElementById('pgdom-'+p.id);
       const nights={};
