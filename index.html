@@ -113,7 +113,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .list-tbl tr:last-child td{border-bottom:none}
 .list-tbl tr:hover td{background:#faf9f7;cursor:pointer}
 .panel-wrap{display:flex;gap:14px;align-items:flex-start}
-.cal-side{flex:1;min-width:0}
+.cal-side{flex:1;min-width:0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif;font-weight:600}
 .detail-panel{width:340px;max-width:92vw;flex-shrink:0;background:#fff;border-left:1px solid #e5e3de;padding:1rem;position:fixed;top:0;right:0;bottom:0;z-index:60;overflow-y:auto;box-shadow:-6px 0 24px rgba(0,0,0,.18)}
 .dp-backdrop{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(20,18,14,.35);z-index:55}
 .dp-section{border-top:1px solid #e5e3de;padding-top:10px;margin-top:10px}
@@ -128,7 +128,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 
 /* CALENDRIER */
 .cal-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
-.cal-header .month-label{font-size:18px;font-weight:500;flex:1;text-align:center}
+.cal-header .month-label{font-size:18px;font-weight:600;flex:1;text-align:center}
 .cal-nav{padding:6px 12px;border-radius:8px;border:1px solid #d5d3ce;cursor:pointer;background:#fff;font-size:18px;color:#1a1a1a;line-height:1}
 .cal-plus-btn{padding:6px 10px;border-radius:8px;border:1px solid #0055A4;background:#0055A4;color:#fff;font-size:18px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
 .cal-plus-btn:hover{background:#004080}
@@ -139,7 +139,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .cal-dow{background:linear-gradient(180deg,#f8f6f2,#efece5);text-align:center;padding:5px 2px;font-size:11px;font-weight:700;color:#1a1a1a;text-transform:uppercase;letter-spacing:.07em;border-right:1px solid #e7e4dc;border-bottom:1px solid #ddd9d0}
 .cal-dow:nth-child(7n){border-right:none}
 .cal-cell{background:#fff;min-height:124px;position:relative;cursor:pointer;padding:3px 3px 3px;border-right:1px solid #edeae4;border-bottom:1px solid #edeae4;transition:background .18s ease}
-.cal-grid.compact-cell .cal-cell{min-height:83px}
+.cal-grid.compact-cell .cal-cell{min-height:75px}
 .cal-cell:nth-child(7n){border-right:none}
 .cal-cell:hover{background:#f7f5f1}
 .cal-cell.other{background:#f8f7f4;opacity:.72}
@@ -1561,7 +1561,7 @@ function renderAdmin(){
   else if(S.tab==='bilan')content=renderBilan();
   else if(S.tab==='clientsExport')content=renderClientsExport();
   const lastSeen=(D.adminLastSeen||{})[S.admin.id]||0;
-  const notifs=(D.activityLog||[]).filter(it=>((it.authorId&&it.authorId!==S.admin.id)||it.forAdmin)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
+  const notifs=(S.admin&&S.admin.id==='a2')?[]:(D.activityLog||[]).filter(it=>((it.authorId&&it.authorId!==S.admin.id)||it.forAdmin)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
   return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge ba" style="flex-shrink:0">Admin — ${S.admin.name}</span><button class="btn btn-sm" onclick="logout()" style="flex-shrink:0">Déconnexion</button></div>${notifBanner}${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}${renderNotifBanner(notifs,'dismissAdminNotifs')}<div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${S.tab===k?'active':''}" onclick="setTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>${content}${S.modal?renderModalWrap():''}`;
 }
 
@@ -1619,9 +1619,9 @@ function renderCalendrier(){
     let cls='cal-cell';if(isO)cls+=' other';if(ds3===todayStr)cls+=' today';if(dc)cls+=` ${dc}`;
     const cellClick=readOnly?'':` onclick="openDayMenu('${ds3}')"`;
     var _dd=_domDay[ds3];
-    var _isAdminView=S.view==='admin'&&!S.presta;
+    var _isDavidView=S.view==='admin'&&!S.presta&&S.admin&&S.admin.id==='a1';
     var _showCircle=_dd&&_cp==='p4';
-    var _showColor=_dd&&(_isAdminView||_cp==='p1'||_cp==='p2');
+    var _showColor=_dd&&(_isDavidView||_cp==='p1'||_cp==='p2');
     var _dnSt=_showCircle?('background:'+_dd.s+';color:#fff;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;font-weight:700')
               :_showColor?('color:'+_dd.s+';font-weight:700'):'';
     var _dnAt=_dnSt?' style="'+_dnSt+'"':'';
@@ -3541,7 +3541,8 @@ function renderModalContent(){
     const sO=['confirmé','option','annulé'].map(s=>`<option ${r.status===s?'selected':''}>${s}</option>`).join('');
     const defDomaine=r.domaine||'';
     const initNights=nightsList(iA,iD);
-    const pC=D.prestataires.filter(p=>p.name!=='Pascaline'&&p.name!=='Dominique').map(p=>{
+    const _isSvitForm=S.admin&&S.admin.id==='a2';
+    const pC=D.prestataires.filter(p=>p.name!=='Pascaline'&&p.name!=='Dominique'&&(!_isSvitForm||(p.name!=='Mathilde'&&p.name!=='Sébastien'))).map(p=>{
       const checked=(r.prestataires||[]).includes(p.id)||(type==='newResa'&&p.autoAssign&&(p.domaines||[]).includes(defDomaine));
       const dispRole=(p.role||'').replace(/^Gardien\s*&\s*/i,'')||p.role;
       let encart='';
