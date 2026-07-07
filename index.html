@@ -45,7 +45,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .date-row input[type=date]{flex:1;min-width:0}
 .date-btn{flex-shrink:0;width:24px;border:none;background:transparent;color:#A32D2D;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
 .date-btn:hover{color:#791F1F}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
 .field{display:flex;flex-direction:column;gap:5px}
 .pay-inline{border:1px solid transparent;background:transparent;font:inherit;color:inherit;padding:2px 4px;font-size:13px;border-radius:4px}
@@ -68,7 +68,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .g2-compact .field label{font-size:10.5px}
 .g2-compact .field input,.g2-compact .field select{font-size:12px;padding:6px 7px}
 .field label{font-size:11px;color:#444;font-weight:600;text-transform:uppercase;letter-spacing:.03em}
-.form-section{background:#f5f4f1;border:1px solid #e3e0d8;border-radius:10px;padding:10px 12px;margin-bottom:11px}
+.form-section{background:#f5f4f1;border:1px solid #e3e0d8;border-radius:10px;padding:8px 10px;margin-bottom:8px}
 .form-section-title{font-size:10.5px;color:#993556;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .form-section-title::before{content:'';width:4px;height:13px;background:#993556;border-radius:2px;display:inline-block}
 .pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
@@ -83,11 +83,12 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .metric{background:#fff;border:1px solid #e5e3de;border-radius:10px;padding:.85rem;text-align:center}
 .metric .val{font-size:20px;font-weight:500;display:block;margin-top:3px}
 .metric .lbl{font-size:11px;color:#666}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-start;justify-content:center;padding-top:40px;z-index:100;overflow-y:auto}
-.modal{background:#fff;border-radius:14px;padding:1.5rem;width:96%;max-width:560px;border:1px solid #e5e3de;margin-bottom:40px}
-.modal input,.modal select,.modal textarea{-webkit-user-select:text;user-select:text;touch-action:manipulation;font-size:13px!important;padding:4px 8px}
-.modal .field{gap:3px}
-.modal .field label{font-size:10.5px}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-start;justify-content:center;padding-top:40px;z-index:100;overflow:hidden}
+.modal{background:#fff;border-radius:14px;padding:1.5rem;width:96%;max-width:560px;border:1px solid #e5e3de;margin-bottom:40px;max-height:calc(100vh - 80px);overflow-y:auto}
+.modal-sticky-top{position:sticky;top:-1.5rem;margin:-1.5rem -1.5rem 14px;padding:1.5rem 1.5rem 14px;background:#fff;z-index:5;border-bottom:1px solid #e5e3de}
+.modal input,.modal select,.modal textarea{-webkit-user-select:text;user-select:text;touch-action:manipulation;font-size:12.5px!important;padding:3px 7px}
+.modal .field{gap:2px}
+.modal .field label{font-size:10px}
 .modal h3{font-size:15px;font-weight:500;margin-bottom:14px}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
 .contract-viewer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:flex;flex-direction:column}
@@ -208,10 +209,10 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
   .liste-evt-tbl th:nth-child(2),.liste-evt-tbl td:nth-child(2){display:none}
   .liste-evt-tbl th:nth-child(6),.liste-evt-tbl td:nth-child(6){display:none}
   .modal{padding:1rem;width:100%}
-  .modal input,.modal select,.modal textarea{padding:4.5px 9px;line-height:1.15}
-  .modal .field{gap:3px}
-  .modal .field label{font-size:10px;margin-bottom:0}
-  .form-section{padding:9px 10px;margin-bottom:10px}
+  .modal input,.modal select,.modal textarea{padding:3.5px 7px;line-height:1.1;font-size:12px!important}
+  .modal .field{gap:2px}
+  .modal .field label{font-size:9.5px;margin-bottom:0}
+  .form-section{padding:7px 9px;margin-bottom:7px}
   .g2,.g3{gap:7px}
   .modal h3{margin-bottom:10px}
 }
@@ -1396,6 +1397,7 @@ function injectBands(){
     div.style.left=leftPx+'px';
     div.style.width=widthPx+'px';
     if(_isSvit){div.style.height=_bandH+'px';div.style.fontSize='8.5px';div.style.padding='0 4px';}
+    if(b.optCls)div.style.color='#1a1a1a';
     const timeArrF=fmtHeureCourt(b.timeArr),timeDepF=fmtHeureCourt(b.timeDep);
     let label;
     if(STRIP_BAND_INFO){
@@ -1404,8 +1406,6 @@ function injectBands(){
       const topParts=[];
       if(b.nameTxt){
         const isPrestaView=S.view==='presta';
-        // Préfixe OPT pour les options (admin seulement)
-        const optPrefix=(!isPrestaView&&b.optCls)?' <span style="font-size:9px;font-weight:900;letter-spacing:.5px;opacity:.9">OPT</span> ':'';
         // Anneau acompte — admin seulement
         const DOT_COLORS=['#72243E','#7A5800','#27500A','#3C3489','#0C447C'];
         const dotColor=DOT_COLORS[b.colorIdx||0];
@@ -1419,7 +1419,7 @@ function injectBands(){
           topParts.push('<span style="font-weight:800">'+b.nameTxt+'</span>');
         } else {
           const nameStyle='font-weight:800'+(b.incompleteContact?';text-decoration:underline dotted #FFE066;text-decoration-thickness:1.5px;text-underline-offset:2px':'');
-          topParts.push(optPrefix+dotHtml+fullHtml+'<span style="'+nameStyle+'">'+b.nameTxt+'</span>');
+          topParts.push(dotHtml+fullHtml+'<span style="'+nameStyle+'">'+b.nameTxt+'</span>');
         }
       }
       if(b.mainLine)topParts.push(b.mainLine);
@@ -3600,9 +3600,11 @@ function renderModalContent(){
       <input type="text" class="pay-inline" value="${pa.comment||''}" placeholder="Commentaire…" onchange="updPay('${r.id}','${pa.id}','comment',this.value)" style="flex:1 1 130px;min-width:130px;color:#888">
       <button class="btn btn-xs btn-danger" onclick="delPay('${r.id||''}','${pa.id}')" style="flex-shrink:0">✕</button></div>`;}).join('');
     const comms=r.commentaires||[];
-    return`<h3>${type==='newResa'?'➕ Nouvelle réservation':'✏️ Modifier — '+(displayClientName(r)||fmt(r.dateArrivee||''))}</h3>
+    return`<div class="modal-sticky-top">
+    <h3>${type==='newResa'?'➕ Nouvelle réservation':'✏️ Modifier — '+(displayClientName(r)||fmt(r.dateArrivee||''))}</h3>
     ${(type==='editResa'&&r.createdAt)?`<div style="font-size:9.5px;color:#aaa;margin:-8px 0 12px">Créée le ${new Date(r.createdAt).toLocaleDateString('fr-FR')} à ${new Date(r.createdAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>`:''}
-    <div class="modal-actions" style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #e5e3de"><button class="btn" onclick="closeM()">Fermer</button>${type==='editResa'?`<button class="btn btn-danger" onclick="cancelResa('${id}')">🚫 Annuler la réservation</button>`:''}<button class="btn btn-primary" onclick="saveResa('${id||''}')">Enregistrer</button></div>
+    <div class="modal-actions" style="margin:0"><button class="btn" onclick="closeM()">Fermer</button>${type==='editResa'?`<button class="btn btn-danger" onclick="cancelResa('${id}')">🚫 Annuler la réservation</button>`:''}<button class="btn btn-primary" onclick="saveResa('${id||''}')">Enregistrer</button></div>
+    </div>
     <div class="field" style="margin-bottom:12px"><label>Domaine *</label>
       <input type="hidden" id="m-domaine" value="${defDomaine}">
       <div class="dom-picker" id="dom-picker-m">${D.domaines.map(d=>`<div class="dom-box ${PILL[d.color||0]} ${defDomaine?(defDomaine===d.id?'sel':'fade'):''}" data-id="${d.id}" onclick="pickDomaine('m-domaine','dom-picker-m',this)">${d.name}</div>`).join('')}</div>
@@ -3630,12 +3632,12 @@ function renderModalContent(){
     </div>
     <div class="form-section">
       <div class="form-section-title">📅 Dates et horaires</div>
-      <div id="datesheures-wrap" style="display:flex;flex-direction:column;gap:10px">
-        <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px">
+      <div id="datesheures-wrap" style="display:flex;flex-direction:column;gap:7px">
+        <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:8px">
           <div class="field"><label>Date arrivée *</label><div class="date-row"><input type="date" id="m-arr-date" style="padding:3.5px 5px;font-size:12px;width:118px;border-color:#8a8678;border-width:2px" value="${iA}" onfocus="S.rvwConfirm.arrDate=true;checkContactFields();" onchange="S.rvwConfirm.arrDate=true;refreshAllGardNights();defaultArrHeure(this.value);defaultDepDate(this.value);if((document.getElementById('m-evt')||{}).value==='Déjeuner / Dîner'){document.getElementById('m-dep-date').value=this.value;}refreshDefaultArrhes();"><button type="button" class="date-btn" onclick="document.getElementById('m-arr-date').showPicker&&document.getElementById('m-arr-date').showPicker()" title="Choisir une date">📅</button></div></div>
           <div class="field"><label>Heure arrivée *</label><div style="display:flex;gap:4px;align-items:center"><select id="m-arr-heure-h" style="flex:1;padding:3.5px 5px;font-size:12px" onfocus="S.rvwConfirm.arrHeure=true;checkContactFields();" onchange="S.rvwConfirm.arrHeure=true;syncHeureField('m-arr-heure')">${heureHOptions((initArrHeure||'').split(':')[0]||'')}</select><span>:</span><select id="m-arr-heure-m" style="flex:1;padding:3.5px 5px;font-size:12px" onchange="syncHeureField('m-arr-heure')">${heureMOptions((initArrHeure||'').split(':')[1]||'00')}</select><input type="hidden" id="m-arr-heure" value="${initArrHeure||''}"></div></div>
         </div>
-        <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px">
+        <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:8px">
           <div class="field" id="dep-date-wrap" style="${r.typeEvenement==='Déjeuner / Dîner'?'visibility:hidden':''}"><label>Date départ *</label><div class="date-row"><input type="date" id="m-dep-date" style="padding:3.5px 5px;font-size:12px;width:118px;border-color:#8a8678;border-width:2px" value="${iD}" onfocus="S.rvwConfirm.depDate=true;checkContactFields();" onchange="S.rvwConfirm.depDate=true;refreshAllGardNights();defaultDepHeure(this.value);refreshDefaultArrhes();"><button type="button" class="date-btn" onclick="document.getElementById('m-dep-date').showPicker&&document.getElementById('m-dep-date').showPicker()" title="Choisir une date">📅</button></div></div>
           <div class="field"><label>Heure départ *</label><div style="display:flex;gap:4px;align-items:center"><select id="m-dep-heure-h" style="flex:1;padding:3.5px 5px;font-size:12px" onfocus="S.rvwConfirm.depHeure=true;checkContactFields();" onchange="S.rvwConfirm.depHeure=true;syncHeureField('m-dep-heure')">${heureHOptions((initDepHeure||'').split(':')[0]||'')}</select><span>:</span><select id="m-dep-heure-m" style="flex:1;padding:3.5px 5px;font-size:12px" onchange="syncHeureField('m-dep-heure')">${heureMOptions((initDepHeure||'').split(':')[1]||'00')}</select><input type="hidden" id="m-dep-heure" value="${initDepHeure||''}"></div></div>
         </div>
@@ -4962,10 +4964,9 @@ let modalTouchStartY=null,modalTouchStartTime=0,modalAtTop=false;
 document.addEventListener('touchstart',e=>{
   const modal=e.target.closest('.modal');
   if(!modal){modalTouchStartY=null;return;}
-  const overlay=modal.closest('.overlay');
   modalTouchStartY=e.touches[0].clientY;
   modalTouchStartTime=Date.now();
-  modalAtTop=!overlay||overlay.scrollTop<=2;
+  modalAtTop=modal.scrollTop<=2;
 },{passive:true});
 document.addEventListener('touchend',e=>{
   if(modalTouchStartY===null)return;
