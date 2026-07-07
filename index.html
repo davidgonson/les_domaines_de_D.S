@@ -28,7 +28,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1
 .btn-danger{color:#A32D2D;border-color:#F7C1C1;background:#fff}.btn-danger:hover{background:#FCEBEB}
 .tabs{display:flex;gap:3px;margin-bottom:8px;background:#ebe9e4;border-radius:8px;padding:2px}
 .dom-picker{display:flex;gap:8px}
-.dom-box{flex:1;text-align:center;padding:12px 6px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s;user-select:none}
+.dom-box{flex:1;text-align:center;padding:7px 6px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s;user-select:none}
 .dom-box.sel{opacity:1;box-shadow:0 0 0 2px rgba(0,0,0,.3) inset}
 .dom-box.fade{opacity:.3}
 .tab{flex:1;padding:4px 1px;text-align:center;border-radius:6px;cursor:pointer;font-size:12px;border:none;background:transparent;color:#666;font-family:inherit;transition:background .15s;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
@@ -1350,8 +1350,31 @@ function render(){const r=document.getElementById('root');CAL_DOMAIN_FILTER=(S.v
   const wasSearchFocused=prevSearch&&document.activeElement===prevSearch;
   if(S.view==='login')r.innerHTML=renderLogin();else if(S.view==='admin')r.innerHTML=renderAdmin();else if(S.view==='presta')r.innerHTML=renderPresta();
   if(wasSearchFocused){const newSearch=document.getElementById('search-input');if(newSearch){newSearch.focus();try{newSearch.setSelectionRange(prevSelStart,prevSelEnd);}catch(e){}}}
-  injectBands();injectVisiteMarkers();
+  adjustCalGridHeight();injectBands();injectVisiteMarkers();
   if(S.modal)setTimeout(checkContactFields,0);
+}
+function adjustCalGridHeight(){
+  /* Façon TimeTree : le mois affiché doit toujours remplir la hauteur disponible du planning,
+     qu'il ait 4, 5 ou 6 lignes de semaines — donc on calcule la hauteur de case nécessaire à
+     chaque affichage, avec un plancher pour ne jamais faire déborder les 3 bandes de domaines. */
+  const inCalView=(S.view==='admin'&&S.tab==='calendrier')||(S.view==='presta'&&S.prestaTab==='calendrier');
+  if(!inCalView)return;
+  const grid=document.getElementById('cal-grid-main')||document.querySelector('.cal-grid');
+  if(!grid)return;
+  const cells=grid.querySelectorAll('.cal-cell');
+  if(!cells.length)return;
+  const numRows=Math.round(cells.length/7);
+  if(!numRows)return;
+  const dowEl=grid.querySelector('.cal-dow');
+  const dowH=dowEl?dowEl.getBoundingClientRect().height:0;
+  const gridTop=grid.getBoundingClientRect().top;
+  const bottomMargin=18; // petite marge de respiration en bas de fenêtre
+  const available=window.innerHeight-gridTop-dowH-bottomMargin;
+  const isSvitMobile=S.admin&&S.admin.id==='a2'&&window.innerWidth<=640;
+  const floor=isSvitMobile?75:124;
+  let cellH=Math.floor(available/numRows);
+  if(cellH<floor)cellH=floor;
+  cells.forEach(c=>{c.style.minHeight=cellH+'px';});
 }
 function injectBands(){
   const inCalView=(S.view==='admin'&&S.tab==='calendrier')||(S.view==='presta'&&S.prestaTab==='calendrier');
@@ -3627,12 +3650,12 @@ function renderModalContent(){
       </div>
       <div class="g2" style="margin-bottom:8px">
         <div class="field"><label>Type d’événement *</label>
-          <select id="m-evt" onchange="onEvtTypeChange(this.value)" style="border-color:#8a8678;border-width:2px">
+          <select id="m-evt" onchange="onEvtTypeChange(this.value)" style="border-color:#8a8678;border-width:2px;padding:3.5px 7px">
             <option value="">&#8212; Choisir —</option>
             ${EVENT_TYPES.map(ev=>`<option value="${ev}" ${r.typeEvenement===ev?'selected':''}>${ev}</option>`).join('')}
           </select>
         </div>
-        <div class="field"><label>Statut</label><select id="m-status">${sO}</select></div>
+        <div class="field"><label>Statut</label><select id="m-status" style="padding:3.5px 7px">${sO}</select></div>
       </div>
       <div id="nb-fields-wrap">${nbFieldsHtml(defDomaine,r)}</div>
       <div style="font-size:11px;color:#888">* Le nombre de couchages est obligatoire (sauf Gratuit ou Déjeuner / Dîner)</div>
@@ -3655,10 +3678,10 @@ function renderModalContent(){
       <div class="form-section-title">💶 Montants</div>
       <div class="g2" style="margin-bottom:10px">
         <div class="field">
-          <label style="color:#111;font-weight:700">Montant de la réservation (€) *</label>
+          <label style="color:#111;font-weight:700;font-size:12.5px">Montant de la réservation (€) *</label>
           <div style="display:flex;align-items:center;gap:6px">
-            <input type="number" id="m-montant" value="${r.typeEvenement==='Gratuit'?'0':(r.montant||'')}" placeholder="0" style="flex:1;font-weight:700;border-color:#8a8678;border-width:2px${r.typeEvenement==='Gratuit'?';background:#f0eee8;color:#888':''}" ${r.typeEvenement==='Gratuit'?'readonly':''} oninput="refreshSoldeDisplay();refreshDefaultArrhes()">
-            <span style="color:#555">€</span>
+            <input type="number" id="m-montant" value="${r.typeEvenement==='Gratuit'?'0':(r.montant||'')}" placeholder="0" style="flex:1;font-weight:800;font-size:19px!important;padding:8px 10px!important;border-color:#8a8678;border-width:2px${r.typeEvenement==='Gratuit'?';background:#f0eee8;color:#888':''}" ${r.typeEvenement==='Gratuit'?'readonly':''} oninput="refreshSoldeDisplay();refreshDefaultArrhes()">
+            <span style="color:#555;font-size:16px;font-weight:700">€</span>
             <label style="display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.02em;border:1px solid #d5d3ce;border-radius:6px;padding:3px 7px;background:#fff"><input type="checkbox" id="m-avec-contrat" ${r.avecContrat===true?'checked':''} style="width:auto;margin:0"> 📄 Avec досьє</label>
           </div>
         </div>
@@ -3852,7 +3875,7 @@ function renderModalContent(){
       <input type="hidden" id="v-domaine" value="${vDefDomaine}">
       <div class="dom-picker" id="dom-picker-v">${D.domaines.map(d=>`<div class="dom-box ${PILL[d.color||0]} ${vDefDomaine?(vDefDomaine===d.id?'sel':'fade'):''}" data-id="${d.id}" onclick="pickDomaine('v-domaine','dom-picker-v',this)">${d.name}</div>`).join('')}</div>
     </div>
-    <div class="field" style="margin-bottom:12px"><label>Statut</label><select id="v-status">${sO}</select></div>
+    <div class="field" style="margin-bottom:12px"><label>Statut</label><select id="v-status" style="padding:3.5px 7px">${sO}</select></div>
     <div class="g2" style="margin-bottom:12px">
       <div class="field"><label>Date de la visite *</label><div class="date-row"><input type="date" id="v-date" value="${v.date||prefDate||''}"><button type="button" class="date-btn" onclick="document.getElementById('v-date').showPicker&&document.getElementById('v-date').showPicker()" title="Choisir une date">📅</button></div></div>
       <div class="field"><label>Heure *</label><select id="v-heure">${heureOptions(v.heure)}</select></div>
@@ -4891,7 +4914,7 @@ document.addEventListener('keydown',e=>{
     }
   }
 });
-window.addEventListener('resize',()=>injectBands());
+window.addEventListener('resize',()=>{adjustCalGridHeight();injectBands();});
 async function initApp(){
   const localSeenA=(D&&D.adminLastSeen)||{};
   const localSeenP=(D&&D.prestaLastSeen)||{};
