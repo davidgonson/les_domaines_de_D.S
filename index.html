@@ -863,6 +863,18 @@ function buildBands(y,m){
   const domIdx={};D.domaines.forEach((d,i)=>domIdx[d.id]=i);
   const sorted=[...D.reservations].filter(r=>r.status!=='annulé'&&(!CAL_DOMAIN_FILTER||CAL_DOMAIN_FILTER.includes(r.domaine))&&!(S.hiddenDomains||[]).includes(r.domaine)).sort((a,b)=>(a.dateArrivee||a.date).localeCompare(b.dateArrivee||b.date));
   const bands=[];
+  /* Détection des jours de « relais » : un domaine ne reçoit qu'une réservation à la fois (pas de
+     recoupement), donc un même jour peut voir une réservation partir et une autre arriver. Dans ce
+     cas précis, on rapproche les deux représentations vers le milieu de journée en laissant 1h
+     d'écart entre elles, pour qu'on distingue bien qu'il s'agit de deux réservations différentes. */
+  const depByDomDate={},arrByDomDate={};
+  sorted.forEach(r=>{
+    const as0=r.dateArrivee||r.date,ds0=r.dateDepart||r.dateArrivee||r.date;
+    const isJ0=as0===ds0;
+    const kA=r.domaine+'|'+as0,kD=r.domaine+'|'+ds0;
+    (arrByDomDate[kA]=arrByDomDate[kA]||[]).push({id:r.id,isJ:isJ0});
+    (depByDomDate[kD]=depByDomDate[kD]||[]).push({id:r.id,isJ:isJ0});
+  });
   sorted.forEach(r=>{
     const as=r.dateArrivee||r.date,ds2=r.dateDepart||r.dateArrivee||r.date;
     const isJ=as===ds2;
@@ -898,13 +910,35 @@ function buildBands(y,m){
       /* Heures pour position proportionnelle (fenêtre 8h-22h) */
       const hArr=ifr?(parseInt((r.heureArrivee||'12:00').split(':')[0])+(parseInt((r.heureArrivee||'12:00').split(':')[1]||0)/60)):8;
       const hDep=ilr?(parseInt((r.heureDepart||'12:00').split(':')[0])+(parseInt((r.heureDepart||'12:00').split(':')[1]||0)/60)):22;
+      /* Représentation graphique façon TimeTree : par défaut, chaque réservation « remplit » sa
+         journée de 8h à 21h à l'écran, quelle que soit l'heure réelle (qui reste affichée en texte
+         via timeArr/timeDep). Exception : jour de relais avec une AUTRE réservation du même domaine
+         (l'une part, l'autre arrive ce jour-là) :
+         - si les deux réservations concernées sont sur plusieurs jours, on resserre symétriquement
+           vers le milieu de journée (13h départ / 14h arrivée) pour laisser un creux visible ;
+         - si celle qui « occupe » la journée est un événement mono-jour (ex. petit-déjeuner du
+           matin) suivi d'une arrivée plus tard le même jour, on lui laisse quasiment toute la
+           journée (jusqu'à 20h) et on repousse l'arrivée suivante à 21h ce jour-là, pour que
+           l'événement mono-jour reste bien lisible plutôt que d'être écrasé au milieu de journée.
+      */
+      const depConflicts=(depByDomDate[r.domaine+'|'+as]||[]).filter(x=>x.id!==r.id);
+      const arrConflicts=(arrByDomDate[r.domaine+'|'+ds2]||[]).filter(x=>x.id!==r.id);
+      const hasChangeoverAtArrival=depConflicts.length>0;
+      const hasChangeoverAtDeparture=arrConflicts.length>0;
+      // Le partenaire qui part avant l'arrivée de r ce jour-là est-il lui-même un événement mono-jour ?
+      const departingPartnerIsJ=depConflicts.some(x=>x.isJ);
+      let visArr,visDep;
+      if(!hasChangeoverAtArrival)visArr=8;
+      else visArr=departingPartnerIsJ?16:14; // partenaire mono-jour : on arrive à 16h, il garde sa matinée/après-midi
+      if(!hasChangeoverAtDeparture)visDep=21;
+      else visDep=isJ?15:13; // r mono-jour : représentation 8h-15h ; sinon resserrage symétrique
       // Badge P : uniquement Misha(p1)/Sasha(p2) ou caviste/prestation extérieure
       const currentPid=S.presta?S.presta.id:null;
       const mishaSashaInPresta=(r.prestataires||[]).some(pid=>pid==='p1'||pid==='p2');
       const hasExtOrCav=!!(r.caviste&&r.caviste.trim())||!!(r.prestasExterieurs&&r.prestasExterieurs.length>0);
       const hasPresta=(mishaSashaInPresta||hasExtOrCav)&&(!currentPid||currentPid==='p1'||currentPid==='p2');
       const incompleteContact=hasIncompleteContact(r);
-      bands.push({rid:r.id,slot,row:fc.row,colStart:fc.col,spanCols:lc.col-fc.col+1,shapeClass:sc,nameTxt,timeArr,timeDep,mainLine,bandCls:bc,optCls:oc,isJ,isPaid:payStatus(r)==='full',isPartPaid:payStatus(r)==='part',isFirstRow:ifr,isLastRow:ilr,hA:hArr,hD:hDep,colorIdx:c,hasPresta,incompleteContact});
+      bands.push({rid:r.id,slot,row:fc.row,colStart:fc.col,spanCols:lc.col-fc.col+1,shapeClass:sc,nameTxt,timeArr,timeDep,mainLine,bandCls:bc,optCls:oc,isJ,isPaid:payStatus(r)==='full',isPartPaid:payStatus(r)==='part',isFirstRow:ifr,isLastRow:ilr,hA:hArr,hD:hDep,visA:visArr,visD:visDep,colorIdx:c,hasPresta,incompleteContact});
     });
   });
   return{bands,tc,sd,dim,dip};
@@ -1314,7 +1348,7 @@ function injectBands(){
   const cells=grid.querySelectorAll('.cal-cell');if(!cells.length)return;
   const{bands}=buildBands(S.calYear,S.calMonth);
   const gridRect=grid.getBoundingClientRect();
-  const dayFrac=h=>Math.max(0,Math.min(1,(h-8)/14));
+  const dayFrac=h=>Math.max(0,Math.min(1,(h-7)/15));
   const placed=[];
   bands.forEach(b=>{
     const startIdx=b.row*7+b.colStart,endIdx=b.row*7+b.colStart+b.spanCols-1;
@@ -1330,30 +1364,18 @@ function injectBands(){
        - case départ : part du bord gauche du segment, finit à hDep
        - case unique (startend) : de hArr à hDep dans la même case */
     if(b.shapeClass==='band-startend'){
-      /* Élargissement graphique UNIQUEMENT pour un événement qui se déroule sur un seul et
-         même jour (arrivée = départ, ex. déjeuner, dîner, shooting). Une réservation sur deux
-         jours qui se trouve rendue dans un seul segment de ligne (même case visuellement)
-         ne doit surtout pas être élargie — on ne touche qu'aux vrais événements mono-jour. */
-      let visA=b.hA,visD=b.hD;
-      if(b.isJ){
-        const dur=visD-visA;
-        if(dur<8){
-          const mid=(visA+visD)/2;
-          let na=mid-4,nd=mid+4;
-          if(na<8){nd+=8-na;na=8;}
-          if(nd>22){na-=nd-22;nd=22;}
-          visA=na;visD=nd;
-        }
-      }
-      leftPx=(sRect.left-gridRect.left)+dayFrac(visA)*cellW;
-      const rightPx=(eRect.left-gridRect.left)+dayFrac(visD)*cellW;
+      /* Case unique (jour unique OU réservation de 2 jours qui tient dans une même ligne du
+         calendrier) : on va de l'heure visuelle d'arrivée à l'heure visuelle de départ — 9h→21h
+         par défaut, resserré à 14h→13h s'il y a un relais avec une autre réservation ce jour-là. */
+      leftPx=(sRect.left-gridRect.left)+dayFrac(b.visA)*cellW;
+      const rightPx=(eRect.left-gridRect.left)+dayFrac(b.visD)*cellW;
       widthPx=Math.max(rightPx-leftPx,6);
     } else if(b.shapeClass==='band-start'){
-      leftPx=(sRect.left-gridRect.left)+dayFrac(b.hA)*cellW;
+      leftPx=(sRect.left-gridRect.left)+dayFrac(b.visA)*cellW;
       widthPx=(eRect.left+eRect.width-gridRect.left)-leftPx;
     } else if(b.shapeClass==='band-end'){
       leftPx=(sRect.left-gridRect.left);
-      const rightPx=(eRect.left-gridRect.left)+dayFrac(b.hD)*cellW;
+      const rightPx=(eRect.left-gridRect.left)+dayFrac(b.visD)*cellW;
       widthPx=Math.max(rightPx-leftPx,6);
     } else {
       leftPx=(sRect.left-gridRect.left);
@@ -1455,7 +1477,7 @@ function injectVisiteMarkers(){
   const{dtc}=buildDateCellMap(S.calYear,S.calMonth);
   const domIdx={};D.domaines.forEach((d,i)=>domIdx[d.id]=i);
   const gridRect=grid.getBoundingClientRect();
-  const dayFrac=h=>Math.max(0,Math.min(1,(h-8)/14));
+  const dayFrac=h=>Math.max(0,Math.min(1,(h-7)/15));
   const dotColors=['#72243E','#7A5800','#27500A','#3C3489','#0C447C']; /* couleurs foncées = même que le texte des bandes */
   /* Bandes déjà posées par injectBands, pour éviter de superposer une visite sur une réservation */
   const existingBands=Array.from(grid.querySelectorAll('.band')).map(el=>({left:parseFloat(el.style.left),width:parseFloat(el.style.width),top:parseFloat(el.style.top)}));
