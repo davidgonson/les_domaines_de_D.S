@@ -117,7 +117,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .detail-panel{width:340px;max-width:92vw;flex-shrink:0;background:#fff;border-left:1px solid #e5e3de;padding:1rem;position:fixed;top:0;right:0;bottom:0;z-index:60;overflow-y:auto;box-shadow:-6px 0 24px rgba(0,0,0,.18)}
 .dp-backdrop{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(20,18,14,.35);z-index:55}
 .dp-section{border-top:1px solid #e5e3de;padding-top:10px;margin-top:10px}
-.dp-section label{font-size:10px;color:#666;font-weight:500;display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+.dp-section label{font-size:10.5px;color:#444;font-weight:600;display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
 
 /* LOGIN */
 .login-wrap{max-width:360px;margin:4rem auto;text-align:center;background:#fff;border-radius:16px;padding:2.5rem;border:1px solid #e5e3de}
@@ -132,6 +132,8 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .cal-nav{padding:6px 12px;border-radius:8px;border:1px solid #d5d3ce;cursor:pointer;background:#fff;font-size:18px;color:#1a1a1a;line-height:1}
 .cal-plus-btn{padding:6px 10px;border-radius:8px;border:1px solid #0055A4;background:#0055A4;color:#fff;font-size:18px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
 .cal-plus-btn:hover{background:#004080}
+.cal-plus-btn-big{aspect-ratio:1;height:auto;align-self:stretch;border-radius:10px;border:1px solid #0055A4;background:#0055A4;color:#fff;font-size:26px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.cal-plus-btn-big:hover{background:#004080}
 .cal-nav:hover{background:#f0eeea}
 .cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-radius:14px;overflow:hidden;border:1px solid #c9c5ba;background:#fff;position:relative;box-shadow:0 10px 30px -16px rgba(80,50,60,.32),0 1px 3px rgba(0,0,0,.04)}
 .cal-grid.cal-anim{animation:calFade .4s cubic-bezier(.22,.61,.36,1) both}
@@ -1354,9 +1356,15 @@ function render(){const r=document.getElementById('root');CAL_DOMAIN_FILTER=(S.v
   if(S.modal)setTimeout(checkContactFields,0);
 }
 function adjustCalGridHeight(){
-  /* Façon TimeTree : le mois affiché doit toujours remplir la hauteur disponible du planning,
-     qu'il ait 4, 5 ou 6 lignes de semaines — donc on calcule la hauteur de case nécessaire à
-     chaque affichage, avec un plancher pour ne jamais faire déborder les 3 bandes de domaines. */
+  const btnBig=document.querySelector('.cal-plus-btn-big');
+  if(btnBig){
+    const sib=btnBig.previousElementSibling;
+    if(sib){const h=sib.getBoundingClientRect().height;if(h>0){btnBig.style.width=h+'px';btnBig.style.height=h+'px';}}
+  }
+  /* Façon TimeTree : le mois affiché doit toujours remplir la hauteur disponible du planning ET
+     tenir dans l'écran, qu'il ait 4, 5 ou 6 lignes de semaines. On calcule la hauteur de case
+     nécessaire, puis on en déduit la densité des bandes (hauteur/espacement) de façon proportionnelle,
+     pour ne jamais faire déborder ni les 3 bandes de domaines, ni le calendrier hors de l'écran. */
   const inCalView=(S.view==='admin'&&S.tab==='calendrier')||(S.view==='presta'&&S.prestaTab==='calendrier');
   if(!inCalView)return;
   const grid=document.getElementById('cal-grid-main')||document.querySelector('.cal-grid');
@@ -1372,10 +1380,21 @@ function adjustCalGridHeight(){
   const available=window.innerHeight-gridTop-dowH-bottomMargin;
   const isMobile=window.innerWidth<=640;
   const isSvitMobile=S.admin&&S.admin.id==='a2'&&isMobile;
-  const floor=isSvitMobile?75:(isMobile?95:124);
+  // Plancher ABSOLU très bas : au-delà, même la densité de bandes la plus compacte ne suffirait
+  // plus à rester lisible, donc on accepte un léger défilement plutôt que de casser l'affichage.
+  const absFloor=isSvitMobile?52:(isMobile?60:78);
   let cellH=Math.floor(available/numRows);
-  if(cellH<floor)cellH=floor;
+  if(cellH<absFloor)cellH=absFloor;
   cells.forEach(c=>{c.style.minHeight=cellH+'px';});
+  // Densité des bandes déduite de la hauteur de case réellement obtenue.
+  const offset=isSvitMobile?14:(isMobile?15:18);
+  let pitch=(cellH-offset)/3;
+  // Le plancher de pitch est calé sur absFloor : 3×pitchMin+offset ne dépasse jamais absFloor,
+  // donc jamais de débordement des 3 bandes de domaines, quelle que soit la taille d'écran.
+  const pitchMin=isSvitMobile?12:(isMobile?15:20);
+  if(pitch<pitchMin)pitch=pitchMin;
+  const bandH=Math.max(isSvitMobile?9:(isMobile?12:16),Math.round(pitch-3));
+  window.__bandSizing={offset,pitch,bandH};
 }
 function injectBands(){
   const inCalView=(S.view==='admin'&&S.tab==='calendrier')||(S.view==='presta'&&S.prestaTab==='calendrier');
@@ -1419,7 +1438,8 @@ function injectBands(){
     }
     const _isMobileNow=window.innerWidth<=640;
     const _isSvit=S.admin&&S.admin.id==='a2'&&_isMobileNow;
-    const _pitch=_isSvit?19:(_isMobileNow?24:31),_offTop=_isSvit?18:(_isMobileNow?18:24),_bandH=_isSvit?15:(_isMobileNow?20:26);
+    const _bs=window.__bandSizing||{offset:_isSvit?18:(_isMobileNow?18:24),pitch:_isSvit?19:(_isMobileNow?24:31),bandH:_isSvit?15:(_isMobileNow?20:26)};
+    const _pitch=_bs.pitch,_offTop=_bs.offset,_bandH=_bs.bandH;
     const topPx=(sRect.top-gridRect.top)+_offTop+(b.slot*_pitch);
     const div=document.createElement('div');
     div.className=`band ${b.shapeClass} ${b.bandCls}${b.optCls}${b.isPaid?' paid':''}`;
@@ -1427,8 +1447,10 @@ function injectBands(){
     div.style.top=topPx+'px';
     div.style.left=leftPx+'px';
     div.style.width=widthPx+'px';
-    if(_isSvit){div.style.height=_bandH+'px';div.style.fontSize='8.5px';div.style.padding='0 4px';}
-    else if(_isMobileNow){div.style.height=_bandH+'px';div.style.fontSize='8px';div.style.padding='1px 4px';}
+    // La police suit la densité calculée : plus la case est compacte (mois à 6 semaines,
+    // petit écran), plus le texte se resserre légèrement, sans jamais descendre sous le lisible.
+    const _fs=_isSvit?Math.max(7.5,Math.min(8.5,_bandH-6)):(_isMobileNow?Math.max(7,Math.min(8,_bandH-11)):Math.max(8.5,Math.min(9,_bandH-16)));
+    div.style.height=_bandH+'px';div.style.fontSize=_fs+'px';div.style.padding=_isSvit?'0 4px':'1px 4px';
     if(b.optCls)div.style.color='#1a1a1a';
     const timeArrF=fmtHeureCourt(b.timeArr),timeDepF=fmtHeureCourt(b.timeDep);
     let label;
@@ -1537,7 +1559,8 @@ function injectVisiteMarkers(){
     let leftPx=cellLeft+dayFrac(hh)*cRect.width;
     const _isMobileNowV=window.innerWidth<=640;
     const _isSvitV=S.admin&&S.admin.id==='a2'&&_isMobileNowV;
-    const _pitchV=_isSvitV?19:(_isMobileNowV?24:31),_offV=_isSvitV?18:(_isMobileNowV?18:24);
+    const _bsV=window.__bandSizing||{offset:_isSvitV?18:(_isMobileNowV?18:24),pitch:_isSvitV?19:(_isMobileNowV?24:31)};
+    const _pitchV=_bsV.pitch,_offV=_bsV.offset;
     const rowTopPx=(cRect.top-gridRect.top)+_offV+(slot*_pitchV);
     /* Anti-collision : si une bande de réservation occupe déjà cet endroit sur cette ligne, on décale */
     const collide=existingBands.find(b=>Math.abs(b.top-rowTopPx)<4&&leftPx>=b.left-7&&leftPx<=b.left+b.width+7);
@@ -1667,12 +1690,14 @@ function renderCalendrier(){
   if(S.calAnim)setTimeout(function(){S.calAnim=false;},0);
   return`<div class="panel-wrap">
     <div class="cal-side">
-      <div class="cal-header">
-        ${monthYearPicker('calYear','calMonth')}
-        ${readOnly?'':`<button class="cal-plus-btn" onclick="openM('quickAdd')" title="Nouvelle réservation, visite ou prestation">+</button>`}
-      </div>
-      <div class="leg">
-        ${D.domaines.filter(d=>!CAL_DOMAIN_FILTER||CAL_DOMAIN_FILTER.includes(d.id)).map(d=>{const hidden=(S.hiddenDomains||[]).includes(d.id);return`<span class="leg-item" style="cursor:pointer" onclick="toggleHiddenDomaine('${d.id}')" title="${hidden?'Cliquer pour afficher':'Cliquer pour masquer'} ${d.name}"><span class="leg-dot" style="background:${LEG_BG[d.color||0]};position:relative;display:inline-flex;align-items:center;justify-content:center">${hidden?'<span style="color:#000;font-size:9px;font-weight:800;line-height:1">✕</span>':''}</span>${d.name}</span>`;}).join('')}
+      <div style="display:flex;align-items:stretch;gap:10px;margin-bottom:7px">
+        <div style="flex:1;min-width:0">
+          <div class="cal-header" style="margin-bottom:5px">${monthYearPicker('calYear','calMonth')}</div>
+          <div class="leg" style="margin-bottom:0">
+            ${D.domaines.filter(d=>!CAL_DOMAIN_FILTER||CAL_DOMAIN_FILTER.includes(d.id)).map(d=>{const hidden=(S.hiddenDomains||[]).includes(d.id);return`<span class="leg-item" style="cursor:pointer" onclick="toggleHiddenDomaine('${d.id}')" title="${hidden?'Cliquer pour afficher':'Cliquer pour masquer'} ${d.name}"><span class="leg-dot" style="background:${LEG_BG[d.color||0]};position:relative;display:inline-flex;align-items:center;justify-content:center">${hidden?'<span style="color:#000;font-size:9px;font-weight:800;line-height:1">✕</span>':''}</span>${d.name}</span>`;}).join('')}
+          </div>
+        </div>
+        ${readOnly?'':`<button class="cal-plus-btn-big" onclick="openM('quickAdd')" title="Nouvelle réservation, visite ou prestation">+</button>`}
       </div>
       <div class="cal-grid${S.calAnim?' cal-anim':''}${(S.admin&&S.admin.id==='a2')?' compact-cell':''}" id="cal-grid-main">${gridHtml}</div>
       <div style="margin-top:8px;font-size:11px;color:#888">${readOnly?'Clic sur une bande colorée = détail (lecture seule)':'Clic sur une case vide = nouvelle réservation · Clic sur une bande colorée = détail'}</div>
@@ -1696,20 +1721,20 @@ function renderDetailPanel(r){
       <div style="min-width:0">
         <div style="font-size:16px;font-weight:700">${r.typeClient==='entreprise'&&r.societe?r.societe:displayClientName(r)||'—'}</div>
         ${r.typeClient==='entreprise'&&r.societe&&r.nom1?`<div style="font-size:12px;color:#666;margin-top:1px">Contact : ${[r.civilite1||'',r.nom1].filter(Boolean).join(' ')}</div>`:''}
-        <div style="font-size:12px;color:#888;margin-top:2px">${displayTel(r.tel)||'<span style="color:#A32D2D">À renseigner</span>'}</div>
-        ${readOnly&&r.email?`<div style="font-size:12px;color:#888;margin-top:1px">${r.email}</div>`:''}
+        <div style="font-size:12px;color:#555;margin-top:2px">${displayTel(r.tel)||'<span style="color:#A32D2D">À renseigner</span>'}</div>
+        ${readOnly&&r.email?`<div style="font-size:12px;color:#555;margin-top:1px">${r.email}</div>`:''}
         <div style="margin-top:4px"><span class="pill ${PILL[c]}">${dom.name}</span> <span class="status s-${r.status}" style="margin-left:4px">${r.status}</span></div>
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0">
-        ${readOnly?'':`<button class="btn btn-xs btn-primary" onclick="openM('editResa','${r.id}')" title="Modifier">✏️</button><button class="btn btn-xs btn-danger" onclick="delResa('${r.id}')" title="Supprimer">🗑️</button>`}
-        <button class="btn btn-xs" onclick="closePanel()" title="Fermer">✕</button>
+        ${readOnly?'':`<button class="btn btn-xs btn-primary" onclick="openM('editResa','${r.id}')" title="Modifier">✏️ Modifier</button><button class="btn btn-xs btn-danger" onclick="delResa('${r.id}')" title="Supprimer">🗑️</button>`}
+        <button class="btn btn-xs" onclick="closePanel()" title="Fermer" style="background:#0055A4;border-color:#0055A4;color:#fff;font-weight:600">Fermer</button>
       </div>
     </div>
     <div style="background:#f5f4f1;border-radius:8px;padding:10px;margin-bottom:10px">
       <div style="display:flex;gap:12px;justify-content:space-between">
-        <div><div style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.04em">Arrivée</div><div style="font-size:14px;font-weight:500;margin-top:2px">${dn(r.dateArrivee)} ${ds(r.dateArrivee)}</div><div style="font-size:13px;color:#993556;font-weight:500">${r.heureArrivee||'—'}</div></div>
-        <div style="font-size:20px;color:#ccc;align-self:center">${isJ?'◆':'→'}</div>
-        ${!isJ?`<div style="text-align:right"><div style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.04em">Départ</div><div style="font-size:14px;font-weight:500;margin-top:2px">${dn(r.dateDepart)} ${ds(r.dateDepart)}</div><div style="font-size:13px;color:#993556;font-weight:500">${r.heureDepart||'—'}</div></div>`:''}
+        <div><div style="font-size:10.5px;color:#444;text-transform:uppercase;letter-spacing:.04em;font-weight:600">Arrivée</div><div style="font-size:14px;font-weight:500;margin-top:2px">${dn(r.dateArrivee)} ${ds(r.dateArrivee)}</div><div style="font-size:13px;color:#993556;font-weight:500">${r.heureArrivee||'—'}</div></div>
+        <div style="font-size:20px;color:#999;align-self:center">${isJ?'◆':'→'}</div>
+        ${!isJ?`<div style="text-align:right"><div style="font-size:10.5px;color:#444;text-transform:uppercase;letter-spacing:.04em;font-weight:600">Départ</div><div style="font-size:14px;font-weight:500;margin-top:2px">${dn(r.dateDepart)} ${ds(r.dateDepart)}</div><div style="font-size:13px;color:#993556;font-weight:500">${r.heureDepart||'—'}</div></div>`:''}
       </div>
     </div>
     ${(r.nbPersonnes||r.nbSoiree)?`<div style="font-size:12px;color:#555;margin-bottom:8px;display:flex;gap:16px">${r.nbPersonnes?'<span>🛏 <strong>'+r.nbPersonnes+'</strong> couchages</span>':''} ${r.nbSoiree?'<span>🥂 <strong>'+r.nbSoiree+'</strong> invités soirée</span>':''}</div>`:''}
@@ -1731,10 +1756,10 @@ function renderDetailPanel(r){
         <input type="text" value="${l.notes||''}" placeholder="Note (ce que vous voulez préciser)" onchange="updPrestaLine('${r.id}','${S.presta.id}','${l.id}','notes',this.value)" style="width:100%;font-size:12px;padding:4px 5px;box-sizing:border-box">
       </div>`).join('')}
     </div>`:''}
-    <div class="dp-section"><label>Prestataires</label><div>${prs||'<span style="font-size:12px;color:#888">Aucun assigné</span>'}</div></div>
+    <div class="dp-section"><label>Prestataires</label><div>${prs||'<span style="font-size:12px;color:#555">Aucun assigné</span>'}</div></div>
     ${readOnly?'':`<div class="dp-section"><label>Paiements</label><div style="margin-bottom:6px">${payBadge(r)}</div>
-      ${pays.map(pa=>`<div style="display:flex;gap:4px;font-size:12px;padding:4px 0;border-bottom:1px solid #e5e3de"><span style="flex:1;color:#666">${fmt(pa.date)}</span><span style="font-weight:500">${money(pa.montant)}</span><span style="color:#666;margin-left:4px">${pa.type||pa.note||''}${pa.comment?' — '+pa.comment:''}</span></div>`).join('')}
-      ${pays.length>0?`<div style="font-size:11px;margin-top:5px;display:flex;justify-content:space-between"><span style="color:#666;font-weight:700">Total ${money(r.montant||0)}</span><span style="font-weight:600;color:${solde>0?'#A32D2D':'#27500A'}">Solde ${money(solde)}</span></div>`:''}
+      ${pays.map(pa=>`<div style="display:flex;gap:4px;font-size:12px;padding:4px 0;border-bottom:1px solid #e5e3de"><span style="flex:1;color:#555">${fmt(pa.date)}</span><span style="font-weight:500">${money(pa.montant)}</span><span style="color:#555;margin-left:4px">${pa.type||pa.note||''}${pa.comment?' — '+pa.comment:''}</span></div>`).join('')}
+      ${pays.length>0?`<div style="font-size:11px;margin-top:5px;display:flex;justify-content:space-between"><span style="color:#444;font-weight:700">Total ${money(r.montant||0)}</span><span style="font-weight:600;color:${solde>0?'#A32D2D':'#27500A'}">Solde ${money(solde)}</span></div>`:''}
     </div>`}
     ${comms.length>0?`<div class="dp-section"><label>Notes (${comms.length})</label>${comms.map(c=>`<div style="font-size:12px;padding:5px 0;border-bottom:1px solid #e5e3de"><div style="color:#666;font-size:10px;margin-bottom:2px">${c.auteurNom}${c.auteur==='presta'?' (prestataire)':''} · ${fmt(c.date)}</div>${c.photoUrl?`<img src="${c.photoUrl}" style="max-width:100%;max-height:200px;border-radius:8px;margin-top:3px;display:block;cursor:pointer" onclick="window.open(this.src,'_blank')">`:''}${c.texte?`<div>${c.texte}</div>`:''}</div>`).join('')}</div>`:''}
     ${(!readOnly)?(()=>{const ct=getMenageInfo(r);if(!ct)return'';return`<div class="dp-section"><label>💬 Commentaire pour ${ct.name}</label>
@@ -1771,7 +1796,7 @@ function renderDetailPanel(r){
       _html+='<button class="btn btn-sm btn-primary" onclick="addPrestaComment(\''+r.id+'\')" >Envoyer</button></div>';
       return _html;
     })()}
-    ${readOnly?'':`<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary btn-sm" style="flex:1" onclick="openM('editResa','${r.id}')">✏️ Modifier</button><button class="btn btn-sm btn-danger" onclick="delResa('${r.id}')">Suppr.</button><button class="btn btn-sm" onclick="closePanel()">Fermer</button></div>
+    ${readOnly?'':`<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary btn-sm" onclick="openM('editResa','${r.id}')">✏️ Modifier</button><button class="btn btn-sm btn-danger" onclick="delResa('${r.id}')">Suppr.</button><button class="btn btn-sm" style="flex:1;background:#0055A4;border-color:#0055A4;color:#fff;font-weight:700;font-size:14px;padding:10px" onclick="closePanel()">Fermer</button></div>
     <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sm" style="flex:1;border-color:#993556;color:#993556" onclick="downloadContractPdf('${r.id}')">📄 Voir contrat PDF</button><button class="btn btn-sm" style="flex:1;border-color:#185FA5;color:#185FA5" onclick="downloadContractDocx('${r.id}')">📝 Contrat Word</button></div>`}
     ${readOnly&&S.presta&&S.presta.accessMode==='readonly_nofinance'?`<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sm" style="flex:1;border-color:#993556;color:#993556" onclick="downloadContractPdf('${r.id}')">📄 Voir contrat PDF</button><button class="btn btn-sm" style="flex:1;border-color:#185FA5;color:#185FA5" onclick="downloadContractDocx('${r.id}')">📝 Contrat Word</button></div>`:''}
     </div>`;
@@ -1865,7 +1890,7 @@ function monthYearPicker(yKey,mKey){
   return`<span style="display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap">
     <span style="display:inline-flex;align-items:center;gap:4px">
       <button class="cal-nav" onclick="navMonthOnly('${mKey}','${yKey}',-1)">‹</button>
-      <span class="month-label" style="width:78px;text-align:center">${MONTHS_FR[m]}</span>
+      <span class="month-label" style="min-width:78px;text-align:center;white-space:nowrap">${MONTHS_FR[m]}</span>
       <button class="cal-nav" onclick="navMonthOnly('${mKey}','${yKey}',1)">›</button>
     </span>
     <span style="display:inline-flex;align-items:center;gap:4px">
@@ -3682,17 +3707,15 @@ function renderModalContent(){
     <div id="identite-wrap">${identiteFieldsHtml(r.typeClient||'particulier',r)}</div>
     <div class="form-section">
       <div class="form-section-title">💶 Montants</div>
-      <div class="g2" style="margin-bottom:10px">
-        <div class="field">
-          <label style="color:#111;font-weight:700;font-size:12.5px">Montant de la réservation (€) *</label>
-          <div style="display:flex;align-items:center;gap:6px">
-            <input type="number" id="m-montant" value="${r.typeEvenement==='Gratuit'?'0':(r.montant||'')}" placeholder="0" style="flex:1;font-weight:800;font-size:19px!important;padding:8px 10px!important;border-color:#8a8678;border-width:2px${r.typeEvenement==='Gratuit'?';background:#f0eee8;color:#888':''}" ${r.typeEvenement==='Gratuit'?'readonly':''} oninput="refreshSoldeDisplay();refreshDefaultArrhes()">
-            <span style="color:#555;font-size:16px;font-weight:700">€</span>
-            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.02em;border:1px solid #d5d3ce;border-radius:6px;padding:3px 7px;background:#fff"><input type="checkbox" id="m-avec-contrat" ${r.avecContrat===true?'checked':''} style="width:auto;margin:0"> 📄 Avec досьє</label>
-          </div>
+      <div class="field" style="margin-bottom:8px">
+        <label style="color:#111;font-weight:700;font-size:12.5px">Montant de la réservation (€) *</label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="number" id="m-montant" value="${r.typeEvenement==='Gratuit'?'0':(r.montant||'')}" placeholder="0" style="flex:1;font-weight:700;font-size:15px!important;padding:10px 12px!important;border-color:#8a8678;border-width:2px${r.typeEvenement==='Gratuit'?';background:#f0eee8;color:#888':''}" ${r.typeEvenement==='Gratuit'?'readonly':''} oninput="refreshSoldeDisplay();refreshDefaultArrhes()">
+          <span style="color:#555;font-size:15px;font-weight:700">€</span>
         </div>
-        <div class="field"><label style="display:flex;align-items:center;gap:6px;white-space:nowrap">Note interne <span style="background:#ECE9E2;color:#666;font-size:9.5px;font-weight:600;padding:2px 6px;border-radius:4px;text-transform:none;letter-spacing:0">🔒 admin</span></label><input type="text" id="m-noteI" value="${r.noteInterne||''}" placeholder="Note rapide…"></div>
       </div>
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;width:fit-content;font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.02em;border:1px solid #d5d3ce;border-radius:6px;padding:4px 8px;background:#fff;margin-bottom:10px"><input type="checkbox" id="m-avec-contrat" ${r.avecContrat===true?'checked':''} style="width:auto;margin:0"> 📄 Avec досьє</label>
+      <div class="field" style="margin-bottom:10px"><label style="display:flex;align-items:center;gap:6px;white-space:nowrap">Note interne <span style="background:#ECE9E2;color:#666;font-size:9.5px;font-weight:600;padding:2px 6px;border-radius:4px;text-transform:none;letter-spacing:0">🔒 admin</span></label><input type="text" id="m-noteI" value="${r.noteInterne||''}" placeholder="Note rapide…"></div>
       <div class="g2" style="margin-bottom:${type==='editResa'?'12px':'0'}">
         <div class="field"><label>Arrhes prévues (€)</label><input type="number" id="m-arrhes" style="padding:3.5px 7px;font-size:12px" value="${r.arrhes||computeDefaultArrhes(defDomaine,r.typeEvenement||'',iA,iD,r.montant||0)}" placeholder="Ex : 1500" data-user-edited="${r.arrhes?'1':'0'}" oninput="this.dataset.userEdited='1'"></div>
         <div class="field"><label>Dépôt de garantie (€)</label><input type="number" id="m-depot" style="padding:3.5px 7px;font-size:12px" value="${r.depotGarantie||computeDefaultDepot(defDomaine)}" placeholder="Ex : 3000" data-user-edited="${r.depotGarantie?'1':'0'}" oninput="this.dataset.userEdited='1'"></div>
@@ -5003,10 +5026,11 @@ document.addEventListener('touchend',e=>{
    fenêtre, la referme — pour tout le monde (David, Svitlana, prestataires). On ne déclenche
    la fermeture que si la fenêtre est déjà remontée tout en haut de son défilement, pour ne
    jamais entrer en conflit avec un simple geste de défilement dans un long formulaire. */
-let modalTouchStartY=null,modalTouchStartTime=0,modalAtTop=false;
+let modalTouchStartY=null,modalTouchStartTime=0,modalAtTop=false,modalTouchKind=null;
 document.addEventListener('touchstart',e=>{
-  const modal=e.target.closest('.modal');
-  if(!modal){modalTouchStartY=null;return;}
+  const modal=e.target.closest('.modal')||e.target.closest('.detail-panel');
+  if(!modal){modalTouchStartY=null;modalTouchKind=null;return;}
+  modalTouchKind=modal.classList.contains('detail-panel')?'panel':'modal';
   modalTouchStartY=e.touches[0].clientY;
   modalTouchStartTime=Date.now();
   modalAtTop=modal.scrollTop<=2;
@@ -5017,7 +5041,10 @@ document.addEventListener('touchend',e=>{
   const dt=Math.max(1,Date.now()-modalTouchStartTime);
   const velocity=dy/dt;
   modalTouchStartY=null;
-  if(modalAtTop&&dy>90&&velocity>0.35&&S.modal)closeM();
+  if(modalAtTop&&dy>90&&velocity>0.35){
+    if(modalTouchKind==='panel')closePanel();
+    else if(S.modal)closeM();
+  }
 },{passive:true});
 initApp();
 </script>
