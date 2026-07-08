@@ -1385,17 +1385,20 @@ function adjustCalGridHeight(){
   // privilégie la lisibilité. Sur mobile ça doit quand même tenir à l'écran ; sur ordinateur,
   // tant pis si un mois à 6 semaines déborde un peu (un léger défilement est accepté).
   const absFloor=isSvit?(isMobile?52:60):(isMobile?80:124);
-  const cellCap=isSvit?(isMobile?62:78):(isMobile?94:170);
+  // Sur mobile, on ne plafonne plus la hauteur de case : le planning doit remplir tout l'écran
+  // en hauteur, jusqu'en bas de la page. Les bandes, elles, restent fines (plafonnées via
+  // pitchMax un peu plus bas) — ce n'est pas un souci d'avoir de l'air autour d'une bande fine.
+  const cellCap=isSvit?(isMobile?9999:78):(isMobile?9999:170);
   let cellH=Math.floor(available/numRows);
   if(cellH<absFloor)cellH=absFloor;
   if(cellH>cellCap)cellH=cellCap;
   cells.forEach(c=>{c.style.minHeight=cellH+'px';});
   // Densité des bandes déduite de la hauteur de case réellement obtenue.
-  const offset=isSvit?(isMobile?14:15):(isMobile?14:24);
+  const offset=isSvit?(isMobile?21:22):(isMobile?21:24);
   let pitch=(cellH-offset)/3;
   // Le plancher de pitch est calé sur absFloor : 3×pitchMin+offset ne dépasse jamais absFloor,
   // donc jamais de débordement des 3 bandes de domaines, quelle que soit la taille d'écran.
-  const pitchMin=isSvit?(isMobile?12:14):(isMobile?22:28);
+  const pitchMin=isSvit?(isMobile?10:12):(isMobile?19:28);
   if(pitch<pitchMin)pitch=pitchMin;
   // Plafond aussi : sur un mois très aéré (4 semaines), on évite des bandes démesurément
   // grandes qui dénatureraient la mise en page — on garde un rendu propre et cohérent.
