@@ -1379,21 +1379,29 @@ function adjustCalGridHeight(){
   const bottomMargin=18; // petite marge de respiration en bas de fenêtre
   const available=window.innerHeight-gridTop-dowH-bottomMargin;
   const isMobile=window.innerWidth<=640;
-  const isSvitMobile=S.admin&&S.admin.id==='a2'&&isMobile;
-  // Plancher ABSOLU très bas : au-delà, même la densité de bandes la plus compacte ne suffirait
-  // plus à rester lisible, donc on accepte un léger défilement plutôt que de casser l'affichage.
-  const absFloor=isSvitMobile?52:(isMobile?60:78);
+  const isSvit=!!(S.admin&&S.admin.id==='a2');
+  // Svitlana : contenu sur une seule ligne, toujours compact, doit toujours tenir à l'écran.
+  // Tout le monde d'autre (David, prestataires) : contenu sur deux lignes avec horaires — on
+  // privilégie la lisibilité. Sur mobile ça doit quand même tenir à l'écran ; sur ordinateur,
+  // tant pis si un mois à 6 semaines déborde un peu (un léger défilement est accepté).
+  const absFloor=isSvit?(isMobile?52:60):(isMobile?80:124);
+  const cellCap=isSvit?(isMobile?62:78):(isMobile?94:170);
   let cellH=Math.floor(available/numRows);
   if(cellH<absFloor)cellH=absFloor;
+  if(cellH>cellCap)cellH=cellCap;
   cells.forEach(c=>{c.style.minHeight=cellH+'px';});
   // Densité des bandes déduite de la hauteur de case réellement obtenue.
-  const offset=isSvitMobile?14:(isMobile?15:18);
+  const offset=isSvit?(isMobile?14:15):(isMobile?14:24);
   let pitch=(cellH-offset)/3;
   // Le plancher de pitch est calé sur absFloor : 3×pitchMin+offset ne dépasse jamais absFloor,
   // donc jamais de débordement des 3 bandes de domaines, quelle que soit la taille d'écran.
-  const pitchMin=isSvitMobile?12:(isMobile?15:20);
+  const pitchMin=isSvit?(isMobile?12:14):(isMobile?22:28);
   if(pitch<pitchMin)pitch=pitchMin;
-  const bandH=Math.max(isSvitMobile?9:(isMobile?12:16),Math.round(pitch-3));
+  // Plafond aussi : sur un mois très aéré (4 semaines), on évite des bandes démesurément
+  // grandes qui dénatureraient la mise en page — on garde un rendu propre et cohérent.
+  const pitchMax=isSvit?(isMobile?15:19):(isMobile?27:34);
+  if(pitch>pitchMax)pitch=pitchMax;
+  const bandH=Math.max(isSvit?(isMobile?9:11):(isMobile?18:26),Math.round(pitch-3));
   window.__bandSizing={offset,pitch,bandH};
 }
 function injectBands(){
@@ -1437,8 +1445,8 @@ function injectBands(){
       widthPx=(eRect.left+eRect.width-gridRect.left)-leftPx;
     }
     const _isMobileNow=window.innerWidth<=640;
-    const _isSvit=S.admin&&S.admin.id==='a2'&&_isMobileNow;
-    const _bs=window.__bandSizing||{offset:_isSvit?18:(_isMobileNow?18:24),pitch:_isSvit?19:(_isMobileNow?24:31),bandH:_isSvit?15:(_isMobileNow?20:26)};
+    const _isSvitNow=!!(S.admin&&S.admin.id==='a2');
+    const _bs=window.__bandSizing||{offset:_isSvitNow?(_isMobileNow?14:15):(_isMobileNow?16:24),pitch:_isSvitNow?(_isMobileNow?15:19):(_isMobileNow?30:34),bandH:_isSvitNow?(_isMobileNow?12:16):(_isMobileNow?20:26)};
     const _pitch=_bs.pitch,_offTop=_bs.offset,_bandH=_bs.bandH;
     const topPx=(sRect.top-gridRect.top)+_offTop+(b.slot*_pitch);
     const div=document.createElement('div');
@@ -1449,8 +1457,8 @@ function injectBands(){
     div.style.width=widthPx+'px';
     // La police suit la densité calculée : plus la case est compacte (mois à 6 semaines,
     // petit écran), plus le texte se resserre légèrement, sans jamais descendre sous le lisible.
-    const _fs=_isSvit?Math.max(7.5,Math.min(8.5,_bandH-6)):(_isMobileNow?Math.max(7,Math.min(8,_bandH-11)):Math.max(8.5,Math.min(9,_bandH-16)));
-    div.style.height=_bandH+'px';div.style.fontSize=_fs+'px';div.style.padding=_isSvit?'0 4px':'1px 4px';
+    const _fs=_isSvitNow?(_isMobileNow?Math.max(7.5,Math.min(8.5,_bandH-4)):Math.max(8,Math.min(9,_bandH-6))):(_isMobileNow?Math.max(7.5,Math.min(8.5,_bandH-13)):Math.max(8.5,Math.min(9,_bandH-17)));
+    div.style.height=_bandH+'px';div.style.fontSize=_fs+'px';div.style.padding=_isSvitNow?'0 4px':'1px 4px';
     if(b.optCls)div.style.color='#1a1a1a';
     const timeArrF=fmtHeureCourt(b.timeArr),timeDepF=fmtHeureCourt(b.timeDep);
     let label;
@@ -1478,9 +1486,12 @@ function injectBands(){
       }
       if(b.mainLine)topParts.push(b.mainLine);
       const topLine=topParts.join(' · ');
-      const isSvitlana=S.view==='admin'&&!S.presta&&S.admin&&S.admin.id==='a2';
-      if(isSvitlana){
-        // Affichage simplifié pour Svitlana : tout sur une seule ligne, pas d'horaires, pas de badge P.
+      const isAdminSimplified=S.admin&&S.admin.id==='a2';
+      if(isAdminSimplified){
+        // Affichage simplifié pour les administrateurs (David, Svitlana) : tout sur une seule
+        // ligne, sans horaires ni badge P sur la bande elle-même (ces infos restent consultables
+        // en ouvrant la réservation). Ça évite tout tassement du texte quelle que soit la taille
+        // de bande retenue par le planning.
         label=topLine?`<div class="b-top" style="white-space:nowrap">${topLine}</div>`:'';
       } else {
       const showP=b.hasPresta&&(S.view!=='presta'||(S.presta&&(S.presta.id==='p1'||S.presta.id==='p2')));
@@ -1558,8 +1569,8 @@ function injectVisiteMarkers(){
     const hh=v.heure?(parseInt(v.heure.split(':')[0])+(parseInt(v.heure.split(':')[1]||0)/60)):15;
     let leftPx=cellLeft+dayFrac(hh)*cRect.width;
     const _isMobileNowV=window.innerWidth<=640;
-    const _isSvitV=S.admin&&S.admin.id==='a2'&&_isMobileNowV;
-    const _bsV=window.__bandSizing||{offset:_isSvitV?18:(_isMobileNowV?18:24),pitch:_isSvitV?19:(_isMobileNowV?24:31)};
+    const _isSvitNowV=!!(S.admin&&S.admin.id==='a2');
+    const _bsV=window.__bandSizing||{offset:_isSvitNowV?(_isMobileNowV?14:15):(_isMobileNowV?16:24),pitch:_isSvitNowV?(_isMobileNowV?15:19):(_isMobileNowV?30:34)};
     const _pitchV=_bsV.pitch,_offV=_bsV.offset;
     const rowTopPx=(cRect.top-gridRect.top)+_offV+(slot*_pitchV);
     /* Anti-collision : si une bande de réservation occupe déjà cet endroit sur cette ligne, on décale */
@@ -1571,14 +1582,15 @@ function injectVisiteMarkers(){
     const dom=gDom(v.domaine);const c=dom.color||0;
     const cancelled=v.status==='annulée';
     const heureLbl=fmtHeureCourt(v.heure);
+    const _markerH=Math.max(16,Math.min(28,_bsV.bandH||22));
     const div=document.createElement('div');
     div.style.position='absolute';div.style.left=Math.max(0,leftPx-5)+'px';div.style.top=(rowTopPx+1)+'px';div.style.zIndex='4';div.style.cursor='pointer';
-    div.style.width='12px';div.style.height='28px';
+    div.style.width='12px';div.style.height=(_markerH+6)+'px';
     div.title=`Visite — ${v.client||''} ${v.heure||''}${cancelled?' (annulée)':''}`;
     div.onclick=ev=>{ev.stopPropagation();openM('editVisite',v.id);};
     const bgColors=['#D4748A','#C9A84C','#5A9E3A','#6B64C8','#3A7AB8'];
-    div.innerHTML=`<div style="width:8px;height:22px;border-radius:4px;background:${bgColors[c]};display:flex;align-items:center;justify-content:center;overflow:hidden;${cancelled?'opacity:.55':''}">
-      <span style="font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:8.5px;font-weight:700;letter-spacing:.2px;color:#fff;transform:rotate(-90deg);white-space:nowrap;${cancelled?'text-decoration:line-through':''}">${heureLbl}</span>
+    div.innerHTML=`<div style="width:8px;height:${_markerH}px;border-radius:4px;background:${bgColors[c]};display:flex;align-items:center;justify-content:center;overflow:hidden;${cancelled?'opacity:.55':''}">
+      <span style="font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:8px;font-weight:700;letter-spacing:.2px;color:#fff;transform:rotate(-90deg);white-space:nowrap;${cancelled?'text-decoration:line-through':''}">${heureLbl}</span>
     </div>`;
     grid.appendChild(div);
   });
