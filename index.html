@@ -1404,6 +1404,11 @@ function adjustCalGridHeight(){
   // grandes qui dénatureraient la mise en page — on garde un rendu propre et cohérent.
   const pitchMax=isSvit?(isMobile?15:19):(isMobile?27:34);
   if(pitch>pitchMax)pitch=pitchMax;
+  // +10% de hauteur de bande demandé, en utilisant la place éventuellement encore disponible
+  // en bas de case — sans jamais dépasser ce que la case peut réellement contenir.
+  pitch=pitch*1.10;
+  const maxSafePitch=(cellH-offset)/3;
+  if(pitch>maxSafePitch)pitch=maxSafePitch;
   const bandH=Math.max(isSvit?(isMobile?9:11):(isMobile?18:26),Math.round(pitch-3));
   window.__bandSizing={offset,pitch,bandH};
 }
@@ -4051,7 +4056,7 @@ function renderPrestaCalendrierSeul(p){
   const tab=S.prestaTab||'calendrier';
   const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
   const doms=p.domaines||[];
-  const notifs=(D.activityLog||[]).filter(it=>doms.includes(it.domaine)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
+  const notifs=(D.activityLog||[]).filter(it=>doms.includes(it.domaine)&&it.action!=='paiement'&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
   const content=tab==='monbilan'?renderPrestaMonBilanFlat(p):renderCalendrier();
   return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
@@ -4105,7 +4110,7 @@ function renderPrestaFull(p){
   else if(tab==='visites')content=renderVisiteList();
   else if(tab==='monbilan')content=renderPrestaMonBilan(p);
   const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
-  const notifs=(D.activityLog||[]).filter(it=>(p.domaines||[]).includes(it.domaine)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
+  const notifs=(D.activityLog||[]).filter(it=>(p.domaines||[]).includes(it.domaine)&&it.action!=='paiement'&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
   return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
@@ -4173,7 +4178,7 @@ function renderPrestaHoraires(p){
   if(hasBilan&&tab==='monbilan'){
     const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
     const doms0=p.domaines||[];
-    const notifs0=(D.activityLog||[]).filter(it=>doms0.includes(it.domaine)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
+    const notifs0=(D.activityLog||[]).filter(it=>doms0.includes(it.domaine)&&it.action!=='paiement'&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
     return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Arrivées / départs</h1><span class="badge bp">${p.name}</span></div>
     ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
     ${renderNotifBanner(notifs0,'dismissPrestaNotifs')}
@@ -4186,7 +4191,7 @@ function renderPrestaHoraires(p){
   const future=occ.filter(r=>(r.dateDepart||r.dateArrivee||r.date)>=today);
   const past=occ.filter(r=>(r.dateDepart||r.dateArrivee||r.date)<today);
   const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
-  const notifs=(D.activityLog||[]).filter(it=>doms.includes(it.domaine)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
+  const notifs=(D.activityLog||[]).filter(it=>doms.includes(it.domaine)&&it.action!=='paiement'&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
   return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Arrivées / départs</h1><span class="badge bp">${p.name}</span></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
