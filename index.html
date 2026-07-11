@@ -1074,6 +1074,19 @@ function onTypeClientChangeIdentite(typeClient){
 }
 function checkContactFields(){
   const tc=(document.getElementById('m-typeclient')||{}).value||'particulier';
+  const statusEl=document.getElementById('m-status');
+  const isOption=statusEl&&statusEl.value==='option';
+  if(isOption){
+    // Une option n'a rien d'obligatoire : on efface tout marquage rouge existant et on s'arrête là.
+    ['m-societe','m-adresse','m-tel','m-email','m-prenom1','m-nom1','m-evt','m-nbp','m-montant','m-arr-date','m-dep-date','m-arr-heure-h','m-dep-heure-h'].forEach(function(fid){
+      const el=document.getElementById(fid);
+      if(!el)return;
+      el.style.borderColor='';el.style.borderWidth='';el.style.background='';
+      const lbl=el.closest&&el.closest('.field')&&el.closest('.field').querySelector('label');
+      if(lbl){lbl.style.color='';lbl.style.textDecoration='';}
+    });
+    return;
+  }
   // Champs contact à remplir (bordure rouge tant que vide)
   let contact;
   if(tc==='entreprise'){
@@ -1565,40 +1578,54 @@ function injectVisiteMarkers(){
   const domIdx={};D.domaines.forEach((d,i)=>domIdx[d.id]=i);
   const gridRect=grid.getBoundingClientRect();
   const dayFrac=h=>Math.max(0,Math.min(1,(h-7)/15));
-  const dotColors=['#72243E','#7A5800','#27500A','#3C3489','#0C447C']; /* couleurs foncées = même que le texte des bandes */
   /* Bandes déjà posées par injectBands, pour éviter de superposer une visite sur une réservation */
   const existingBands=Array.from(grid.querySelectorAll('.band')).map(el=>({left:parseFloat(el.style.left),width:parseFloat(el.style.width),top:parseFloat(el.style.top)}));
+  const _isMobileNowV=window.innerWidth<=640;
+  const _isSvitNowV=!!(S.admin&&S.admin.id==='a2');
+  const _bsV=window.__bandSizing||{offset:_isSvitNowV?(_isMobileNowV?14:15):(_isMobileNowV?16:24),pitch:_isSvitNowV?(_isMobileNowV?15:19):(_isMobileNowV?30:34)};
+  const _pitchV=_bsV.pitch,_offV=_bsV.offset;
+  const markerD=Math.max(15,Math.min(22,Math.round((_bsV.bandH||20)*0.85))); // diamètre du rond
+  const bgColors=['#D4748A','#C9A84C','#5A9E3A','#6B64C8','#3A7AB8'];
+  const placed=[]; // pour l'anti-collision entre visites elles-mêmes
   D.visites.filter(v=>(!CAL_DOMAIN_FILTER||CAL_DOMAIN_FILTER.includes(v.domaine))&&!(S.hiddenDomains||[]).includes(v.domaine)).forEach(v=>{
     if(!v.date||!dtc[v.date])return;
     const cellInfo=dtc[v.date];const cell=cells[cellInfo.ci];if(!cell)return;
     const slot=domIdx[v.domaine]||0;
     const cRect=cell.getBoundingClientRect();
     const cellLeft=cRect.left-gridRect.left;
+    const cellRight=cellLeft+cRect.width;
     const hh=v.heure?(parseInt(v.heure.split(':')[0])+(parseInt(v.heure.split(':')[1]||0)/60)):15;
-    let leftPx=cellLeft+dayFrac(hh)*cRect.width;
-    const _isMobileNowV=window.innerWidth<=640;
-    const _isSvitNowV=!!(S.admin&&S.admin.id==='a2');
-    const _bsV=window.__bandSizing||{offset:_isSvitNowV?(_isMobileNowV?14:15):(_isMobileNowV?16:24),pitch:_isSvitNowV?(_isMobileNowV?15:19):(_isMobileNowV?30:34)};
-    const _pitchV=_bsV.pitch,_offV=_bsV.offset;
+    let leftPx=cellLeft+dayFrac(hh)*cRect.width-markerD/2;
     const rowTopPx=(cRect.top-gridRect.top)+_offV+(slot*_pitchV);
-    /* Anti-collision : si une bande de réservation occupe déjà cet endroit sur cette ligne, on décale */
-    const collide=existingBands.find(b=>Math.abs(b.top-rowTopPx)<4&&leftPx>=b.left-7&&leftPx<=b.left+b.width+7);
+    /* Anti-collision avec une bande de réservation sur la même ligne */
+    const collide=existingBands.find(b=>Math.abs(b.top-rowTopPx)<4&&leftPx>=b.left-markerD&&leftPx<=b.left+b.width+markerD);
     if(collide){
-      const proposedRight=collide.left+collide.width+5;
-      leftPx=(proposedRight<cellLeft+cRect.width-6)?proposedRight:Math.max(cellLeft+2,collide.left-9);
+      const proposedRight=collide.left+collide.width+4;
+      leftPx=(proposedRight<cellRight-markerD)?proposedRight:Math.max(cellLeft+2,collide.left-markerD-4);
     }
+    /* Anti-collision entre visites du même jour/domaine : on centre puis on écarte de part et
+       d'autre plutôt que d'empiler les ronds les uns sur les autres. Peu importe qu'un rond ne
+       soit plus exactement sous son heure réelle — ce qui compte, c'est qu'on voie clairement
+       qu'il y a plusieurs visites distinctes ce jour-là. */
+    let tries=0;
+    while(tries<6){
+      const clash=placed.find(pl=>Math.abs(pl.top-rowTopPx)<4&&Math.abs(pl.left-leftPx)<markerD+3);
+      if(!clash)break;
+      leftPx=(leftPx<=clash.left)?clash.left-(markerD+3):clash.left+(markerD+3);
+      leftPx=Math.max(cellLeft+1,Math.min(cellRight-markerD-1,leftPx));
+      tries++;
+    }
+    placed.push({left:leftPx,top:rowTopPx});
     const dom=gDom(v.domaine);const c=dom.color||0;
     const cancelled=v.status==='annulée';
-    const heureLbl=fmtHeureCourt(v.heure);
-    const _markerH=Math.max(16,Math.min(28,_bsV.bandH||22));
+    const heureLbl=(v.heure||'').split(':')[0]||'';
     const div=document.createElement('div');
-    div.style.position='absolute';div.style.left=Math.max(0,leftPx-5)+'px';div.style.top=(rowTopPx+1)+'px';div.style.zIndex='4';div.style.cursor='pointer';
-    div.style.width='12px';div.style.height=(_markerH+6)+'px';
+    div.style.position='absolute';div.style.left=leftPx+'px';div.style.top=rowTopPx+'px';div.style.zIndex='4';div.style.cursor='pointer';
+    div.style.width=markerD+'px';div.style.height=markerD+'px';
     div.title=`Visite — ${v.client||''} ${v.heure||''}${cancelled?' (annulée)':''}`;
     div.onclick=ev=>{ev.stopPropagation();openM('editVisite',v.id);};
-    const bgColors=['#D4748A','#C9A84C','#5A9E3A','#6B64C8','#3A7AB8'];
-    div.innerHTML=`<div style="width:8px;height:${_markerH}px;border-radius:4px;background:${bgColors[c]};display:flex;align-items:center;justify-content:center;overflow:hidden;${cancelled?'opacity:.55':''}">
-      <span style="font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:8px;font-weight:700;letter-spacing:.2px;color:#fff;transform:rotate(-90deg);white-space:nowrap;${cancelled?'text-decoration:line-through':''}">${heureLbl}</span>
+    div.innerHTML=`<div style="width:100%;height:100%;border-radius:50%;background:${bgColors[c]};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;overflow:hidden;${cancelled?'opacity:.55':''}">
+      <span style="font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:${markerD<=17?8:9}px;font-weight:800;color:#fff;line-height:1;${cancelled?'text-decoration:line-through':''}">${heureLbl}</span>
     </div>`;
     grid.appendChild(div);
   });
@@ -1747,7 +1774,7 @@ function renderDetailPanel(r){
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0">
         ${readOnly?'':`<button class="btn btn-xs btn-primary" onclick="openM('editResa','${r.id}')" title="Modifier">✏️ Modifier</button><button class="btn btn-xs btn-danger" onclick="delResa('${r.id}')" title="Supprimer">🗑️</button>`}
-        <button class="btn btn-xs" onclick="closePanel()" title="Fermer" style="background:#0055A4;border-color:#0055A4;color:#fff;font-weight:600">Fermer</button>
+        <button onclick="closePanel()" title="Fermer" style="background:#0055A4;border:1px solid #0055A4;color:#fff;font-weight:700;font-size:20px;line-height:1;width:34px;height:34px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>
       </div>
     </div>
     <div style="background:#f5f4f1;border-radius:8px;padding:10px;margin-bottom:10px">
