@@ -172,11 +172,11 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
    et liseré léger. Le texte reste foncé (comme les bandes confirmées). */
 .band.option{background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.62) 0,rgba(255,255,255,.62) 4px,rgba(255,255,255,0) 4px,rgba(255,255,255,0) 9px)!important;box-shadow:inset 0 0 0 1.5px rgba(90,60,70,.28),0 1px 2px rgba(60,40,50,.14)}
 .band.option:hover{box-shadow:inset 0 0 0 1.5px rgba(90,60,70,.28),0 4px 10px rgba(60,40,50,.22)}
-.b0f{background:#D46B8A;color:#fff}
+.b0f{background:#F0338A;color:#fff}
 .b0l{background:#FBEAF0;color:#993556;border:1px dashed #F4C0D1}
-.b1f{background:#D9A428;color:#fff}
+.b1f{background:#F0B400;color:#fff}
 .b1l{background:#FFF8E6;color:#BA8800;border:1px dashed #F5D98B}
-.b2f{background:#6FA842;color:#fff}
+.b2f{background:#3FB627;color:#fff}
 .b2l{background:#EAF3DE;color:#3B6D11;border:1px dashed #C0DD97}
 .b3f{background:#CECBF6;color:#3C3489}
 .b3l{background:#EEEDFE;color:#534AB7;border:1px dashed #CECBF6}
@@ -1665,7 +1665,7 @@ function renderAdmin(){
   else if(S.tab==='bilan')content=renderBilan();
   else if(S.tab==='clientsExport')content=renderClientsExport();
   const lastSeen=(D.adminLastSeen||{})[S.admin.id]||0;
-  const notifs=(S.admin&&S.admin.id==='a2')?[]:(D.activityLog||[]).filter(it=>((it.authorId&&it.authorId!==S.admin.id)||it.forAdmin)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
+  const notifs=(D.activityLog||[]).filter(it=>((it.authorId&&it.authorId!==S.admin.id)||it.forAdmin)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
   return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge ba" style="flex-shrink:0">Admin — ${S.admin.name}</span><button class="btn btn-sm" onclick="logout()" style="flex-shrink:0">Déconnexion</button></div>${notifBanner}${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}${renderNotifBanner(notifs,'dismissAdminNotifs')}<div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${S.tab===k?'active':''}" onclick="setTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>${content}${S.modal?renderModalWrap():''}`;
 }
 
@@ -1785,7 +1785,7 @@ function renderDetailPanel(r){
       </div>
     </div>
     ${(r.nbPersonnes||r.nbSoiree)?`<div style="font-size:12px;color:#555;margin-bottom:8px;display:flex;gap:16px">${r.nbPersonnes?'<span>🛏 <strong>'+r.nbPersonnes+'</strong> couchages</span>':''} ${r.nbSoiree?'<span>🥂 <strong>'+r.nbSoiree+'</strong> invités soirée</span>':''}</div>`:''}
-    ${Object.keys(r.prestaGarde||{}).length?Object.entries(r.prestaGarde).map(([pid,pg])=>{const who=gPre(pid);return`<div style="margin-bottom:8px"><div style="font-size:11px;color:#888;margin-bottom:3px">🛡 ${who.name||'—'}</div>${Object.entries(pg.nights||{}).sort((a,b)=>a[0].localeCompare(b[0])).map(([d,v])=>readOnly?`<span class="pill" style="background:#f0eee8;color:#555;margin-right:4px;margin-bottom:4px;display:inline-block">Nuit du ${ds(d)} — ${v.duree==='courte'?'22h-2h':'22h-4h'}</span>`:`<span class="pill" style="background:${v.paid?'#E8F3E0':'#FCEBEB'};color:${v.paid?'#27500A':'#791F1F'};margin-right:4px;margin-bottom:4px;display:inline-block;cursor:pointer" onclick="toggleGardeNightPaid('${r.id}','${pid}','${d}')" title="Cliquer pour ${v.paid?'marquer non payé':'marquer payé'}">Nuit du ${ds(d)} — ${v.duree==='courte'?'22h-2h':'22h-4h'} · ${money(gardeRate(v.duree))} ${v.paid?'✓ payé':'✗ non payé'}</span>`).join('')}</div>`;}).join(''):''}
+    ${Object.keys(r.prestaGarde||{}).length?Object.entries(r.prestaGarde).filter(([pid])=>{const who=gPre(pid);return!(_isSvitDP&&(who.name==='Mathilde'||who.name==='Sébastien'));}).map(([pid,pg])=>{const who=gPre(pid);return`<div style="margin-bottom:8px"><div style="font-size:11px;color:#888;margin-bottom:3px">🛡 ${who.name||'—'}</div>${Object.entries(pg.nights||{}).sort((a,b)=>a[0].localeCompare(b[0])).map(([d,v])=>readOnly?`<span class="pill" style="background:#f0eee8;color:#555;margin-right:4px;margin-bottom:4px;display:inline-block">Nuit du ${ds(d)} — ${v.duree==='courte'?'22h-2h':'22h-4h'}</span>`:`<span class="pill" style="background:${v.paid?'#E8F3E0':'#FCEBEB'};color:${v.paid?'#27500A':'#791F1F'};margin-right:4px;margin-bottom:4px;display:inline-block;cursor:pointer" onclick="toggleGardeNightPaid('${r.id}','${pid}','${d}')" title="Cliquer pour ${v.paid?'marquer non payé':'marquer payé'}">Nuit du ${ds(d)} — ${v.duree==='courte'?'22h-2h':'22h-4h'} · ${money(gardeRate(v.duree))} ${v.paid?'✓ payé':'✗ non payé'}</span>`).join('')}</div>`;}).join(''):''}
     ${(!readOnly&&r.noteInterne)?`<div class="note-box" style="margin-bottom:8px">${r.noteInterne}</div>`:''}
     ${r.caviste&&(!readOnly?(S.presta&&(()=>{const mi=getMenageInfo(r);return mi&&mi.pid===S.presta.id;})()):true)?`<div class="dp-section"><label>🍷 Commande caviste</label><div class="note-box" style="border-left-color:#F5D98B">${r.caviste.replace(/\n/g,'<br>')}</div></div>`:''}
     ${(!readOnly&&r.prestasExterieurs&&r.prestasExterieurs.length)?`<div class="dp-section"><label>🎭 Prestataire(s) extérieur(s)</label>${r.prestasExterieurs.map(x=>{
