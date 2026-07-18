@@ -1419,7 +1419,7 @@ function adjustCalGridHeight(){
   if(pitch>pitchMax)pitch=pitchMax;
   // +10% de hauteur de bande demandé, en utilisant la place éventuellement encore disponible
   // en bas de case — sans jamais dépasser ce que la case peut réellement contenir.
-  pitch=pitch*1.10;
+  pitch=pitch*1.15;
   const maxSafePitch=(cellH-offset)/3;
   if(pitch>maxSafePitch)pitch=maxSafePitch;
   const bandH=Math.max(isSvit?(isMobile?9:11):(isMobile?18:26),Math.round(pitch-3));
@@ -1577,7 +1577,6 @@ function injectVisiteMarkers(){
   const{dtc}=buildDateCellMap(S.calYear,S.calMonth);
   const domIdx={};D.domaines.forEach((d,i)=>domIdx[d.id]=i);
   const gridRect=grid.getBoundingClientRect();
-  const dayFrac=h=>Math.max(0,Math.min(1,(h-7)/15));
   /* Bandes déjà posées par injectBands, pour éviter de superposer une visite sur une réservation */
   const existingBands=Array.from(grid.querySelectorAll('.band')).map(el=>({left:parseFloat(el.style.left),width:parseFloat(el.style.width),top:parseFloat(el.style.top)}));
   const _isMobileNowV=window.innerWidth<=640;
@@ -1585,49 +1584,55 @@ function injectVisiteMarkers(){
   const _bsV=window.__bandSizing||{offset:_isSvitNowV?(_isMobileNowV?14:15):(_isMobileNowV?16:24),pitch:_isSvitNowV?(_isMobileNowV?15:19):(_isMobileNowV?30:34)};
   const _pitchV=_bsV.pitch,_offV=_bsV.offset;
   const markerD=Math.max(15,Math.min(22,Math.round((_bsV.bandH||20)*0.85))); // diamètre du rond
-  const bgColors=['#D4748A','#C9A84C','#5A9E3A','#6B64C8','#3A7AB8'];
-  const placed=[]; // pour l'anti-collision entre visites elles-mêmes
+  const gap=3;
+  const bgColors=['#FF5CA6','#FFB300','#4ADE6B','#6B64C8','#3A7AB8'];
+  /* On regroupe les visites par jour + domaine : plutôt que de les placer sous leur heure réelle
+     (ce qui les fait se chevaucher si les heures sont proches), on les centre en groupe dans la
+     case et on les répartit régulièrement de part et d'autre du centre. Peu importe qu'un rond
+     ne soit plus exactement sous son heure — l'important, c'est que chaque visite reste visible
+     et distincte des autres. */
+  const groups={};
   D.visites.filter(v=>(!CAL_DOMAIN_FILTER||CAL_DOMAIN_FILTER.includes(v.domaine))&&!(S.hiddenDomains||[]).includes(v.domaine)).forEach(v=>{
     if(!v.date||!dtc[v.date])return;
-    const cellInfo=dtc[v.date];const cell=cells[cellInfo.ci];if(!cell)return;
-    const slot=domIdx[v.domaine]||0;
+    const key=v.date+'|'+v.domaine;
+    (groups[key]=groups[key]||[]).push(v);
+  });
+  Object.keys(groups).forEach(key=>{
+    const list=groups[key].sort((a,b)=>(a.heure||'').localeCompare(b.heure||''));
+    const v0=list[0];
+    const cellInfo=dtc[v0.date];const cell=cells[cellInfo.ci];if(!cell)return;
+    const slot=domIdx[v0.domaine]||0;
     const cRect=cell.getBoundingClientRect();
     const cellLeft=cRect.left-gridRect.left;
     const cellRight=cellLeft+cRect.width;
-    const hh=v.heure?(parseInt(v.heure.split(':')[0])+(parseInt(v.heure.split(':')[1]||0)/60)):15;
-    let leftPx=cellLeft+dayFrac(hh)*cRect.width-markerD/2;
+    const cellCenter=cellLeft+cRect.width/2;
     const rowTopPx=(cRect.top-gridRect.top)+_offV+(slot*_pitchV);
-    /* Anti-collision avec une bande de réservation sur la même ligne */
-    const collide=existingBands.find(b=>Math.abs(b.top-rowTopPx)<4&&leftPx>=b.left-markerD&&leftPx<=b.left+b.width+markerD);
-    if(collide){
-      const proposedRight=collide.left+collide.width+4;
-      leftPx=(proposedRight<cellRight-markerD)?proposedRight:Math.max(cellLeft+2,collide.left-markerD-4);
-    }
-    /* Anti-collision entre visites du même jour/domaine : on centre puis on écarte de part et
-       d'autre plutôt que d'empiler les ronds les uns sur les autres. Peu importe qu'un rond ne
-       soit plus exactement sous son heure réelle — ce qui compte, c'est qu'on voie clairement
-       qu'il y a plusieurs visites distinctes ce jour-là. */
-    let tries=0;
-    while(tries<6){
-      const clash=placed.find(pl=>Math.abs(pl.top-rowTopPx)<4&&Math.abs(pl.left-leftPx)<markerD+3);
-      if(!clash)break;
-      leftPx=(leftPx<=clash.left)?clash.left-(markerD+3):clash.left+(markerD+3);
-      leftPx=Math.max(cellLeft+1,Math.min(cellRight-markerD-1,leftPx));
-      tries++;
-    }
-    placed.push({left:leftPx,top:rowTopPx});
-    const dom=gDom(v.domaine);const c=dom.color||0;
-    const cancelled=v.status==='annulée';
-    const heureLbl=(v.heure||'').split(':')[0]||'';
-    const div=document.createElement('div');
-    div.style.position='absolute';div.style.left=leftPx+'px';div.style.top=rowTopPx+'px';div.style.zIndex='4';div.style.cursor='pointer';
-    div.style.width=markerD+'px';div.style.height=markerD+'px';
-    div.title=`Visite — ${v.client||''} ${v.heure||''}${cancelled?' (annulée)':''}`;
-    div.onclick=ev=>{ev.stopPropagation();openM('editVisite',v.id);};
-    div.innerHTML=`<div style="width:100%;height:100%;border-radius:50%;background:${bgColors[c]};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;overflow:hidden;${cancelled?'opacity:.55':''}">
-      <span style="font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:${markerD<=17?8:9}px;font-weight:800;color:#fff;line-height:1;${cancelled?'text-decoration:line-through':''}">${heureLbl}</span>
-    </div>`;
-    grid.appendChild(div);
+    const n=list.length;
+    const totalW=n*markerD+(n-1)*gap;
+    let startX=cellCenter-totalW/2;
+    if(startX<cellLeft+1)startX=cellLeft+1;
+    if(startX+totalW>cellRight-1)startX=Math.max(cellLeft+1,cellRight-1-totalW);
+    list.forEach((v,i)=>{
+      let leftPx=startX+i*(markerD+gap);
+      /* Anti-collision avec une bande de réservation sur la même ligne */
+      const collide=existingBands.find(b=>Math.abs(b.top-rowTopPx)<4&&leftPx>=b.left-markerD&&leftPx<=b.left+b.width+markerD);
+      if(collide){
+        const proposedRight=collide.left+collide.width+4;
+        leftPx=(proposedRight<cellRight-markerD)?proposedRight:Math.max(cellLeft+2,collide.left-markerD-4);
+      }
+      const dom=gDom(v.domaine);const c=dom.color||0;
+      const cancelled=v.status==='annulée';
+      const heureLbl=(v.heure||'').split(':')[0]||'';
+      const div=document.createElement('div');
+      div.style.position='absolute';div.style.left=leftPx+'px';div.style.top=rowTopPx+'px';div.style.zIndex='4';div.style.cursor='pointer';
+      div.style.width=markerD+'px';div.style.height=markerD+'px';
+      div.title=`Visite — ${v.client||''} ${v.heure||''}${cancelled?' (annulée)':''}`;
+      div.onclick=ev=>{ev.stopPropagation();openM('editVisite',v.id);};
+      div.innerHTML=`<div style="width:100%;height:100%;border-radius:50%;background:${bgColors[c]};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;overflow:hidden;${cancelled?'opacity:.55':''}">
+        <span style="font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:${markerD<=17?8:9}px;font-weight:800;color:#fff;line-height:1;${cancelled?'text-decoration:line-through':''}">${heureLbl}</span>
+      </div>`;
+      grid.appendChild(div);
+    });
   });
 }
 
@@ -1679,7 +1684,7 @@ function renderCalendrier(){
   // Couleurs jours Dominique
   var _domDay={};
   var _DL=['#E8A0B0','#F5D98B','#A8D080'];
-  var _DS=['#D4748A','#C9A84C','#5A9E3A'];
+  var _DS=['#FF5CA6','#FFB300','#4ADE6B'];
   var _cp=S.presta?S.presta.id:null;
   (D.dominiqueSchedule||[]).forEach(function(x){
     var dc=(gDom(x.domaine)||{}).color||0;
@@ -4728,6 +4733,7 @@ function saveResaCore(id){
   }
   const cbs=document.querySelectorAll('#root input[type=checkbox]');let prestataires=Array.from(cbs).filter(c=>c.checked).map(c=>c.value);
   const origR=id?D.reservations.find(x=>x.id===id):null;
+  const origGardeSnapshot=(origR&&origR.prestaGarde)?JSON.parse(JSON.stringify(origR.prestaGarde)):{};
   // Svitlana ne voit pas Mathilde/Sébastien dans son formulaire : on préserve leur affectation existante
   // telle quelle, pour ne jamais l'effacer simplement parce que leur case n'apparaît pas chez elle.
   const _isSvitSave=S.admin&&S.admin.id==='a2';
@@ -4855,7 +4861,20 @@ function saveResaCore(id){
   }
   _paysAdded.forEach(function(desc){logActivity('paiement',domaine,'Paiement ajouté : '+desc,[],false,newId);});
   Object.keys(prestaGarde).forEach(pid=>{
-    logActivity('garde',domaine,`Gardiennage ${isNew?'ajouté':'mis à jour'} — ${(typeClient==='entreprise'&&societe)?societe:client||'—'} (${fmt(dateArrivee)})`,[pid]);
+    const normalize=(pg)=>{
+      if(!pg)return null;
+      const nights={};
+      Object.keys(pg.nights||{}).sort().forEach(d=>{
+        const n=pg.nights[d];
+        nights[d]={duree:n.duree||'longue',paid:!!n.paid,payMethod:n.payMethod||''};
+      });
+      return{domaine:pg.domaine||'',nights};
+    };
+    const before=JSON.stringify(normalize(origGardeSnapshot[pid]));
+    const after=JSON.stringify(normalize(prestaGarde[pid]));
+    if(before===after)return; // rien de réellement modifié pour ce prestataire : pas de log trompeur
+    const wasAbsent=!origGardeSnapshot[pid];
+    logActivity('garde',domaine,`Gardiennage ${wasAbsent?'ajouté':'mis à jour'} — ${(typeClient==='entreprise'&&societe)?societe:client||'—'} (${fmt(dateArrivee)})`,[pid]);
   });
   saveD();
   return{newId,dateArrivee};
