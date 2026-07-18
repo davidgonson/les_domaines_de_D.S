@@ -176,7 +176,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .b0l{background:#FBEAF0;color:#993556;border:1px dashed #F4C0D1}
 .b1f{background:#FFB300;color:#fff}
 .b1l{background:#FFF8E6;color:#BA8800;border:1px dashed #F5D98B}
-.b2f{background:#4ADE6B;color:#fff}
+.b2f{background:#43CB60;color:#fff}
 .b2l{background:#EAF3DE;color:#3B6D11;border:1px dashed #C0DD97}
 .b3f{background:#CECBF6;color:#3C3489}
 .b3l{background:#EEEDFE;color:#534AB7;border:1px dashed #CECBF6}
@@ -1392,37 +1392,29 @@ function adjustCalGridHeight(){
   const bottomMargin=18; // petite marge de respiration en bas de fenêtre
   const available=window.innerHeight-gridTop-dowH-bottomMargin;
   const isMobile=window.innerWidth<=640;
-  const isSvit=!!(S.admin&&S.admin.id==='a2');
-  // Svitlana : contenu sur une seule ligne, toujours compact, doit toujours tenir à l'écran.
-  // Tout le monde d'autre (David, prestataires) : contenu sur deux lignes avec horaires — on
-  // privilégie la lisibilité. Sur mobile ça doit quand même tenir à l'écran ; sur ordinateur,
-  // tant pis si un mois à 6 semaines déborde un peu (un léger défilement est accepté).
-  const absFloor=isSvit?(isMobile?52:60):(isMobile?80:124);
-  // Sur mobile, on ne plafonne plus la hauteur de case : le planning doit remplir tout l'écran
-  // en hauteur, jusqu'en bas de la page. Les bandes, elles, restent fines (plafonnées via
-  // pitchMax un peu plus bas) — ce n'est pas un souci d'avoir de l'air autour d'une bande fine.
-  const cellCap=isSvit?(isMobile?9999:78):(isMobile?9999:170);
+  // Tout le monde a désormais un affichage sur une seule ligne (David, Svitlana, prestataires) :
+  // plus besoin de distinguer qui a besoin de plus de place. On applique le même réglage compact
+  // à tous, pour que le mois entier tienne toujours sur un seul écran, ordinateur comme iPhone.
+  const absFloor=isMobile?52:72;
+  const cellCap=isMobile?9999:94;
   let cellH=Math.floor(available/numRows);
   if(cellH<absFloor)cellH=absFloor;
   if(cellH>cellCap)cellH=cellCap;
   cells.forEach(c=>{c.style.minHeight=cellH+'px';});
   // Densité des bandes déduite de la hauteur de case réellement obtenue.
-  const offset=isSvit?(isMobile?21:22):(isMobile?21:24);
+  const offset=isMobile?21:22;
   let pitch=(cellH-offset)/3;
   // Le plancher de pitch est calé sur absFloor : 3×pitchMin+offset ne dépasse jamais absFloor,
   // donc jamais de débordement des 3 bandes de domaines, quelle que soit la taille d'écran.
-  const pitchMin=isSvit?(isMobile?10:12):(isMobile?19:28);
+  const pitchMin=isMobile?10:12;
   if(pitch<pitchMin)pitch=pitchMin;
   // Plafond aussi : sur un mois très aéré (4 semaines), on évite des bandes démesurément
   // grandes qui dénatureraient la mise en page — on garde un rendu propre et cohérent.
-  const pitchMax=isSvit?(isMobile?15:19):(isMobile?27:34);
+  const pitchMax=isMobile?15:19;
   if(pitch>pitchMax)pitch=pitchMax;
-  // +10% de hauteur de bande demandé, en utilisant la place éventuellement encore disponible
-  // en bas de case — sans jamais dépasser ce que la case peut réellement contenir.
-  pitch=pitch*1.15;
-  const maxSafePitch=(cellH-offset)/3;
-  if(pitch>maxSafePitch)pitch=maxSafePitch;
-  const bandH=Math.max(isSvit?(isMobile?9:11):(isMobile?18:26),Math.round(pitch-3));
+  // La case peut être plus grande (plus d'air), mais la bande, elle, garde toujours la même
+  // taille — l'espace en plus reste simplement visible en dessous, sans jamais agrandir la bande.
+  const bandH=Math.max(isMobile?9:11,Math.round(pitch-3));
   window.__bandSizing={offset,pitch,bandH};
 }
 function injectBands(){
@@ -1466,22 +1458,39 @@ function injectBands(){
       widthPx=(eRect.left+eRect.width-gridRect.left)-leftPx;
     }
     const _isMobileNow=window.innerWidth<=640;
-    const _isSvitNow=!!(S.admin&&S.admin.id==='a2');
-    const _bs=window.__bandSizing||{offset:_isSvitNow?(_isMobileNow?14:15):(_isMobileNow?16:24),pitch:_isSvitNow?(_isMobileNow?15:19):(_isMobileNow?30:34),bandH:_isSvitNow?(_isMobileNow?12:16):(_isMobileNow?20:26)};
+    const _bs=window.__bandSizing||{offset:_isMobileNow?14:15,pitch:_isMobileNow?15:19,bandH:_isMobileNow?12:16};
     const _pitch=_bs.pitch,_offTop=_bs.offset,_bandH=_bs.bandH;
     const topPx=(sRect.top-gridRect.top)+_offTop+(b.slot*_pitch);
+    const timeArrF0=fmtHeureCourt(b.timeArr),timeDepF0=fmtHeureCourt(b.timeDep);
+    /* On grignote un peu le début/la fin de la bande colorée (uniquement sur les jours où elle a
+       une vraie arrivée/un vrai départ) pour loger l'heure réelle juste devant/juste derrière,
+       en petit et discret — sans jamais l'afficher à l'intérieur de la bande elle-même. */
+    const _hourMargin=17;
+    const _showArrLbl=(b.shapeClass==='band-start'||b.shapeClass==='band-startend')&&!!timeArrF0;
+    const _showDepLbl=(b.shapeClass==='band-end'||b.shapeClass==='band-startend')&&!!timeDepF0;
+    let _renderLeft=leftPx,_renderWidth=widthPx;
+    const _minBandW=40;
+    let _applyArr=_showArrLbl,_applyDep=_showDepLbl;
+    if(_applyArr||_applyDep){
+      const _shrink=(_applyArr?_hourMargin:0)+(_applyDep?_hourMargin:0);
+      if(widthPx-_shrink<_minBandW){_applyArr=false;_applyDep=false;} // pas assez de place : on garde la bande pleine largeur
+      else{
+        if(_applyArr){_renderLeft+=_hourMargin;_renderWidth-=_hourMargin;}
+        if(_applyDep){_renderWidth-=_hourMargin;}
+      }
+    }
     const div=document.createElement('div');
     div.className=`band ${b.shapeClass} ${b.bandCls}${b.optCls}${b.isPaid?' paid':''}`;
     div.style.position='absolute';
     div.style.top=topPx+'px';
-    div.style.left=leftPx+'px';
-    div.style.width=widthPx+'px';
+    div.style.left=_renderLeft+'px';
+    div.style.width=Math.max(10,_renderWidth)+'px';
     // La police suit la densité calculée : plus la case est compacte (mois à 6 semaines,
     // petit écran), plus le texte se resserre légèrement, sans jamais descendre sous le lisible.
-    const _fs=_isSvitNow?(_isMobileNow?Math.max(7.5,Math.min(8.5,_bandH-4)):Math.max(8,Math.min(9,_bandH-6))):(_isMobileNow?Math.max(7.5,Math.min(8.5,_bandH-13)):Math.max(8.5,Math.min(9,_bandH-17)));
-    div.style.height=_bandH+'px';div.style.fontSize=_fs+'px';div.style.padding=_isSvitNow?'0 4px':'1px 4px';
+    const _fs=_isMobileNow?Math.max(7.5,Math.min(8.5,_bandH-4)):Math.max(8,Math.min(9,_bandH-6));
+    div.style.height=_bandH+'px';div.style.fontSize=_fs+'px';div.style.padding='0 4px';
     if(b.optCls)div.style.color='#1a1a1a';
-    const timeArrF=fmtHeureCourt(b.timeArr),timeDepF=fmtHeureCourt(b.timeDep);
+    const timeArrF=timeArrF0,timeDepF=timeDepF0;
     let label;
     if(STRIP_BAND_INFO){
       label=(timeArrF||timeDepF)?`<div class="b-bottom" style="justify-content:center;gap:6px;font-size:9px">${timeArrF?`<span>${timeArrF}</span>`:''}${(timeArrF&&timeDepF)?'<span>→</span>':''}${timeDepF?`<span>${timeDepF}</span>`:''}</div>`:'';
@@ -1507,12 +1516,12 @@ function injectBands(){
       }
       if(b.mainLine)topParts.push(b.mainLine);
       const topLine=topParts.join(' · ');
-      const isAdminSimplified=S.admin&&S.admin.id==='a2';
+      const isAdminSimplified=true;
       if(isAdminSimplified){
-        // Affichage simplifié pour les administrateurs (David, Svitlana) : tout sur une seule
-        // ligne, sans horaires ni badge P sur la bande elle-même (ces infos restent consultables
-        // en ouvrant la réservation). Ça évite tout tassement du texte quelle que soit la taille
-        // de bande retenue par le planning.
+        // Affichage simplifié pour tout le monde (David, Svitlana, Misha, Sacha…) : tout sur une
+        // seule ligne, sans horaires ni badge P à l'intérieur de la bande elle-même — pour rester
+        // compact et garder le nom / paiement bien visibles. Les horaires réels restent affichés,
+        // mais juste avant/juste après la bande colorée (voir plus bas), pas à l'intérieur.
         label=topLine?`<div class="b-top" style="white-space:nowrap">${topLine}</div>`:'';
       } else {
       const showP=b.hasPresta&&(S.view!=='presta'||(S.presta&&(S.presta.id==='p1'||S.presta.id==='p2')));
@@ -1539,6 +1548,22 @@ function injectBands(){
     if(!STRIP_BAND_INFO)div.onclick=ev=>{ev.stopPropagation();selectResa(b.rid,ev);};
     else div.style.cursor='default';
     grid.appendChild(div);
+    if(_applyArr){
+      const lblA=document.createElement('div');
+      lblA.style.position='absolute';lblA.style.top=topPx+'px';lblA.style.left=leftPx+'px';lblA.style.width=_hourMargin+'px';lblA.style.height=_bandH+'px';
+      lblA.style.display='flex';lblA.style.alignItems='center';lblA.style.justifyContent='flex-end';lblA.style.paddingRight='1px';lblA.style.boxSizing='border-box';
+      lblA.style.fontSize='7px';lblA.style.fontWeight='700';lblA.style.color='#8a8678';lblA.style.pointerEvents='none';lblA.style.zIndex='3';lblA.style.overflow='hidden';
+      lblA.textContent=timeArrF0;
+      grid.appendChild(lblA);
+    }
+    if(_applyDep){
+      const lblD=document.createElement('div');
+      lblD.style.position='absolute';lblD.style.top=topPx+'px';lblD.style.left=(_renderLeft+Math.max(10,_renderWidth))+'px';lblD.style.width=_hourMargin+'px';lblD.style.height=_bandH+'px';
+      lblD.style.display='flex';lblD.style.alignItems='center';lblD.style.justifyContent='flex-start';lblD.style.paddingLeft='1px';lblD.style.boxSizing='border-box';
+      lblD.style.fontSize='7px';lblD.style.fontWeight='700';lblD.style.color='#8a8678';lblD.style.pointerEvents='none';lblD.style.zIndex='3';lblD.style.overflow='hidden';
+      lblD.textContent=timeDepF0;
+      grid.appendChild(lblD);
+    }
     placed.push({rid:b.rid,slot:b.slot,row:b.row,leftPx,widthPx,topPx});
   });
   /* Avertissement de chevauchement : deux réservations différentes, même créneau (slot/ligne), qui se touchent ou se croisent dans le temps */
@@ -1580,12 +1605,11 @@ function injectVisiteMarkers(){
   /* Bandes déjà posées par injectBands, pour éviter de superposer une visite sur une réservation */
   const existingBands=Array.from(grid.querySelectorAll('.band')).map(el=>({left:parseFloat(el.style.left),width:parseFloat(el.style.width),top:parseFloat(el.style.top)}));
   const _isMobileNowV=window.innerWidth<=640;
-  const _isSvitNowV=!!(S.admin&&S.admin.id==='a2');
-  const _bsV=window.__bandSizing||{offset:_isSvitNowV?(_isMobileNowV?14:15):(_isMobileNowV?16:24),pitch:_isSvitNowV?(_isMobileNowV?15:19):(_isMobileNowV?30:34)};
+  const _bsV=window.__bandSizing||{offset:_isMobileNowV?14:15,pitch:_isMobileNowV?15:19};
   const _pitchV=_bsV.pitch,_offV=_bsV.offset;
   const markerD=Math.max(15,Math.min(22,Math.round((_bsV.bandH||20)*0.85))); // diamètre du rond
   const gap=3;
-  const bgColors=['#FF5CA6','#FFB300','#4ADE6B','#6B64C8','#3A7AB8'];
+  const bgColors=['#FF5CA6','#FFB300','#43CB60','#6B64C8','#3A7AB8'];
   /* On regroupe les visites par jour + domaine : plutôt que de les placer sous leur heure réelle
      (ce qui les fait se chevaucher si les heures sont proches), on les centre en groupe dans la
      case et on les répartit régulièrement de part et d'autre du centre. Peu importe qu'un rond
@@ -1684,7 +1708,7 @@ function renderCalendrier(){
   // Couleurs jours Dominique
   var _domDay={};
   var _DL=['#E8A0B0','#F5D98B','#A8D080'];
-  var _DS=['#FF5CA6','#FFB300','#4ADE6B'];
+  var _DS=['#FF5CA6','#FFB300','#43CB60'];
   var _cp=S.presta?S.presta.id:null;
   (D.dominiqueSchedule||[]).forEach(function(x){
     var dc=(gDom(x.domaine)||{}).color||0;
