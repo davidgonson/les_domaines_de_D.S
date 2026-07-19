@@ -62,6 +62,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
   .payrow .pr-del{grid-column:4;grid-row:1;justify-self:end}
   .payrow .pr-com{grid-column:1 / -1;grid-row:2}
   .modal .payrow input,.modal .payrow select{font-size:11.5px!important;padding:4px 5px!important}
+  #week-num-col{width:11px!important}
 }
 .g2-compact{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .g2-compact .field{gap:2px}
@@ -1395,7 +1396,7 @@ function adjustCalGridHeight(){
   // Tout le monde a désormais un affichage sur une seule ligne (David, Svitlana, prestataires) :
   // plus besoin de distinguer qui a besoin de plus de place. On applique le même réglage compact
   // à tous, pour que le mois entier tienne toujours sur un seul écran, ordinateur comme iPhone.
-  const absFloor=isMobile?52:72;
+  const absFloor=isMobile?62:72;
   const cellCap=isMobile?9999:94;
   let cellH=Math.floor(available/numRows);
   if(cellH<absFloor)cellH=absFloor;
@@ -1406,16 +1407,39 @@ function adjustCalGridHeight(){
   let pitch=(cellH-offset)/3;
   // Le plancher de pitch est calé sur absFloor : 3×pitchMin+offset ne dépasse jamais absFloor,
   // donc jamais de débordement des 3 bandes de domaines, quelle que soit la taille d'écran.
-  const pitchMin=isMobile?10:12;
+  const pitchMin=isMobile?13:12;
   if(pitch<pitchMin)pitch=pitchMin;
   // Plafond aussi : sur un mois très aéré (4 semaines), on évite des bandes démesurément
   // grandes qui dénatureraient la mise en page — on garde un rendu propre et cohérent.
-  const pitchMax=isMobile?15:19;
+  const pitchMax=isMobile?20:19;
   if(pitch>pitchMax)pitch=pitchMax;
   // La case peut être plus grande (plus d'air), mais la bande, elle, garde toujours la même
   // taille — l'espace en plus reste simplement visible en dessous, sans jamais agrandir la bande.
-  const bandH=Math.max(isMobile?9:11,Math.round(pitch-3));
+  const bandH=Math.max(isMobile?12:11,Math.round(pitch-3));
   window.__bandSizing={offset,pitch,bandH};
+  // Numéros de semaine à gauche, alignés sur chaque ligne du mois.
+  const weekCol=document.getElementById('week-num-col');
+  if(weekCol){
+    const fd0=new Date(S.calYear,S.calMonth,1);
+    let sd0=fd0.getDay();sd0=sd0===0?6:sd0-1;
+    const firstMonday=new Date(S.calYear,S.calMonth,1-sd0);
+    const wkFont=isMobile?8:9;
+    let html=`<div style="height:${dowH}px"></div>`;
+    for(let i=0;i<numRows;i++){
+      const rowMonday=new Date(firstMonday.getTime()+i*7*86400000);
+      html+=`<div style="height:${cellH}px;display:flex;align-items:flex-start;justify-content:center;padding-top:3px;font-size:${wkFont}px;color:#aaa;font-weight:600">${isoWeekNum(rowMonday)}</div>`;
+    }
+    weekCol.innerHTML=html;
+  }
+}
+function isoWeekNum(date){
+  const d=new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()));
+  const dayNum=(d.getUTCDay()+6)%7;
+  d.setUTCDate(d.getUTCDate()-dayNum+3);
+  const firstThursday=new Date(Date.UTC(d.getUTCFullYear(),0,4));
+  const fdDayNum=(firstThursday.getUTCDay()+6)%7;
+  firstThursday.setUTCDate(firstThursday.getUTCDate()-fdDayNum+3);
+  return 1+Math.round((d-firstThursday)/(7*86400000));
 }
 function injectBands(){
   const inCalView=(S.view==='admin'&&S.tab==='calendrier')||(S.view==='presta'&&S.prestaTab==='calendrier');
@@ -1458,7 +1482,7 @@ function injectBands(){
       widthPx=(eRect.left+eRect.width-gridRect.left)-leftPx;
     }
     const _isMobileNow=window.innerWidth<=640;
-    const _bs=window.__bandSizing||{offset:_isMobileNow?14:15,pitch:_isMobileNow?15:19,bandH:_isMobileNow?12:16};
+    const _bs=window.__bandSizing||{offset:_isMobileNow?21:22,pitch:_isMobileNow?20:19,bandH:_isMobileNow?17:16};
     const _pitch=_bs.pitch,_offTop=_bs.offset,_bandH=_bs.bandH;
     const topPx=(sRect.top-gridRect.top)+_offTop+(b.slot*_pitch);
     const timeArrF0=fmtHeureCourt(b.timeArr),timeDepF0=fmtHeureCourt(b.timeDep);
@@ -1552,16 +1576,18 @@ function injectBands(){
       const lblA=document.createElement('div');
       lblA.style.position='absolute';lblA.style.top=topPx+'px';lblA.style.left=leftPx+'px';lblA.style.width=_hourMargin+'px';lblA.style.height=_bandH+'px';
       lblA.style.display='flex';lblA.style.alignItems='center';lblA.style.justifyContent='flex-end';lblA.style.paddingRight='1px';lblA.style.boxSizing='border-box';
-      lblA.style.fontSize='7px';lblA.style.fontWeight='700';lblA.style.color='#8a8678';lblA.style.pointerEvents='none';lblA.style.zIndex='3';lblA.style.overflow='hidden';
-      lblA.textContent=timeArrF0;
+      lblA.style.fontWeight='700';lblA.style.color='#8a8678';lblA.style.pointerEvents='none';lblA.style.zIndex='3';lblA.style.overflow='hidden';
+      const _hIdxA=timeArrF0.indexOf('h');
+      lblA.innerHTML=_hIdxA>=0?`<span style="font-size:7px">${timeArrF0.slice(0,_hIdxA)}</span><span style="font-size:5px">${timeArrF0.slice(_hIdxA)}</span>`:`<span style="font-size:7px">${timeArrF0}</span>`;
       grid.appendChild(lblA);
     }
     if(_applyDep){
       const lblD=document.createElement('div');
       lblD.style.position='absolute';lblD.style.top=topPx+'px';lblD.style.left=(_renderLeft+Math.max(10,_renderWidth))+'px';lblD.style.width=_hourMargin+'px';lblD.style.height=_bandH+'px';
       lblD.style.display='flex';lblD.style.alignItems='center';lblD.style.justifyContent='flex-start';lblD.style.paddingLeft='1px';lblD.style.boxSizing='border-box';
-      lblD.style.fontSize='7px';lblD.style.fontWeight='700';lblD.style.color='#8a8678';lblD.style.pointerEvents='none';lblD.style.zIndex='3';lblD.style.overflow='hidden';
-      lblD.textContent=timeDepF0;
+      lblD.style.fontWeight='700';lblD.style.color='#8a8678';lblD.style.pointerEvents='none';lblD.style.zIndex='3';lblD.style.overflow='hidden';
+      const _hIdxD=timeDepF0.indexOf('h');
+      lblD.innerHTML=_hIdxD>=0?`<span style="font-size:7px">${timeDepF0.slice(0,_hIdxD)}</span><span style="font-size:5px">${timeDepF0.slice(_hIdxD)}</span>`:`<span style="font-size:7px">${timeDepF0}</span>`;
       grid.appendChild(lblD);
     }
     placed.push({rid:b.rid,slot:b.slot,row:b.row,leftPx,widthPx,topPx});
@@ -1605,7 +1631,7 @@ function injectVisiteMarkers(){
   /* Bandes déjà posées par injectBands, pour éviter de superposer une visite sur une réservation */
   const existingBands=Array.from(grid.querySelectorAll('.band')).map(el=>({left:parseFloat(el.style.left),width:parseFloat(el.style.width),top:parseFloat(el.style.top)}));
   const _isMobileNowV=window.innerWidth<=640;
-  const _bsV=window.__bandSizing||{offset:_isMobileNowV?14:15,pitch:_isMobileNowV?15:19};
+  const _bsV=window.__bandSizing||{offset:_isMobileNowV?21:22,pitch:_isMobileNowV?20:19};
   const _pitchV=_bsV.pitch,_offV=_bsV.offset;
   const markerD=Math.max(15,Math.min(22,Math.round((_bsV.bandH||20)*0.85))); // diamètre du rond
   const gap=3;
@@ -1715,7 +1741,7 @@ function renderCalendrier(){
     _domDay[x.date]={l:_DL[dc<3?dc:0],s:_DS[dc<3?dc:0]};
   });
   const gardeByDate={};
-  const GARDE_COLORS=['#D4748A','#C9A84C','#5A9E3A','#6B64C8','#3A7AB8'];
+  const GARDE_COLORS=['#FF5CA6','#FFB300','#43CB60','#6B64C8','#3A7AB8'];
   // GC/GL visibles : David (admin) + Misha(p1) pour d1 + Sacha(p2) pour d2 — pas Svitlana
   const _gpid=S.presta?S.presta.id:null;
   const _isAdm=S.view==='admin';
@@ -1775,7 +1801,10 @@ function renderCalendrier(){
         </div>
         ${readOnly?'':`<button class="cal-plus-btn-big" onclick="openM('quickAdd')" title="Nouvelle réservation, visite ou prestation">+</button>`}
       </div>
-      <div class="cal-grid${S.calAnim?' cal-anim':''}${(S.admin&&S.admin.id==='a2')?' compact-cell':''}" id="cal-grid-main">${gridHtml}</div>
+      <div style="display:flex;align-items:flex-start;gap:2px">
+        <div id="week-num-col" style="width:14px;flex-shrink:0"></div>
+        <div class="cal-grid${S.calAnim?' cal-anim':''}${(S.admin&&S.admin.id==='a2')?' compact-cell':''}" id="cal-grid-main" style="flex:1;min-width:0">${gridHtml}</div>
+      </div>
       <div style="margin-top:8px;font-size:11px;color:#888">${readOnly?'Clic sur une bande colorée = détail (lecture seule)':'Clic sur une case vide = nouvelle réservation · Clic sur une bande colorée = détail'}</div>
     </div>
     ${selR?`<div class="dp-backdrop" onclick="closePanel()"></div>${renderDetailPanel(selR)}`:''}
