@@ -953,7 +953,7 @@ function buildBands(y,m){
       const hasExtOrCav=!!(r.caviste&&r.caviste.trim())||!!(r.prestasExterieurs&&r.prestasExterieurs.length>0);
       const hasPresta=(mishaSashaInPresta||hasExtOrCav)&&(!currentPid||currentPid==='p1'||currentPid==='p2');
       const incompleteContact=hasIncompleteContact(r);
-      bands.push({rid:r.id,slot,row:fc.row,colStart:fc.col,spanCols:lc.col-fc.col+1,shapeClass:sc,nameTxt,timeArr,timeDep,mainLine,bandCls:bc,optCls:oc,isJ,isPaid:payStatus(r)==='full',isPartPaid:payStatus(r)==='part',isFirstRow:ifr,isLastRow:ilr,hA:hArr,hD:hDep,visA:visArr,visD:visDep,colorIdx:c,hasPresta,incompleteContact});
+      bands.push({rid:r.id,slot,row:fc.row,colStart:fc.col,spanCols:lc.col-fc.col+1,shapeClass:sc,nameTxt,timeArr,timeDep,mainLine,bandCls:bc,optCls:oc,isJ,isPaid:payStatus(r)==='full',isPartPaid:payStatus(r)==='part',isFirstRow:ifr,isLastRow:ilr,hA:hArr,hD:hDep,visA:visArr,visD:visDep,colorIdx:c,hasPresta,incompleteContact,isMeal:r.typeEvenement==='Déjeuner / Dîner'});
     });
   });
   return{bands,tc,sd,dim,dip};
@@ -1489,12 +1489,13 @@ function injectBands(){
     /* On grignote un peu le début/la fin de la bande colorée (uniquement sur les jours où elle a
        une vraie arrivée/un vrai départ) pour loger l'heure réelle juste devant/juste derrière,
        en petit et discret — jamais à l'intérieur de la bande. L'heure d'arrivée est légèrement
-       décalée vers le haut, l'heure de départ légèrement vers le bas (pas centrées). */
-    const _hourMargin=17;
-    const _showArrLbl=(b.shapeClass==='band-start'||b.shapeClass==='band-startend')&&!!timeArrF0;
-    const _showDepLbl=(b.shapeClass==='band-end'||b.shapeClass==='band-startend')&&!!timeDepF0;
+       décalée vers le haut, l'heure de départ légèrement vers le bas (pas centrées). Pas d'heure
+       affichée pour les repas (déjeuner/dîner) : ça n'apporte rien pour ce type d'événement. */
+    const _hourMargin=13;
+    const _showArrLbl=!b.isMeal&&(b.shapeClass==='band-start'||b.shapeClass==='band-startend')&&!!timeArrF0;
+    const _showDepLbl=!b.isMeal&&(b.shapeClass==='band-end'||b.shapeClass==='band-startend')&&!!timeDepF0;
     let _renderLeft=leftPx,_renderWidth=widthPx;
-    const _minBandW=40;
+    const _minBandW=26;
     let _applyArr=_showArrLbl,_applyDep=_showDepLbl;
     if(_applyArr||_applyDep){
       const _shrink=(_applyArr?_hourMargin:0)+(_applyDep?_hourMargin:0);
