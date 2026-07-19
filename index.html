@@ -2246,7 +2246,7 @@ function renderDernieres(){
 
 
 function saveVisite(id){
-  const domaine=document.getElementById('v-domaine').value,date=document.getElementById('v-date').value,heure=document.getElementById('v-heure').value,status=document.getElementById('v-status').value,client=capWords(document.getElementById('v-client').value.trim()),typeEvenement=document.getElementById('v-evt').value,tel=document.getElementById('v-tel').value.trim(),email=document.getElementById('v-email').value.trim(),noteInterne=document.getElementById('v-note').value;
+  const domaine=document.getElementById('v-domaine').value,date=document.getElementById('v-date').value,heure=combineHeureMin('v-heure'),status=document.getElementById('v-status').value,client=capWords(document.getElementById('v-client').value.trim()),typeEvenement=document.getElementById('v-evt').value,tel=document.getElementById('v-tel').value.trim(),email=document.getElementById('v-email').value.trim(),noteInterne=document.getElementById('v-note').value;
   const missing=[];
   if(!domaine)missing.push('le domaine');
   if(!date)missing.push('la date');
@@ -4015,7 +4015,7 @@ function renderModalContent(){
     <div class="field" style="margin-bottom:12px"><label>Statut</label><select id="v-status" style="padding:3.5px 7px">${sO}</select></div>
     <div class="g2" style="margin-bottom:12px">
       <div class="field"><label>Date de la visite *</label><div class="date-row"><input type="date" id="v-date" value="${v.date||prefDate||''}"><button type="button" class="date-btn" onclick="document.getElementById('v-date').showPicker&&document.getElementById('v-date').showPicker()" title="Choisir une date">📅</button></div></div>
-      <div class="field"><label>Heure *</label><select id="v-heure">${heureOptions(v.heure)}</select></div>
+      <div class="field"><label>Heure *</label><div style="display:flex;gap:4px;align-items:center"><select id="v-heure-h" style="flex:1;padding:3.5px 5px;font-size:12px">${heureHOptions((v.heure||'').split(':')[0]||'')}</select><span>:</span><select id="v-heure-m" style="flex:1;padding:3.5px 5px;font-size:12px">${heureMOptions((v.heure||'').split(':')[1]||'00')}</select></div></div>
     </div>
     <div class="g2" style="margin-bottom:12px">
       <div class="field"><label>Nom du client / couple *</label><input type="text" id="v-client" value="${v.client||''}" placeholder="Couple Martin…"></div>
