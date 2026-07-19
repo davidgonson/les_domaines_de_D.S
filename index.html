@@ -944,9 +944,9 @@ function buildBands(y,m){
       const departingPartnerIsJ=depConflicts.some(x=>x.isJ);
       let visArr,visDep;
       if(!hasChangeoverAtArrival)visArr=8;
-      else visArr=departingPartnerIsJ?16:14; // partenaire mono-jour : on arrive à 16h, il garde sa matinée/après-midi
+      else visArr=departingPartnerIsJ?16:13.9; // partenaire mono-jour : on arrive à 16h, il garde sa matinée/après-midi ; sinon léger resserrage
       if(!hasChangeoverAtDeparture)visDep=21;
-      else visDep=isJ?15:13; // r mono-jour : représentation 8h-15h ; sinon resserrage symétrique
+      else visDep=isJ?15:13.1; // r mono-jour : représentation 8h-15h ; sinon léger resserrage
       // Badge P : uniquement Misha(p1)/Sasha(p2) ou caviste/prestation extérieure
       const currentPid=S.presta?S.presta.id:null;
       const mishaSashaInPresta=(r.prestataires||[]).some(pid=>pid==='p1'||pid==='p2');
@@ -1488,7 +1488,8 @@ function injectBands(){
     const timeArrF0=fmtHeureCourt(b.timeArr),timeDepF0=fmtHeureCourt(b.timeDep);
     /* On grignote un peu le début/la fin de la bande colorée (uniquement sur les jours où elle a
        une vraie arrivée/un vrai départ) pour loger l'heure réelle juste devant/juste derrière,
-       en petit et discret — sans jamais l'afficher à l'intérieur de la bande elle-même. */
+       en petit et discret — jamais à l'intérieur de la bande. L'heure d'arrivée est légèrement
+       décalée vers le haut, l'heure de départ légèrement vers le bas (pas centrées). */
     const _hourMargin=17;
     const _showArrLbl=(b.shapeClass==='band-start'||b.shapeClass==='band-startend')&&!!timeArrF0;
     const _showDepLbl=(b.shapeClass==='band-end'||b.shapeClass==='band-startend')&&!!timeDepF0;
@@ -1516,6 +1517,7 @@ function injectBands(){
     if(b.optCls)div.style.color='#1a1a1a';
     const timeArrF=timeArrF0,timeDepF=timeDepF0;
     let label;
+    const _cornerColor=b.optCls?'#1a1a1a':'#8a8678';
     if(STRIP_BAND_INFO){
       label=(timeArrF||timeDepF)?`<div class="b-bottom" style="justify-content:center;gap:6px;font-size:9px">${timeArrF?`<span>${timeArrF}</span>`:''}${(timeArrF&&timeDepF)?'<span>→</span>':''}${timeDepF?`<span>${timeDepF}</span>`:''}</div>`:'';
     } else {
@@ -1574,18 +1576,18 @@ function injectBands(){
     grid.appendChild(div);
     if(_applyArr){
       const lblA=document.createElement('div');
-      lblA.style.position='absolute';lblA.style.top=topPx+'px';lblA.style.left=leftPx+'px';lblA.style.width=_hourMargin+'px';lblA.style.height=_bandH+'px';
-      lblA.style.display='flex';lblA.style.alignItems='center';lblA.style.justifyContent='flex-end';lblA.style.paddingRight='1px';lblA.style.boxSizing='border-box';
-      lblA.style.fontWeight='700';lblA.style.color='#8a8678';lblA.style.pointerEvents='none';lblA.style.zIndex='3';lblA.style.overflow='hidden';
+      lblA.style.position='absolute';lblA.style.top=(topPx-1)+'px';lblA.style.left=leftPx+'px';lblA.style.width=_hourMargin+'px';lblA.style.height=_bandH+'px';
+      lblA.style.display='flex';lblA.style.alignItems='flex-start';lblA.style.justifyContent='flex-end';lblA.style.paddingRight='1px';lblA.style.boxSizing='border-box';
+      lblA.style.fontWeight='700';lblA.style.color=_cornerColor;lblA.style.pointerEvents='none';lblA.style.zIndex='3';lblA.style.overflow='hidden';
       const _hIdxA=timeArrF0.indexOf('h');
       lblA.innerHTML=_hIdxA>=0?`<span style="font-size:7px">${timeArrF0.slice(0,_hIdxA)}</span><span style="font-size:5px">${timeArrF0.slice(_hIdxA)}</span>`:`<span style="font-size:7px">${timeArrF0}</span>`;
       grid.appendChild(lblA);
     }
     if(_applyDep){
       const lblD=document.createElement('div');
-      lblD.style.position='absolute';lblD.style.top=topPx+'px';lblD.style.left=(_renderLeft+Math.max(10,_renderWidth))+'px';lblD.style.width=_hourMargin+'px';lblD.style.height=_bandH+'px';
-      lblD.style.display='flex';lblD.style.alignItems='center';lblD.style.justifyContent='flex-start';lblD.style.paddingLeft='1px';lblD.style.boxSizing='border-box';
-      lblD.style.fontWeight='700';lblD.style.color='#8a8678';lblD.style.pointerEvents='none';lblD.style.zIndex='3';lblD.style.overflow='hidden';
+      lblD.style.position='absolute';lblD.style.top=(topPx+1)+'px';lblD.style.left=(_renderLeft+Math.max(10,_renderWidth))+'px';lblD.style.width=_hourMargin+'px';lblD.style.height=_bandH+'px';
+      lblD.style.display='flex';lblD.style.alignItems='flex-end';lblD.style.justifyContent='flex-start';lblD.style.paddingLeft='1px';lblD.style.boxSizing='border-box';
+      lblD.style.fontWeight='700';lblD.style.color=_cornerColor;lblD.style.pointerEvents='none';lblD.style.zIndex='3';lblD.style.overflow='hidden';
       const _hIdxD=timeDepF0.indexOf('h');
       lblD.innerHTML=_hIdxD>=0?`<span style="font-size:7px">${timeDepF0.slice(0,_hIdxD)}</span><span style="font-size:5px">${timeDepF0.slice(_hIdxD)}</span>`:`<span style="font-size:7px">${timeDepF0}</span>`;
       grid.appendChild(lblD);
