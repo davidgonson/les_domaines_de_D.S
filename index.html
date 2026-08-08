@@ -245,14 +245,23 @@ async function fetchRemoteD(){
     return null;
   }catch(e){console.error('Supabase fetch a échoué, utilisation des données locales',e);return null;}
 }
-async function pushRemoteD(d){
+async function pushRemoteD(d,_retry){
   try{
-    await fetch(`${SUPA_URL}/rest/v1/app_state?id=eq.1`,{
+    const res=await fetch(`${SUPA_URL}/rest/v1/app_state?id=eq.1`,{
       method:'PATCH',
       headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY,'Content-Type':'application/json',Prefer:'return=minimal'},
       body:JSON.stringify({data:d,updated_at:new Date().toISOString()})
     });
-  }catch(e){console.error('Supabase push a échoué (données gardées en local seulement)',e);}
+    if(!res.ok){
+      console.error('Supabase push a échoué (statut '+res.status+'), nouvelle tentative dans 3s');
+      // Une tentative de secours : au pire, le rafraîchissement périodique (toutes les 8s)
+      // détectera de toute façon que le serveur n'a pas nos données locales et relancera l'envoi.
+      if(!_retry)setTimeout(()=>pushRemoteD(d,true),3000);
+    }
+  }catch(e){
+    console.error('Supabase push a échoué (données gardées en local en attendant), nouvelle tentative dans 3s',e);
+    if(!_retry)setTimeout(()=>pushRemoteD(d,true),3000);
+  }
 }
 const DOMAIN_LOGOS={
   d1:'data:image/png;base64,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',
@@ -566,7 +575,15 @@ function runMigrations(){
   if(!D.prestaLastSeen)D.prestaLastSeen={};
   if(!D.dominiqueSchedule)D.dominiqueSchedule=[];
   if(!D.gardeSchedule)D.gardeSchedule=[];
+  if(!D.travauxSchedule)D.travauxSchedule=[];
   if(!D.messages)D.messages=[];
+  // Corrige les anciennes réservations où le domaine du gardiennage enregistré ne correspond
+  // plus au domaine réel/actuel de la réservation (ex : la réservation a changé de domaine
+  // après coup). Le lieu du gardiennage doit toujours suivre le domaine de la réservation.
+  (D.reservations||[]).forEach(r=>{
+    if(!r.prestaGarde||!r.domaine)return;
+    Object.values(r.prestaGarde).forEach(pg=>{if(pg&&pg.domaine!==r.domaine)pg.domaine=r.domaine;});
+  });
   (D.admins||[]).forEach(a=>{if(a.name==='Gestionnaire')a.name='Svitlana';});
   if(!D.admins)D.admins=[];
   if(!D.admins.some(a=>a.name==='Svitlana')&&!D.admins.some(a=>a.id==='a2'))D.admins.push({id:'a2',name:'Svitlana',pin:'2024',tel:'0630868569'});
@@ -612,7 +629,58 @@ let S={view:'login',admin:null,presta:null,tab:'calendrier',prestaTab:'calendrie
 let _payRowRenderTimer=null;
 
 function loadD(){try{const r=localStorage.getItem(SK);if(r)return JSON.parse(r);}catch(e){}return JSON.parse(JSON.stringify(DEF));}
-function saveD(){try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}pushRemoteD(D);}
+const __deletedResaIds=new Set();
+const __deletedVisiteIds=new Set();
+const __deletedTravauxIds=new Set();
+const __deletedGardeIds=new Set();
+const __deletedDominiqueIds=new Set();
+const __deletedMessageIds=new Set();
+const TRAVAUX_RATE=12; // € de l'heure pour les travaux hors réservation (Misha/Sacha)
+/* Fusionne un tableau d'objets (identifiés par leur "id") : on part de la version la plus
+   récente du serveur, on y superpose nos propres créations/modifications locales, et on
+   respecte nos propres suppressions (via l'ensemble "deletedIds") — sans jamais perdre ce
+   qu'une autre personne aurait créé ou modifié de son côté entre-temps. */
+function mergeById(remoteArr,localArr,deletedIds){
+  const map={};
+  (remoteArr||[]).forEach(x=>{if(x&&x.id)map[x.id]=x;});
+  (localArr||[]).forEach(x=>{if(x&&x.id)map[x.id]=x;}); // nos changements locaux gagnent pour ce qu'on a touché
+  deletedIds.forEach(id=>{delete map[id];}); // nos suppressions restent définitives
+  return Object.values(map);
+}
+/* SÉCURITÉ ANTI-DISPARITION — NE JAMAIS remplacer D par un instantané serveur en bloc.
+   Historiquement, le rafraîchissement périodique remplaçait D entièrement par la version
+   du serveur (D = fresh). Or l'envoi vers le serveur (pushRemoteD) se fait en arrière-plan,
+   sans attendre : pendant la ou les secondes où cet envoi est encore en vol (ou s'il échoue
+   une fois, ex. coupure réseau), un rafraîchissement pouvait arriver entre-temps avec une
+   version serveur ne contenant pas encore la réservation qu'on vient de créer — et l'effaçait
+   purement et simplement de l'écran (« apparaît puis disparaît »).
+   mergeRemoteSnapshot() fusionne toujours élément par élément (comme mergeById le fait déjà
+   pour les réservations) au lieu d'écraser : nos créations/modifications locales pas encore
+   confirmées côté serveur sont donc protégées, quelle que soit la fenêtre de temps. */
+function mergeRemoteSnapshot(remote){
+  const merged=Object.assign({},remote);
+  merged.reservations=mergeById(remote.reservations,D.reservations,__deletedResaIds);
+  merged.visites=mergeById(remote.visites,D.visites,__deletedVisiteIds);
+  merged.travauxSchedule=mergeById(remote.travauxSchedule,D.travauxSchedule,__deletedTravauxIds);
+  merged.gardeSchedule=mergeById(remote.gardeSchedule,D.gardeSchedule,__deletedGardeIds);
+  merged.dominiqueSchedule=mergeById(remote.dominiqueSchedule,D.dominiqueSchedule,__deletedDominiqueIds);
+  merged.messages=mergeById(remote.messages,D.messages,__deletedMessageIds);
+  merged.adminLastSeen=mergeSeen(D.adminLastSeen,remote.adminLastSeen);
+  merged.prestaLastSeen=mergeSeen(D.prestaLastSeen,remote.prestaLastSeen);
+  return merged;
+}
+async function saveD(){
+  try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}
+  try{
+    const remote=await fetchRemoteD();
+    if(remote){
+      D=mergeRemoteSnapshot(remote);
+      try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}
+      if(!S.modal)render(); // on ne coupe jamais une saisie en cours dans un formulaire ouvert
+    }
+  }catch(e){/* pas de réseau : on garde nos données locales telles quelles, pas grave */}
+  pushRemoteD(D);
+}
 function gDom(id){return D.domaines.find(d=>d.id===id)||{name:'—',color:0};}
 function gPre(id){return D.prestataires.find(p=>p.id===id)||{name:'—',role:''};}
 function gid(){return 'x'+Math.random().toString(36).slice(2,9);}
@@ -620,6 +688,24 @@ function logActivity(action,domaine,label,concernsPresta,forAdmin,rid){
   if(!D.activityLog)D.activityLog=[];
   D.activityLog.push({id:gid(),ts:Date.now(),authorId:S.admin?S.admin.id:null,authorName:S.admin?S.admin.name:(S.presta?S.presta.name:'Système'),domaine,action,label,concernsPresta:concernsPresta||[],forAdmin:!!forAdmin,rid:rid||null});
   if(D.activityLog.length>200)D.activityLog=D.activityLog.slice(-200);
+  triggerPushNotification(action,label,concernsPresta);
+}
+/* Envoie une vraie notification push (via la fonction Supabase "send-push") aux personnes
+   concernées, en respectant les mêmes règles de confidentialité que la bannière interne :
+   - jamais à soi-même (on ne se notifie pas de ses propres actions) ;
+   - les infos de paiement/montant ne partent jamais vers les prestataires. */
+function triggerPushNotification(action,label,concernsPresta){
+  try{
+    const selfId=S.admin?S.admin.id:(S.presta?S.presta.id:null);
+    let recipientIds=['a1','a2'].filter(id=>id!==selfId);
+    if(action!=='paiement')recipientIds=recipientIds.concat(concernsPresta||[]);
+    if(!recipientIds.length)return;
+    fetch(`${SUPA_URL}/functions/v1/send-push`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json',apikey:SUPA_KEY},
+      body:JSON.stringify({title:'Les Domaines de DS',body:label,url:'/',tag:'ds-update',recipientIds,excludeSubscriberId:selfId})
+    }).catch(()=>{}); // si la fonction n'est pas encore déployée, on n'interrompt jamais l'app pour autant
+  }catch(e){}
 }
 function dismissAdminNotifs(){if(!S.admin)return;D.adminLastSeen=D.adminLastSeen||{};D.adminLastSeen[S.admin.id]=Date.now();saveD();render();}
 function dismissPrestaNotifs(){if(!S.presta)return;D.prestaLastSeen=D.prestaLastSeen||{};D.prestaLastSeen[S.presta.id]=Date.now();saveD();render();}
@@ -683,7 +769,7 @@ function sendMessageFromPresta(){
   saveD();showMsg('Message envoyé ✓');render();
 }
 function toggleMessageRead(id){const msg=(D.messages||[]).find(x=>x.id===id);if(!msg)return;msg.read=!msg.read;saveD();render();}
-function delMessage(id){D.messages=(D.messages||[]).filter(x=>x.id!==id);saveD();render();}
+function delMessage(id){__deletedMessageIds.add(id);D.messages=(D.messages||[]).filter(x=>x.id!==id);saveD();render();}
 function renderNotifBanner(items,dismissFnName){
   if(!items.length)return'';
   return`<div class="alert alert-info" style="margin-bottom:12px">
@@ -1075,6 +1161,24 @@ function onTypeClientChangeIdentite(typeClient){
 }
 function checkContactFields(){
   const tc=(document.getElementById('m-typeclient')||{}).value||'particulier';
+  // Seuls ces champs précis sont obligatoires : dates d'arrivée/départ, et nom (ou société).
+  const required=tc==='entreprise'?['m-arr-date','m-dep-date','m-societe']:['m-arr-date','m-dep-date','m-nom1'];
+  const allFields=['m-societe','m-adresse','m-tel','m-email','m-prenom1','m-nom1','m-evt','m-nbp','m-montant','m-arr-date','m-dep-date','m-arr-heure-h','m-dep-heure-h'];
+  allFields.forEach(function(fid){
+    const el=document.getElementById(fid);
+    if(!el)return;
+    const lbl=el.closest&&el.closest('.field')&&el.closest('.field').querySelector('label');
+    if(required.includes(fid)&&!el.value.trim()){
+      el.style.borderColor='#CC0000';el.style.borderWidth='2px';el.style.background='#FFF3F2';
+      if(lbl){lbl.style.color='#CC0000';lbl.style.textDecoration='underline dotted';}
+    } else {
+      el.style.borderColor='';el.style.borderWidth='';el.style.background='';
+      if(lbl){lbl.style.color='';lbl.style.textDecoration='';}
+    }
+  });
+}
+function checkContactFields_OLD_UNUSED(){
+  const tc=(document.getElementById('m-typeclient')||{}).value||'particulier';
   const statusEl=document.getElementById('m-status');
   const isOption=statusEl&&statusEl.value==='option';
   if(isOption){
@@ -1201,6 +1305,8 @@ function pickDomaine(hiddenId,pickerId,el){
     if(wrap)wrap.innerHTML=nbFieldsHtml(el.dataset.id,readCurrentNbValues());
     refreshDefaultArrhes();
     refreshDefaultDepot();
+    // Le lieu du gardiennage suit toujours le domaine de la réservation, sans choix séparé.
+    document.querySelectorAll('input[id^="pgdom-"]').forEach(inp=>{inp.value=el.dataset.id;});
   }
 }
 function pickTypeClient(el){
@@ -1724,7 +1830,7 @@ function renderAdmin(){
   else if(S.tab==='clientsExport')content=renderClientsExport();
   const lastSeen=(D.adminLastSeen||{})[S.admin.id]||0;
   const notifs=(D.activityLog||[]).filter(it=>((it.authorId&&it.authorId!==S.admin.id)||it.forAdmin)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
-  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge ba" style="flex-shrink:0">Admin — ${S.admin.name}</span><button class="btn btn-sm" onclick="logout()" style="flex-shrink:0">Déconnexion</button></div>${notifBanner}${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}${renderNotifBanner(notifs,'dismissAdminNotifs')}<div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${S.tab===k?'active':''}" onclick="setTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>${content}${S.modal?renderModalWrap():''}`;
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge ba" style="flex-shrink:0">Admin — ${S.admin.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone" style="flex-shrink:0">🔔</button><button class="btn btn-sm" onclick="logout()" style="flex-shrink:0">Déconnexion</button></div>${notifBanner}${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}${renderNotifBanner(notifs,'dismissAdminNotifs')}<div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${S.tab===k?'active':''}" onclick="setTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>${content}${S.modal?renderModalWrap():''}`;
 }
 
 function renderCalendrier(){
@@ -1745,15 +1851,14 @@ function renderCalendrier(){
   });
   const gardeByDate={};
   const GARDE_COLORS=['#FF5CA6','#FFB300','#43CB60','#6B64C8','#3A7AB8'];
-  // GC/GL visibles : David (admin) + Misha(p1) pour d1 + Sacha(p2) pour d2 — pas Svitlana
+  // GC/GL visibles : David et Svitlana (admin) + Misha(p1) pour d1 + Sacha(p2) pour d2
   const _gpid=S.presta?S.presta.id:null;
   const _isAdm=S.view==='admin';
-  const _isDavid=_isAdm&&S.admin&&S.admin.id==='a1';
   D.reservations.forEach(function(r){
     if(!r.prestaGarde)return;
     // Filtre visibilité
     if(_isAdm){
-      if(!_isDavid)return; // Svitlana : affichage simplifié, pas de détail gardiennage
+      // les deux administrateurs voient le détail du gardiennage
     } else {
       if(_gpid==='p1'&&r.domaine!=='d1')return;
       if(_gpid==='p2'&&r.domaine!=='d2')return;
@@ -1846,7 +1951,7 @@ function renderDetailPanel(r){
       </div>
     </div>
     ${(r.nbPersonnes||r.nbSoiree)?`<div style="font-size:12px;color:#555;margin-bottom:8px;display:flex;gap:16px">${r.nbPersonnes?'<span>🛏 <strong>'+r.nbPersonnes+'</strong> couchages</span>':''} ${r.nbSoiree?'<span>🥂 <strong>'+r.nbSoiree+'</strong> invités soirée</span>':''}</div>`:''}
-    ${Object.keys(r.prestaGarde||{}).length?Object.entries(r.prestaGarde).filter(([pid])=>{const who=gPre(pid);return!(_isSvitDP&&(who.name==='Mathilde'||who.name==='Sébastien'));}).map(([pid,pg])=>{const who=gPre(pid);return`<div style="margin-bottom:8px"><div style="font-size:11px;color:#888;margin-bottom:3px">🛡 ${who.name||'—'}</div>${Object.entries(pg.nights||{}).sort((a,b)=>a[0].localeCompare(b[0])).map(([d,v])=>readOnly?`<span class="pill" style="background:#f0eee8;color:#555;margin-right:4px;margin-bottom:4px;display:inline-block">Nuit du ${ds(d)} — ${v.duree==='courte'?'22h-2h':'22h-4h'}</span>`:`<span class="pill" style="background:${v.paid?'#E8F3E0':'#FCEBEB'};color:${v.paid?'#27500A':'#791F1F'};margin-right:4px;margin-bottom:4px;display:inline-block;cursor:pointer" onclick="toggleGardeNightPaid('${r.id}','${pid}','${d}')" title="Cliquer pour ${v.paid?'marquer non payé':'marquer payé'}">Nuit du ${ds(d)} — ${v.duree==='courte'?'22h-2h':'22h-4h'} · ${money(gardeRate(v.duree))} ${v.paid?'✓ payé':'✗ non payé'}</span>`).join('')}</div>`;}).join(''):''}
+    ${Object.keys(r.prestaGarde||{}).length?Object.entries(r.prestaGarde).map(([pid,pg])=>{const who=gPre(pid);return`<div style="margin-bottom:8px"><div style="font-size:11px;color:#888;margin-bottom:3px">🛡 ${who.name||'—'}</div>${Object.entries(pg.nights||{}).sort((a,b)=>a[0].localeCompare(b[0])).map(([d,v])=>readOnly?`<span class="pill" style="background:#f0eee8;color:#555;margin-right:4px;margin-bottom:4px;display:inline-block">Nuit du ${ds(d)} — ${v.duree==='courte'?'22h-2h':'22h-4h'}</span>`:`<span class="pill" style="background:${v.paid?'#E8F3E0':'#FCEBEB'};color:${v.paid?'#27500A':'#791F1F'};margin-right:4px;margin-bottom:4px;display:inline-block;cursor:pointer" onclick="toggleGardeNightPaid('${r.id}','${pid}','${d}')" title="Cliquer pour ${v.paid?'marquer non payé':'marquer payé'}">Nuit du ${ds(d)} — ${v.duree==='courte'?'22h-2h':'22h-4h'} · ${money(gardeRate(v.duree))} ${v.paid?'✓ payé':'✗ non payé'}</span>`).join('')}</div>`;}).join(''):''}
     ${(!readOnly&&r.noteInterne)?`<div class="note-box" style="margin-bottom:8px">${r.noteInterne}</div>`:''}
     ${r.caviste&&(!readOnly?(S.presta&&(()=>{const mi=getMenageInfo(r);return mi&&mi.pid===S.presta.id;})()):true)?`<div class="dp-section"><label>🍷 Commande caviste</label><div class="note-box" style="border-left-color:#F5D98B">${r.caviste.replace(/\n/g,'<br>')}</div></div>`:''}
     ${(!readOnly&&r.prestasExterieurs&&r.prestasExterieurs.length)?`<div class="dp-section"><label>🎭 Prestataire(s) extérieur(s)</label>${r.prestasExterieurs.map(x=>{
@@ -1893,9 +1998,15 @@ function renderDetailPanel(r){
         _html+='<button class="btn btn-sm btn-primary" onclick="addPrestaLineSelf(\''+r.id+'\',\''+_pid+'\')">';
         _html+='+ Ajouter</button></div>';
         _lines.forEach(function(l){
-          _html+='<div style="background:#f0f4e8;border-radius:7px;padding:7px;margin-bottom:4px;font-size:12px;display:flex;justify-content:space-between;align-items:center">';
-          _html+='<span><strong>'+(l.label||'—')+'</strong> · '+money(l.montant||0)+' · '+(l.paidDirect?'Direct':'DS')+(l.notes?' · '+l.notes:'')+'</span>';
-          _html+='<button class="btn btn-xs btn-danger" onclick="delPrestaLineSelf(\''+r.id+'\',\''+_pid+'\',\''+l.id+'\')" >✕</button></div>';
+          _html+='<div style="background:#f0f4e8;border-radius:7px;padding:7px;margin-bottom:4px;display:flex;flex-direction:column;gap:4px">';
+          _html+='<div style="display:flex;gap:4px;align-items:center">';
+          _html+='<input type="text" value="'+(l.label||'').replace(/"/g,'&quot;')+'" placeholder="Description…" style="flex:1;font-size:12px;padding:4px 6px;font-weight:600" onchange="updPrestaLine(\''+r.id+'\',\''+_pid+'\',\''+l.id+'\',\'label\',this.value)">';
+          _html+='<button class="btn btn-xs btn-danger" onclick="delPrestaLineSelf(\''+r.id+'\',\''+_pid+'\',\''+l.id+'\')">✕</button></div>';
+          _html+='<div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">';
+          _html+='<input type="number" value="'+(l.montant||0)+'" style="width:75px;font-size:12px;padding:4px 6px" onchange="updPrestaLine(\''+r.id+'\',\''+_pid+'\',\''+l.id+'\',\'montant\',this.value)">';
+          _html+='<select style="font-size:11px;padding:4px" onchange="updPrestaLine(\''+r.id+'\',\''+_pid+'\',\''+l.id+'\',\'paidDirect\',this.value)"><option value="0" '+(!l.paidDirect?'selected':'')+'>Via DS</option><option value="1" '+(l.paidDirect?'selected':'')+'>Direct client</option></select>';
+          _html+='<input type="text" value="'+(l.notes||'').replace(/"/g,'&quot;')+'" placeholder="Note…" style="flex:1;min-width:80px;font-size:12px;padding:4px 6px" onchange="updPrestaLine(\''+r.id+'\',\''+_pid+'\',\''+l.id+'\',\'notes\',this.value)">';
+          _html+='</div></div>';
         });
         _html+='</div>';
       }
@@ -2087,7 +2198,7 @@ function renderGardiennageList(){
     Object.entries(r.prestaGarde||{}).forEach(([pid,pg])=>{
       const who=gPre(pid);
       Object.entries(pg.nights||{}).forEach(([date,v])=>{
-        rows.push({date,pid,who:who.name||'—',domaine:pg.domaine,duree:v.duree,paid:v.paid,client:displayClientName(r)||'—',resaId:r.id});
+        rows.push({date,pid,who:who.name||'—',domaine:r.domaine,duree:v.duree,paid:v.paid,client:displayClientName(r)||'—',resaId:r.id});
       });
     });
   });
@@ -2259,7 +2370,7 @@ function saveVisite(id){
   logActivity(isNew?'créée':(status==='annulée'?'annulée':'modifiée'),domaine,`Visite ${isNew?'créée':(status==='annulée'?'annulée':'modifiée')} — ${client||'—'} (${fmt(date)})`);
   saveD();S.modal=null;S.tab='liste';S.listeSubView='visite';showMsg('Visite enregistrée ✓');
 }
-function delVisite(id){if(!confirm('Supprimer cette visite ?'))return;const v=D.visites.find(x=>x.id===id);if(v)logActivity('supprimée',v.domaine,`Visite supprimée — ${v.client||'—'} (${fmt(v.date)})`);D.visites=D.visites.filter(x=>x.id!==id);saveD();render();}
+function delVisite(id){if(!confirm('Supprimer cette visite ?'))return;const v=D.visites.find(x=>x.id===id);if(v)logActivity('supprimée',v.domaine,`Visite supprimée — ${v.client||'—'} (${fmt(v.date)})`);D.visites=D.visites.filter(x=>x.id!==id);__deletedVisiteIds.add(id);saveD();render();}
 
 function bilanNav(d){S.bilanMonth+=d;if(S.bilanMonth>11){S.bilanMonth=0;S.bilanYear++;}if(S.bilanMonth<0){S.bilanMonth=11;S.bilanYear--;}render();}
 function setBilanViewMode(mode){S.bilanViewMode=mode;render();}
@@ -2645,7 +2756,7 @@ function renderPrestaDetailAdmin(p){
     const rows=[];
     D.reservations.filter(r=>r.status!=='annulé').forEach(r=>{
       const pg=(r.prestaGarde||{})[p.id];if(!pg)return;
-      Object.entries(pg.nights||{}).forEach(([date,v])=>{if(inMonth(date))rows.push({date,duree:v.duree,paid:v.paid,payMethod:v.payMethod||'',comment:v.comment||'',resaId:r.id,client:displayClientName(r)||'—',domaine:pg.domaine,source:'resa'});});
+      Object.entries(pg.nights||{}).forEach(([date,v])=>{if(inMonth(date))rows.push({date,duree:v.duree,paid:v.paid,payMethod:v.payMethod||'',comment:v.comment||'',resaId:r.id,client:displayClientName(r)||'—',domaine:r.domaine,source:'resa'});});
     });
     (D.gardeSchedule||[]).filter(x=>x.pid===p.id&&inMonth(x.date)).forEach(x=>rows.push({date:x.date,duree:x.duree,paid:x.paid,payMethod:x.payMethod||'',comment:x.comment||'',resaId:null,schedId:x.id,client:'— (planning)',domaine:x.domaine,source:'planning'}));
     rows.sort((a,b)=>a.date.localeCompare(b.date));
@@ -2691,6 +2802,25 @@ function renderPrestaDetailAdmin(p){
     </div>`;
   }
 
+  /* === Travaux hors réservation (Misha/Sacha) — à valider === */
+  let travauxSection='';
+  if(p.inputMode==='notes'){
+    const travRows=(D.travauxSchedule||[]).filter(x=>x.pid===p.id&&inMonth(x.date)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    const travEnAttente=travRows.filter(x=>x.status==='en_attente');
+    const travValide=travRows.filter(x=>x.status==='validé');
+    const travTotal=travValide.reduce((a,x)=>a+(x.montant||0),0);
+    if(travRows.length){
+      travauxSection=`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
+        <div class="sec-hdr"><h2>🔧 Travaux hors réservation — ${MONTHS_FR[m]} ${y}</h2></div>
+        <div style="font-size:12px;color:#888;margin-bottom:10px">Total validé : ${money(travTotal)}${travEnAttente.length?` · ${travEnAttente.length} en attente de validation`:''}</div>
+        ${travRows.map(x=>{const dom=gDom(x.domaine);return`<div style="padding:7px 0;border-bottom:1px solid #e5e3de;display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <div><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span><span style="font-size:13px">${ds(x.date)} · ${x.heures}h · ${money(x.montant)}</span>${x.note?`<div style="font-size:11px;color:#888;margin-top:2px">${x.note}</div>`:''}</div>
+          ${x.status==='validé'?`<span class="pill" style="background:#E8F3E0;color:#27500A;flex-shrink:0">✓ Validé</span>`:`<button class="btn btn-xs btn-primary" onclick="validateTravaux('${x.id}')" style="flex-shrink:0">Valider</button>`}
+        </div>`;}).join('')}
+      </div>`;
+    }
+  }
+
   /* === Dominique (jardinage) === */
   let dominiqueSection='';
   if(p.name==='Dominique'){
@@ -2717,7 +2847,7 @@ function renderPrestaDetailAdmin(p){
   }
 
   const allEmpty=!menageSection&&!gardeSection&&!commSection&&!dominiqueSection;
-  return`<div style="margin-top:16px">${nav}${menageSection}${gardeSection}${commSection}${dominiqueSection}${allEmpty?`<div class="empty">Aucun suivi financier spécifique pour ${p.name}.</div>`:''}</div>`;
+  return`<div style="margin-top:16px">${nav}${menageSection}${gardeSection}${commSection}${travauxSection}${dominiqueSection}${allEmpty?`<div class="empty">Aucun suivi financier spécifique pour ${p.name}.</div>`:''}</div>`;
 }
 
 function setClientsSortBy(v){S.clientsSortBy=v;render();}
@@ -3745,11 +3875,9 @@ function renderModalContent(){
         </div>`;
       } else if(p.inputMode==='garde'){
         const pg=(r.prestaGarde||{})[p.id]||{};
-        const gDomaine=pg.domaine||(p.domaines&&p.domaines[0])||defDomaine;
-        const dOptsG=D.domaines.map(d=>`<option value="${d.id}" ${gDomaine===d.id?'selected':''}>${d.name}</option>`).join('');
         const paidSummary=id&&pg.nights&&Object.keys(pg.nights).length?`<div style="margin-top:8px">${Object.entries(pg.nights).sort((a,b)=>a[0].localeCompare(b[0])).map(([d,v])=>`<span class="pill" style="background:${v.paid?'#E8F3E0':'#FCEBEB'};color:${v.paid?'#27500A':'#791F1F'};margin-right:4px;margin-bottom:4px;display:inline-block;cursor:pointer" onclick="toggleGardeNightPaid('${id}','${p.id}','${d}')" title="Cliquer pour ${v.paid?'marquer non payé':'marquer payé'}">${ds(d)} · ${money(gardeRate(v.duree))} ${v.paid?'✓':'✗'}</span>`).join('')}</div>`:'';
         encart=`<div class="presta-encart" id="penc-${p.id}" style="display:${checked?'block':'none'};margin:4px 0 10px 24px;padding:10px;background:#f5f4f1;border-radius:8px">
-          <div class="field" style="margin-bottom:8px"><label>Lieu</label><select id="pgdom-${p.id}">${dOptsG}</select></div>
+          <input type="hidden" id="pgdom-${p.id}" value="${defDomaine||(r&&r.domaine)||''}">
           <div id="pgnights-${p.id}">${gardNightsHtmlFor(p.id,initNights,pg.nights||{})}</div>
           ${paidSummary}
         </div>`;
@@ -4109,7 +4237,13 @@ function renderPrestaMonBilan(p){
     ${rows.length===0?'<div class="empty">Aucune prestation ce mois-ci.</div>':''}
     ${rows.map(({r,lines,sousTotal},rIdx)=>{const dom=gDom(r.domaine);return`<div style="padding:8px 8px;margin:0 -8px;border-bottom:1px solid #e5e3de;background:${rIdx%2===1?'#f7f6f3':'transparent'}">
       <div style="font-weight:500;font-size:13px">${r.client||dom.name}${r.typeClient==='entreprise'&&r.societe?` <span style="color:#888;font-weight:400">(${r.societe})</span>`:''} — <span class="pill ${PILL[dom.color||0]}">${dom.name}</span> · ${ds(r.dateArrivee)}</div>
-      ${lines.map(l=>`<div style="font-size:12px;color:#666;margin-top:3px">${l.label||'—'} : <strong>${money(l.montant)}</strong> <span style="color:${l.paidDirect?'#888':'#A32D2D'}">(${l.paidDirect?'reçu directement':'à recevoir'})</span>${l.notes?' — '+l.notes:''}</div>`).join('')}
+      ${lines.map(l=>`<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:4px">
+        <input type="text" value="${(l.label||'').replace(/"/g,'&quot;')}" placeholder="Intitulé" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','label',this.value)" style="flex:1;min-width:90px;font-size:12px;padding:3px 5px">
+        <input type="number" value="${l.montant||0}" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','montant',this.value)" style="width:65px;font-size:12px;padding:3px 5px">
+        <select onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','paidDirect',this.value)" style="font-size:10.5px;padding:2px;width:auto;max-width:90px"><option value="0" ${!l.paidDirect?'selected':''}>Via nous</option><option value="1" ${l.paidDirect?'selected':''}>Direct client</option></select>
+        <input type="text" value="${(l.notes||'').replace(/"/g,'&quot;')}" placeholder="Note" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','notes',this.value)" style="flex:1;min-width:70px;font-size:12px;padding:3px 5px">
+        <button class="btn btn-xs btn-danger" onclick="delPrestaLineSelf('${r.id}','${p.id}','${l.id}')">✕</button>
+      </div>`).join('')}
       <div style="font-size:12px;font-weight:600;margin-top:4px;color:#27500A">Sous-total : ${money(sousTotal)}</div>
     </div>`;}).join('')}
   </div>`;
@@ -4146,7 +4280,7 @@ function renderPrestaCalendrierSeul(p){
   const doms=p.domaines||[];
   const notifs=(D.activityLog||[]).filter(it=>doms.includes(it.domaine)&&it.action!=='paiement'&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
   const content=tab==='monbilan'?renderPrestaMonBilanFlat(p):renderCalendrier();
-  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone">🔔</button><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
   <div class="tabs">
@@ -4164,7 +4298,7 @@ function renderPrestaReadOnly(p){
   else if(tab==='dernieres')content=renderDernieres();
   else if(tab==='clientsExport')content=renderClientsExport();
   const notifs=[];
-  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone">🔔</button><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   <div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${tab===k?'active':''}" onclick="setPrestaTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>
   ${content}${S.modal?renderModalWrap():''}`;
@@ -4191,21 +4325,58 @@ function renderListeYana(){
 function renderPrestaFull(p){
   const tab=S.prestaTab||'calendrier';
   const tabs=[['calendrier','📅','Planning'],['liste','🎉','Événements'],['visites','👀','Visites']];
-  if(p.inputMode==='notes')tabs.push(['monbilan','💰','Mon Bilan']);
+  if(p.inputMode==='notes'){tabs.push(['monbilan','💰','Mon Bilan']);tabs.push(['travaux','🔧','Travaux']);}
   let content='';
   if(tab==='calendrier')content=renderCalendrier();
   else if(tab==='liste')content=renderListe();
   else if(tab==='visites')content=renderVisiteList();
   else if(tab==='monbilan')content=renderPrestaMonBilan(p);
+  else if(tab==='travaux')content=renderTravauxPresta(p);
   const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
   const notifs=(D.activityLog||[]).filter(it=>(p.domaines||[]).includes(it.domaine)&&it.action!=='paiement'&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
-  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone">🔔</button><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
   <div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${tab===k?'active':''}" onclick="setPrestaTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>
   ${content}${S.modal?renderModalWrap():''}`;
 }
 function setPrestaTab(t){S.prestaTab=t;S.calAnim=(t==='calendrier');S.selResa=null;S.modal=null;render();}
+function renderTravauxPresta(p){
+  const mine=(D.travauxSchedule||[]).filter(x=>x.pid===p.id).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const domOpts=D.domaines.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
+  const enAttente=mine.filter(x=>x.status==='en_attente');
+  const valide=mine.filter(x=>x.status==='validé');
+  const totalValide=valide.reduce((a,x)=>a+(x.montant||0),0);
+  return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
+    <div class="sec-hdr"><h2>🔧 Déclarer des travaux</h2></div>
+    <div style="font-size:11px;color:#888;margin-bottom:10px">Travaux dans un domaine, en dehors d'une réservation — sans commission, ${TRAVAUX_RATE}€ / heure. À valider par David ou Svitlana.</div>
+    <div class="g2" style="margin-bottom:8px">
+      <div class="field"><label>Domaine</label><select id="trav-domaine-${p.id}">${domOpts}</select></div>
+      <div class="field"><label>Jour</label><input type="date" id="trav-date-${p.id}"></div>
+    </div>
+    <div class="g2" style="margin-bottom:8px">
+      <div class="field"><label>Nombre d'heures</label><input type="number" id="trav-heures-${p.id}" step="0.5" placeholder="ex: 3.5"></div>
+      <div class="field"><label>Note (optionnel)</label><input type="text" id="trav-note-${p.id}" placeholder="Ce qui a été fait…"></div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="addTravaux('${p.id}')">+ Déclarer ces travaux</button>
+  </div>
+  <div class="g3" style="margin-bottom:14px">
+    <div class="metric"><span class="lbl">Validé ce total</span><span class="val" style="color:#27500A">${money(totalValide)}</span></div>
+    <div class="metric"><span class="lbl">En attente</span><span class="val" style="color:#8a6d00">${enAttente.length}</span></div>
+    <div class="metric"><span class="lbl">Total heures validées</span><span class="val">${valide.reduce((a,x)=>a+(x.heures||0),0)}h</span></div>
+  </div>
+  <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
+    <div class="sec-hdr"><h2>Historique</h2></div>
+    ${mine.length===0?'<div class="empty">Aucun travaux déclaré pour l\'instant.</div>':''}
+    ${mine.map(x=>{const dom=gDom(x.domaine);return`<div style="padding:8px 0;border-bottom:1px solid #e5e3de;display:flex;justify-content:space-between;align-items:center;gap:8px">
+      <div><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span><span style="font-size:13px">${ds(x.date)} · ${x.heures}h · ${money(x.montant)}</span>${x.note?`<div style="font-size:11px;color:#888;margin-top:2px">${x.note}</div>`:''}</div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        <span class="pill" style="background:${x.status==='validé'?'#E8F3E0':'#FFF6CC'};color:${x.status==='validé'?'#27500A':'#8a6d00'}">${x.status==='validé'?'✓ Validé':'⏳ En attente'}</span>
+        ${x.status!=='validé'?`<button class="btn btn-xs btn-danger" onclick="delTravaux('${x.id}')">✕</button>`:''}
+      </div>
+    </div>`;}).join('')}
+  </div>`;
+}
 function renderPresta(){
   const p=S.presta,today=new Date().toISOString().slice(0,10),mode=p.accessMode||'manuel';
   if(mode==='occupation')return renderPrestaDominique(p);
@@ -4333,7 +4504,7 @@ function renderPrestaDominique(p){
       </div>`;}).join('')}
     </div>`;
   } else content=renderCalendrier();
-  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone">🔔</button><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
   <div class="tabs">
@@ -4348,7 +4519,7 @@ function renderGardePlanningCalendar(p){
   const nightsByDate={};
   D.reservations.filter(r=>r.status!=='annulé').forEach(r=>{
     const pg=(r.prestaGarde||{})[p.id];if(!pg)return;
-    Object.entries(pg.nights||{}).forEach(([date,v])=>{nightsByDate[date]={domaine:pg.domaine,duree:v.duree};});
+    Object.entries(pg.nights||{}).forEach(([date,v])=>{nightsByDate[date]={domaine:r.domaine,duree:v.duree};});
   });
   (D.gardeSchedule||[]).filter(x=>x.pid===p.id).forEach(x=>{nightsByDate[x.date]={domaine:x.domaine,duree:x.duree};});
   let gridHtml=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(d=>`<div class="cal-dow">${d}</div>`).join('');
@@ -4374,7 +4545,7 @@ function renderPrestaGardePersonnel(p){
   D.reservations.filter(r=>r.status!=='annulé').forEach(r=>{
     const pg=(r.prestaGarde||{})[p.id];if(!pg)return;
     Object.entries(pg.nights||{}).forEach(([date,v])=>{
-      rows.push({date,domaine:pg.domaine,duree:v.duree,paid:v.paid,comment:v.comment||'',client:displayClientName(r)||'—',resaId:r.id});
+      rows.push({date,domaine:r.domaine,duree:v.duree,paid:v.paid,comment:v.comment||'',client:displayClientName(r)||'—',resaId:r.id});
     });
   });
   (D.gardeSchedule||[]).filter(x=>x.pid===p.id).forEach(x=>rows.push({date:x.date,domaine:x.domaine,duree:x.duree,paid:x.paid,comment:x.comment||'',client:'',resaId:null}));
@@ -4756,7 +4927,7 @@ function addAdminQuickComment(rid){
 }
 function saveResaCore(id){
   if(_payRowRenderTimer){clearTimeout(_payRowRenderTimer);_payRowRenderTimer=null;}
-  const domaine=document.getElementById('m-domaine').value,dateArrivee=document.getElementById('m-arr-date').value;let dateDepart=document.getElementById('m-dep-date').value;const heureArrivee=document.getElementById('m-arr-heure').value,heureDepart=document.getElementById('m-dep-heure').value,status=document.getElementById('m-status').value;
+  let domaine=document.getElementById('m-domaine').value,dateArrivee=document.getElementById('m-arr-date').value;let dateDepart=document.getElementById('m-dep-date').value;let heureArrivee=document.getElementById('m-arr-heure').value,heureDepart=document.getElementById('m-dep-heure').value;const status=document.getElementById('m-status').value;
   const prenom1=capWords((document.getElementById('m-prenom1')||{}).value||'').trim(),nom1=capWords((document.getElementById('m-nom1')||{}).value||'').trim();
   const civilite1=(document.getElementById('m-civilite1')||{}).value||'M.';
   let tel=document.getElementById('m-tel').value.trim();
@@ -4819,22 +4990,20 @@ function saveResaCore(id){
       if(domSel&&Object.keys(nights).length)prestaGarde[p.id]={domaine:domSel.value,nights};
     }
   });
+  // Seuls quelques champs sont vraiment obligatoires : les dates, le nom (ou la société),
+  // et le domaine. Tout le reste reste libre, avec des valeurs par défaut raisonnables.
   const missing=[];
   if(!domaine)missing.push('le domaine');
   if(!dateArrivee)missing.push("la date d'arrivée");
   if(!dateDepart)missing.push('la date de départ');
-  if(!heureArrivee)missing.push("l'heure d'arrivée");
-  if(!heureDepart)missing.push("l'heure de départ");
   if(typeClient==='entreprise'){
-    if(!nom1)missing.push('le nom du contact');
     if(!societe)missing.push('la raison sociale de la société');
   } else {
-    if(!nom1)missing.push('le nom du client 1');
+    if(!nom1)missing.push('le nom du client');
   }
-  if(!typeEvenement)missing.push("le type d'événement");
-  if(!nbPersonnes&&typeEvenement!=='Gratuit'&&typeEvenement!=='Déjeuner / Dîner')missing.push('le nombre de couchages');
-  if(!montant&&typeEvenement!=='Gratuit')missing.push('le montant');
   if(missing.length){alert('Champs obligatoires manquants : '+missing.join(', ')+'.');return null;}
+  if(!heureArrivee)heureArrivee='16:00';
+  if(!heureDepart)heureDepart='11:00';
   if(tel==='À compléter')tel='';
   if(!tel)tel='À compléter';
   const dep=dateDepart||dateArrivee;
@@ -4950,7 +5119,7 @@ function addCommentBeforeSave(){
   S.modal={type:'editResa',id:result.newId};
   render();
 }
-function delResa(id){if(!confirm('Supprimer définitivement cette réservation ?'))return;const r=D.reservations.find(x=>x.id===id);if(r)logActivity('supprimée',r.domaine,`Réservation supprimée — ${displayClientName(r)||'—'} (${fmt(r.dateArrivee)})`);D.reservations=D.reservations.filter(x=>x.id!==id);S.selResa=null;saveD();render();}
+function delResa(id){if(!confirm('Supprimer définitivement cette réservation ?'))return;const r=D.reservations.find(x=>x.id===id);if(r)logActivity('supprimée',r.domaine,`Réservation supprimée — ${displayClientName(r)||'—'} (${fmt(r.dateArrivee)})`);D.reservations=D.reservations.filter(x=>x.id!==id);__deletedResaIds.add(id);S.selResa=null;saveD();render();}
 function cancelResa(id){if(!confirm('Annuler cette réservation ? Elle restera enregistrée mais marquée annulée.'))return;const r=D.reservations.find(x=>x.id===id);if(!r)return;r.status='annulé';logActivity('annulée',r.domaine,`Réservation annulée — ${displayClientName(r)||'—'} (${fmt(r.dateArrivee)})`);saveD();S.modal=null;showMsg('Réservation annulée ✓');}
 function toggleGardeNightPaid(rid,pid,date){
   const r=D.reservations.find(x=>x.id===rid);if(!r||!r.prestaGarde||!r.prestaGarde[pid]||!r.prestaGarde[pid].nights[date])return;
@@ -4993,6 +5162,7 @@ function addDominiquePlanning(){
   saveD();S.modal={type:'dominiquePlanning'};render();
 }
 function delDominiquePlanning(id){
+  __deletedDominiqueIds.add(id);
   D.dominiqueSchedule=(D.dominiqueSchedule||[]).filter(x=>x.id!==id);
   saveD();S.modal={type:'dominiquePlanning'};render();
 }
@@ -5011,9 +5181,36 @@ function addGardePlanning(pid){
   saveD();S.modal={type:'gardePlanning',pid};render();
 }
 function delGardePlanning(id){
+  __deletedGardeIds.add(id);
   const x=(D.gardeSchedule||[]).find(x=>x.id===id);
   D.gardeSchedule=(D.gardeSchedule||[]).filter(x=>x.id!==id);
   saveD();if(x)S.modal={type:'gardePlanning',pid:x.pid};render();
+}
+/* === Travaux hors réservation (Misha/Sacha) — sans commission, 12€/h, à valider === */
+function addTravaux(pid){
+  const domaine=(document.getElementById('trav-domaine-'+pid)||{}).value;
+  const date=(document.getElementById('trav-date-'+pid)||{}).value;
+  const heures=parseFloat((document.getElementById('trav-heures-'+pid)||{}).value)||0;
+  const note=((document.getElementById('trav-note-'+pid)||{}).value||'').trim();
+  if(!domaine||!date||!heures)return;
+  if(!D.travauxSchedule)D.travauxSchedule=[];
+  D.travauxSchedule.push({id:gid(),pid,domaine,date,heures,montant:Math.round(heures*TRAVAUX_RATE*100)/100,note,status:'en_attente',createdAt:Date.now()});
+  const p=D.prestataires.find(x=>x.id===pid);
+  logActivity('créée',domaine,`Travaux déclarés — ${p?p.name:''} (${fmt(date)}, ${heures}h)`,[],true);
+  saveD();showMsg('Travaux déclarés, en attente de validation ✓');render();
+}
+function delTravaux(id){
+  D.travauxSchedule=(D.travauxSchedule||[]).filter(x=>x.id!==id);
+  __deletedTravauxIds.add(id);
+  saveD();render();
+}
+function validateTravaux(id){
+  if(!S.admin)return;
+  const x=(D.travauxSchedule||[]).find(x=>x.id===id);if(!x)return;
+  x.status='validé';x.validatedBy=S.admin.name;x.validatedAt=Date.now();
+  const p=D.prestataires.find(y=>y.id===x.pid);
+  logActivity('validée',x.domaine,`Travaux validés — ${p?p.name:''} (${fmt(x.date)}, ${x.heures}h · ${money(x.montant)})`,[x.pid],false);
+  saveD();showMsg('Travaux validés ✓');render();
 }
 function toggleGardeSchedulePaid(id){
   const x=(D.gardeSchedule||[]).find(x=>x.id===id);if(!x)return;
@@ -5079,15 +5276,12 @@ document.addEventListener('keydown',e=>{
 });
 window.addEventListener('resize',()=>{adjustCalGridHeight();injectBands();});
 async function initApp(){
-  const localSeenA=(D&&D.adminLastSeen)||{};
-  const localSeenP=(D&&D.prestaLastSeen)||{};
   const remote=await fetchRemoteD();
   if(remote){
-    /* On reprend les données du serveur, mais on conserve les marqueurs « lu » les plus récents
-       (locaux ou distants) pour que rien de déjà lu ne réapparaisse au lancement. */
-    remote.adminLastSeen=mergeSeen(localSeenA,remote.adminLastSeen);
-    remote.prestaLastSeen=mergeSeen(localSeenP,remote.prestaLastSeen);
-    D=remote;
+    /* Fusion (jamais un remplacement en bloc) : si une réservation créée juste avant la
+       fermeture de l'app n'avait pas fini de se synchroniser, on ne veut surtout pas la perdre
+       en écrasant D avec la version serveur au démarrage. */
+    D=mergeRemoteSnapshot(remote);
   }
   runMigrations();
   saveD();
@@ -5095,16 +5289,18 @@ async function initApp(){
   setInterval(async()=>{
     if(S.modal)return;
     const fresh=await fetchRemoteD();
-    if(fresh&&JSON.stringify(fresh)!==JSON.stringify(D)){
-      /* On préserve les marqueurs « lu » locaux (adminLastSeen / prestaLastSeen) :
-         un marqueur ne recule jamais dans le temps. Sans ça, un rafraîchissement distant
-         arrivant juste après un « Marquer comme lu » (avant que le push soit remonté)
-         réaffichait les notifications déjà lues. */
-      fresh.adminLastSeen=mergeSeen(D.adminLastSeen,fresh.adminLastSeen);
-      fresh.prestaLastSeen=mergeSeen(D.prestaLastSeen,fresh.prestaLastSeen);
-      D=fresh;
+    if(!fresh)return;
+    const merged=mergeRemoteSnapshot(fresh);
+    if(JSON.stringify(merged)!==JSON.stringify(D)){
+      /* Si la fusion diffère de la version serveur brute, c'est qu'on avait localement des
+         éléments (ou des modifs) que le serveur n'a pas encore. On les garde ET on relance
+         immédiatement leur envoi — ceci rattrape automatiquement un précédent envoi qui aurait
+         échoué (coupure réseau, etc.) au lieu de le laisser silencieusement perdu. */
+      const hadLocalOnly=JSON.stringify(merged)!==JSON.stringify(fresh);
+      D=merged;
       try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}
       render();
+      if(hadLocalOnly)pushRemoteD(D);
     }
   },8000);
 }
@@ -5168,6 +5364,54 @@ document.addEventListener('touchend',e=>{
     else if(S.modal)closeM();
   }
 },{passive:true});
+/* Notifications push réelles (arrivent même app fermée). Nécessite que sw.js soit déployé
+   à côté de index.html, et que la fonction Supabase "send-push" soit déployée (voir README). */
+const VAPID_PUBLIC_KEY='BCVpaqTegeF6LJtAGnF23LfFIS99YP2U9TtivSvDu0FpGmqdkHuLrN0110yoZu63N_Vqy0UmhlUz25BAtQsenVU';
+function registerServiceWorker(){
+  if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{});}
+}
+function urlBase64ToUint8Array(base64String){
+  const padding='='.repeat((4-base64String.length%4)%4);
+  const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
+  const rawData=atob(base64);
+  const outputArray=new Uint8Array(rawData.length);
+  for(let i=0;i<rawData.length;i++)outputArray[i]=rawData.charCodeAt(i);
+  return outputArray;
+}
+async function enablePushNotifications(){
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)){
+    alert("Les notifications ne sont pas prises en charge sur cet appareil ou ce navigateur.");
+    return;
+  }
+  try{
+    const perm=await Notification.requestPermission();
+    if(perm!=='granted'){alert('Notifications refusées. Tu peux les réactiver dans les réglages de ton téléphone (Réglages > Notifications).');return;}
+    const reg=await navigator.serviceWorker.ready;
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(VAPID_PUBLIC_KEY)});
+    const ownerId=S.admin?S.admin.id:(S.presta?S.presta.id:null);
+    if(!ownerId)return;
+    const j=sub.toJSON();
+    await fetch(`${SUPA_URL}/rest/v1/push_subscriptions`,{
+      method:'POST',
+      headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify({owner_id:ownerId,endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth})
+    });
+    showMsg('Notifications activées ✓');render();
+  }catch(e){
+    alert("Impossible d'activer les notifications pour l'instant : "+e.message);
+  }
+}
+async function checkPushEnabled(){
+  try{
+    if(!('serviceWorker' in navigator))return false;
+    const reg=await navigator.serviceWorker.getRegistration();
+    if(!reg)return false;
+    const sub=await reg.pushManager.getSubscription();
+    return!!sub;
+  }catch(e){return false;}
+}
+registerServiceWorker();
 initApp();
 </script>
 </body>
