@@ -101,7 +101,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .link-box{display:flex;align-items:center;gap:8px;background:#f5f4f1;border-radius:8px;padding:8px 12px;font-size:11px;font-family:monospace;word-break:break-all;border:1px solid #e5e3de}
 .wa-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:8px;background:#25D366;color:#fff;font-size:12px;font-weight:500;text-decoration:none;border:none;cursor:pointer;font-family:inherit;white-space:nowrap}
 .sec-hdr{display:flex;align-items:center;justify-content:space-between;margin:-1rem -1.25rem 12px -1.25rem;padding:10px 1.25rem;background:#9c9890;border-radius:12px 12px 0 0}
-.sec-hdr h2{font-size:15px;font-weight:600;color:#fff}
+.sec-hdr h2{font-size:15px;font-weight:500;color:#fff}
 .sec-hdr .btn{background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)}
 .sec-hdr .btn:hover{background:rgba(255,255,255,.25)}
 /* === Badges à contraste fort (validation / réglé), utilisés dans le bilan financier ===
@@ -148,7 +148,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .cal-nav{padding:6px 12px;border-radius:8px;border:1px solid #d5d3ce;cursor:pointer;background:#fff;font-size:18px;color:#1a1a1a;line-height:1}
 .cal-plus-btn{padding:6px 10px;border-radius:8px;border:1px solid #0055A4;background:#0055A4;color:#fff;font-size:18px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
 .cal-plus-btn:hover{background:#004080}
-.cal-plus-btn-big{aspect-ratio:1;height:auto;align-self:stretch;border-radius:10px;border:1px solid #0055A4;background:#0055A4;color:#fff;font-size:26px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.cal-plus-btn-big,.cal-search-btn-big{aspect-ratio:1;height:auto;align-self:stretch;border-radius:10px;border:1px solid #0055A4;background:#0055A4;color:#fff;font-size:26px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
 .cal-plus-btn-big:hover{background:#004080}
 .cal-nav:hover{background:#f0eeea}
 .cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-radius:14px;overflow:hidden;border:1px solid #c9c5ba;background:#fff;position:relative;box-shadow:0 10px 30px -16px rgba(80,50,60,.32),0 1px 3px rgba(0,0,0,.04)}
@@ -1077,9 +1077,14 @@ function valideBadge(valide,onclickJs){
 }
 /* Même logique de contraste fort que valideBadge, pour les pastilles "réglé / pas réglé" du
    bilan (forfait, ménage, gardiennage) — bg pleine + texte blanc en gras au lieu du pastel. */
-function regleBadge(paid,onclickJs,paidLabel,unpaidLabel){
-  const clickable=!!onclickJs;
-  return `<span class="bb ${paid?'bb-good':'bb-bad'} ${clickable?'bb-clickable':''}" style="flex-shrink:0" ${clickable?`onclick="${onclickJs}"`:''}>${paid?(paidLabel||'✓ RÉGLÉ'):(unpaidLabel||'✗ NON RÉGLÉ')}</span>`;
+/* Suite au retour de David : on n'affiche plus de badge "réglé / pas encore réglé" à côté de
+   chaque ligne — un seul indicateur d'état par ligne (valideBadge : validé / à valider), le
+   suivi du paiement reste uniquement dans les totaux "Déjà réglé" / "Reste à verser" du bilan.
+   Ce petit lien texte discret, réservé à David/Svitlana, permet toujours de basculer l'état
+   réglé quand besoin (sinon ces totaux ne pourraient plus jamais bouger). */
+function regleToggle(paid,onclickJs){
+  if(!onclickJs)return'';
+  return `<span onclick="${onclickJs}" style="font-size:10.5px;color:#999;text-decoration:underline;cursor:pointer;flex-shrink:0;white-space:nowrap">${paid?'marquer non réglé':'marquer réglé'}</span>`;
 }
 function toggleLigneValide(rid,pid,lid){
   const r=D.reservations.find(x=>x.id===rid);if(!r||!r.prestaLines||!r.prestaLines[pid])return;
@@ -1182,14 +1187,13 @@ function renderGardeSection(p,y,m){
     </div>`;
   if(isAdmin){
     const body=rows.length===0?'<div class="empty">Aucune nuit de gardiennage ce mois-ci.</div>':`<div style="overflow-x:auto"><table class="list-tbl"><thead><tr><th>Nuit du</th><th>Lieu</th><th>Durée</th><th>Commentaire</th><th>Montant</th><th>Mode</th><th>Validation</th><th>Événement</th><th></th></tr></thead>
-      <tbody>${rows.map(x=>{const dom=gDom(x.domaine);const toggleCall=x.source==='resa'?`toggleGardeNightPaid('${x.resaId}','${p.id}','${x.date}')`:`toggleGardeSchedulePaid('${x.schedId}')`;const methodCall=x.source==='resa'?`setGardeNightPayMethod('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeSchedulePayMethod('${x.schedId}',this.value)`;const dureeCall=x.source==='resa'?`setGardeNightDuree('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleDuree('${x.schedId}',this.value)`;const commentCall=x.source==='resa'?`setGardeNightComment('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleComment('${x.schedId}',this.value)`;const delCall=x.source==='resa'?`delGardeNight('${x.resaId}','${p.id}','${x.date}')`:`delGardePlanning('${x.schedId}')`;const valideCall=x.source==='resa'?`toggleGardeNightValide('${x.resaId}','${p.id}','${x.date}')`:`toggleGardeScheduleValide('${x.schedId}')`;return`<tr><td>${dn(x.date)} ${ds(x.date)}</td><td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td><td><select onchange="${dureeCall}" style="font-size:12px"><option value="courte" ${x.duree==='courte'?'selected':''}>Courte (22h-2h)</option><option value="longue" ${x.duree==='longue'?'selected':''}>Longue (22h-4h)</option></select></td><td><input type="text" value="${x.comment||''}" placeholder="Commentaire" onchange="${commentCall}" style="font-size:12px;padding:3px 5px;width:130px;color:#888"></td><td>${money(gardeRate(x.duree))}</td><td>${regleBadge(x.paid,toggleCall,'✓ RÉGLÉ','✗ RÉGLER')}</td><td>${valideBadge(x.valide,valideCall)}</td><td>${x.client}</td><td><button class="btn btn-xs btn-danger" onclick="${delCall}">✕</button></td></tr>`;}).join('')}</tbody></table></div>`;
+      <tbody>${rows.map(x=>{const dom=gDom(x.domaine);const toggleCall=x.source==='resa'?`toggleGardeNightPaid('${x.resaId}','${p.id}','${x.date}')`:`toggleGardeSchedulePaid('${x.schedId}')`;const methodCall=x.source==='resa'?`setGardeNightPayMethod('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeSchedulePayMethod('${x.schedId}',this.value)`;const dureeCall=x.source==='resa'?`setGardeNightDuree('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleDuree('${x.schedId}',this.value)`;const commentCall=x.source==='resa'?`setGardeNightComment('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleComment('${x.schedId}',this.value)`;const delCall=x.source==='resa'?`delGardeNight('${x.resaId}','${p.id}','${x.date}')`:`delGardePlanning('${x.schedId}')`;const valideCall=x.source==='resa'?`toggleGardeNightValide('${x.resaId}','${p.id}','${x.date}')`:`toggleGardeScheduleValide('${x.schedId}')`;return`<tr><td>${dn(x.date)} ${ds(x.date)}</td><td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td><td><select onchange="${dureeCall}" style="font-size:12px"><option value="courte" ${x.duree==='courte'?'selected':''}>Courte (22h-2h)</option><option value="longue" ${x.duree==='longue'?'selected':''}>Longue (22h-4h)</option></select></td><td><input type="text" value="${x.comment||''}" placeholder="Commentaire" onchange="${commentCall}" style="font-size:12px;padding:3px 5px;width:130px;color:#888"></td><td>${money(gardeRate(x.duree))}</td><td>${regleToggle(x.paid,toggleCall)}</td><td>${valideBadge(x.valide,valideCall)}</td><td>${x.client}</td><td><button class="btn btn-xs btn-danger" onclick="${delCall}">✕</button></td></tr>`;}).join('')}</tbody></table></div>`;
     return`<div id="bloc-garde" class="bilan-sec" style="border-color:#534AB7">${header}${enAttenteCount>0?`<div class="alert" style="background:#B15E00;color:#fff;font-weight:700;margin-bottom:10px;font-size:12.5px">⏳ ${enAttenteCount} nuit${enAttenteCount>1?'s':''} en attente de validation.</div>`:''}${body}</div>`;
   }
   const body=rows.length===0?'<div class="empty">Aucune nuit de gardiennage ce mois-ci.</div>':rows.map((x,xIdx)=>{const dom=gDom(x.domaine);return`<div style="padding:7px 4px;border-bottom:1px solid #f0eee8;font-size:12.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:${xIdx%2===1?'#f7f6f3':'transparent'}">
     <span class="pill ${PILL[dom.color||0]}" style="flex-shrink:0">${dom.name}</span>
     <span style="white-space:nowrap">${dn(x.date)} ${ds(x.date)}</span>
     <span style="color:#993556;font-weight:600;white-space:nowrap">${x.duree==='courte'?'Courte':'Longue'} · ${money(gardeRate(x.duree))}</span>
-    <span class="bb ${x.paid?'bb-good':'bb-bad'}">${x.paid?'✓ RÉGLÉ':'✗ PAS ENCORE RÉGLÉ'}</span>
     ${x.comment?`<span style="color:#534AB7;font-style:italic">${x.comment}</span>`:''}
     <span style="margin-left:auto">${valideBadge(x.valide,'')}</span>
   </div>`;}).join('');
@@ -1260,7 +1264,7 @@ function renderMenageSection(p,y,m){
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap">
         <input type="text" value="${(r.menageComment||'').replace(/"/g,'&quot;')}" placeholder="Note" onchange="updMenageComment('${r.id}',this.value)" style="flex:1;min-width:100px;font-size:12px;padding:3px 5px;color:#888">
-        ${regleBadge(!!r.menagePaid,isAdmin?`toggleMenagePaid('${r.id}')`:null,'✓ REÇU','✗ À RECEVOIR')}
+        ${isAdmin?regleToggle(!!r.menagePaid,`toggleMenagePaid('${r.id}')`):''}
         ${valideBadge(!!r.menageValide,`toggleMenageValide('${r.id}')`)}
       </div>
     </div>`;}).join('')}
@@ -1392,9 +1396,9 @@ function computeBilanTotal(p,y,m){
 }
 function bilanLigneRow(label,montant,sign,ancre){
   const isNeg=sign==='-';
-  return`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #E8B9CB;font-size:13.5px">
-    <span>${ancre?`<a href="#${ancre}" onclick="event.preventDefault();document.getElementById('${ancre}').scrollIntoView({behavior:'smooth',block:'start'})" style="color:#72243E;text-decoration:underline;font-weight:600">${label}</a>`:label}</span>
-    <strong style="color:${isNeg?'#A32D2D':'#1F7A3D'};font-size:14px">${isNeg?'− ':'+ '}${money(montant)}</strong>
+  return`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #F4C6D6;font-size:13px">
+    <span>${ancre?`<a href="#${ancre}" onclick="event.preventDefault();document.getElementById('${ancre}').scrollIntoView({behavior:'smooth',block:'start'})" style="color:#72243E;text-decoration:underline">${label}</a>`:label}</span>
+    <strong style="color:${isNeg?'#A32D2D':'#27500A'}">${isNeg?'− ':'+ '}${money(montant)}</strong>
   </div>`;
 }
 function renderBilanTotalSection(p,y,m){
@@ -1423,7 +1427,7 @@ function renderBilanTotalSection(p,y,m){
     </div>
     ${p.forfaitMensuel?`<div id="bloc-forfait" style="margin-top:10px;display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:8px;padding:8px 12px;scroll-margin-top:12px">
       <span style="font-size:12.5px">Forfait gardiennage fixe (${money(bt.forfaitDu)}) — montant constant, pas de validation de calcul nécessaire</span>
-      ${S.view==='admin'?regleBadge(bt.forfaitRecu,`toggleForfaitPaid('${p.id}','${bt.key}')`,'✓ RÉGLÉ','✗ RÉGLER'):regleBadge(bt.forfaitRecu,null,'✓ RÉGLÉ','✗ PAS ENCORE RÉGLÉ')}
+      ${S.view==='admin'?regleToggle(bt.forfaitRecu,`toggleForfaitPaid('${p.id}','${bt.key}')`):''}
     </div>`:''}
   </div>`;
 }
@@ -2350,13 +2354,13 @@ function renderAdmin(){
      donc les modifs réapparaissaient au retour sur l'app. On ne garde que la bannière bleue
      ci-dessous (renderNotifBanner), dont l'état « lu » est enregistré dans D.adminLastSeen. */
   var notifBanner='';
-  const _isSvitlanaTabs=S.admin&&S.admin.id==='a2';
-  const tabs=[['calendrier','📅','Planning'],['liste','🎉','Résa /<br>Visite'],...(_isSvitlanaTabs?[]:[['dernieres','🕓','Dernières<br>modifs']]),['prestataires','🧑‍🔧','Équipe<br>Domaines'],['bilan','📊','Bilan €'],['clientsExport','📇','Clients<br>/ Export']];
-  if(_isSvitlanaTabs&&S.tab==='dernieres')S.tab='calendrier';
+  /* « Dernières modifs » était masqué pour Svitlana (a2) — David a demandé explicitement
+     qu'elle le voie aussi, exactement comme lui : réintégré pour les deux comptes admin. */
+  const tabs=[['calendrier','📅','Planning'],['liste','🎉','Résa /<br>Visite'],['dernieres','🕓','Dernières<br>modifs'],['prestataires','🧑‍🔧','Équipe<br>Domaines'],['bilan','📊','Bilan €'],['clientsExport','📇','Clients<br>/ Export']];
   let content='';
   if(S.tab==='calendrier')content=renderCalendrier();
   else if(S.tab==='liste')content=renderListeMerged();
-  else if(S.tab==='dernieres'&&!_isSvitlanaTabs)content=renderDernieres();
+  else if(S.tab==='dernieres')content=renderDernieres();
   else if(S.tab==='prestataires')content=renderPrestaList();
   else if(S.tab==='bilan')content=renderBilan();
   else if(S.tab==='clientsExport')content=renderClientsExport();
@@ -2439,8 +2443,10 @@ function renderCalendrier(){
             ${D.domaines.filter(d=>!CAL_DOMAIN_FILTER||CAL_DOMAIN_FILTER.includes(d.id)).map(d=>{const hidden=(S.hiddenDomains||[]).includes(d.id);return`<span class="leg-item" style="cursor:pointer" onclick="toggleHiddenDomaine('${d.id}')" title="${hidden?'Cliquer pour afficher':'Cliquer pour masquer'} ${d.name}"><span class="leg-dot" style="background:${LEG_BG[d.color||0]};position:relative;display:inline-flex;align-items:center;justify-content:center">${hidden?'<span style="color:#000;font-size:9px;font-weight:800;line-height:1">✕</span>':''}</span>${d.name}</span>`;}).join('')}
           </div>
         </div>
+        ${readOnly?'':`<button class="cal-search-btn-big" style="font-size:15px" onclick="toggleCalSearch()" title="Rechercher une réservation (prénom, nom, société)">🔍</button>`}
         ${readOnly?'':`<button class="cal-plus-btn-big" onclick="openM('quickAdd')" title="Nouvelle réservation, visite ou prestation">+</button>`}
       </div>
+      ${(!readOnly&&S.calSearchOpen)?renderCalSearchBox():''}
       <div style="display:flex;align-items:flex-start;gap:2px">
         <div id="week-num-col" style="width:14px;flex-shrink:0"></div>
         <div class="cal-grid${S.calAnim?' cal-anim':''}${(S.admin&&S.admin.id==='a2')?' compact-cell':''}" id="cal-grid-main" style="flex:1;min-width:0">${gridHtml}</div>
@@ -2448,6 +2454,29 @@ function renderCalendrier(){
       <div style="margin-top:8px;font-size:11px;color:#888">${readOnly?'Clic sur une bande colorée = détail (lecture seule)':'Clic sur une case vide = nouvelle réservation · Clic sur une bande colorée = détail'}</div>
     </div>
     ${selR?`<div class="dp-backdrop" onclick="closePanel()"></div>${renderDetailPanel(selR)}`:''}
+  </div>`;
+}
+/* === Boîte de recherche de réservation (planning, David/Svitlana) : prénom / nom / société,
+   insensible aux accents et à la casse. Cliquer un résultat ouvre directement la fiche, au bon
+   mois du calendrier (via selectAndGoCal, déjà utilisé ailleurs dans l'appli pour ça). === */
+function renderCalSearchBox(){
+  const q=S.calSearchQuery||'';
+  const results=q.trim()?calSearchResults():[];
+  return`<div style="background:#fff;border:2px solid #993556;border-radius:10px;padding:10px 12px;margin-bottom:10px">
+    <input id="cal-search-input" type="text" value="${q.replace(/"/g,'&quot;')}" placeholder="Prénom, nom ou société…" autocomplete="off"
+      oninput="setCalSearchQuery(this.value)" style="width:100%;font-size:14px;padding:7px 9px;box-sizing:border-box">
+    ${q.trim()?`<div style="margin-top:8px;max-height:320px;overflow-y:auto">
+      ${results.length===0?'<div style="font-size:12.5px;color:#888;padding:6px 2px">Aucune réservation ne correspond.</div>':results.map(r=>{
+        const dom=gDom(r.domaine);
+        return`<div onclick="calSearchSelect('${r.id}')" style="display:flex;align-items:center;gap:8px;padding:7px 6px;border-bottom:1px solid #f0eee8;cursor:pointer;flex-wrap:wrap" onmouseover="this.style.background='#faf9f7'" onmouseout="this.style.background=''">
+          <span class="pill ${PILL[dom.color||0]}" style="flex-shrink:0">${dom.name}</span>
+          <span style="font-weight:500;font-size:13px">${displayClientName(r)||'—'}</span>
+          ${(r.typeClient==='entreprise'&&r.client&&r.client!==r.societe)?`<span style="font-size:11px;color:#888">(${r.client})</span>`:''}
+          <span style="font-size:11.5px;color:#888;margin-left:auto;white-space:nowrap">${ds(r.dateArrivee)}</span>
+          <span class="status s-${r.status}" style="flex-shrink:0">${r.status}</span>
+        </div>`;
+      }).join('')}
+    </div>`:''}
   </div>`;
 }
 
@@ -5575,6 +5604,22 @@ function selectResa(rid,e){if(e)e.stopPropagation();S.selResa=rid;render();}
 function openNewResaOnDate(date){openM('newResa',null,{prefDate:date});}
 function openDayMenu(date){openM('dayMenu',null,{prefDate:date});}
 function selectAndGoCal(rid){const r=D.reservations.find(x=>x.id===rid);if(!r)return;const d=r.dateArrivee||r.date;const[y,m]=d.split('-');S.calYear=parseInt(y);S.calMonth=parseInt(m)-1;S.selResa=rid;S.tab='calendrier';render();}
+/* === Recherche de réservation depuis le planning (David/Svitlana uniquement) — par prénom, nom,
+   société. Insensible aux accents/majuscules ; chaque mot tapé doit se retrouver quelque part
+   dans les champs du client (ET logique, pas juste le premier mot). === */
+function normSearch(s){return(s||'').toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();}
+function toggleCalSearch(){S.calSearchOpen=!S.calSearchOpen;if(!S.calSearchOpen)S.calSearchQuery='';render();setTimeout(()=>{const el=document.getElementById('cal-search-input');if(el)el.focus();},0);}
+function setCalSearchQuery(v){S.calSearchQuery=v;render();}
+function calSearchResults(){
+  const q=normSearch(S.calSearchQuery);
+  if(!q)return[];
+  const words=q.split(/\s+/).filter(Boolean);
+  return D.reservations.filter(r=>{
+    const hay=normSearch([r.prenom1,r.nom1,r.prenom2,r.nom2,r.societe,r.client].filter(Boolean).join(' '));
+    return words.every(w=>hay.includes(w));
+  }).sort((a,b)=>(b.dateArrivee||'').localeCompare(a.dateArrivee||'')).slice(0,25);
+}
+function calSearchSelect(rid){S.calSearchOpen=false;S.calSearchQuery='';selectAndGoCal(rid);}
 function stampChange(r,msg){
   r.updatedAt=Date.now();
   r.lastChange=msg;
