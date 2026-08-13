@@ -1474,31 +1474,30 @@ function computeBilanTotal(p,y,m){
   const enAttente=menageEnAttente+compEnAttente+elecEnAttente+travEnAttente+gardeEnAttente;
   return{key,forfaitDu,forfaitRecu,menageDu,menageRecu,menageEnAttente,compDu,compLignes,compEnAttente,travDu,travLignes,travEnAttente,gardeDu,gardeRecu,gardeLignes,gardeEnAttente,elecCost,elecEnAttente,totalDu,totalRecu,totalReste,enAttente};
 }
-/* Détail des sous-totaux "Prestations avec commission" pour le Bilan total : regroupe les
-   lignes du mois par mode de règlement (via DS/cash nous — avec la retenue de 15% pour
-   Misha/Sasha —, via structure/Ozarco, cash direct au prestataire), pour qu'on voie d'un coup
-   d'œil d'où vient chaque montant, ce qui part en frais de structure, et ce que la commission
-   retire, avant d'arriver au net. */
+/* Détail des sous-totaux "Prestations avec commission" pour le Bilan total : une petite ligne
+   par réservation (date, nom du client, montant de la prestation pour ce prestataire), puis en
+   dessous les totaux — montant brut, 15% de frais de structure retenus (Misha/Sasha via DS),
+   et la commission — pour qu'on voie d'un coup d'œil d'où vient chaque montant et ce qui part
+   en frais/commission avant d'arriver au net. */
 function computeCommissionBreakdown(p,y,m){
-  const groups={};
+  const lines=[];
   let totalBrut=0,totalFiscal=0,totalCommission=0,totalNet=0;
   D.reservations.filter(r=>r.status!=='annulé'&&r.prestaLines&&r.prestaLines[p.id]&&r.prestaLines[p.id].length).forEach(r=>{
     const d=r.dateArrivee||r.date;if(!d)return;const[ry,rm]=d.split('-').map(Number);if(!(ry===y&&rm===(m+1)))return;
+    let resaMontant=0;
     r.prestaLines[p.id].forEach(l=>{
       const c=ligneCalc(l,p.id);
-      const via=viaOf(l);
-      const groupKey=(via==='ds'||via==='cash_ds')?'ds':(via==='structure'?'structure':'cash_presta');
-      const groupLabel=groupKey==='ds'?'Via DS / cash nous':(groupKey==='structure'?`Via Ozarco (${p.name} payé)`:`Cash direct à ${p.name}`);
-      if(!groups[groupKey])groups[groupKey]={label:groupLabel,montant:0,count:0};
-      groups[groupKey].montant+=c.montant;groups[groupKey].count++;
+      resaMontant+=c.montant;
       totalBrut+=c.montant;
       totalFiscal+=c.fiscalRetenu||0;
       totalCommission+=c.commissionApplied||0;
       totalNet+=c.net;
     });
+    lines.push({date:d,name:displayClientName(r)||r.client||gDom(r.domaine).name,montant:Math.round(resaMontant*100)/100});
   });
+  lines.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
   return{
-    groups:Object.values(groups).map(g=>({...g,montant:Math.round(g.montant*100)/100})),
+    lines,
     totalBrut:Math.round(totalBrut*100)/100,
     totalFiscal:Math.round(totalFiscal*100)/100,
     totalCommission:Math.round(totalCommission*100)/100,
@@ -1508,10 +1507,10 @@ function computeCommissionBreakdown(p,y,m){
 function renderCommissionBreakdownRow(p,y,m,bt){
   const mainRow=bilanLigneRow('Prestations avec commission (net)',Math.abs(bt.compDu),bt.compDu<0?'-':'+','bloc-commission');
   const cb=computeCommissionBreakdown(p,y,m);
-  if(cb.groups.length===0)return mainRow;
+  if(cb.lines.length===0)return mainRow;
   const sub=`<div style="padding:2px 0 8px 10px;margin-top:-4px;margin-bottom:2px;border-bottom:1px solid #F4C6D6;font-size:10.5px;color:#A9527A">
-    <div>Montant brut : <strong>${money(cb.totalBrut)}</strong></div>
-    ${cb.groups.map(g=>`<div>· ${g.label} (${g.count}) : ${money(g.montant)}</div>`).join('')}
+    ${cb.lines.map(l=>`<div>· ${ds(l.date)} — ${l.name} : ${money(l.montant)}</div>`).join('')}
+    <div style="margin-top:3px">Montant brut : <strong>${money(cb.totalBrut)}</strong></div>
     ${cb.totalFiscal>0?`<div>− 15% frais de structure : ${money(cb.totalFiscal)}</div>`:''}
     <div>− Commission : ${money(cb.totalCommission)}</div>
   </div>`;
@@ -1692,11 +1691,22 @@ function buildBands(y,m){
       else visArr=departingPartnerIsJ?16:13.9; // partenaire mono-jour : on arrive à 16h, il garde sa matinée/après-midi ; sinon léger resserrage
       if(!hasChangeoverAtDeparture)visDep=21;
       else visDep=isJ?15:13.1; // r mono-jour : représentation 8h-15h ; sinon léger resserrage
-      // Badge P : uniquement Misha(p1)/Sasha(p2) ou caviste/prestation extérieure
+      /* Badge P : côté admin (David/Svitlana), visible dès que Misha OU Sasha (ou un caviste/
+         prestataire extérieur) est concerné — peu importe lequel. Côté personnel (Misha/Sasha
+         connectés chacun sur leur propre planning), le badge n'apparaît QUE quand C'EST LUI/ELLE
+         qui est concerné(e) — jamais pour l'autre — pour que chacun ne voie que ses propres
+         prestations. Les autres prestataires (Pascaline, Sébastien…) ne voient jamais ce badge. */
       const currentPid=S.presta?S.presta.id:null;
-      const mishaSashaInPresta=(r.prestataires||[]).some(pid=>pid==='p1'||pid==='p2');
-      const hasExtOrCav=!!(r.caviste&&r.caviste.trim())||!!(r.prestasExterieurs&&r.prestasExterieurs.length>0);
-      const hasPresta=(mishaSashaInPresta||hasExtOrCav)&&(!currentPid||currentPid==='p1'||currentPid==='p2');
+      let hasPresta;
+      if(currentPid==='p1'||currentPid==='p2'){
+        hasPresta=(r.prestataires||[]).includes(currentPid);
+      } else if(!currentPid){
+        const mishaSashaInPresta=(r.prestataires||[]).some(pid=>pid==='p1'||pid==='p2');
+        const hasExtOrCav=!!(r.caviste&&r.caviste.trim())||!!(r.prestasExterieurs&&r.prestasExterieurs.length>0);
+        hasPresta=mishaSashaInPresta||hasExtOrCav;
+      } else {
+        hasPresta=false;
+      }
       const incompleteContact=hasIncompleteContact(r);
       bands.push({rid:r.id,slot,row:fc.row,colStart:fc.col,spanCols:lc.col-fc.col+1,shapeClass:sc,nameTxt,timeArr,timeDep,mainLine,bandCls:bc,optCls:oc,isJ,isPaid:payStatus(r)==='full',isPartPaid:payStatus(r)==='part',isFirstRow:ifr,isLastRow:ilr,hA:hArr,hD:hDep,visA:visArr,visD:visDep,colorIdx:c,hasPresta,incompleteContact,isMeal:r.typeEvenement==='Déjeuner / Dîner'});
     });
@@ -2275,20 +2285,20 @@ function injectBands(){
        décalée vers le haut, l'heure de départ légèrement vers le bas (pas centrées). Pas d'heure
        affichée pour les repas (déjeuner/dîner) : ça n'apporte rien pour ce type d'événement. */
     const _hourMargin=13;
-    // Badge P bleu — logé juste devant la bande (comme l'heure d'arrivée), jamais dedans.
-    const _pMargin=9;
-    const _showP=!!b.hasPresta&&S.view!=='presta';
+    // Badge P bleu ciel — logé dans la même colonne que l'heure d'arrivée, mais EN DESSOUS
+    // (empilé verticalement), jamais à côté ni dedans la bande.
+    const _showP=!!b.hasPresta;
     const _showArrLbl=!b.isMeal&&(b.shapeClass==='band-start'||b.shapeClass==='band-startend')&&!!timeArrF0;
     const _showDepLbl=!b.isMeal&&(b.shapeClass==='band-end'||b.shapeClass==='band-startend')&&!!timeDepF0;
     let _renderLeft=leftPx,_renderWidth=widthPx;
     const _minBandW=26;
     let _applyArr=_showArrLbl,_applyDep=_showDepLbl,_applyP=_showP;
-    if(_applyArr||_applyDep||_applyP){
-      const _shrink=(_applyP?_pMargin:0)+(_applyArr?_hourMargin:0)+(_applyDep?_hourMargin:0);
-      if(widthPx-_shrink<_minBandW){_applyArr=false;_applyDep=false;_applyP=false;} // pas assez de place : on garde la bande pleine largeur
+    let _applyLeftCol=_applyArr||_applyP;
+    if(_applyLeftCol||_applyDep){
+      const _shrink=(_applyLeftCol?_hourMargin:0)+(_applyDep?_hourMargin:0);
+      if(widthPx-_shrink<_minBandW){_applyLeftCol=false;_applyArr=false;_applyDep=false;_applyP=false;} // pas assez de place : on garde la bande pleine largeur
       else{
-        if(_applyP){_renderLeft+=_pMargin;_renderWidth-=_pMargin;}
-        if(_applyArr){_renderLeft+=_hourMargin;_renderWidth-=_hourMargin;}
+        if(_applyLeftCol){_renderLeft+=_hourMargin;_renderWidth-=_hourMargin;}
         if(_applyDep){_renderWidth-=_hourMargin;}
       }
     }
@@ -2361,24 +2371,24 @@ function injectBands(){
     if(!STRIP_BAND_INFO)div.onclick=ev=>{ev.stopPropagation();selectResa(b.rid,ev);};
     else div.style.cursor='default';
     grid.appendChild(div);
-    if(_applyP){
-      const lblP=document.createElement('div');
-      lblP.style.position='absolute';lblP.style.top=topPx+'px';lblP.style.left=leftPx+'px';lblP.style.width=_pMargin+'px';lblP.style.height=_bandH+'px';
-      lblP.style.display='flex';lblP.style.alignItems='center';lblP.style.justifyContent='center';lblP.style.boxSizing='border-box';
-      lblP.style.fontWeight='800';lblP.style.fontSize='8px';lblP.style.color='#2E86C1';lblP.style.pointerEvents='none';lblP.style.zIndex='3';lblP.style.overflow='hidden';
-      lblP.className='band-p-badge';
-      lblP.dataset.rid=b.rid;
-      lblP.textContent='P';
-      grid.appendChild(lblP);
-    }
-    if(_applyArr){
-      const lblA=document.createElement('div');
-      lblA.style.position='absolute';lblA.style.top=(topPx-1)+'px';lblA.style.left=(leftPx+(_applyP?_pMargin:0))+'px';lblA.style.width=_hourMargin+'px';lblA.style.height=_bandH+'px';
-      lblA.style.display='flex';lblA.style.alignItems='flex-start';lblA.style.justifyContent='flex-end';lblA.style.paddingRight='1px';lblA.style.boxSizing='border-box';
-      lblA.style.fontWeight='700';lblA.style.color=_cornerColor;lblA.style.pointerEvents='none';lblA.style.zIndex='3';lblA.style.overflow='hidden';
-      const _hIdxA=timeArrF0.indexOf('h');
-      lblA.innerHTML=_hIdxA>=0?`<span style="font-size:7px">${timeArrF0.slice(0,_hIdxA)}</span><span style="font-size:5px">${timeArrF0.slice(_hIdxA)}</span>`:`<span style="font-size:7px">${timeArrF0}</span>`;
-      grid.appendChild(lblA);
+    if(_applyLeftCol){
+      // Colonne unique à gauche de la bande : l'heure d'arrivée en haut, le badge P bleu ciel
+      // juste en dessous (empilés verticalement, jamais côte à côte) — seulement quand chacun
+      // des deux est pertinent pour cette bande.
+      const lblL=document.createElement('div');
+      lblL.style.position='absolute';lblL.style.top=(topPx-1)+'px';lblL.style.left=leftPx+'px';lblL.style.width=_hourMargin+'px';lblL.style.height=_bandH+'px';
+      lblL.style.display='flex';lblL.style.flexDirection='column';lblL.style.alignItems='flex-end';lblL.style.justifyContent='flex-start';lblL.style.paddingRight='1px';lblL.style.boxSizing='border-box';
+      lblL.style.pointerEvents='none';lblL.style.zIndex='3';lblL.style.overflow='hidden';
+      let _leftColHtml='';
+      if(_applyArr){
+        const _hIdxA=timeArrF0.indexOf('h');
+        _leftColHtml+=_hIdxA>=0?`<span style="font-weight:700;color:${_cornerColor};font-size:7px;line-height:1;display:block"><span style="font-size:7px">${timeArrF0.slice(0,_hIdxA)}</span><span style="font-size:5px">${timeArrF0.slice(_hIdxA)}</span></span>`:`<span style="font-weight:700;color:${_cornerColor};font-size:7px;line-height:1;display:block">${timeArrF0}</span>`;
+      }
+      if(_applyP){
+        _leftColHtml+=`<span class="band-p-badge" data-rid="${b.rid}" style="font-weight:800;color:#38BDF8;font-size:${_applyArr?'6px':'7px'};line-height:1;display:block;margin-top:${_applyArr?'1px':'0'}">P</span>`;
+      }
+      lblL.innerHTML=_leftColHtml;
+      grid.appendChild(lblL);
     }
     if(_applyDep){
       const lblD=document.createElement('div');
@@ -3299,6 +3309,21 @@ function renderBilanGeneral(){
     if(x.paid)gardeByP[x.pid].paid+=amt;
   });
   const gardeRows=Object.entries(gardeByP);
+  /* Électricité (Misha) — déduite de son dû dans son propre bilan, mais absente de cette vue
+     d'ensemble jusqu'ici : on l'ajoute pour que "ce que nous voyons de lui" montre bien tout. */
+  const elecRows=D.prestataires.filter(p=>p.electricite).map(p=>{
+    let totalConso=0,totalCost=0,monthsCount=0;
+    if(viewMode==='year'){
+      for(let mm=0;mm<12;mm++){
+        const ec=computeElecCost(p.id,y,mm);
+        if(ec.conso!==null){totalConso+=ec.conso;totalCost+=ec.cost;monthsCount++;}
+      }
+    } else {
+      const ec=computeElecCost(p.id,y,m);
+      if(ec.conso!==null){totalConso=ec.conso;totalCost=ec.cost;monthsCount=1;}
+    }
+    return{name:p.name,totalConso:Math.round(totalConso*100)/100,totalCost:Math.round(totalCost*100)/100,monthsCount};
+  }).filter(x=>x.monthsCount>0);
   return`<div class="cal-header" style="margin-bottom:10px">
     ${viewMode==='month'?monthYearPicker('bilanYear','bilanMonth'):`<span style="display:inline-flex;align-items:center;gap:4px"><button class="cal-nav" onclick="navYearOnly('bilanYear',-1)">‹</button><span class="month-label" style="width:88px;text-align:center">${y}</span><button class="cal-nav" onclick="navYearOnly('bilanYear',1)">›</button></span>`}
   </div>
@@ -3358,6 +3383,13 @@ function renderBilanGeneral(){
     ${gardeRows.length===0?'<div class="empty">Aucun gardiennage sur cette période.</div>':''}
     ${gardeRows.length>0?`<table class="list-tbl"><thead><tr><th>Prestataire</th><th>Nb nuits</th><th>Total dû</th><th>Payé</th><th>Reste à payer</th></tr></thead>
     <tbody>${gardeRows.map(([pid,v])=>`<tr><td>${v.name}</td><td style="text-align:center">${v.count}</td><td style="font-weight:500">${money(v.total)}</td><td style="color:#27500A">${money(v.paid)}</td><td style="font-weight:600;color:${v.total-v.paid>0?'#A32D2D':'#27500A'}">${money(v.total-v.paid)}</td></tr>`).join('')}</tbody></table>`:''}
+  </div>
+  <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
+    <div class="sec-hdr"><h2>⚡ Électricité — déduite du dû, suivie à part</h2></div>
+    <div style="font-size:11px;color:#888;margin-bottom:8px">Montant déduit de ce qu'on doit au prestataire (voir le détail dans son propre bilan).</div>
+    ${elecRows.length===0?'<div class="empty">Aucun index électricité renseigné sur cette période.</div>':''}
+    ${elecRows.length>0?`<table class="list-tbl"><thead><tr><th>Prestataire</th><th>Consommation</th><th>Montant déduit</th></tr></thead>
+    <tbody>${elecRows.map(x=>`<tr><td>${x.name}</td><td style="text-align:center">${x.totalConso} kWh</td><td style="font-weight:600;color:#A32D2D">${money(x.totalCost)}</td></tr>`).join('')}</tbody></table>`:''}
   </div>
   <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
     <div class="sec-hdr"><h2>Détail par événement (prestations avec commission)</h2></div>
@@ -3505,7 +3537,9 @@ function renderPrestaDetailAdmin(p){
     </div>`;
   }
 
-  const bilanTotalSection=renderBilanTotalSection(p,y,m);
+  // Pas de "Bilan total" séparé pour Sébastien/Mathilde (gardiennage uniquement) : le total est
+  // déjà dans la section Gardiennage — même règle que côté personnel.
+  const bilanTotalSection=p.inputMode==='garde'?'':renderBilanTotalSection(p,y,m);
   const elecSection=renderElecSection(p,y,m);
   const commentsSection=renderBilanComments(p,y,m);
   const allEmpty=!menageSection&&!gardeSection&&!commSection&&!travauxSection&&!dominiqueSection&&!bilanTotalSection&&!elecSection;
@@ -5617,8 +5651,10 @@ function renderPrestaGardePersonnel(p){
     content=renderGardePlanningCalendar(p);
   } else if(tab==='monbilan'){
     const y=S.prestaBilanYear,m=S.prestaBilanMonth;
+    // Pas de "Bilan total" séparé pour Sébastien/Mathilde : ils n'ont que du gardiennage, dont
+    // le total est déjà dans la section Gardiennage juste en dessous — un second total ferait
+    // doublon.
     content=`<div class="cal-header" style="margin-bottom:14px">${monthYearPicker('prestaBilanYear','prestaBilanMonth')}</div>
-    ${renderBilanTotalSection(p,y,m)}
     ${renderBilanComments(p,y,m)}
     ${renderGardeSection(p,y,m)}`;
   } else {
