@@ -1027,14 +1027,18 @@ function gardeRate(duree){return duree==='longue'?110:75;}
    cash_ds      : payé en cash directement à nous
    La commission s'applique dans tous les cas, cash inclus (confirmé avec David). Le taux par
    défaut est 10%, mais reste modifiable ligne par ligne (l.commission, en %).
-   Cas particulier Misha : quand une prestation qui lui revient en réalité est réglée via nous
-   ('ds'/'cash_ds'), on retient d'abord 15% de frais de structure, PUIS la commission sur ce qui
-   reste (ex. 1000€ → 850€ après 15% → 765€ net pour Misha après 10% de commission sur 850€ —
-   validé avec David). Quand il facture lui-même ('structure') une partie qui nous revient (ex.
-   de l'alcool acheté par nous), il la reverse en gardant 14% de charges (l.notrePart). */
-const VIA_OPTIONS_STRUCTURE=[['ds','Via DS (nous sommes payés)'],['structure','Via sa structure (Ozarco)'],['cash_presta','Cash au prestataire'],['cash_ds','Cash à nous (DS)']];
-const VIA_OPTIONS_SIMPLE=[['ds','Via DS (nous sommes payés)'],['cash_presta','Cash au prestataire'],['cash_ds','Cash à nous (DS)']];
-function viaOptions(pid){return pid==='p1'?VIA_OPTIONS_STRUCTURE:VIA_OPTIONS_SIMPLE;}
+   Cas particulier Misha ET Sasha : quand une prestation qui leur revient en réalité est réglée
+   via nous ('ds'/'cash_ds'), on retient d'abord 15% de frais de structure, PUIS la commission
+   sur ce qui reste (ex. 1000€ → 850€ après 15% → 765€ net après 10% de commission sur 850€ —
+   validé avec David). 'structure' (facturation Ozarco) reste réservé à Misha ; quand il facture
+   lui-même une partie qui nous revient (ex. de l'alcool acheté par nous), il la reverse en
+   gardant 14% de charges (l.notrePart). */
+function viaOptions(pid){
+  const name=(gPre(pid)||{}).name||'';
+  if(pid==='p1')return[['ds','Via DS (nous sommes payés)'],['structure',`Via Ozarco (${name} payé)`],['cash_presta',`Cash ${name}`],['cash_ds','Cash nous']];
+  if(pid==='p2')return[['ds','Via DS (nous sommes payés)'],['cash_presta',`Cash ${name}`],['cash_ds','Cash nous']];
+  return[['ds','Via DS (nous sommes payés)'],['cash_presta','Cash au prestataire'],['cash_ds','Cash à nous (DS)']];
+}
 function viaOf(l){return l.via||(l.paidDirect?'cash_presta':'ds');}
 function viaLabel(pid,via){const opt=viaOptions(pid).find(o=>o[0]===via);return opt?opt[1]:'Via DS (nous sommes payés)';}
 function viaSelectHtml(rid,pid,lid,via,extraStyle){
@@ -1048,11 +1052,11 @@ function ligneCalc(l,pid){
   const commission=Math.round(montant*tauxCommission*100)/100;
   let duToPresta=0,duANous=0,detail='';
   if(via==='ds'||via==='cash_ds'){
-    if(pid==='p1'){
+    if(pid==='p1'||pid==='p2'){
       const apresFiscal=Math.round(montant*(1-MISHA_FISCAL_RATE)*100)/100;
       const commissionSurReste=Math.round(apresFiscal*tauxCommission*100)/100;
       duToPresta=Math.round((apresFiscal-commissionSurReste)*100)/100;
-      detail=`${money(montant)} − 15% (frais de structure) = ${money(apresFiscal)}, − ${Math.round(tauxCommission*100)}% commission = ${money(duToPresta)} net pour Misha`;
+      detail=`${money(montant)} − 15% (frais de structure) = ${money(apresFiscal)}, − ${Math.round(tauxCommission*100)}% commission = ${money(duToPresta)} net pour ${gPre(pid).name}`;
     } else {
       duToPresta=Math.round((montant-commission)*100)/100;
       detail=`${money(montant)} − ${Math.round(tauxCommission*100)}% commission = ${money(duToPresta)} net pour ${gPre(pid).name}`;
@@ -1093,6 +1097,54 @@ function toggleLigneValide(rid,pid,lid){
   logActivity('prestation',r.domaine,`Prestation ${l.valide?'validée':'validation annulée'} : ${l.label||'—'}${l.montant?' · '+money(l.montant):''}`,[],false,rid);
   saveD();render();
 }
+/* === Ajout d'une prestation avec commission directement depuis le bilan (sans repasser par
+   la réservation) — utilisable par Misha/Sasha eux-mêmes ET par David/Svitlana. La ligne reste
+   rattachée à une réservation existante (choisie dans la liste déroulante), comme le veut le
+   modèle de données. Quand c'est David/Svitlana qui l'ajoute, elle est validée d'office (ils
+   sont la source de confiance) ; quand c'est le prestataire, elle part en attente de validation
+   comme avant — dans les deux cas la pastille de validation reste cliquable pour changer d'avis. */
+function toggleAddPrestaLine(pid){S.addPrestaLineOpen=(S.addPrestaLineOpen===pid)?null:pid;render();}
+function renderAddPrestaLineForm(p){
+  const doms=p.domaines||[];
+  const resas=D.reservations.filter(r=>r.status!=='annulé'&&(doms.length===0||doms.includes(r.domaine))).sort((a,b)=>(b.dateArrivee||'').localeCompare(a.dateArrivee||'')).slice(0,80);
+  const opts=resas.map(r=>`<option value="${r.id}">${fmt(r.dateArrivee)} — ${(displayClientName(r)||r.client||gDom(r.domaine).name).replace(/"/g,'&quot;')}</option>`).join('');
+  const vOpts=viaOptions(p.id).map(([v,lbl])=>`<option value="${v}">${lbl}</option>`).join('');
+  return`<div style="background:#f5f4f1;border-radius:8px;padding:8px;margin-top:8px;display:flex;flex-direction:column;gap:6px">
+    <select id="apl-resa-${p.id}" style="font-size:12.5px;padding:5px 6px">${opts||'<option value="">Aucune réservation disponible</option>'}</select>
+    <div style="display:flex;gap:5px;flex-wrap:wrap">
+      <input type="text" id="apl-lbl-${p.id}" placeholder="Intitulé (ex. Traiteur)" style="flex:1;min-width:110px;font-size:12.5px;padding:5px 6px">
+      <span style="display:flex;align-items:center;gap:2px"><input type="number" id="apl-amt-${p.id}" placeholder="Montant" style="width:75px;font-size:12.5px;padding:5px 6px"><span style="font-size:11px;color:#666">€</span></span>
+    </div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+      <select id="apl-via-${p.id}" style="font-size:11px;padding:5px 6px">${vOpts}</select>
+      <span style="display:flex;align-items:center;gap:2px;font-size:11px;color:#888"><input type="number" id="apl-comm-${p.id}" value="10" style="width:44px;font-size:11px;padding:4px 5px">% commission</span>
+    </div>
+    <input type="text" id="apl-note-${p.id}" placeholder="Note (optionnel)" style="font-size:12px;padding:5px 6px">
+    <button class="btn btn-sm btn-primary" onclick="submitAddPrestaLine('${p.id}')">Ajouter la prestation</button>
+  </div>`;
+}
+function submitAddPrestaLine(pid){
+  const rid=(document.getElementById('apl-resa-'+pid)||{}).value;
+  if(!rid){alert('Choisissez une réservation à laquelle rattacher cette prestation.');return;}
+  const r=D.reservations.find(x=>x.id===rid);if(!r)return;
+  const label=(document.getElementById('apl-lbl-'+pid)||{}).value||'';
+  const montant=parseFloat((document.getElementById('apl-amt-'+pid)||{}).value)||0;
+  const via=(document.getElementById('apl-via-'+pid)||{}).value||'ds';
+  const commissionVal=(document.getElementById('apl-comm-'+pid)||{}).value;
+  const commission=commissionVal===''?10:parseFloat(commissionVal);
+  const notes=(document.getElementById('apl-note-'+pid)||{}).value||'';
+  if(!label&&!montant){alert('Ajoutez au moins un intitulé ou un montant.');return;}
+  if(!r.prestaLines)r.prestaLines={};
+  if(!r.prestaLines[pid])r.prestaLines[pid]=[];
+  const isAdmin=S.view==='admin';
+  r.prestaLines[pid].push({id:gid(),label,montant,paidDirect:via!=='ds'&&via!=='cash_ds',via,commission:isNaN(commission)?10:commission,notes,date:r.dateArrivee||'',valide:isAdmin});
+  const p=gPre(pid);
+  logActivity('prestation',r.domaine,`Prestation ajoutée : ${label||'—'}${montant?' · '+money(montant):''} — ${p.name} (${displayClientName(r)||'—'})`,[pid],false,rid);
+  saveD();
+  S.addPrestaLineOpen=null;
+  showMsg('Prestation ajoutée ✓');
+  render();
+}
 /* === Section "Prestations avec commission" — partagée entre la page perso du prestataire
    (Misha/Sasha peuvent déclarer leurs lignes) et la page admin (David/Svitlana valident ou
    corrigent). L'affichage et les droits de saisie sont identiques ; seule la validation du
@@ -1106,6 +1158,10 @@ function renderCommissionSection(p,y,m){
   return`<div id="bloc-commission" class="bilan-sec" style="border-color:#7A5800">
     <div class="sec-hdr" style="background:#7A5800"><h2>🧾 Prestations avec commission — ${MONTHS_FR[m]} ${y}</h2></div>
     <div style="font-size:11px;color:#888;margin-bottom:10px">Choisissez comment le client a réglé (via DS, via structure, cash…) — le calcul se met à jour automatiquement. ${isAdmin?'Validez-le, ou corrigez le montant si besoin.':'David/Svitlana valide ensuite le calcul.'}</div>
+    <div style="margin-bottom:10px">
+      <button class="btn btn-sm btn-primary" onclick="toggleAddPrestaLine('${p.id}')">${S.addPrestaLineOpen===p.id?'✕ Annuler':'+ Ajouter une prestation'}</button>
+      ${S.addPrestaLineOpen===p.id?renderAddPrestaLineForm(p):''}
+    </div>
     ${rows.length===0?'<div class="empty">Aucune prestation ce mois-ci.</div>':''}
     ${rows.map(({r,lines,sousTotal},rIdx)=>{const dom=gDom(r.domaine);return`<div style="padding:8px 8px;margin:0 -8px 6px;border-bottom:1px solid #e5e3de;background:${rIdx%2===1?'#f7f6f3':'transparent'}">
       <div style="font-weight:500;font-size:13px;margin-bottom:6px">${r.client||dom.name}${r.typeClient==='entreprise'&&r.societe?` <span style="color:#888;font-weight:400">(${r.societe})</span>`:''} — <span class="pill ${PILL[dom.color||0]}">${dom.name}</span> · ${ds(r.dateArrivee)}</div>
@@ -2193,7 +2249,7 @@ function injectBands(){
           topParts.push('<span style="font-weight:800">'+b.nameTxt+'</span>');
         } else {
           const nameStyle='font-weight:800'+(b.incompleteContact?';text-decoration:underline dotted #FFE066;text-decoration-thickness:1.5px;text-underline-offset:2px':'');
-          topParts.push(dotHtml+fullHtml+'<span style="'+nameStyle+'">'+b.nameTxt+'</span>');
+          topParts.push(dotHtml+fullHtml+'<span style="'+nameStyle+'">'+b.nameTxt+'</span>'+pBadge);
         }
       }
       if(b.mainLine)topParts.push(b.mainLine);
