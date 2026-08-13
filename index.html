@@ -597,7 +597,7 @@ function runMigrations(){
   if(!D.elecValide)D.elecValide={};
   if(!D.bilanComments)D.bilanComments=[];
   if(!D.deletedIds)D.deletedIds={};
-  ['resa','visite','travaux','garde','dominique','message','comment','paiement','bilanComment','prestaLine'].forEach(k=>{if(!D.deletedIds[k])D.deletedIds[k]=[];});
+  ['resa','visite','travaux','garde','dominique','message','comment','paiement','bilanComment','prestaLine','elecIndex'].forEach(k=>{if(!D.deletedIds[k])D.deletedIds[k]=[];});
   // Corrige les anciennes réservations où le domaine du gardiennage enregistré ne correspond
   // plus au domaine réel/actuel de la réservation (ex : la réservation a changé de domaine
   // après coup). Le lieu du gardiennage doit toujours suivre le domaine de la réservation.
@@ -731,11 +731,17 @@ function mergePrestaLinesMap(remotePL,localPL,deletedIds){
 }
 /* Fusionne une map à deux niveaux (ex. {p1:{'2026-07':88641}}) sans jamais écraser en bloc :
    pour chaque prestataire, chaque mois local l'emporte sur le mois distant s'il existe des
-   deux côtés, mais aucun des deux jeux de valeurs n'est perdu. */
-function mergeFlatMap(remoteMap,localMap){
+   deux côtés, mais aucun des deux jeux de valeurs n'est perdu. Un troisième paramètre optionnel
+   (deletedKeys, un Set de "pid__moisClé") retire définitivement une entrée volontairement
+   supprimée (ex. un index électricité effacé) — même logique de suppression définitive que
+   markDeleted/mergeById pour les autres types de données. */
+function mergeFlatMap(remoteMap,localMap,deletedKeys){
   const out={};
   const pids=new Set([...Object.keys(remoteMap||{}),...Object.keys(localMap||{})]);
-  pids.forEach(pid=>{out[pid]=Object.assign({},(remoteMap||{})[pid],(localMap||{})[pid]);});
+  pids.forEach(pid=>{
+    out[pid]=Object.assign({},(remoteMap||{})[pid],(localMap||{})[pid]);
+    if(deletedKeys&&deletedKeys.size)Object.keys(out[pid]).forEach(mk=>{if(deletedKeys.has(pid+'__'+mk))delete out[pid][mk];});
+  });
   return out;
 }
 /* SUPPRESSIONS DÉFINITIVES — au lieu d'un simple Set en mémoire (perdu au rechargement de la
@@ -749,6 +755,14 @@ function markDeleted(type,id){
   if(!D.deletedIds)D.deletedIds={};
   if(!D.deletedIds[type])D.deletedIds[type]=[];
   if(!D.deletedIds[type].includes(id))D.deletedIds[type].push(id);
+}
+/* Annule une suppression : utilisé quand une donnée précédemment supprimée (ex. un index
+   électricité effacé) est ré-saisie — sinon la fusion continuerait à re-supprimer la nouvelle
+   valeur indéfiniment, croyant qu'il s'agit toujours de l'ancienne suppression. */
+function unmarkDeleted(type,id){
+  if(!D.deletedIds||!D.deletedIds[type])return;
+  const i=D.deletedIds[type].indexOf(id);
+  if(i>=0)D.deletedIds[type].splice(i,1);
 }
 function mergeDeletedIds(remote,local){
   const out={};
@@ -778,7 +792,7 @@ function mergeRemoteSnapshot(remote){
   merged.messages=mergeById(remote.messages,D.messages,del('message'));
   merged.adminLastSeen=mergeSeen(D.adminLastSeen,remote.adminLastSeen);
   merged.prestaLastSeen=mergeSeen(D.prestaLastSeen,remote.prestaLastSeen);
-  merged.electriciteIndex=mergeFlatMap(remote.electriciteIndex,D.electriciteIndex);
+  merged.electriciteIndex=mergeFlatMap(remote.electriciteIndex,D.electriciteIndex,new Set(del('elecIndex')));
   merged.forfaitPaid=mergeFlatMap(remote.forfaitPaid,D.forfaitPaid);
   merged.elecValide=mergeFlatMap(remote.elecValide,D.elecValide);
   merged.bilanComments=mergeById(remote.bilanComments,D.bilanComments,del('bilanComment'));
@@ -1359,10 +1373,20 @@ function getElecIndex(pid,key){
 function updElecIndex(pid,key,val){
   if(!D.electriciteIndex)D.electriciteIndex={};
   if(!D.electriciteIndex[pid])D.electriciteIndex[pid]={};
-  D.electriciteIndex[pid][key]=(val===''||val===null||val===undefined||isNaN(parseFloat(val)))?null:parseFloat(val);
+  const tombKey=pid+'__'+key;
+  const isCleared=(val===''||val===null||val===undefined||isNaN(parseFloat(val)));
+  if(isCleared){
+    // Case vidée : suppression définitive (tombstone), comme partout ailleurs dans l'app —
+    // sinon une synchronisation ultérieure peut faire réapparaître l'ancienne valeur.
+    delete D.electriciteIndex[pid][key];
+    markDeleted('elecIndex',tombKey);
+  } else {
+    D.electriciteIndex[pid][key]=parseFloat(val);
+    unmarkDeleted('elecIndex',tombKey); // on ressaisit une valeur : ça annule une suppression précédente
+  }
   if(D.elecValide&&D.elecValide[pid])D.elecValide[pid][key]=false;
   const p=gPre(pid);
-  logActivity('prestation',(p.domaines||[])[0]||null,`Index électricité — ${p.name} (${key}) : ${D.electriciteIndex[pid][key]!==null?D.electriciteIndex[pid][key]+' kWh':'—'}`,[pid],false);
+  logActivity('prestation',(p.domaines||[])[0]||null,`Index électricité — ${p.name} (${key}) : ${!isCleared?D.electriciteIndex[pid][key]+' kWh':'—'}`,[pid],false);
   saveD();render();
 }
 function computeElecCost(pid,y,m){
@@ -4528,7 +4552,7 @@ function computeRestoreDiff(snap){
   const delSet=k=>new Set((D.deletedIds&&D.deletedIds[k])||[]);
   const dResa=delSet('resa'),dVisite=delSet('visite'),dComment=delSet('comment'),dPaiement=delSet('paiement'),
         dPrestaLine=delSet('prestaLine'),dTravaux=delSet('travaux'),dGarde=delSet('garde'),
-        dDominique=delSet('dominique'),dBilanComment=delSet('bilanComment');
+        dDominique=delSet('dominique'),dBilanComment=delSet('bilanComment'),dElecIndex=delSet('elecIndex');
 
   const existingResaById={};D.reservations.forEach(r=>existingResaById[r.id]=r);
   const resaToAdd=snap.reservations.filter(r=>!existingResaById[r.id]&&!dResa.has(r.id));
@@ -4616,6 +4640,7 @@ function computeRestoreDiff(snap){
 
   const elecIndexToFill={},forfaitPaidToFill={},elecValideToFill={};
   Object.entries(snap.electriciteIndex).forEach(([pid,months])=>{Object.entries(months).forEach(([mk,v])=>{
+    if(dElecIndex.has(pid+'__'+mk))return; // supprimé volontairement : une sauvegarde plus ancienne ne le ressuscite pas
     if(!D.electriciteIndex[pid]||D.electriciteIndex[pid][mk]===undefined){if(!elecIndexToFill[pid])elecIndexToFill[pid]={};elecIndexToFill[pid][mk]=v;}
   });});
   Object.entries(snap.forfaitPaid).forEach(([pid,months])=>{Object.entries(months).forEach(([mk,v])=>{
