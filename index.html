@@ -633,12 +633,13 @@ function runMigrations(){
         if(typeof pg.nights[date]==='string')pg.nights[date]={duree:pg.nights[date],paid:false};
         
         if(pg.nights[date].comment===undefined)pg.nights[date].comment='';
+        if(pg.nights[date].valide===undefined)pg.nights[date].valide=true; // historique déjà considéré comme traité
       });
     });
     if(r.menagePaid===undefined)r.menagePaid=false;
   });
   (D.dominiqueSchedule||[]).forEach(x=>{if(x.paid===undefined)x.paid=false;if(x.comment===undefined)x.comment='';});
-  (D.gardeSchedule||[]).forEach(x=>{if(x.comment===undefined)x.comment='';});
+  (D.gardeSchedule||[]).forEach(x=>{if(x.comment===undefined)x.comment='';if(x.valide===undefined)x.valide=true;});
   (D.visites||[]).forEach(v=>{if(v.typeEvenement==='Famille / Cousinade'||v.typeEvenement==='Séjour amis'||v.typeEvenement==='Famille / Ami')v.typeEvenement='Famille / Amis';if(v.typeEvenement==='GDC (Gens de confiance)'||v.typeEvenement==='GDC / Home Exchange')v.typeEvenement='GDC';});
 }
 let S={view:'login',admin:null,presta:null,tab:'calendrier',prestaTab:'calendrier',calAnim:true,modal:null,msg:null,selResa:null,selectedPresta:null,hiddenDomains:[],calYear:2026,calMonth:5,bilanYear:2026,bilanMonth:5,listeYear:2026,listeMonth:5,visiteYear:2026,visiteMonth:5,prestaBilanYear:2026,prestaBilanMonth:5,adminPrestaYear:2026,adminPrestaMonth:5,clientsSortBy:'date',clientsExportSub:'clients',resteAPayerDetail:null,searchQuery:null,bilanAnnualMonth:null};
@@ -1064,6 +1065,74 @@ function renderCommissionSection(p,y,m){
     </div>`;}).join('')}
   </div>`;
 }
+/* === Travaux hors réservation (Misha/Sacha) — intégrés à Mon Bilan, même logique de
+   validation que les prestations avec commission. Rendu partagé perso/admin. === */
+function renderTravauxSection(p,y,m){
+  const isAdmin=S.view==='admin';
+  const monthKey=`${y}-${String(m+1).padStart(2,'0')}`;
+  const inMonth=dateStr=>!!dateStr&&dateStr.startsWith(monthKey);
+  const rows=(D.travauxSchedule||[]).filter(x=>x.pid===p.id&&inMonth(x.date)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const domOpts=D.domaines.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
+  return`<div id="bloc-travaux" style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px;scroll-margin-top:12px">
+    <div class="sec-hdr"><h2>🔧 Travaux hors réservation — ${MONTHS_FR[m]} ${y}</h2></div>
+    <div style="font-size:11px;color:#888;margin-bottom:10px">Travaux dans un domaine, en dehors d'une réservation — sans commission, ${TRAVAUX_RATE}€ / heure. ${isAdmin?'Validez chaque ligne, ou laissez en attente.':'David/Svitlana valide chaque ligne.'}</div>
+    ${!isAdmin?`<div class="g2" style="margin-bottom:8px">
+      <div class="field"><label>Domaine</label><select id="trav-domaine-${p.id}">${domOpts}</select></div>
+      <div class="field"><label>Jour</label><input type="date" id="trav-date-${p.id}"></div>
+    </div>
+    <div class="g2" style="margin-bottom:8px">
+      <div class="field"><label>Nombre d'heures</label><input type="number" id="trav-heures-${p.id}" step="0.5" placeholder="ex: 3.5"></div>
+      <div class="field"><label>Note (optionnel)</label><input type="text" id="trav-note-${p.id}" placeholder="Ce qui a été fait…"></div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="addTravaux('${p.id}')" style="margin-bottom:10px">+ Déclarer ces travaux</button>`:''}
+    ${rows.length===0?'<div class="empty">Aucun travaux déclaré ce mois-ci.</div>':''}
+    ${rows.map(x=>{const dom=gDom(x.domaine);return`<div style="padding:8px 0;border-bottom:1px solid #e5e3de;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+      <div><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span><span style="font-size:13px">${ds(x.date)} · ${x.heures}h · ${money(x.montant)}</span>${x.note?`<div style="font-size:11px;color:#888;margin-top:2px">${x.note}</div>`:''}</div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        ${valideBadge(x.status==='validé',`toggleTravauxValide('${x.id}')`)}
+        ${x.status!=='validé'?`<button class="btn btn-xs btn-danger" onclick="delTravaux('${x.id}')">✕</button>`:''}
+      </div>
+    </div>`;}).join('')}
+  </div>`;
+}
+/* === Gardiennage (Mathilde/Sébastien, mais aussi Misha/Sacha via le planning ponctuel) —
+   nuits de garde valorisées à gardeRate(duree). Rendu partagé perso/admin : côté admin,
+   tableau complet éditable (durée, commentaire, mode de paiement) + validation ; côté
+   prestataire, liste en lecture seule du mois avec le même badge de validation. === */
+function renderGardeSection(p,y,m){
+  const isAdmin=S.view==='admin';
+  const monthKey=`${y}-${String(m+1).padStart(2,'0')}`;
+  const inMonth=dateStr=>!!dateStr&&dateStr.startsWith(monthKey);
+  const rows=[];
+  D.reservations.filter(r=>r.status!=='annulé').forEach(r=>{
+    const pg=(r.prestaGarde||{})[p.id];if(!pg)return;
+    Object.entries(pg.nights||{}).forEach(([date,v])=>{if(inMonth(date))rows.push({date,duree:v.duree,paid:v.paid,payMethod:v.payMethod||'',comment:v.comment||'',valide:v.valide!==false,resaId:r.id,client:displayClientName(r)||'—',domaine:r.domaine,source:'resa'});});
+  });
+  (D.gardeSchedule||[]).filter(x=>x.pid===p.id&&inMonth(x.date)).forEach(x=>rows.push({date:x.date,duree:x.duree,paid:x.paid,payMethod:x.payMethod||'',comment:x.comment||'',valide:x.valide!==false,resaId:null,schedId:x.id,client:'— (planning)',domaine:x.domaine,source:'planning'}));
+  rows.sort((a,b)=>a.date.localeCompare(b.date));
+  const total=rows.reduce((a,x)=>a+gardeRate(x.duree),0),paid=rows.filter(x=>x.paid).reduce((a,x)=>a+gardeRate(x.duree),0);
+  const enAttenteCount=rows.filter(x=>!x.valide).length;
+  const header=`<div class="sec-hdr"><h2>🛡 Gardiennage — ${MONTHS_FR[m]} ${y}</h2>${isAdmin?`<button class="btn btn-xs btn-primary" onclick="openM('gardePlanning',null,{pid:'${p.id}'})">📅 Planning</button>`:''}</div>
+    <div class="g3" style="margin-bottom:14px">
+      <div class="metric"><span class="lbl">Total dû ce mois</span><span class="val">${money(total)}</span></div>
+      <div class="metric"><span class="lbl">Réglé</span><span class="val" style="color:#27500A">${money(paid)}</span></div>
+      <div class="metric"><span class="lbl">Reste à régler</span><span class="val" style="color:#A32D2D">${money(total-paid)}</span></div>
+    </div>`;
+  if(isAdmin){
+    const body=rows.length===0?'<div class="empty">Aucune nuit de gardiennage ce mois-ci.</div>':`<div style="overflow-x:auto"><table class="list-tbl"><thead><tr><th>Nuit du</th><th>Lieu</th><th>Durée</th><th>Commentaire</th><th>Montant</th><th>Mode</th><th>Validation</th><th>Événement</th><th></th></tr></thead>
+      <tbody>${rows.map(x=>{const dom=gDom(x.domaine);const toggleCall=x.source==='resa'?`toggleGardeNightPaid('${x.resaId}','${p.id}','${x.date}')`:`toggleGardeSchedulePaid('${x.schedId}')`;const methodCall=x.source==='resa'?`setGardeNightPayMethod('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeSchedulePayMethod('${x.schedId}',this.value)`;const dureeCall=x.source==='resa'?`setGardeNightDuree('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleDuree('${x.schedId}',this.value)`;const commentCall=x.source==='resa'?`setGardeNightComment('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleComment('${x.schedId}',this.value)`;const delCall=x.source==='resa'?`delGardeNight('${x.resaId}','${p.id}','${x.date}')`:`delGardePlanning('${x.schedId}')`;const valideCall=x.source==='resa'?`toggleGardeNightValide('${x.resaId}','${p.id}','${x.date}')`:`toggleGardeScheduleValide('${x.schedId}')`;return`<tr><td>${dn(x.date)} ${ds(x.date)}</td><td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td><td><select onchange="${dureeCall}" style="font-size:12px"><option value="courte" ${x.duree==='courte'?'selected':''}>Courte (22h-2h)</option><option value="longue" ${x.duree==='longue'?'selected':''}>Longue (22h-4h)</option></select></td><td><input type="text" value="${x.comment||''}" placeholder="Commentaire" onchange="${commentCall}" style="font-size:12px;padding:3px 5px;width:130px;color:#888"></td><td>${money(gardeRate(x.duree))}</td><td><span class="pill" style="background:${x.paid?'#E8F3E0':'#FCEBEB'};color:${x.paid?'#27500A':'#791F1F'};cursor:pointer" onclick="${toggleCall}">${x.paid?'✓ Réglé':'✗ Régler'}</span></td><td>${valideBadge(x.valide,valideCall)}</td><td>${x.client}</td><td><button class="btn btn-xs btn-danger" onclick="${delCall}">✕</button></td></tr>`;}).join('')}</tbody></table></div>`;
+    return`<div id="bloc-garde" style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px;scroll-margin-top:12px">${header}${enAttenteCount>0?`<div class="alert" style="background:#FFF3D6;color:#7A5800;margin-bottom:10px;font-size:12.5px">⏳ ${enAttenteCount} nuit${enAttenteCount>1?'s':''} en attente de validation.</div>`:''}${body}</div>`;
+  }
+  const body=rows.length===0?'<div class="empty">Aucune nuit de gardiennage ce mois-ci.</div>':rows.map((x,xIdx)=>{const dom=gDom(x.domaine);return`<div style="padding:7px 4px;border-bottom:1px solid #f0eee8;font-size:12.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:${xIdx%2===1?'#f7f6f3':'transparent'}">
+    <span class="pill ${PILL[dom.color||0]}" style="flex-shrink:0">${dom.name}</span>
+    <span style="white-space:nowrap">${dn(x.date)} ${ds(x.date)}</span>
+    <span style="color:#993556;font-weight:600;white-space:nowrap">${x.duree==='courte'?'Courte':'Longue'} · ${money(gardeRate(x.duree))}</span>
+    <span style="color:${x.paid?'#27500A':'#A32D2D'};white-space:nowrap">${x.paid?'✓ Réglé':'✗ Pas encore réglé'}</span>
+    ${x.comment?`<span style="color:#534AB7;font-style:italic">${x.comment}</span>`:''}
+    <span style="margin-left:auto">${valideBadge(x.valide,'')}</span>
+  </div>`;}).join('');
+  return`<div id="bloc-garde" style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px;scroll-margin-top:12px">${header}${body}</div>`;
+}
 /* === Section "Forfait ménage" — partagée entre la page perso et la page admin. Le montant
    n'est ajustable que côté admin (comme avant) ; la validation aussi. === */
 /* === Fil de commentaires du bilan mensuel — indépendant des réservations, un fil par
@@ -1201,6 +1270,8 @@ function renderElecSection(p,y,m){
    nous doivent (électricité, Misha uniquement). */
 function computeBilanTotal(p,y,m){
   const key=monthKeyOf(y,m);
+  const monthKey=`${y}-${String(m+1).padStart(2,'0')}`;
+  const inMonthDate=dateStr=>!!dateStr&&dateStr.startsWith(monthKey);
   const forfaitDu=p.forfaitMensuel||0;
   const forfaitRecu=isForfaitPaid(p.id,key)?forfaitDu:0;
   const inMonthArr=r=>{const d=r.dateArrivee||r.dateDepart||r.date;if(!d)return false;const[ry,rm]=d.split('-').map(Number);return ry===y&&rm===(m+1);};
@@ -1218,14 +1289,36 @@ function computeBilanTotal(p,y,m){
     });
   });
   compDu=Math.round(compDu*100)/100;
+  let travDu=0,travLignes=0,travEnAttente=0;
+  (D.travauxSchedule||[]).filter(x=>x.pid===p.id&&inMonthDate(x.date)).forEach(x=>{
+    travDu+=x.montant||0;travLignes++;
+    if(x.status!=='validé')travEnAttente++;
+  });
+  travDu=Math.round(travDu*100)/100;
+  let gardeDu=0,gardeRecu=0,gardeLignes=0,gardeEnAttente=0;
+  if(p.inputMode==='garde'){
+    const gardeRows=[];
+    D.reservations.filter(r=>r.status!=='annulé').forEach(r=>{
+      const pg=(r.prestaGarde||{})[p.id];if(!pg)return;
+      Object.entries(pg.nights||{}).forEach(([date,v])=>{if(inMonthDate(date))gardeRows.push(v);});
+    });
+    (D.gardeSchedule||[]).filter(x=>x.pid===p.id&&inMonthDate(x.date)).forEach(x=>gardeRows.push(x));
+    gardeRows.forEach(v=>{
+      const montant=gardeRate(v.duree);
+      gardeDu+=montant;gardeLignes++;
+      if(v.paid)gardeRecu+=montant;
+      if(v.valide===false)gardeEnAttente++;
+    });
+  }
+  gardeDu=Math.round(gardeDu*100)/100;gardeRecu=Math.round(gardeRecu*100)/100;
   const elec=p.electricite?computeElecCost(p.id,y,m):null;
   const elecCost=elec?elec.cost:0;
   const elecEnAttente=(p.electricite&&elec&&elec.conso!==null&&!isElecValide(p.id,key))?1:0;
-  const totalDu=Math.round((forfaitDu+menageDu+compDu-elecCost)*100)/100;
-  const totalRecu=forfaitRecu+menageRecu;
+  const totalDu=Math.round((forfaitDu+menageDu+compDu+travDu-elecCost+gardeDu)*100)/100;
+  const totalRecu=forfaitRecu+menageRecu+gardeRecu;
   const totalReste=Math.round((totalDu-totalRecu)*100)/100;
-  const enAttente=menageEnAttente+compEnAttente+elecEnAttente;
-  return{key,forfaitDu,forfaitRecu,menageDu,menageRecu,menageEnAttente,compDu,compLignes,compEnAttente,elecCost,elecEnAttente,totalDu,totalRecu,totalReste,enAttente};
+  const enAttente=menageEnAttente+compEnAttente+elecEnAttente+travEnAttente+gardeEnAttente;
+  return{key,forfaitDu,forfaitRecu,menageDu,menageRecu,menageEnAttente,compDu,compLignes,compEnAttente,travDu,travLignes,travEnAttente,gardeDu,gardeRecu,gardeLignes,gardeEnAttente,elecCost,elecEnAttente,totalDu,totalRecu,totalReste,enAttente};
 }
 function bilanLigneRow(label,montant,sign,ancre){
   const isNeg=sign==='-';
@@ -1235,16 +1328,19 @@ function bilanLigneRow(label,montant,sign,ancre){
   </div>`;
 }
 function renderBilanTotalSection(p,y,m){
-  if(!p.forfaitMensuel)return'';
+  const isGardeOnly=p.inputMode==='garde';
+  if(!p.forfaitMensuel&&!isGardeOnly)return'';
   const bt=computeBilanTotal(p,y,m);
   return`<div style="background:#FBEAF0;border:1px solid #ED93B1;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
     <div class="sec-hdr" style="background:#993556"><h2>💰 Bilan total — ${MONTHS_FR[m]} ${y}</h2></div>
     ${bt.enAttente>0?`<div class="alert" style="background:#FFF3D6;color:#7A5800;margin-bottom:10px;font-size:12.5px">⏳ ${bt.enAttente} élément${bt.enAttente>1?'s':''} ci-dessous en attente de validation — vérifiez le calcul et validez, ou corrigez le montant.</div>`:''}
     <div style="background:#fff;border-radius:8px;padding:2px 12px;margin-bottom:10px">
-      ${bilanLigneRow('Forfait gardiennage fixe',bt.forfaitDu,'+','bloc-forfait')}
-      ${bilanLigneRow('Ménage',bt.menageDu,'+','bloc-menage')}
-      ${bilanLigneRow('Prestations avec commission (net)',Math.abs(bt.compDu),bt.compDu<0?'-':'+','bloc-commission')}
+      ${p.forfaitMensuel?bilanLigneRow('Forfait gardiennage fixe',bt.forfaitDu,'+','bloc-forfait'):''}
+      ${p.forfaitMensuel?bilanLigneRow('Ménage',bt.menageDu,'+','bloc-menage'):''}
+      ${p.forfaitMensuel?bilanLigneRow('Prestations avec commission (net)',Math.abs(bt.compDu),bt.compDu<0?'-':'+','bloc-commission'):''}
+      ${p.accessMode==='domaine'?bilanLigneRow('Travaux hors réservation',bt.travDu,'+','bloc-travaux'):''}
       ${p.electricite?bilanLigneRow('Électricité (à sa charge)',bt.elecCost,'-','bloc-elec'):''}
+      ${isGardeOnly?bilanLigneRow('Gardiennage (nuits)',bt.gardeDu,'+','bloc-garde'):''}
       <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;font-size:14px;font-weight:700">
         <span>Total dû ce mois</span><span>${money(bt.totalDu)}</span>
       </div>
@@ -1253,10 +1349,10 @@ function renderBilanTotalSection(p,y,m){
       <div class="metric"><span class="lbl">Déjà réglé</span><span class="val" style="color:#27500A">${money(bt.totalRecu)}</span></div>
       <div class="metric"><span class="lbl">Reste à verser</span><span class="val" style="color:#A32D2D">${money(bt.totalReste)}</span></div>
     </div>
-    <div id="bloc-forfait" style="margin-top:10px;display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:8px;padding:8px 12px;scroll-margin-top:12px">
+    ${p.forfaitMensuel?`<div id="bloc-forfait" style="margin-top:10px;display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:8px;padding:8px 12px;scroll-margin-top:12px">
       <span style="font-size:12.5px">Forfait gardiennage fixe (${money(bt.forfaitDu)}) — montant constant, pas de validation de calcul nécessaire</span>
       ${S.view==='admin'?`<span class="pill" style="background:${bt.forfaitRecu?'#E8F3E0':'#FCEBEB'};color:${bt.forfaitRecu?'#27500A':'#791F1F'};cursor:pointer;flex-shrink:0" onclick="toggleForfaitPaid('${p.id}','${bt.key}')">${bt.forfaitRecu?'✓ Réglé':'✗ Régler'}</span>`:`<span class="pill" style="background:${bt.forfaitRecu?'#E8F3E0':'#FCEBEB'};color:${bt.forfaitRecu?'#27500A':'#791F1F'};flex-shrink:0">${bt.forfaitRecu?'✓ Réglé':'✗ Pas encore réglé'}</span>`}
-    </div>
+    </div>`:''}
   </div>`;
 }
 function payBadge(r){const s=payStatus(r),t=totPay(r),m=r.montant||0;if(s==='full')return'<span class="pay-full">Soldé ✓</span>';if(s==='part')return`<span class="pay-part">${money(t)} / ${money(m)}</span>`;return`<span class="pay-none">${money(t)} / ${money(m)}</span>`;}
@@ -2823,7 +2919,7 @@ function paidForYear(r,y){
   return totPay(r)*(inY/total);
 }
 function renderBilan(){
-  const bilanPrestas=D.prestataires.filter(p=>p.forfaitMensuel||p.inputMode==='notes'||p.flatRate);
+  const bilanPrestas=D.prestataires.filter(p=>p.forfaitMensuel||p.inputMode==='notes'||p.flatRate||p.inputMode==='garde');
   const subTab=S.bilanSubTab||'general';
   const tabsHtml=`<div class="tabs" style="margin-bottom:10px">
     <button class="tab${subTab==='general'?' active':''}" onclick="setBilanSubTab('general')"><span class="tab-ic">📊</span><span class="tab-lbl">Général</span></button>
@@ -3103,51 +3199,14 @@ function renderPrestaDetailAdmin(p){
   /* === Forfait ménage (Misha / Sasha / Pascaline) — rendu partagé avec la page perso === */
   const menageSection=(p.flatRate||p.inputMode==='notes')?renderMenageSection(p,y,m):'';
 
-  /* === Gardiennage (Sébastien / Mathilde) === */
-  let gardeSection='';
-  if(p.inputMode==='garde'){
-    const rows=[];
-    D.reservations.filter(r=>r.status!=='annulé').forEach(r=>{
-      const pg=(r.prestaGarde||{})[p.id];if(!pg)return;
-      Object.entries(pg.nights||{}).forEach(([date,v])=>{if(inMonth(date))rows.push({date,duree:v.duree,paid:v.paid,payMethod:v.payMethod||'',comment:v.comment||'',resaId:r.id,client:displayClientName(r)||'—',domaine:r.domaine,source:'resa'});});
-    });
-    (D.gardeSchedule||[]).filter(x=>x.pid===p.id&&inMonth(x.date)).forEach(x=>rows.push({date:x.date,duree:x.duree,paid:x.paid,payMethod:x.payMethod||'',comment:x.comment||'',resaId:null,schedId:x.id,client:'— (planning)',domaine:x.domaine,source:'planning'}));
-    rows.sort((a,b)=>a.date.localeCompare(b.date));
-    const total=rows.reduce((a,x)=>a+gardeRate(x.duree),0),paid=rows.filter(x=>x.paid).reduce((a,x)=>a+gardeRate(x.duree),0);
-    gardeSection=`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
-      <div class="sec-hdr"><h2>🛡 Gardiennage — ${MONTHS_FR[m]} ${y}</h2><button class="btn btn-xs btn-primary" onclick="openM('gardePlanning',null,{pid:'${p.id}'})">📅 Planning</button></div>
-      <div class="g3" style="margin-bottom:14px">
-        <div class="metric"><span class="lbl">Total dû ce mois</span><span class="val">${money(total)}</span></div>
-        <div class="metric"><span class="lbl">Réglé</span><span class="val" style="color:#27500A">${money(paid)}</span></div>
-        <div class="metric"><span class="lbl">Reste à régler</span><span class="val" style="color:#A32D2D">${money(total-paid)}</span></div>
-      </div>
-      ${rows.length===0?'<div class="empty">Aucune nuit de gardiennage ce mois-ci.</div>':''}
-      ${rows.length>0?`<div style="overflow-x:auto"><table class="list-tbl"><thead><tr><th>Nuit du</th><th>Lieu</th><th>Durée</th><th>Commentaire</th><th>Montant</th><th>Mode</th><th>Statut</th><th>Événement</th><th></th></tr></thead>
-      <tbody>${rows.map(x=>{const dom=gDom(x.domaine);const toggleCall=x.source==='resa'?`toggleGardeNightPaid('${x.resaId}','${p.id}','${x.date}')`:`toggleGardeSchedulePaid('${x.schedId}')`;const methodCall=x.source==='resa'?`setGardeNightPayMethod('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeSchedulePayMethod('${x.schedId}',this.value)`;const dureeCall=x.source==='resa'?`setGardeNightDuree('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleDuree('${x.schedId}',this.value)`;const commentCall=x.source==='resa'?`setGardeNightComment('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleComment('${x.schedId}',this.value)`;const delCall=x.source==='resa'?`delGardeNight('${x.resaId}','${p.id}','${x.date}')`:`delGardePlanning('${x.schedId}')`;return`<tr><td>${dn(x.date)} ${ds(x.date)}</td><td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td><td><select onchange="${dureeCall}" style="font-size:12px"><option value="courte" ${x.duree==='courte'?'selected':''}>Courte (22h-2h)</option><option value="longue" ${x.duree==='longue'?'selected':''}>Longue (22h-4h)</option></select></td><td><input type="text" value="${x.comment||''}" placeholder="Commentaire" onchange="${commentCall}" style="font-size:12px;padding:3px 5px;width:130px;color:#888"></td><td>${money(gardeRate(x.duree))}</td><td><span class="pill" style="background:${x.paid?'#E8F3E0':'#FCEBEB'};color:${x.paid?'#27500A':'#791F1F'};cursor:pointer" onclick="${toggleCall}">${x.paid?'✓ Réglé':'✗ Régler'}</span></td><td>${x.client}</td><td><button class="btn btn-xs btn-danger" onclick="${delCall}">✕</button></td></tr>`;}).join('')}</tbody></table></div>`:''}
-    </div>`;
-  }
+  /* === Gardiennage (Sébastien / Mathilde) — rendu partagé avec la page perso === */
+  const gardeSection=(p.inputMode==='garde')?renderGardeSection(p,y,m):'';
 
   /* === Prestations avec commission — rendu partagé avec la page perso du prestataire === */
   const commSection=(p.inputMode==='notes')?renderCommissionSection(p,y,m):'';
 
-  /* === Travaux hors réservation (Misha/Sacha) — à valider === */
-  let travauxSection='';
-  if(p.inputMode==='notes'){
-    const travRows=(D.travauxSchedule||[]).filter(x=>x.pid===p.id&&inMonth(x.date)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-    const travEnAttente=travRows.filter(x=>x.status==='en_attente');
-    const travValide=travRows.filter(x=>x.status==='validé');
-    const travTotal=travValide.reduce((a,x)=>a+(x.montant||0),0);
-    if(travRows.length){
-      travauxSection=`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
-        <div class="sec-hdr"><h2>🔧 Travaux hors réservation — ${MONTHS_FR[m]} ${y}</h2></div>
-        <div style="font-size:12px;color:#888;margin-bottom:10px">Total validé : ${money(travTotal)}${travEnAttente.length?` · ${travEnAttente.length} en attente de validation`:''}</div>
-        ${travRows.map(x=>{const dom=gDom(x.domaine);return`<div style="padding:7px 0;border-bottom:1px solid #e5e3de;display:flex;justify-content:space-between;align-items:center;gap:8px">
-          <div><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span><span style="font-size:13px">${ds(x.date)} · ${x.heures}h · ${money(x.montant)}</span>${x.note?`<div style="font-size:11px;color:#888;margin-top:2px">${x.note}</div>`:''}</div>
-          ${x.status==='validé'?`<span class="pill" style="background:#E8F3E0;color:#27500A;flex-shrink:0">✓ Validé</span>`:`<button class="btn btn-xs btn-primary" onclick="validateTravaux('${x.id}')" style="flex-shrink:0">Valider</button>`}
-        </div>`;}).join('')}
-      </div>`;
-    }
-  }
+  /* === Travaux hors réservation (Misha/Sacha uniquement — pas Pascaline) — rendu partagé avec la page perso, intégré à Mon Bilan === */
+  const travauxSection=(p.accessMode==='domaine')?renderTravauxSection(p,y,m):'';
 
   /* === Dominique (jardinage) === */
   let dominiqueSection='';
@@ -3177,11 +3236,9 @@ function renderPrestaDetailAdmin(p){
   const bilanTotalSection=renderBilanTotalSection(p,y,m);
   const elecSection=renderElecSection(p,y,m);
   const commentsSection=renderBilanComments(p,y,m);
-  const allEmpty=!menageSection&&!gardeSection&&!commSection&&!dominiqueSection&&!bilanTotalSection&&!elecSection;
-  return`<div style="margin-top:16px">${nav}${bilanTotalSection}${commentsSection}${menageSection}${commSection}${elecSection}${gardeSection}${travauxSection}${dominiqueSection}${allEmpty?`<div class="empty">Aucun suivi financier spécifique pour ${p.name}.</div>`:''}</div>`;
-}
-
-function setClientsSortBy(v){S.clientsSortBy=v;render();}
+  const allEmpty=!menageSection&&!gardeSection&&!commSection&&!travauxSection&&!dominiqueSection&&!bilanTotalSection&&!elecSection;
+  return`<div style="margin-top:16px">${nav}${bilanTotalSection}${commentsSection}${menageSection}${commSection}${travauxSection}${elecSection}${gardeSection}${dominiqueSection}${allEmpty?`<div class="empty">Aucun suivi financier spécifique pour ${p.name}.</div>`:''}</div>`;
+}function setClientsSortBy(v){S.clientsSortBy=v;render();}
 function updClientTel(rid,val){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
   const v=(val||'').trim();
@@ -4533,6 +4590,7 @@ function renderPrestaMonBilan(p){
   ${renderBilanComments(p,y,m)}
   ${renderMenageSection(p,y,m)}
   ${renderCommissionSection(p,y,m)}
+  ${renderTravauxSection(p,y,m)}
   ${renderElecSection(p,y,m)}`;
 }
 function renderPrestaMonBilanFlat(p){
@@ -4612,13 +4670,12 @@ function renderListeYana(){
 function renderPrestaFull(p){
   const tab=S.prestaTab||'calendrier';
   const tabs=[['calendrier','📅','Planning'],['liste','🎉','Événements'],['visites','👀','Visites']];
-  if(p.inputMode==='notes'){tabs.push(['monbilan','💰','Mon Bilan']);tabs.push(['travaux','🔧','Travaux']);}
+  if(p.inputMode==='notes'){tabs.push(['monbilan','💰','Mon Bilan']);}
   let content='';
   if(tab==='calendrier')content=renderCalendrier();
   else if(tab==='liste')content=renderListe();
   else if(tab==='visites')content=renderVisiteList();
   else if(tab==='monbilan')content=renderPrestaMonBilan(p);
-  else if(tab==='travaux')content=renderTravauxPresta(p);
   const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
   const notifs=(D.activityLog||[]).filter(it=>(p.domaines||[]).includes(it.domaine)&&it.action!=='paiement'&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
   return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone">🔔</button><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
@@ -4628,42 +4685,6 @@ function renderPrestaFull(p){
   ${content}${S.modal?renderModalWrap():''}`;
 }
 function setPrestaTab(t){S.prestaTab=t;S.calAnim=(t==='calendrier');S.selResa=null;S.modal=null;render();}
-function renderTravauxPresta(p){
-  const mine=(D.travauxSchedule||[]).filter(x=>x.pid===p.id).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-  const domOpts=D.domaines.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
-  const enAttente=mine.filter(x=>x.status==='en_attente');
-  const valide=mine.filter(x=>x.status==='validé');
-  const totalValide=valide.reduce((a,x)=>a+(x.montant||0),0);
-  return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
-    <div class="sec-hdr"><h2>🔧 Déclarer des travaux</h2></div>
-    <div style="font-size:11px;color:#888;margin-bottom:10px">Travaux dans un domaine, en dehors d'une réservation — sans commission, ${TRAVAUX_RATE}€ / heure. À valider par David ou Svitlana.</div>
-    <div class="g2" style="margin-bottom:8px">
-      <div class="field"><label>Domaine</label><select id="trav-domaine-${p.id}">${domOpts}</select></div>
-      <div class="field"><label>Jour</label><input type="date" id="trav-date-${p.id}"></div>
-    </div>
-    <div class="g2" style="margin-bottom:8px">
-      <div class="field"><label>Nombre d'heures</label><input type="number" id="trav-heures-${p.id}" step="0.5" placeholder="ex: 3.5"></div>
-      <div class="field"><label>Note (optionnel)</label><input type="text" id="trav-note-${p.id}" placeholder="Ce qui a été fait…"></div>
-    </div>
-    <button class="btn btn-primary btn-sm" onclick="addTravaux('${p.id}')">+ Déclarer ces travaux</button>
-  </div>
-  <div class="g3" style="margin-bottom:14px">
-    <div class="metric"><span class="lbl">Validé ce total</span><span class="val" style="color:#27500A">${money(totalValide)}</span></div>
-    <div class="metric"><span class="lbl">En attente</span><span class="val" style="color:#8a6d00">${enAttente.length}</span></div>
-    <div class="metric"><span class="lbl">Total heures validées</span><span class="val">${valide.reduce((a,x)=>a+(x.heures||0),0)}h</span></div>
-  </div>
-  <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
-    <div class="sec-hdr"><h2>Historique</h2></div>
-    ${mine.length===0?'<div class="empty">Aucun travaux déclaré pour l\'instant.</div>':''}
-    ${mine.map(x=>{const dom=gDom(x.domaine);return`<div style="padding:8px 0;border-bottom:1px solid #e5e3de;display:flex;justify-content:space-between;align-items:center;gap:8px">
-      <div><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span><span style="font-size:13px">${ds(x.date)} · ${x.heures}h · ${money(x.montant)}</span>${x.note?`<div style="font-size:11px;color:#888;margin-top:2px">${x.note}</div>`:''}</div>
-      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-        <span class="pill" style="background:${x.status==='validé'?'#E8F3E0':'#FFF6CC'};color:${x.status==='validé'?'#27500A':'#8a6d00'}">${x.status==='validé'?'✓ Validé':'⏳ En attente'}</span>
-        ${x.status!=='validé'?`<button class="btn btn-xs btn-danger" onclick="delTravaux('${x.id}')">✕</button>`:''}
-      </div>
-    </div>`;}).join('')}
-  </div>`;
-}
 function renderPresta(){
   const p=S.presta,today=new Date().toISOString().slice(0,10),mode=p.accessMode||'manuel';
   if(mode==='occupation')return renderPrestaDominique(p);
@@ -4846,6 +4867,12 @@ function renderPrestaGardePersonnel(p){
   let content;
   if(tab==='planning'){
     content=renderGardePlanningCalendar(p);
+  } else if(tab==='monbilan'){
+    const y=S.prestaBilanYear,m=S.prestaBilanMonth;
+    content=`<div class="cal-header" style="margin-bottom:14px">${monthYearPicker('prestaBilanYear','prestaBilanMonth')}</div>
+    ${renderBilanTotalSection(p,y,m)}
+    ${renderBilanComments(p,y,m)}
+    ${renderGardeSection(p,y,m)}`;
   } else {
     content=`<div class="g2" style="margin-bottom:14px">
       <div class="metric"><span class="lbl">Total dû</span><span class="val">${money(totalDu)}</span></div>
@@ -4888,6 +4915,7 @@ function renderPrestaGardePersonnel(p){
   <div class="tabs">
     <button class="tab ${tab==='planning'?'active':''}" onclick="setPrestaTab('planning')"><span class="tab-ic">📅</span><span class="tab-lbl">Planning</span></button>
     <button class="tab ${tab==='liste'?'active':''}" onclick="setPrestaTab('liste')"><span class="tab-ic">📋</span><span class="tab-lbl">Liste</span></button>
+    <button class="tab ${tab==='monbilan'?'active':''}" onclick="setPrestaTab('monbilan')"><span class="tab-ic">💰</span><span class="tab-lbl">Mon Bilan</span></button>
   </div>
   ${content}`;
 }
@@ -5275,7 +5303,8 @@ function saveResaCore(id){
           const sel=document.querySelector(`.gard-sel[data-presta="${p.id}"][data-date="${chk.dataset.date}"]`);
           const duree=sel?sel.value:'longue';
           const prevNight=origR&&origR.prestaGarde&&origR.prestaGarde[p.id]&&origR.prestaGarde[p.id].nights&&origR.prestaGarde[p.id].nights[chk.dataset.date];
-          nights[chk.dataset.date]={duree,paid:(prevNight&&prevNight.paid)||false,payMethod:(prevNight&&prevNight.payMethod)||''};
+          const nightValide=prevNight?(prevNight.duree===duree?(prevNight.valide!==false):false):false;
+          nights[chk.dataset.date]={duree,paid:(prevNight&&prevNight.paid)||false,payMethod:(prevNight&&prevNight.payMethod)||'',valide:nightValide};
         }
       });
       if(domSel&&Object.keys(nights).length)prestaGarde[p.id]={domaine:domSel.value,nights};
@@ -5472,7 +5501,7 @@ function addGardePlanning(pid){
   const domaine=document.getElementById('garde-pl-domaine').value,date=document.getElementById('garde-pl-date').value,duree=document.getElementById('garde-pl-duree').value;
   if(!domaine||!date)return;
   if(!D.gardeSchedule)D.gardeSchedule=[];
-  D.gardeSchedule.push({id:gid(),pid,domaine,date,duree,paid:false,payMethod:''});
+  D.gardeSchedule.push({id:gid(),pid,domaine,date,duree,paid:false,payMethod:'',valide:false});
   const p=D.prestataires.find(x=>x.id===pid);
   logActivity('créée',domaine,`Gardiennage planifié — ${p?p.name:''} (${fmt(date)})`,[pid]);
   saveD();S.modal={type:'gardePlanning',pid};render();
@@ -5509,9 +5538,26 @@ function validateTravaux(id){
   logActivity('validée',x.domaine,`Travaux validés — ${p?p.name:''} (${fmt(x.date)}, ${x.heures}h · ${money(x.montant)})`,[x.pid],false);
   saveD();showMsg('Travaux validés ✓');render();
 }
+function toggleTravauxValide(id){
+  const x=(D.travauxSchedule||[]).find(x=>x.id===id);if(!x)return;
+  const wasValide=x.status==='validé';
+  x.status=wasValide?'en_attente':'validé';
+  if(!wasValide){x.validatedBy=S.admin?S.admin.name:'';x.validatedAt=Date.now();}
+  saveD();render();
+}
 function toggleGardeSchedulePaid(id){
   const x=(D.gardeSchedule||[]).find(x=>x.id===id);if(!x)return;
   x.paid=!x.paid;
+  saveD();render();
+}
+function toggleGardeNightValide(rid,pid,date){
+  const r=D.reservations.find(x=>x.id===rid);if(!r||!r.prestaGarde||!r.prestaGarde[pid]||!r.prestaGarde[pid].nights[date])return;
+  r.prestaGarde[pid].nights[date].valide=!r.prestaGarde[pid].nights[date].valide;
+  saveD();render();
+}
+function toggleGardeScheduleValide(id){
+  const x=(D.gardeSchedule||[]).find(x=>x.id===id);if(!x)return;
+  x.valide=!x.valide;
   saveD();render();
 }
 function setGardeNightPayMethod(rid,pid,date,method){
@@ -5527,11 +5573,13 @@ function setGardeSchedulePayMethod(id,method){
 function setGardeNightDuree(rid,pid,date,duree){
   const r=D.reservations.find(x=>x.id===rid);if(!r||!r.prestaGarde||!r.prestaGarde[pid]||!r.prestaGarde[pid].nights[date])return;
   r.prestaGarde[pid].nights[date].duree=duree;
+  r.prestaGarde[pid].nights[date].valide=false;
   saveD();render();
 }
 function setGardeScheduleDuree(id,duree){
   const x=(D.gardeSchedule||[]).find(x=>x.id===id);if(!x)return;
   x.duree=duree;
+  x.valide=false;
   saveD();render();
 }
 function setGardeNightComment(rid,pid,date,comment){
