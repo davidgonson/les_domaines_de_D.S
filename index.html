@@ -659,7 +659,8 @@ function runMigrations(){
   (D.gardeSchedule||[]).forEach(x=>{if(x.comment===undefined)x.comment='';if(x.valide===undefined)x.valide=true;});
   (D.visites||[]).forEach(v=>{if(v.typeEvenement==='Famille / Cousinade'||v.typeEvenement==='Séjour amis'||v.typeEvenement==='Famille / Ami')v.typeEvenement='Famille / Amis';if(v.typeEvenement==='GDC (Gens de confiance)'||v.typeEvenement==='GDC / Home Exchange')v.typeEvenement='GDC';});
 }
-let S={view:'login',admin:null,presta:null,tab:'calendrier',prestaTab:'calendrier',calAnim:true,modal:null,msg:null,selResa:null,selectedPresta:null,hiddenDomains:[],calYear:2026,calMonth:5,bilanYear:2026,bilanMonth:5,listeYear:2026,listeMonth:5,visiteYear:2026,visiteMonth:5,prestaBilanYear:2026,prestaBilanMonth:5,adminPrestaYear:2026,adminPrestaMonth:5,clientsSortBy:'date',clientsExportSub:'clients',resteAPayerDetail:null,searchQuery:null,bilanAnnualMonth:null};
+const _initNow=new Date();
+let S={view:'login',admin:null,presta:null,tab:'calendrier',prestaTab:'calendrier',calAnim:true,modal:null,msg:null,selResa:null,selectedPresta:null,hiddenDomains:[],calYear:_initNow.getFullYear(),calMonth:_initNow.getMonth(),bilanYear:_initNow.getFullYear(),bilanMonth:_initNow.getMonth(),listeYear:_initNow.getFullYear(),listeMonth:_initNow.getMonth(),visiteYear:_initNow.getFullYear(),visiteMonth:_initNow.getMonth(),prestaBilanYear:_initNow.getFullYear(),prestaBilanMonth:_initNow.getMonth(),adminPrestaYear:_initNow.getFullYear(),adminPrestaMonth:_initNow.getMonth(),clientsSortBy:'date',clientsExportSub:'clients',resteAPayerDetail:null,searchQuery:null,bilanAnnualMonth:null};
 let _payRowRenderTimer=null;
 
 function loadD(){try{const r=localStorage.getItem(SK);if(r)return JSON.parse(r);}catch(e){}return JSON.parse(JSON.stringify(DEF));}
@@ -1050,18 +1051,22 @@ function ligneCalc(l,pid){
   const via=viaOf(l);
   const tauxCommission=(l.commission!==undefined&&l.commission!==null&&l.commission!=='')?parseFloat(l.commission)/100:0.10;
   const commission=Math.round(montant*tauxCommission*100)/100;
-  let duToPresta=0,duANous=0,detail='';
+  let duToPresta=0,duANous=0,detail='',fiscalRetenu=0,commissionApplied=0;
   if(via==='ds'||via==='cash_ds'){
     if(pid==='p1'||pid==='p2'){
       const apresFiscal=Math.round(montant*(1-MISHA_FISCAL_RATE)*100)/100;
+      fiscalRetenu=Math.round((montant-apresFiscal)*100)/100;
       const commissionSurReste=Math.round(apresFiscal*tauxCommission*100)/100;
+      commissionApplied=commissionSurReste;
       duToPresta=Math.round((apresFiscal-commissionSurReste)*100)/100;
       detail=`${money(montant)} − 15% (frais de structure) = ${money(apresFiscal)}, − ${Math.round(tauxCommission*100)}% commission = ${money(duToPresta)} net pour ${gPre(pid).name}`;
     } else {
+      commissionApplied=commission;
       duToPresta=Math.round((montant-commission)*100)/100;
       detail=`${money(montant)} − ${Math.round(tauxCommission*100)}% commission = ${money(duToPresta)} net pour ${gPre(pid).name}`;
     }
   } else {
+    commissionApplied=commission;
     duANous=commission;
     detail=`Réglé directement (${via==='structure'?'sa structure':'cash'}) — ${gPre(pid).name} nous doit ${money(commission)} de commission (${Math.round(tauxCommission*100)}%)`;
   }
@@ -1071,13 +1076,13 @@ function ligneCalc(l,pid){
     duANous=Math.round((duANous+notrePartDue)*100)/100;
     detail+=` · + part qui nous revient : ${money(l.notrePart)} (Misha garde 14%) = ${money(notrePartDue)}`;
   }
-  return{montant,via,tauxCommission,commission,duToPresta,duANous,notrePartDue,net:Math.round((duToPresta-duANous)*100)/100,detail};
+  return{montant,via,tauxCommission,commission,commissionApplied,fiscalRetenu,duToPresta,duANous,notrePartDue,net:Math.round((duToPresta-duANous)*100)/100,detail};
 }
 function valideBadge(valide,onclickJs){
   if(S.view==='admin'){
     return `<span class="bb ${valide?'bb-good':'bb-warn'} bb-clickable" style="flex-shrink:0" onclick="${onclickJs}">${valide?'✓ VALIDÉ':'⏳ À VALIDER'}</span>`;
   }
-  return `<span class="bb ${valide?'bb-good':'bb-warn'}" style="flex-shrink:0">${valide?'✓ VALIDÉ PAR DAVID/SVITLANA':'⏳ EN ATTENTE DE VALIDATION'}</span>`;
+  return `<span class="bb ${valide?'bb-good':'bb-warn'}" style="flex-shrink:0">${valide?'✓ VALIDÉ':'⏳ À VALIDER'}</span>`;
 }
 /* Même logique de contraste fort que valideBadge, pour les pastilles "réglé / pas réglé" du
    bilan (forfait, ménage, gardiennage) — bg pleine + texte blanc en gras au lieu du pastel. */
@@ -1179,6 +1184,7 @@ function renderCommissionSection(p,y,m){
           <span style="font-size:11.5px;font-weight:700;color:${c.net>=0?'#27500A':'#A32D2D'};white-space:nowrap;flex-shrink:0">${money(Math.abs(c.net))}</span>
           ${valideBadge(!!l.valide,`toggleLigneValide('${r.id}','${p.id}','${l.id}')`)}
         </div>
+        <div style="font-size:10px;color:#999;margin-top:3px">${c.detail}</div>
       </div>`;}).join('')}
       <div style="font-size:12px;font-weight:600;color:#555">Sous-total prestation : ${money(sousTotal)}</div>
     </div>`;}).join('')}
@@ -1192,18 +1198,17 @@ function renderTravauxSection(p,y,m){
   const monthKey=`${y}-${String(m+1).padStart(2,'0')}`;
   const inMonth=dateStr=>!!dateStr&&dateStr.startsWith(monthKey);
   const rows=(D.travauxSchedule||[]).filter(x=>x.pid===p.id&&inMonth(x.date)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-  const domOpts=D.domaines.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
+  const defaultDom=(p.domaines||[])[0];
+  const domOpts=D.domaines.map(d=>`<option value="${d.id}" ${d.id===defaultDom?'selected':''}>${d.name}</option>`).join('');
   return`<div id="bloc-travaux" class="bilan-sec" style="border-color:#8B4A1F">
     <div class="sec-hdr" style="background:#8B4A1F"><h2>🔧 Travaux hors réservation — ${MONTHS_FR[m]} ${y}</h2></div>
     <div style="font-size:11px;color:#888;margin-bottom:10px">Travaux dans un domaine, en dehors d'une réservation — sans commission, ${TRAVAUX_RATE}€ / heure. ${isAdmin?'Validez chaque ligne, ou laissez en attente.':'David/Svitlana valide chaque ligne.'}</div>
-    ${!isAdmin?`<div class="g2" style="margin-bottom:8px">
+    ${!isAdmin?`<div class="g3" style="margin-bottom:8px">
       <div class="field"><label>Domaine</label><select id="trav-domaine-${p.id}">${domOpts}</select></div>
       <div class="field"><label>Jour</label><input type="date" id="trav-date-${p.id}"></div>
-    </div>
-    <div class="g2" style="margin-bottom:8px">
       <div class="field"><label>Nombre d'heures</label><input type="number" id="trav-heures-${p.id}" step="0.5" placeholder="ex: 3.5"></div>
-      <div class="field"><label>Note (optionnel)</label><input type="text" id="trav-note-${p.id}" placeholder="Ce qui a été fait…"></div>
     </div>
+    <div class="field" style="margin-bottom:8px"><label>Description (optionnel)</label><input type="text" id="trav-note-${p.id}" placeholder="Ce qui a été fait…"></div>
     <button class="btn btn-primary btn-sm" onclick="addTravaux('${p.id}')" style="margin-bottom:10px">+ Déclarer ces travaux</button>`:''}
     ${rows.length===0?'<div class="empty">Aucun travaux déclaré ce mois-ci.</div>':''}
     ${rows.map(x=>{const dom=gDom(x.domaine);return`<div style="padding:8px 0;border-bottom:1px solid #e5e3de;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
@@ -1445,6 +1450,49 @@ function computeBilanTotal(p,y,m){
   const enAttente=menageEnAttente+compEnAttente+elecEnAttente+travEnAttente+gardeEnAttente;
   return{key,forfaitDu,forfaitRecu,menageDu,menageRecu,menageEnAttente,compDu,compLignes,compEnAttente,travDu,travLignes,travEnAttente,gardeDu,gardeRecu,gardeLignes,gardeEnAttente,elecCost,elecEnAttente,totalDu,totalRecu,totalReste,enAttente};
 }
+/* Détail des sous-totaux "Prestations avec commission" pour le Bilan total : regroupe les
+   lignes du mois par mode de règlement (via DS/cash nous — avec la retenue de 15% pour
+   Misha/Sasha —, via structure/Ozarco, cash direct au prestataire), pour qu'on voie d'un coup
+   d'œil d'où vient chaque montant, ce qui part en frais de structure, et ce que la commission
+   retire, avant d'arriver au net. */
+function computeCommissionBreakdown(p,y,m){
+  const groups={};
+  let totalBrut=0,totalFiscal=0,totalCommission=0,totalNet=0;
+  D.reservations.filter(r=>r.status!=='annulé'&&r.prestaLines&&r.prestaLines[p.id]&&r.prestaLines[p.id].length).forEach(r=>{
+    const d=r.dateArrivee||r.date;if(!d)return;const[ry,rm]=d.split('-').map(Number);if(!(ry===y&&rm===(m+1)))return;
+    r.prestaLines[p.id].forEach(l=>{
+      const c=ligneCalc(l,p.id);
+      const via=viaOf(l);
+      const groupKey=(via==='ds'||via==='cash_ds')?'ds':(via==='structure'?'structure':'cash_presta');
+      const groupLabel=groupKey==='ds'?'Via DS / cash nous':(groupKey==='structure'?`Via Ozarco (${p.name} payé)`:`Cash direct à ${p.name}`);
+      if(!groups[groupKey])groups[groupKey]={label:groupLabel,montant:0,count:0};
+      groups[groupKey].montant+=c.montant;groups[groupKey].count++;
+      totalBrut+=c.montant;
+      totalFiscal+=c.fiscalRetenu||0;
+      totalCommission+=c.commissionApplied||0;
+      totalNet+=c.net;
+    });
+  });
+  return{
+    groups:Object.values(groups).map(g=>({...g,montant:Math.round(g.montant*100)/100})),
+    totalBrut:Math.round(totalBrut*100)/100,
+    totalFiscal:Math.round(totalFiscal*100)/100,
+    totalCommission:Math.round(totalCommission*100)/100,
+    totalNet:Math.round(totalNet*100)/100,
+  };
+}
+function renderCommissionBreakdownRow(p,y,m,bt){
+  const mainRow=bilanLigneRow('Prestations avec commission (net)',Math.abs(bt.compDu),bt.compDu<0?'-':'+','bloc-commission');
+  const cb=computeCommissionBreakdown(p,y,m);
+  if(cb.groups.length===0)return mainRow;
+  const sub=`<div style="padding:2px 0 8px 10px;margin-top:-4px;margin-bottom:2px;border-bottom:1px solid #F4C6D6;font-size:10.5px;color:#A9527A">
+    <div>Montant brut : <strong>${money(cb.totalBrut)}</strong></div>
+    ${cb.groups.map(g=>`<div>· ${g.label} (${g.count}) : ${money(g.montant)}</div>`).join('')}
+    ${cb.totalFiscal>0?`<div>− 15% frais de structure : ${money(cb.totalFiscal)}</div>`:''}
+    <div>− Commission : ${money(cb.totalCommission)}</div>
+  </div>`;
+  return mainRow+sub;
+}
 function bilanLigneRow(label,montant,sign,ancre){
   const isNeg=sign==='-';
   return`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #F4C6D6;font-size:13px">
@@ -1464,9 +1512,9 @@ function renderBilanTotalSection(p,y,m){
     <div style="background:#fff;border-radius:8px;padding:2px 12px;margin-bottom:10px">
       ${p.forfaitMensuel?bilanLigneRow('Forfait gardiennage fixe',bt.forfaitDu,'+','bloc-forfait'):''}
       ${hasMenage?bilanLigneRow('Ménage',bt.menageDu,'+','bloc-menage'):''}
-      ${hasCommission?bilanLigneRow('Prestations avec commission (net)',Math.abs(bt.compDu),bt.compDu<0?'-':'+','bloc-commission'):''}
+      ${hasCommission?renderCommissionBreakdownRow(p,y,m,bt):''}
       ${p.accessMode==='domaine'?bilanLigneRow('Travaux hors réservation',bt.travDu,'+','bloc-travaux'):''}
-      ${p.electricite?bilanLigneRow('Électricité (à sa charge)',bt.elecCost,'-','bloc-elec'):''}
+      ${p.electricite?bilanLigneRow(`Électricité (à charge ${p.name})`,bt.elecCost,'-','bloc-elec'):''}
       ${isGardeOnly?bilanLigneRow('Gardiennage (nuits)',bt.gardeDu,'+','bloc-garde'):''}
       <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0 4px;margin-top:2px;border-top:1.5px solid #993556;font-size:13px;font-weight:700;color:#72243E">
         <span>TOTAL DÛ CE MOIS</span><span style="font-size:18px">${money(bt.totalDu)}</span>
@@ -2043,7 +2091,7 @@ function refreshAllGardNights(){
 function checkToken(){
   const p=new URLSearchParams(window.location.search),t=p.get('t')||window.location.hash.replace('#','');
   const at=p.get('admin');
-  if(at){const ad=D.admins.find(x=>x.token===at);if(ad){S.view='admin';S.admin=ad;const now=new Date();S.calYear=now.getFullYear();S.calMonth=now.getMonth();S.bilanYear=now.getFullYear();S.bilanMonth=now.getMonth();S.listeYear=now.getFullYear();S.listeMonth=now.getMonth();S.visiteYear=now.getFullYear();S.visiteMonth=now.getMonth();return true;}}
+  if(at){const ad=D.admins.find(x=>x.token===at);if(ad){S.view='admin';S.admin=ad;const now=new Date();S.calYear=now.getFullYear();S.calMonth=now.getMonth();S.bilanYear=now.getFullYear();S.bilanMonth=now.getMonth();S.listeYear=now.getFullYear();S.listeMonth=now.getMonth();S.visiteYear=now.getFullYear();S.visiteMonth=now.getMonth();S.adminPrestaYear=now.getFullYear();S.adminPrestaMonth=now.getMonth();return true;}}
   if(t){const pr=D.prestataires.find(x=>x.token===t);if(pr){S.view='presta';S.presta=pr;const now=new Date();S.calYear=now.getFullYear();S.calMonth=now.getMonth();S.listeYear=now.getFullYear();S.listeMonth=now.getMonth();S.visiteYear=now.getFullYear();S.visiteMonth=now.getMonth();S.prestaBilanYear=now.getFullYear();S.prestaBilanMonth=now.getMonth();return true;}}return false;
 }
 
@@ -2203,15 +2251,19 @@ function injectBands(){
        décalée vers le haut, l'heure de départ légèrement vers le bas (pas centrées). Pas d'heure
        affichée pour les repas (déjeuner/dîner) : ça n'apporte rien pour ce type d'événement. */
     const _hourMargin=13;
+    // Badge P bleu — logé juste devant la bande (comme l'heure d'arrivée), jamais dedans.
+    const _pMargin=9;
+    const _showP=!!b.hasPresta&&S.view!=='presta';
     const _showArrLbl=!b.isMeal&&(b.shapeClass==='band-start'||b.shapeClass==='band-startend')&&!!timeArrF0;
     const _showDepLbl=!b.isMeal&&(b.shapeClass==='band-end'||b.shapeClass==='band-startend')&&!!timeDepF0;
     let _renderLeft=leftPx,_renderWidth=widthPx;
     const _minBandW=26;
-    let _applyArr=_showArrLbl,_applyDep=_showDepLbl;
-    if(_applyArr||_applyDep){
-      const _shrink=(_applyArr?_hourMargin:0)+(_applyDep?_hourMargin:0);
-      if(widthPx-_shrink<_minBandW){_applyArr=false;_applyDep=false;} // pas assez de place : on garde la bande pleine largeur
+    let _applyArr=_showArrLbl,_applyDep=_showDepLbl,_applyP=_showP;
+    if(_applyArr||_applyDep||_applyP){
+      const _shrink=(_applyP?_pMargin:0)+(_applyArr?_hourMargin:0)+(_applyDep?_hourMargin:0);
+      if(widthPx-_shrink<_minBandW){_applyArr=false;_applyDep=false;_applyP=false;} // pas assez de place : on garde la bande pleine largeur
       else{
+        if(_applyP){_renderLeft+=_pMargin;_renderWidth-=_pMargin;}
         if(_applyArr){_renderLeft+=_hourMargin;_renderWidth-=_hourMargin;}
         if(_applyDep){_renderWidth-=_hourMargin;}
       }
@@ -2242,14 +2294,13 @@ function injectBands(){
         const dotHtml=(!isPrestaView&&b.isPartPaid)?`<svg width="12" height="12" viewBox="0 0 12 12" style="display:inline-block;vertical-align:middle;margin-right:3px;flex-shrink:0"><circle cx="6" cy="6" r="5.5" fill="${dotColor}"/><circle cx="6" cy="6" r="3" fill="white"/></svg>`:'';
         // Payé intégralement — badge € fond rouge (admin seulement)
         const fullHtml=(!isPrestaView&&b.isPaid)?`<span style="display:inline-flex;align-items:center;justify-content:center;width:12px;height:12px;background:#CC0000;color:#fff;border-radius:50%;font-size:8px;font-weight:800;margin-right:3px;flex-shrink:0;line-height:1">€</span>`:'';
-        // Badge P bleu ciel — prestataire non-ménage assigné
-        const pSvg=`<svg width="13" height="13" viewBox="0 0 13 13" style="display:inline-block;vertical-align:middle;margin-left:2px;flex-shrink:0"><circle cx="6.5" cy="6.5" r="6" fill="none" stroke="#2E86C1" stroke-width="1.5"/><text x="6.5" y="9.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="#2E86C1" font-family="Arial,sans-serif">P</text></svg>`;
-        const pBadge=b.hasPresta?pSvg:'';
+        // Le badge P (prestataire assigné) n'est plus affiché dans la bande elle-même : il est
+        // maintenant logé juste devant, à gauche, en bleu — voir la création de lblP plus bas.
         if(isPrestaView){
           topParts.push('<span style="font-weight:800">'+b.nameTxt+'</span>');
         } else {
           const nameStyle='font-weight:800'+(b.incompleteContact?';text-decoration:underline dotted #FFE066;text-decoration-thickness:1.5px;text-underline-offset:2px':'');
-          topParts.push(dotHtml+fullHtml+'<span style="'+nameStyle+'">'+b.nameTxt+'</span>'+pBadge);
+          topParts.push(dotHtml+fullHtml+'<span style="'+nameStyle+'">'+b.nameTxt+'</span>');
         }
       }
       if(b.mainLine)topParts.push(b.mainLine);
@@ -2286,9 +2337,19 @@ function injectBands(){
     if(!STRIP_BAND_INFO)div.onclick=ev=>{ev.stopPropagation();selectResa(b.rid,ev);};
     else div.style.cursor='default';
     grid.appendChild(div);
+    if(_applyP){
+      const lblP=document.createElement('div');
+      lblP.style.position='absolute';lblP.style.top=topPx+'px';lblP.style.left=leftPx+'px';lblP.style.width=_pMargin+'px';lblP.style.height=_bandH+'px';
+      lblP.style.display='flex';lblP.style.alignItems='center';lblP.style.justifyContent='center';lblP.style.boxSizing='border-box';
+      lblP.style.fontWeight='800';lblP.style.fontSize='8px';lblP.style.color='#2E86C1';lblP.style.pointerEvents='none';lblP.style.zIndex='3';lblP.style.overflow='hidden';
+      lblP.className='band-p-badge';
+      lblP.dataset.rid=b.rid;
+      lblP.textContent='P';
+      grid.appendChild(lblP);
+    }
     if(_applyArr){
       const lblA=document.createElement('div');
-      lblA.style.position='absolute';lblA.style.top=(topPx-1)+'px';lblA.style.left=leftPx+'px';lblA.style.width=_hourMargin+'px';lblA.style.height=_bandH+'px';
+      lblA.style.position='absolute';lblA.style.top=(topPx-1)+'px';lblA.style.left=(leftPx+(_applyP?_pMargin:0))+'px';lblA.style.width=_hourMargin+'px';lblA.style.height=_bandH+'px';
       lblA.style.display='flex';lblA.style.alignItems='flex-start';lblA.style.justifyContent='flex-end';lblA.style.paddingRight='1px';lblA.style.boxSizing='border-box';
       lblA.style.fontWeight='700';lblA.style.color=_cornerColor;lblA.style.pointerEvents='none';lblA.style.zIndex='3';lblA.style.overflow='hidden';
       const _hIdxA=timeArrF0.indexOf('h');
@@ -2413,7 +2474,7 @@ function renderLogin(){
 function doLogin(){
   const pin=document.getElementById('pin-in').value;
   const a=D.admins.find(x=>x.pin===pin);
-  if(a){S.view='admin';S.admin=a;const now=new Date();S.calYear=now.getFullYear();S.calMonth=now.getMonth();S.bilanYear=now.getFullYear();S.bilanMonth=now.getMonth();S.listeYear=now.getFullYear();S.listeMonth=now.getMonth();S.visiteYear=now.getFullYear();S.visiteMonth=now.getMonth();render();}
+  if(a){S.view='admin';S.admin=a;const now=new Date();S.calYear=now.getFullYear();S.calMonth=now.getMonth();S.bilanYear=now.getFullYear();S.bilanMonth=now.getMonth();S.listeYear=now.getFullYear();S.listeMonth=now.getMonth();S.visiteYear=now.getFullYear();S.visiteMonth=now.getMonth();S.adminPrestaYear=now.getFullYear();S.adminPrestaMonth=now.getMonth();render();}
   else{const el=document.getElementById('pin-in');el.value='';el.style.borderColor='#E24B4A';el.placeholder='Code incorrect';}
 }
 
