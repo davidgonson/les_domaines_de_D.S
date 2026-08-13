@@ -766,6 +766,16 @@ function mergeRemoteSnapshot(remote){
   merged.forfaitPaid=mergeFlatMap(remote.forfaitPaid,D.forfaitPaid);
   merged.elecValide=mergeFlatMap(remote.elecValide,D.elecValide);
   merged.bilanComments=mergeById(remote.bilanComments,D.bilanComments,del('bilanComment'));
+  /* activityLog ("Dernières modifications") n'était fusionné nulle part : Object.assign({},remote)
+     plus haut lui donnait tout simplement la valeur de remote.activityLog, donc toute entrée
+     ajoutée localement (logActivity) depuis la dernière fois qu'on avait interrogé le serveur
+     disparaissait aussitôt, écrasée par l'ancien état serveur — avant même d'avoir été poussée.
+     C'est ce qui causait les créations/paiements manquants dans "Dernières modifications". On la
+     fusionne comme les autres listes id-indexées (union, jamais un remplacement en bloc), puis on
+     retrie par date et on réapplique le plafond de 400. */
+  merged.activityLog=mergeById(remote.activityLog,D.activityLog,[]);
+  merged.activityLog.sort((a,b)=>(a.ts||0)-(b.ts||0));
+  if(merged.activityLog.length>400)merged.activityLog=merged.activityLog.slice(-400);
   return merged;
 }
 async function saveD(){
@@ -1098,6 +1108,7 @@ function renderCommissionSection(p,y,m){
 /* === Travaux hors réservation (Misha/Sacha) — intégrés à Mon Bilan, même logique de
    validation que les prestations avec commission. Rendu partagé perso/admin. === */
 function renderTravauxSection(p,y,m){
+  if(p.accessMode!=='domaine')return''; // réservé à Misha/Sacha (accès complet) — pas Pascaline ni les autres
   const isAdmin=S.view==='admin';
   const monthKey=`${y}-${String(m+1).padStart(2,'0')}`;
   const inMonth=dateStr=>!!dateStr&&dateStr.startsWith(monthKey);
@@ -1222,10 +1233,10 @@ function renderMenageSection(p,y,m){
     ${menageEvs.map(({r,mi},mIdx)=>{const dom=gDom(r.domaine);return`<div style="padding:7px 8px;margin:0 -8px;border-bottom:1px solid #e5e3de;font-size:13px;background:${mIdx%2===1?'#f7f6f3':'transparent'}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
         <span><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span>${ds(r.dateArrivee)} <span style="color:#888">(${displayClientName(r)||'—'})</span></span>
-        ${isAdmin?`<span style="display:flex;align-items:center;gap:2px"><input type="number" value="${mi.montant}" onchange="updMenageMontant('${r.id}',this.value)" style="width:60px;font-weight:600;font-size:13px;padding:3px 5px"><span style="font-size:12px;font-weight:600;color:#666">€</span></span>`:`<strong>${money(mi.montant)}</strong>`}
+        <span style="display:flex;align-items:center;gap:2px"><input type="number" value="${mi.montant}" onchange="updMenageMontant('${r.id}',this.value)" style="width:60px;font-weight:600;font-size:13px;padding:3px 5px"><span style="font-size:12px;font-weight:600;color:#666">€</span></span>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap">
-        ${isAdmin?`<input type="text" value="${r.menageComment||''}" placeholder="Note" onchange="updMenageComment('${r.id}',this.value)" style="flex:1;min-width:100px;font-size:12px;padding:3px 5px;color:#888">`:`<span style="font-size:11px;color:#888">${r.menageComment||''}</span>`}
+        <input type="text" value="${(r.menageComment||'').replace(/"/g,'&quot;')}" placeholder="Note" onchange="updMenageComment('${r.id}',this.value)" style="flex:1;min-width:100px;font-size:12px;padding:3px 5px;color:#888">
         <span class="pill" style="background:${r.menagePaid?'#E8F3E0':'#FCEBEB'};color:${r.menagePaid?'#27500A':'#791F1F'};${isAdmin?'cursor:pointer':''};flex-shrink:0" ${isAdmin?`onclick="toggleMenagePaid('${r.id}')"`:''}>${r.menagePaid?'✓ reçu':'✗ à recevoir'}</span>
         ${valideBadge(!!r.menageValide,`toggleMenageValide('${r.id}')`)}
       </div>
@@ -1365,15 +1376,17 @@ function bilanLigneRow(label,montant,sign,ancre){
 }
 function renderBilanTotalSection(p,y,m){
   const isGardeOnly=p.inputMode==='garde';
-  if(!p.forfaitMensuel&&!isGardeOnly)return'';
+  const hasMenage=!!(p.forfaitMensuel||p.flatRate);
+  const hasCommission=p.inputMode==='notes';
+  if(!hasMenage&&!hasCommission&&!isGardeOnly)return'';
   const bt=computeBilanTotal(p,y,m);
   return`<div style="background:#FBEAF0;border:1px solid #ED93B1;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
     <div class="sec-hdr" style="background:#993556"><h2>💰 Bilan total — ${MONTHS_FR[m]} ${y}</h2></div>
     ${bt.enAttente>0?`<div class="alert" style="background:#FFF3D6;color:#7A5800;margin-bottom:10px;font-size:12.5px">⏳ ${bt.enAttente} élément${bt.enAttente>1?'s':''} ci-dessous en attente de validation — vérifiez le calcul et validez, ou corrigez le montant.</div>`:''}
     <div style="background:#fff;border-radius:8px;padding:2px 12px;margin-bottom:10px">
       ${p.forfaitMensuel?bilanLigneRow('Forfait gardiennage fixe',bt.forfaitDu,'+','bloc-forfait'):''}
-      ${p.forfaitMensuel?bilanLigneRow('Ménage',bt.menageDu,'+','bloc-menage'):''}
-      ${p.forfaitMensuel?bilanLigneRow('Prestations avec commission (net)',Math.abs(bt.compDu),bt.compDu<0?'-':'+','bloc-commission'):''}
+      ${hasMenage?bilanLigneRow('Ménage',bt.menageDu,'+','bloc-menage'):''}
+      ${hasCommission?bilanLigneRow('Prestations avec commission (net)',Math.abs(bt.compDu),bt.compDu<0?'-':'+','bloc-commission'):''}
       ${p.accessMode==='domaine'?bilanLigneRow('Travaux hors réservation',bt.travDu,'+','bloc-travaux'):''}
       ${p.electricite?bilanLigneRow('Électricité (à sa charge)',bt.elecCost,'-','bloc-elec'):''}
       ${isGardeOnly?bilanLigneRow('Gardiennage (nuits)',bt.gardeDu,'+','bloc-garde'):''}
@@ -3402,16 +3415,14 @@ function renderExport(){
     <button class="btn btn-primary" style="padding:10px 18px;font-size:13px" onclick="exportExcel('modif')">🕒 Télécharger l'Excel (par dernières modifications)</button>
     <div style="margin-top:18px;font-size:11px;color:#888">Le fichier contient un onglet "Réservations" avec une ligne par séjour, et un onglet "Clients" avec les coordonnées. Il s'ouvre avec Excel, Google Sheets ou Numbers.<br>Le tri "par dernières modifications" place en haut les réservations créées ou modifiées le plus récemment — pratique pour repérer vite ce qui a changé dans la semaine.</div>
   </div>
-  <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
-    <div class="sec-hdr"><h2>♻️ Restaurer une sauvegarde</h2></div>
-    <div style="font-size:13px;color:#555;margin-bottom:14px;line-height:1.5">
-      Si la base de données en ligne est perdue ou inaccessible, tu peux réinjecter ici un fichier Excel exporté précédemment depuis ce logiciel. Toutes les réservations qu'il contient seront recréées.<br>
-      <span style="color:#A32D2D;font-weight:600">⚠️ Attention : cette opération ajoute les réservations du fichier à celles déjà présentes. Si tu restaures après une perte totale, les données actuelles seront simplement complétées (pas de doublons si tu restaures un fichier déjà importé).</span>
+  <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
+    <div class="sec-hdr"><h2>🗄️ Sauvegarde complète (tout restaurer en cas de problème)</h2></div>
+    <div style="font-size:13px;color:#555;margin:10px 0 16px;line-height:1.5">
+      Contrairement à l'export ci-dessus (pensé pour consulter/trier tes réservations), celle-ci capture <strong>absolument tout</strong> : réservations, visites, commentaires, paiements (avec leur type), prestations à commission, gardiennage, travaux, jardinage de Dominique, commentaires de bilan mensuel, forfaits et index électricité. Fais-en une régulièrement (une fois par semaine par exemple) et conserve-la de ton côté — c'est ce fichier qu'il faut utiliser ci-dessous pour tout récupérer si les données venaient à disparaître de la base en ligne.
     </div>
-    <input type="file" id="restore-file-input" accept=".xlsx,.xls" style="display:none" onchange="handleRestoreFile(this)">
-    <button class="btn" style="padding:10px 18px;font-size:13px;border-color:#A32D2D;color:#A32D2D" onclick="document.getElementById('restore-file-input').click()">📤 Choisir un fichier Excel à restaurer</button>
-    <div id="restore-status" style="margin-top:12px"></div>
-  </div>`;
+    <button class="btn btn-primary" style="padding:10px 18px;font-size:13px" onclick="exportSauvegardeComplete()">🗄️ Télécharger la sauvegarde complète</button>
+  </div>
+  ${renderRestoreSection()}`;
 }
 function buildContractSections(r){
   const cd=CONTRACT_DATA[r.domaine]||CONTRACT_DATA.d1;
@@ -3995,7 +4006,7 @@ function exportExcel(sortMode){
       'Montant total €':r.montant||0,
       'Total payé €':totPay(r),
       'Reste à payer €':(r.montant||0)-totPay(r),
-      'Détail paiements':(r.paiements||[]).map(p=>`${p.date}:${p.montant}€${p.note?' ('+p.note+')':''}`).join(' | '),
+      'Détail paiements':(r.paiements||[]).map(p=>`${p.date}:${p.montant}€${p.type?' ['+p.type+']':''}${p.comment?' ('+p.comment+')':''}`).join(' | '),
       'Ménage prévu pour':mi?mi.name:'',
       'Montant ménage €':mi?mi.montant:'',
       'Ménage réglé':r.menagePaid?'Oui':'Non',
@@ -4030,81 +4041,532 @@ function exportExcel(sortMode){
   showMsg('Export Excel téléchargé ✓');
 }
 
+/* === Sauvegarde complète (export) et restauration sécurisée (import) ===
+   Remplace l'ancien handleRestoreFile, qui écrasait purement et simplement une réservation
+   existante avec la version du fichier Excel (Object.assign(existing,rebuilt,...)), sans
+   respecter les suppressions volontaires ni prévisualiser quoi que ce soit avant d'agir.
+   La nouvelle version ne fait jamais qu'AJOUTER ce qui manque (jamais écraser), respecte les
+   suppressions déjà faites (D.deletedIds), et affiche un aperçu détaillé avant toute
+   confirmation. Voir aussi buildFullBackupWorkbook (export complet, 14 onglets) plus haut dans
+   ce fichier, qui capture tout ce que cette restauration sait relire. */
+function domIdByName(name){const d=D.domaines.find(x=>x.name===name);return d?d.id:'';}
+function preIdByName(name){const p=D.prestataires.find(x=>x.name===name);return p?p.id:'';}
+function normDate(v){
+  if(v===undefined||v===null||v==='')return'';
+  if(v instanceof Date)return dstr(v);
+  const s=String(v).trim();
+  const m=s.match(/^(\d{4}-\d{2}-\d{2})/);
+  return m?m[1]:s;
+}
+/* === SAUVEGARDE COMPLÈTE (export) ===
+   Contrairement à l'export simple (onglets Réservations/Clients, pour consultation rapide),
+   celle-ci capture ABSOLUMENT TOUT ce qui peut être restauré : réservations avec tous leurs
+   champs, commentaires, paiements, prestations à commission, gardiennage (par réservation et
+   planifié), prestataires extérieurs, visites, travaux, jardinage Dominique, commentaires de
+   bilan mensuel, et les données financières mensuelles (forfait/électricité). Chaque ligne liée
+   à une réservation porte son "ID Réservation" pour permettre de la rattacher au bon endroit
+   lors d'une restauration. Volontairement exclus : les photos jointes aux commentaires (trop
+   volumineuses pour un tableur — seule leur présence est indiquée), les messages de chat privé
+   et le journal d'activité (informatifs, pas des données à restaurer), et les identifiants de
+   connexion des administrateurs (jamais exportés, pour la sécurité). */
+function buildFullBackupWorkbook(){
+  const wb=XLSX.utils.book_new();
+  const tsStr=ts=>ts?new Date(ts).toLocaleString('fr-FR'):'';
+  const addSheet=(name,headers,rows)=>{
+    const aoa=[headers,...rows.map(r=>headers.map(h=>{const v=r[h];return v===undefined||v===null?'':v;}))];
+    const ws=XLSX.utils.aoa_to_sheet(aoa);
+    XLSX.utils.book_append_sheet(wb,ws,name);
+  };
+
+  const RESA_H=['ID','Créée le','Dernière modification','Domaine','Statut','Civilité 1','Prénom 1','Nom 1','Client (affiché)','Prénom 2','Nom 2','Société','Type client','Téléphone','Téléphone 2','Email','Email 2','Adresse','Type événement','Date arrivée','Heure arrivée','Date départ','Heure départ','Couchages','Adultes','Enfants','Invités soirée','Montant total €','Arrhes €','Dépôt de garantie €','Avec contrat','Note interne','Commande caviste','Ménage réglé','Ménage validé','Prestataires assignés (IDs)','Dernier changement','Modifié par'];
+  const resaRows=D.reservations.map(r=>({
+    'ID':r.id,'Créée le':tsStr(r.createdAt),'Dernière modification':tsStr(r.updatedAt),
+    'Domaine':gDom(r.domaine).name,'Statut':r.status||'',
+    'Civilité 1':r.civilite1||'','Prénom 1':r.prenom1||'','Nom 1':r.nom1||'','Client (affiché)':r.client||'',
+    'Prénom 2':r.prenom2||'','Nom 2':r.nom2||'','Société':r.societe||'',
+    'Type client':r.typeClient==='entreprise'?'Entreprise':'Particulier',
+    'Téléphone':r.tel||'','Téléphone 2':r.tel2||'','Email':r.email||'','Email 2':r.email2||'','Adresse':r.adresse||'',
+    'Type événement':r.typeEvenement||'','Date arrivée':r.dateArrivee||'','Heure arrivée':r.heureArrivee||'',
+    'Date départ':r.dateDepart||'','Heure départ':r.heureDepart||'',
+    'Couchages':r.nbPersonnes||'','Adultes':r.nbAdultes||'','Enfants':r.nbEnfants||'','Invités soirée':r.nbSoiree||'',
+    'Montant total €':r.montant||0,'Arrhes €':r.arrhes||0,'Dépôt de garantie €':r.depotGarantie||0,
+    'Avec contrat':r.avecContrat===false?'Non':'Oui','Note interne':r.noteInterne||'','Commande caviste':r.caviste||'',
+    'Ménage réglé':r.menagePaid?'Oui':'Non','Ménage validé':r.menageValide===false?'Non':'Oui',
+    'Prestataires assignés (IDs)':(r.prestataires||[]).join(','),
+    'Dernier changement':r.lastChange||'','Modifié par':r.lastChangeBy||''
+  }));
+
+  const COM_H=['ID','ID Réservation','Date','Auteur','Nom auteur','Texte','Visible','Photo jointe'];
+  const commentRows=[];
+  D.reservations.forEach(r=>{(r.commentaires||[]).forEach(c=>{commentRows.push({
+    'ID':c.id,'ID Réservation':r.id,'Date':c.date||'','Auteur':c.auteur||'','Nom auteur':c.auteurNom||'',
+    'Texte':c.texte||'','Visible':c.visible===false?'Non':'Oui','Photo jointe':c.photoUrl?'Oui':'Non'
+  });});});
+
+  const PAY_H=['ID','ID Réservation','Date','Montant €','Type','Commentaire'];
+  const paiementRows=[];
+  D.reservations.forEach(r=>{(r.paiements||[]).forEach(p=>{paiementRows.push({
+    'ID':p.id,'ID Réservation':r.id,'Date':p.date||'','Montant €':p.montant||0,'Type':p.type||'','Commentaire':p.comment||''
+  });});});
+
+  const LIG_H=['ID','ID Réservation','ID Prestataire','Prestataire','Intitulé','Montant €','Mode de règlement','Commission %','Part qui nous revient €','Notes','Validée','Date'];
+  const prestaLineRows=[];
+  D.reservations.forEach(r=>{Object.entries(r.prestaLines||{}).forEach(([pid,lines])=>{(lines||[]).forEach(l=>{prestaLineRows.push({
+    'ID':l.id,'ID Réservation':r.id,'ID Prestataire':pid,'Prestataire':gPre(pid).name,'Intitulé':l.label||'',
+    'Montant €':l.montant||0,'Mode de règlement':l.via||'',
+    'Commission %':(l.commission!==undefined&&l.commission!==null)?l.commission:'',
+    'Part qui nous revient €':(l.notrePart!==undefined&&l.notrePart!==null&&l.notrePart!=='')?l.notrePart:'',
+    'Notes':l.notes||'','Validée':l.valide?'Oui':'Non','Date':l.date||''
+  });});});});
+
+  const GR_H=['ID Réservation','ID Prestataire','Prestataire','Domaine','Date','Durée','Réglé','Mode de règlement','Commentaire','Validée'];
+  const gardeResaRows=[];
+  D.reservations.forEach(r=>{Object.entries(r.prestaGarde||{}).forEach(([pid,pg])=>{Object.entries((pg&&pg.nights)||{}).forEach(([date,n])=>{gardeResaRows.push({
+    'ID Réservation':r.id,'ID Prestataire':pid,'Prestataire':gPre(pid).name,'Domaine':gDom((pg&&pg.domaine)||r.domaine).name,
+    'Date':date,'Durée':n.duree||'','Réglé':n.paid?'Oui':'Non','Mode de règlement':n.payMethod||'',
+    'Commentaire':n.comment||'','Validée':n.valide===false?'Non':'Oui'
+  });});});});
+
+  const EXT_H=['ID','ID Réservation','Intitulé','Montant €','Sens','Note'];
+  const extRows=[];
+  D.reservations.forEach(r=>{(r.prestasExterieurs||[]).forEach(x=>{extRows.push({
+    'ID':x.id||'','ID Réservation':r.id,'Intitulé':x.intitule||'','Montant €':x.montant||0,'Sens':x.sens||'','Note':x.note||''
+  });});});
+
+  const VIS_H=['ID','Domaine','Date','Heure','Statut','Client','Type événement','Téléphone','Email','Note interne'];
+  const visiteRows=(D.visites||[]).map(v=>({
+    'ID':v.id,'Domaine':gDom(v.domaine).name,'Date':v.date||'','Heure':v.heure||'','Statut':v.status||'',
+    'Client':v.client||'','Type événement':v.typeEvenement||'','Téléphone':v.tel||'','Email':v.email||'','Note interne':v.noteInterne||''
+  }));
+
+  const GS_H=['ID','ID Prestataire','Prestataire','Domaine','Date','Durée','Réglé','Mode de règlement','Commentaire','Validée'];
+  const gardeSchedRows=(D.gardeSchedule||[]).map(x=>({
+    'ID':x.id,'ID Prestataire':x.pid,'Prestataire':gPre(x.pid).name,'Domaine':gDom(x.domaine).name,'Date':x.date||'',
+    'Durée':x.duree||'','Réglé':x.paid?'Oui':'Non','Mode de règlement':x.payMethod||'','Commentaire':x.comment||'',
+    'Validée':x.valide===false?'Non':'Oui'
+  }));
+
+  const TRAV_H=['ID','ID Prestataire','Prestataire','Domaine','Date','Heures','Montant €','Note','Statut','Validé par','Validé le'];
+  const travauxRows=(D.travauxSchedule||[]).map(x=>({
+    'ID':x.id,'ID Prestataire':x.pid,'Prestataire':gPre(x.pid).name,'Domaine':gDom(x.domaine).name,'Date':x.date||'',
+    'Heures':x.heures||0,'Montant €':x.montant||0,'Note':x.note||'','Statut':x.status||'',
+    'Validé par':x.validatedBy||'','Validé le':tsStr(x.validatedAt)
+  }));
+
+  const DOM_H=['ID','Domaine','Date','Montant €','Réglé','Commentaire'];
+  const dominiqueRows=(D.dominiqueSchedule||[]).map(x=>({
+    'ID':x.id,'Domaine':gDom(x.domaine).name,'Date':x.date||'','Montant €':x.montant||0,'Réglé':x.paid?'Oui':'Non','Commentaire':x.comment||''
+  }));
+
+  const BC_H=['ID','ID Prestataire','Prestataire','Mois','Auteur','Nom auteur','Texte','Date'];
+  const bilanCommentRows=(D.bilanComments||[]).map(x=>({
+    'ID':x.id,'ID Prestataire':x.pid,'Prestataire':gPre(x.pid).name,'Mois':x.monthKey||'','Auteur':x.auteur||'',
+    'Nom auteur':x.auteurNom||'','Texte':x.texte||'','Date':x.date||''
+  }));
+
+  const FIN_H=['ID Prestataire','Prestataire','Mois','Forfait réglé','Index électricité (kWh)','Électricité validée'];
+  const financeRows=[];
+  const monthKeys=new Set();
+  [D.forfaitPaid,D.electriciteIndex,D.elecValide].forEach(m=>{Object.values(m||{}).forEach(sub=>{Object.keys(sub||{}).forEach(k=>monthKeys.add(k));});});
+  const pidsFinance=new Set([...Object.keys(D.forfaitPaid||{}),...Object.keys(D.electriciteIndex||{}),...Object.keys(D.elecValide||{})]);
+  pidsFinance.forEach(pid=>{
+    Array.from(monthKeys).sort().forEach(mk=>{
+      const fp=(D.forfaitPaid[pid]||{})[mk];
+      const ei=(D.electriciteIndex[pid]||{})[mk];
+      const ev=(D.elecValide[pid]||{})[mk];
+      if(fp===undefined&&ei===undefined&&ev===undefined)return;
+      financeRows.push({
+        'ID Prestataire':pid,'Prestataire':gPre(pid).name,'Mois':mk,
+        'Forfait réglé':fp===true?'Oui':(fp===false?'Non':''),
+        'Index électricité (kWh)':(ei!==undefined&&ei!==null)?ei:'',
+        'Électricité validée':ev===true?'Oui':(ev===false?'Non':'')
+      });
+    });
+  });
+
+  const DOMREF_H=['ID','Nom'];
+  const domaineRows=D.domaines.map(d=>({'ID':d.id,'Nom':d.name}));
+  const PREREF_H=['ID','Nom','Rôle','Domaines'];
+  const prestaRows=D.prestataires.map(p=>({'ID':p.id,'Nom':p.name,'Rôle':p.role||'','Domaines':(p.domaines||[]).map(id=>gDom(id).name).join(', ')}));
+
+  addSheet('Réservations',RESA_H,resaRows);
+  addSheet('Commentaires',COM_H,commentRows);
+  addSheet('Paiements',PAY_H,paiementRows);
+  addSheet('Prestations',LIG_H,prestaLineRows);
+  addSheet('Gardiennage résa',GR_H,gardeResaRows);
+  addSheet('Prestataires extérieurs',EXT_H,extRows);
+  addSheet('Visites',VIS_H,visiteRows);
+  addSheet('Gardiennage planning',GS_H,gardeSchedRows);
+  addSheet('Travaux',TRAV_H,travauxRows);
+  addSheet('Jardinage Dominique',DOM_H,dominiqueRows);
+  addSheet('Commentaires bilan',BC_H,bilanCommentRows);
+  addSheet('Finances mensuelles',FIN_H,financeRows);
+  addSheet('Repères - Domaines',DOMREF_H,domaineRows);
+  addSheet('Repères - Prestataires',PREREF_H,prestaRows);
+  return wb;
+}
+function exportSauvegardeComplete(){
+  if(typeof XLSX==='undefined'){alert("La librairie Excel ne s'est pas chargée (connexion internet nécessaire). Réessaie dans quelques secondes.");return;}
+  const wb=buildFullBackupWorkbook();
+  const today=dstr(new Date());
+  XLSX.writeFile(wb,`Domaines_Normandie_SAUVEGARDE_COMPLETE_${today}.xlsx`);
+  markBackupDone();
+  showMsg('Sauvegarde complète téléchargée ✓');
+}
+
+/* === RESTAURATION (import) ===
+   Lit un fichier de sauvegarde complète (voir buildFullBackupWorkbook) et reconstruit chaque
+   catégorie de données sous une forme normalisée, prête à être comparée à ce qui existe déjà
+   dans l'application (voir computeRestoreDiff). Robuste aux dates que Excel aurait re-formatées
+   en interne (normDate gère aussi bien un texte "2026-08-20" qu'un objet Date). */
+function parseFullBackupWorkbook(wb){
+  const sheet=name=>wb.Sheets[name];
+  const rowsOf=name=>{const s=sheet(name);return s?XLSX.utils.sheet_to_json(s,{defval:''}):[];};
+  const boolVal=v=>v==='Oui';
+  const numVal=v=>{if(v===''||v===undefined||v===null)return 0;const n=parseFloat(v);return isNaN(n)?0:n;};
+  let skipped=0;
+
+  const reservations=rowsOf('Réservations').map(r=>{
+    const id=String(r['ID']||'').trim();
+    if(!id){skipped++;return null;}
+    const domaine=domIdByName(r['Domaine']);
+    if(!domaine){skipped++;return null;}
+    return{
+      id,domaine,status:r['Statut']||'confirmé',
+      civilite1:r['Civilité 1']||'',prenom1:r['Prénom 1']||'',nom1:r['Nom 1']||'',
+      client:r['Client (affiché)']||[r['Prénom 1'],r['Nom 1']].filter(Boolean).join(' '),
+      prenom2:r['Prénom 2']||'',nom2:r['Nom 2']||'',societe:r['Société']||'',
+      typeClient:r['Type client']==='Entreprise'?'entreprise':'particulier',
+      tel:r['Téléphone']||'',tel2:r['Téléphone 2']||'',email:r['Email']||'',email2:r['Email 2']||'',adresse:r['Adresse']||'',
+      typeEvenement:r['Type événement']||'',dateArrivee:normDate(r['Date arrivée']),heureArrivee:r['Heure arrivée']||'',
+      dateDepart:normDate(r['Date départ'])||normDate(r['Date arrivée']),heureDepart:r['Heure départ']||'',
+      nbPersonnes:numVal(r['Couchages']),nbAdultes:numVal(r['Adultes']),nbEnfants:numVal(r['Enfants']),nbSoiree:numVal(r['Invités soirée']),
+      montant:numVal(r['Montant total €']),arrhes:numVal(r['Arrhes €']),depotGarantie:numVal(r['Dépôt de garantie €']),
+      avecContrat:r['Avec contrat']!=='Non',noteInterne:r['Note interne']||'',caviste:r['Commande caviste']||'',
+      menagePaid:boolVal(r['Ménage réglé']),menageValide:r['Ménage validé']!=='Non',
+      prestataires:r['Prestataires assignés (IDs)']?String(r['Prestataires assignés (IDs)']).split(',').map(s=>s.trim()).filter(Boolean):[],
+      lastChange:r['Dernier changement']||'',lastChangeBy:r['Modifié par']||'',
+      commentaires:[],paiements:[],prestaLines:{},prestaGarde:{},prestasExterieurs:[]
+    };
+  }).filter(Boolean);
+
+  const commentaires=rowsOf('Commentaires').filter(c=>c['ID']&&c['ID Réservation']).map(c=>({
+    id:String(c['ID']),reservationId:String(c['ID Réservation']),date:normDate(c['Date']),
+    auteur:c['Auteur']||'',auteurNom:c['Nom auteur']||'',texte:c['Texte']||'',visible:c['Visible']!=='Non'
+  }));
+
+  const paiements=rowsOf('Paiements').filter(p=>p['ID']&&p['ID Réservation']).map(p=>({
+    id:String(p['ID']),reservationId:String(p['ID Réservation']),date:normDate(p['Date']),
+    montant:numVal(p['Montant €']),type:p['Type']||'',comment:p['Commentaire']||''
+  }));
+
+  const prestaLines=rowsOf('Prestations').filter(l=>l['ID']&&l['ID Réservation']&&l['ID Prestataire']).map(l=>({
+    id:String(l['ID']),reservationId:String(l['ID Réservation']),pid:String(l['ID Prestataire']),
+    label:l['Intitulé']||'',montant:numVal(l['Montant €']),via:l['Mode de règlement']||'',
+    commission:l['Commission %']!==''?parseFloat(l['Commission %']):undefined,
+    notrePart:l['Part qui nous revient €']!==''?numVal(l['Part qui nous revient €']):undefined,
+    notes:l['Notes']||'',valide:l['Validée']!=='Non',date:normDate(l['Date'])
+  }));
+
+  const gardeResa=rowsOf('Gardiennage résa').filter(g=>g['ID Réservation']&&g['ID Prestataire']&&g['Date']).map(g=>({
+    reservationId:String(g['ID Réservation']),pid:String(g['ID Prestataire']),domaine:domIdByName(g['Domaine']),
+    date:normDate(g['Date']),duree:g['Durée']||'longue',paid:boolVal(g['Réglé']),payMethod:g['Mode de règlement']||'',
+    comment:g['Commentaire']||'',valide:g['Validée']!=='Non'
+  }));
+
+  const prestasExterieurs=rowsOf('Prestataires extérieurs').filter(x=>x['ID Réservation']).map(x=>({
+    id:x['ID']?String(x['ID']):gid(),reservationId:String(x['ID Réservation']),
+    intitule:x['Intitulé']||'',montant:numVal(x['Montant €']),sens:x['Sens']||'',note:x['Note']||''
+  }));
+
+  const visites=rowsOf('Visites').filter(v=>v['ID']).map(v=>{
+    const domaine=domIdByName(v['Domaine']);
+    if(!domaine){skipped++;return null;}
+    return{id:String(v['ID']),domaine,date:normDate(v['Date']),heure:v['Heure']||'',status:v['Statut']||'',
+      client:v['Client']||'',typeEvenement:v['Type événement']||'',tel:v['Téléphone']||'',email:v['Email']||'',
+      noteInterne:v['Note interne']||''};
+  }).filter(Boolean);
+
+  const pidOf=row=>{const raw=String(row['ID Prestataire']||'').trim();return raw||preIdByName(row['Prestataire']);};
+
+  const gardeSchedule=rowsOf('Gardiennage planning').filter(x=>x['ID']).map(x=>{
+    const pid=pidOf(x),domaine=domIdByName(x['Domaine']);
+    if(!pid||!domaine){skipped++;return null;}
+    return{id:String(x['ID']),pid,domaine,date:normDate(x['Date']),duree:x['Durée']||'longue',
+      paid:boolVal(x['Réglé']),payMethod:x['Mode de règlement']||'',comment:x['Commentaire']||'',valide:x['Validée']!=='Non'};
+  }).filter(Boolean);
+
+  const travauxSchedule=rowsOf('Travaux').filter(x=>x['ID']).map(x=>{
+    const pid=pidOf(x),domaine=domIdByName(x['Domaine']);
+    if(!pid||!domaine){skipped++;return null;}
+    return{id:String(x['ID']),pid,domaine,date:normDate(x['Date']),heures:numVal(x['Heures']),
+      montant:numVal(x['Montant €']),note:x['Note']||'',status:x['Statut']||'en_attente',validatedBy:x['Validé par']||''};
+  }).filter(Boolean);
+
+  const dominiqueSchedule=rowsOf('Jardinage Dominique').filter(x=>x['ID']).map(x=>{
+    const domaine=domIdByName(x['Domaine']);
+    if(!domaine){skipped++;return null;}
+    return{id:String(x['ID']),domaine,date:normDate(x['Date']),montant:numVal(x['Montant €']),
+      paid:boolVal(x['Réglé']),comment:x['Commentaire']||''};
+  }).filter(Boolean);
+
+  const bilanComments=rowsOf('Commentaires bilan').filter(x=>x['ID']).map(x=>{
+    const pid=pidOf(x);
+    if(!pid){skipped++;return null;}
+    return{id:String(x['ID']),pid,monthKey:x['Mois']||'',auteur:x['Auteur']||'',auteurNom:x['Nom auteur']||'',
+      texte:x['Texte']||'',date:normDate(x['Date'])};
+  }).filter(Boolean);
+
+  const electriciteIndex={},forfaitPaid={},elecValide={};
+  rowsOf('Finances mensuelles').forEach(f=>{
+    const pid=pidOf(f),mk=f['Mois'];
+    if(!pid||!mk)return;
+    if(f['Forfait réglé']!==''){if(!forfaitPaid[pid])forfaitPaid[pid]={};forfaitPaid[pid][mk]=(f['Forfait réglé']==='Oui');}
+    if(f['Index électricité (kWh)']!==''){if(!electriciteIndex[pid])electriciteIndex[pid]={};electriciteIndex[pid][mk]=parseFloat(f['Index électricité (kWh)']);}
+    if(f['Électricité validée']!==''){if(!elecValide[pid])elecValide[pid]={};elecValide[pid][mk]=(f['Électricité validée']==='Oui');}
+  });
+
+  return{reservations,commentaires,paiements,prestaLines,gardeResa,prestasExterieurs,visites,gardeSchedule,
+    travauxSchedule,dominiqueSchedule,bilanComments,electriciteIndex,forfaitPaid,elecValide,skipped};
+}
+
+/* === DIFF (préparation, rien n'est encore modifié) ===
+   Ne retient QUE ce qui manque réellement : un id déjà présent dans D n'est jamais touché, et
+   un id qui a été supprimé volontairement (présent dans D.deletedIds) n'est jamais ressuscité —
+   c'est ce qui distingue cette restauration de l'ancienne, qui écrasait tout sans distinction. */
+function computeRestoreDiff(snap){
+  const delSet=k=>new Set((D.deletedIds&&D.deletedIds[k])||[]);
+  const dResa=delSet('resa'),dVisite=delSet('visite'),dComment=delSet('comment'),dPaiement=delSet('paiement'),
+        dPrestaLine=delSet('prestaLine'),dTravaux=delSet('travaux'),dGarde=delSet('garde'),
+        dDominique=delSet('dominique'),dBilanComment=delSet('bilanComment');
+
+  const existingResaById={};D.reservations.forEach(r=>existingResaById[r.id]=r);
+  const resaToAdd=snap.reservations.filter(r=>!existingResaById[r.id]&&!dResa.has(r.id));
+  const resaToAddById={};resaToAdd.forEach(r=>resaToAddById[r.id]=r);
+
+  const commentsToAttach=[];
+  snap.commentaires.forEach(c=>{
+    if(dComment.has(c.id))return;
+    const newR=resaToAddById[c.reservationId];
+    if(newR){if(!newR.commentaires.some(x=>x.id===c.id))newR.commentaires.push(c);return;}
+    const r=existingResaById[c.reservationId];
+    if(!r)return;
+    if((r.commentaires||[]).some(x=>x.id===c.id))return;
+    commentsToAttach.push({resaId:c.reservationId,item:c});
+  });
+
+  const paiementsToAttach=[];
+  snap.paiements.forEach(p=>{
+    if(dPaiement.has(p.id))return;
+    const newR=resaToAddById[p.reservationId];
+    if(newR){if(!newR.paiements.some(x=>x.id===p.id))newR.paiements.push(p);return;}
+    const r=existingResaById[p.reservationId];
+    if(!r)return;
+    if((r.paiements||[]).some(x=>x.id===p.id))return;
+    paiementsToAttach.push({resaId:p.reservationId,item:p});
+  });
+
+  const prestaLinesToAttach=[];
+  snap.prestaLines.forEach(l=>{
+    if(dPrestaLine.has(l.id))return;
+    const reservationId=l.reservationId,pid=l.pid;
+    const lineData={id:l.id,label:l.label,montant:l.montant,via:l.via,commission:l.commission,notrePart:l.notrePart,notes:l.notes,valide:l.valide,date:l.date};
+    const newR=resaToAddById[reservationId];
+    if(newR){
+      if(!newR.prestaLines[pid])newR.prestaLines[pid]=[];
+      if(!newR.prestaLines[pid].some(x=>x.id===l.id))newR.prestaLines[pid].push(lineData);
+      return;
+    }
+    const r=existingResaById[reservationId];
+    if(!r)return;
+    if(r.prestaLines&&r.prestaLines[pid]&&r.prestaLines[pid].some(x=>x.id===l.id))return;
+    prestaLinesToAttach.push({resaId:reservationId,pid,item:lineData});
+  });
+
+  const gardeNightsToAttach=[];
+  snap.gardeResa.forEach(g=>{
+    const item={duree:g.duree,paid:g.paid,payMethod:g.payMethod,comment:g.comment,valide:g.valide};
+    const newR=resaToAddById[g.reservationId];
+    if(newR){
+      if(!newR.prestaGarde[g.pid])newR.prestaGarde[g.pid]={domaine:g.domaine||newR.domaine,nights:{}};
+      if(!newR.prestaGarde[g.pid].nights[g.date])newR.prestaGarde[g.pid].nights[g.date]=item;
+      return;
+    }
+    const r=existingResaById[g.reservationId];
+    if(!r)return;
+    if(r.prestaGarde&&r.prestaGarde[g.pid]&&r.prestaGarde[g.pid].nights&&r.prestaGarde[g.pid].nights[g.date])return;
+    gardeNightsToAttach.push({resaId:g.reservationId,pid:g.pid,date:g.date,item});
+  });
+
+  const extToAttach=[];
+  snap.prestasExterieurs.forEach(x=>{
+    const itemData={id:x.id,intitule:x.intitule,montant:x.montant,sens:x.sens,note:x.note};
+    const newR=resaToAddById[x.reservationId];
+    if(newR){if(!newR.prestasExterieurs.some(y=>y.id===x.id))newR.prestasExterieurs.push(itemData);return;}
+    const r=existingResaById[x.reservationId];
+    if(!r)return;
+    if((r.prestasExterieurs||[]).some(y=>y.id===x.id))return;
+    extToAttach.push({resaId:x.reservationId,item:itemData});
+  });
+
+  const existingVisiteIds=new Set(D.visites.map(v=>v.id));
+  const visitesToAdd=snap.visites.filter(v=>!existingVisiteIds.has(v.id)&&!dVisite.has(v.id));
+
+  const existingTravauxIds=new Set((D.travauxSchedule||[]).map(x=>x.id));
+  const travauxToAdd=snap.travauxSchedule.filter(x=>!existingTravauxIds.has(x.id)&&!dTravaux.has(x.id));
+
+  const existingGardeSchedIds=new Set((D.gardeSchedule||[]).map(x=>x.id));
+  const gardeScheduleToAdd=snap.gardeSchedule.filter(x=>!existingGardeSchedIds.has(x.id)&&!dGarde.has(x.id));
+
+  const existingDominiqueIds=new Set((D.dominiqueSchedule||[]).map(x=>x.id));
+  const dominiqueToAdd=snap.dominiqueSchedule.filter(x=>!existingDominiqueIds.has(x.id)&&!dDominique.has(x.id));
+
+  const existingBilanCommentIds=new Set((D.bilanComments||[]).map(x=>x.id));
+  const bilanCommentsToAdd=snap.bilanComments.filter(x=>!existingBilanCommentIds.has(x.id)&&!dBilanComment.has(x.id));
+
+  const elecIndexToFill={},forfaitPaidToFill={},elecValideToFill={};
+  Object.entries(snap.electriciteIndex).forEach(([pid,months])=>{Object.entries(months).forEach(([mk,v])=>{
+    if(!D.electriciteIndex[pid]||D.electriciteIndex[pid][mk]===undefined){if(!elecIndexToFill[pid])elecIndexToFill[pid]={};elecIndexToFill[pid][mk]=v;}
+  });});
+  Object.entries(snap.forfaitPaid).forEach(([pid,months])=>{Object.entries(months).forEach(([mk,v])=>{
+    if(!D.forfaitPaid[pid]||D.forfaitPaid[pid][mk]===undefined){if(!forfaitPaidToFill[pid])forfaitPaidToFill[pid]={};forfaitPaidToFill[pid][mk]=v;}
+  });});
+  Object.entries(snap.elecValide).forEach(([pid,months])=>{Object.entries(months).forEach(([mk,v])=>{
+    if(!D.elecValide[pid]||D.elecValide[pid][mk]===undefined){if(!elecValideToFill[pid])elecValideToFill[pid]={};elecValideToFill[pid][mk]=v;}
+  });});
+
+  const counts={
+    reservations:resaToAdd.length,
+    commentaires:commentsToAttach.length+resaToAdd.reduce((a,r)=>a+r.commentaires.length,0),
+    paiements:paiementsToAttach.length+resaToAdd.reduce((a,r)=>a+r.paiements.length,0),
+    prestations:prestaLinesToAttach.length+resaToAdd.reduce((a,r)=>a+Object.values(r.prestaLines).reduce((s,arr)=>s+arr.length,0),0),
+    gardiennageResa:gardeNightsToAttach.length+resaToAdd.reduce((a,r)=>a+Object.values(r.prestaGarde).reduce((s,pg)=>s+Object.keys(pg.nights).length,0),0),
+    prestasExterieurs:extToAttach.length+resaToAdd.reduce((a,r)=>a+r.prestasExterieurs.length,0),
+    visites:visitesToAdd.length,
+    travaux:travauxToAdd.length,
+    gardiennagePlanning:gardeScheduleToAdd.length,
+    jardinageDominique:dominiqueToAdd.length,
+    commentairesBilan:bilanCommentsToAdd.length,
+    financesMensuelles:Object.keys(elecIndexToFill).length+Object.keys(forfaitPaidToFill).length+Object.keys(elecValideToFill).length
+  };
+
+  return{resaToAdd,commentsToAttach,paiementsToAttach,prestaLinesToAttach,gardeNightsToAttach,extToAttach,
+    visitesToAdd,travauxToAdd,gardeScheduleToAdd,dominiqueToAdd,bilanCommentsToAdd,
+    elecIndexToFill,forfaitPaidToFill,elecValideToFill,counts,skipped:snap.skipped};
+}
+
+/* === APPLICATION (uniquement sur confirmation explicite de l'utilisateur) === */
+function applyRestoreDiff(diff){
+  diff.resaToAdd.forEach(r=>D.reservations.push(r));
+  diff.commentsToAttach.forEach(({resaId,item})=>{const r=D.reservations.find(x=>x.id===resaId);if(r){if(!r.commentaires)r.commentaires=[];r.commentaires.push(item);}});
+  diff.paiementsToAttach.forEach(({resaId,item})=>{const r=D.reservations.find(x=>x.id===resaId);if(r){if(!r.paiements)r.paiements=[];r.paiements.push(item);}});
+  diff.prestaLinesToAttach.forEach(({resaId,pid,item})=>{const r=D.reservations.find(x=>x.id===resaId);if(r){if(!r.prestaLines)r.prestaLines={};if(!r.prestaLines[pid])r.prestaLines[pid]=[];r.prestaLines[pid].push(item);}});
+  diff.gardeNightsToAttach.forEach(({resaId,pid,date,item})=>{const r=D.reservations.find(x=>x.id===resaId);if(r){if(!r.prestaGarde)r.prestaGarde={};if(!r.prestaGarde[pid])r.prestaGarde[pid]={domaine:r.domaine,nights:{}};r.prestaGarde[pid].nights[date]=item;}});
+  diff.extToAttach.forEach(({resaId,item})=>{const r=D.reservations.find(x=>x.id===resaId);if(r){if(!r.prestasExterieurs)r.prestasExterieurs=[];r.prestasExterieurs.push(item);}});
+  diff.visitesToAdd.forEach(v=>D.visites.push(v));
+  diff.travauxToAdd.forEach(t=>{if(!D.travauxSchedule)D.travauxSchedule=[];D.travauxSchedule.push(t);});
+  diff.gardeScheduleToAdd.forEach(g=>{if(!D.gardeSchedule)D.gardeSchedule=[];D.gardeSchedule.push(g);});
+  diff.dominiqueToAdd.forEach(d=>{if(!D.dominiqueSchedule)D.dominiqueSchedule=[];D.dominiqueSchedule.push(d);});
+  diff.bilanCommentsToAdd.forEach(b=>{if(!D.bilanComments)D.bilanComments=[];D.bilanComments.push(b);});
+  Object.entries(diff.elecIndexToFill).forEach(([pid,months])=>{if(!D.electriciteIndex)D.electriciteIndex={};if(!D.electriciteIndex[pid])D.electriciteIndex[pid]={};Object.entries(months).forEach(([mk,v])=>{D.electriciteIndex[pid][mk]=v;});});
+  Object.entries(diff.forfaitPaidToFill).forEach(([pid,months])=>{if(!D.forfaitPaid)D.forfaitPaid={};if(!D.forfaitPaid[pid])D.forfaitPaid[pid]={};Object.entries(months).forEach(([mk,v])=>{D.forfaitPaid[pid][mk]=v;});});
+  Object.entries(diff.elecValideToFill).forEach(([pid,months])=>{if(!D.elecValide)D.elecValide={};if(!D.elecValide[pid])D.elecValide[pid]={};Object.entries(months).forEach(([mk,v])=>{D.elecValide[pid][mk]=v;});});
+
+  const c=diff.counts;
+  const parts=[];
+  if(c.reservations)parts.push(`${c.reservations} réservation(s)`);
+  if(c.commentaires)parts.push(`${c.commentaires} commentaire(s)`);
+  if(c.paiements)parts.push(`${c.paiements} paiement(s)`);
+  if(c.prestations)parts.push(`${c.prestations} prestation(s)`);
+  if(c.gardiennageResa)parts.push(`${c.gardiennageResa} nuit(s) de gardiennage`);
+  if(c.prestasExterieurs)parts.push(`${c.prestasExterieurs} prestataire(s) extérieur(s)`);
+  if(c.visites)parts.push(`${c.visites} visite(s)`);
+  if(c.travaux)parts.push(`${c.travaux} travaux`);
+  if(c.gardiennagePlanning)parts.push(`${c.gardiennagePlanning} gardiennage(s) planifié(s)`);
+  if(c.jardinageDominique)parts.push(`${c.jardinageDominique} journée(s) de jardinage`);
+  if(c.commentairesBilan)parts.push(`${c.commentairesBilan} commentaire(s) de bilan`);
+  if(c.financesMensuelles)parts.push(`${c.financesMensuelles} donnée(s) financière(s) mensuelle(s)`);
+  const summary=parts.length?parts.join(', '):'rien à restaurer (tout était déjà présent)';
+  logActivity('modifiée',null,`Restauration depuis sauvegarde Excel : ${summary}`,[],false);
+  saveD();
+  return summary;
+}
+
 function handleRestoreFile(input){
   const file=input.files&&input.files[0];
   if(!file)return;
-  const statusEl=document.getElementById('restore-status');
-  if(statusEl)statusEl.innerHTML='<span style="color:#666;font-size:13px">Lecture du fichier…</span>';
+  S.restorePreview={status:'loading',fileName:file.name};render();
   const reader=new FileReader();
   reader.onload=function(e){
     try{
       const data=new Uint8Array(e.target.result);
-      const wb=XLSX.read(data,{type:'array'});
-      const sheet=wb.Sheets['Réservations']||wb.Sheets[wb.SheetNames[0]];
-      if(!sheet)throw new Error("Aucune feuille 'Réservations' trouvée dans le fichier.");
-      const rows=XLSX.utils.sheet_to_json(sheet,{defval:''});
-      if(!rows.length)throw new Error('Le fichier ne contient aucune ligne de réservation.');
-      const domByName={};D.domaines.forEach(d=>domByName[d.name]=d.id);
-      let added=0,updated=0,skipped=0;
-      rows.forEach(row=>{
-        const id=String(row['ID']||'').trim();
-        if(!id){skipped++;return;}
-        const domaine=domByName[row['Domaine']]||D.domaines[0].id;
-        const tel=row['Téléphone']&&row['Téléphone']!=='À renseigner'?String(row['Téléphone']):'';
-        const paiements=[];
-        if(row['Détail paiements']){
-          String(row['Détail paiements']).split('|').forEach(seg=>{
-            const m=seg.trim().match(/^(\d{4}-\d{2}-\d{2}):([\d.]+)€(?:\s*\((.*)\))?$/);
-            if(m)paiements.push({id:gid(),date:m[1],montant:parseFloat(m[2])||0,note:m[3]||''});
-          });
-        }
-        const prestataires=row['Prestataires assignés (IDs)']?String(row['Prestataires assignés (IDs)']).split(',').map(s=>s.trim()).filter(Boolean):[];
-        const rebuilt={
-          id,
-          domaine,
-          status:row['Statut']||'confirmé',
-          client:row['Client']||'',
-          societe:row['Société']||'',
-          typeClient:row['Type client']==='Entreprise'?'entreprise':'particulier',
-          tel,
-          email:row['Email']||'',
-          typeEvenement:row['Type événement']||'',
-          dateArrivee:row['Date arrivée']||'',
-          heureArrivee:row['Heure arrivée']||'',
-          dateDepart:row['Date départ']||row['Date arrivée']||'',
-          heureDepart:row['Heure départ']||'',
-          nbPersonnes:parseInt(row['Couchages'])||0,
-          nbEnfants:parseInt(row['Enfants'])||0,
-          nbSoiree:parseInt(row["Invités soirée"])||0,
-          montant:parseFloat(row['Montant total €'])||0,
-          menagePaid:row['Ménage réglé']==='Oui',
-          prestataires,
-          noteInterne:row['Note interne']||'',
-          caviste:row['Commande caviste']||'',
-          prestasExterieurs:[],
-          paiements,
-          commentaires:[],
-          prestaLines:{},
-          prestaGarde:{}
-        };
-        const existing=D.reservations.find(x=>x.id===id);
-        if(existing){
-          Object.assign(existing,rebuilt,{paiements:existing.paiements&&existing.paiements.length?existing.paiements:paiements,commentaires:existing.commentaires||[],prestaLines:existing.prestaLines||{},prestaGarde:existing.prestaGarde||{},prestasExterieurs:existing.prestasExterieurs||[]});
-          updated++;
-        } else {
-          D.reservations.push(rebuilt);
-          added++;
-        }
-      });
-      saveD();
-      if(statusEl)statusEl.innerHTML=`<div class="alert alert-ok">✓ Restauration terminée : ${added} réservation(s) recréée(s), ${updated} mise(s) à jour${skipped?', '+skipped+' ligne(s) ignorée(s) (sans ID)':''}.</div>`;
-      render();
+      const wb=XLSX.read(data,{type:'array',cellDates:true});
+      if(!wb.Sheets['Réservations'])throw new Error("Ce fichier ne ressemble pas à une sauvegarde complète de l'application (feuille « Réservations » introuvable). Utilise le bouton « Sauvegarde complète » pour générer un fichier compatible.");
+      const snap=parseFullBackupWorkbook(wb);
+      const diff=computeRestoreDiff(snap);
+      S.restorePreview={status:'ready',fileName:file.name,diff};
     }catch(err){
-      if(statusEl)statusEl.innerHTML=`<div class="alert" style="background:#FCEBEB;color:#791F1F">❌ Erreur lors de la lecture du fichier : ${err.message}</div>`;
+      S.restorePreview={status:'error',fileName:file.name,error:err.message};
     }
-    input.value='';
+    render();
   };
+  reader.onerror=function(){S.restorePreview={status:'error',fileName:file.name,error:'Impossible de lire le fichier.'};render();};
   reader.readAsArrayBuffer(file);
+  input.value='';
+}
+function confirmRestore(){
+  if(!S.restorePreview||S.restorePreview.status!=='ready')return;
+  const summary=applyRestoreDiff(S.restorePreview.diff);
+  S.restorePreview={status:'done',summary};
+  render();
+}
+function cancelRestorePreview(){S.restorePreview=null;render();}
+
+function renderRestoreSection(){
+  const rp=S.restorePreview;
+  let body='';
+  if(!rp){
+    body=`<input type="file" id="restore-file-input" accept=".xlsx,.xls" style="display:none" onchange="handleRestoreFile(this)">
+    <button class="btn" style="padding:10px 18px;font-size:13px;border-color:#A32D2D;color:#A32D2D" onclick="document.getElementById('restore-file-input').click()">📤 Choisir un fichier de sauvegarde à restaurer</button>`;
+  } else if(rp.status==='loading'){
+    body=`<div style="color:#666;font-size:13px">Lecture de « ${rp.fileName} »…</div>`;
+  } else if(rp.status==='error'){
+    body=`<div class="alert" style="background:#FCEBEB;color:#791F1F">❌ ${rp.error}</div>
+    <button class="btn btn-sm" style="margin-top:8px" onclick="cancelRestorePreview()">Réessayer</button>`;
+  } else if(rp.status==='ready'){
+    const c=rp.diff.counts;
+    const rowsDef=[['Réservations',c.reservations],['Commentaires',c.commentaires],['Paiements',c.paiements],
+      ['Prestations (commission)',c.prestations],['Nuits de gardiennage (résa)',c.gardiennageResa],
+      ['Prestataires extérieurs',c.prestasExterieurs],['Visites',c.visites],['Travaux',c.travaux],
+      ['Gardiennage planifié',c.gardiennagePlanning],['Jardinage Dominique',c.jardinageDominique],
+      ['Commentaires de bilan',c.commentairesBilan],['Données financières mensuelles',c.financesMensuelles]];
+    const total=Object.values(c).reduce((a,b)=>a+b,0);
+    if(total===0){
+      body=`<div style="font-size:13px;margin-bottom:6px">Fichier : <strong>${rp.fileName}</strong></div>
+      <div class="alert alert-ok">✓ Rien à restaurer — tout ce que contient ce fichier est déjà présent dans l'application (ou a été supprimé volontairement depuis).${rp.diff.skipped?` (${rp.diff.skipped} ligne(s) du fichier n'ont pas pu être lues et ont été ignorées.)`:''}</div>
+      <button class="btn btn-sm" style="margin-top:8px" onclick="cancelRestorePreview()">Fermer</button>`;
+    } else {
+      body=`<div style="font-size:13px;margin-bottom:6px">Fichier : <strong>${rp.fileName}</strong></div>
+      <div class="alert" style="background:#FFF3D6;color:#7A5800;margin-bottom:10px">⏳ Voici ce qui sera <strong>ajouté</strong> — rien de ce qui existe déjà dans l'application ne sera modifié ni écrasé :</div>
+      <table class="list-tbl" style="margin-bottom:12px"><tbody>
+        ${rowsDef.filter(([,n])=>n>0).map(([label,n])=>`<tr><td>${label}</td><td style="text-align:right;font-weight:600">${n}</td></tr>`).join('')}
+      </tbody></table>
+      ${c.reservations>0?`<div style="font-size:11px;color:#888;margin-bottom:10px">Réservations qui seraient recréées : ${rp.diff.resaToAdd.slice(0,15).map(r=>`${r.client||r.societe||'—'} (${ds(r.dateArrivee)})`).join(', ')}${rp.diff.resaToAdd.length>15?'…':''}</div>`:''}
+      ${rp.diff.skipped?`<div style="font-size:11px;color:#888;margin-bottom:10px">${rp.diff.skipped} ligne(s) du fichier n'ont pas pu être identifiées (domaine ou prestataire non reconnu) et ont été ignorées.</div>`:''}
+      <button class="btn btn-primary" style="padding:10px 18px;font-size:13px;margin-right:8px" onclick="confirmRestore()">✓ Confirmer la restauration</button>
+      <button class="btn btn-sm" onclick="cancelRestorePreview()">Annuler</button>`;
+    }
+  } else if(rp.status==='done'){
+    body=`<div class="alert alert-ok">✓ Restauration terminée : ${rp.summary}.</div>
+    <button class="btn btn-sm" style="margin-top:8px" onclick="cancelRestorePreview()">Fermer</button>`;
+  }
+  return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
+    <div class="sec-hdr"><h2>♻️ Restaurer une sauvegarde</h2></div>
+    <div style="font-size:13px;color:#555;margin-bottom:14px;line-height:1.5">
+      Choisis un fichier « Sauvegarde complète » exporté depuis ce logiciel. L'appli te montrera d'abord <strong>précisément ce qui manque</strong> avant de toucher à quoi que ce soit — rien n'est modifié tant que tu n'as pas confirmé, et ce qui existe déjà (ou a été supprimé volontairement) n'est jamais écrasé ni ressuscité.
+    </div>
+    ${body}
+  </div>`;
 }
 
 function renderDomaineList(){
@@ -4638,38 +5100,18 @@ function renderPrestaMonBilan(p){
   ${renderTravauxSection(p,y,m)}
   ${renderElecSection(p,y,m)}`;
 }
-function renderPrestaMonBilanFlat(p){
-  const y=S.prestaBilanYear,m=S.prestaBilanMonth;
-  const doms=p.domaines||[];
-  const rate=p.flatRate||0;
-  const inMonth=r=>{const d=r.dateDepart||r.dateArrivee||r.date;if(!d)return false;const[ry,rm]=d.split('-').map(Number);return ry===y&&rm===(m+1);};
-  const evs=D.reservations.filter(r=>r.status!=='annulé'&&doms.includes(r.domaine)&&inMonth(r)).sort((a,b)=>(a.dateDepart||'').localeCompare(b.dateDepart||''));
-  const total=evs.length*rate;
-  const paid=evs.filter(r=>r.menagePaid).length*rate;
-  return`<div class="cal-header" style="margin-bottom:14px">${monthYearPicker('prestaBilanYear','prestaBilanMonth')}</div>
-  <div class="g3" style="margin-bottom:14px">
-    <div class="metric"><span class="lbl">Mon total du mois</span><span class="val">${money(total)}</span></div>
-    <div class="metric"><span class="lbl">Reçu</span><span class="val" style="color:#27500A">${money(paid)}</span></div>
-    <div class="metric"><span class="lbl">Reste à recevoir</span><span class="val" style="color:#A32D2D">${money(total-paid)}</span></div>
-  </div>
-  <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
-    <div style="font-size:11px;color:#888;margin-bottom:10px">Comptabilisé au mois du départ (moment de la prestation) — ${money(rate)} / vacation, quelle que soit la durée du séjour.</div>
-    ${evs.length===0?'<div class="empty">Aucune vacation ce mois-ci.</div>':''}
-    ${evs.map((r,evIdx)=>{const dom=gDom(r.domaine);return`<div style="padding:8px 8px;margin:0 -8px;border-bottom:1px solid #e5e3de;background:${evIdx%2===1?'#f7f6f3':'transparent'}">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-        <div><div style="font-weight:500;font-size:13px">${r.client||dom.name}${r.typeClient==='entreprise'&&r.societe?` <span style="color:#888;font-weight:400">(${r.societe})</span>`:''}</div><div style="font-size:11px;color:#888">Du ${ds(r.dateArrivee)} au ${ds(r.dateDepart)}</div></div>
-        <div style="white-space:nowrap"><strong>${money(rate)}</strong> <span style="color:${r.menagePaid?'#27500A':'#A32D2D'}">${r.menagePaid?'✓ reçu':'✗ à recevoir'}</span></div>
-      </div>
-      ${r.menageComment?`<div style="font-size:11px;color:#888;margin-top:3px">${r.menageComment}</div>`:''}
-    </div>`;}).join('')}
-  </div>`;
-}
+/* renderPrestaMonBilanFlat a été remplacé par le rendu unifié renderPrestaMonBilan (voir
+   renderPrestaCalendrierSeul ci-dessous) : Pascaline utilise désormais exactement la même
+   présentation "Mon Bilan" que Misha/Sasha/Sébastien/Mathilde côté perso ET côté admin
+   (montant et note modifiables, validation "à valider"/"validé" par David/Svitlana, fil de
+   discussion mensuel), au lieu d'un tableau récapitulatif séparé, en lecture seule, qui ne
+   correspondait pas à ce que David/Svitlana voyaient de leur côté. */
 function renderPrestaCalendrierSeul(p){
   const tab=S.prestaTab||'calendrier';
   const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
   const doms=p.domaines||[];
   const notifs=(D.activityLog||[]).filter(it=>doms.includes(it.domaine)&&it.action!=='paiement'&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
-  const content=tab==='monbilan'?renderPrestaMonBilanFlat(p):renderCalendrier();
+  const content=tab==='monbilan'?renderPrestaMonBilan(p):renderCalendrier();
   return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone">🔔</button><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
@@ -5526,11 +5968,13 @@ function updMenageMontant(rid,value){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
   r.menageMontant=parseFloat(value)||0;
   r.menageValide=false;
+  logActivity('prestation',r.domaine,`Montant ménage modifié : ${money(r.menageMontant)} — ${displayClientName(r)||'—'} (${fmt(r.dateArrivee)})`,[],false,rid);
   saveD();render();
 }
 function updMenageComment(rid,value){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
   r.menageComment=value;
+  logActivity('prestation',r.domaine,`Note ménage modifiée — ${displayClientName(r)||'—'} (${fmt(r.dateArrivee)})`,[],false,rid);
   saveD();render();
 }
 function savePresta(id){
