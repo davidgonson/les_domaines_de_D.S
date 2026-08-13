@@ -548,8 +548,8 @@ const DEF={
     {id:'d3',name:'Les Lions',color:2}
   ],
   prestataires:[
-    {id:'p1',name:'Misha',role:'Gardien & Traiteur ou Service',tel:'',domaines:['d1'],accessMode:'domaine',autoAssign:false,inputMode:'notes',noteRows:6,token:'tok_misha_dsr1'},
-    {id:'p2',name:'Sasha',role:'Gardien & Décoration ou Service',tel:'',domaines:['d2'],accessMode:'domaine',autoAssign:false,inputMode:'notes',noteRows:3,token:'tok_sasha_dss2'},
+    {id:'p1',name:'Misha',role:'Gardien & Traiteur ou Service',tel:'',domaines:['d1'],accessMode:'domaine',autoAssign:false,inputMode:'notes',noteRows:6,token:'tok_misha_dsr1',forfaitMensuel:400,electricite:true},
+    {id:'p2',name:'Sasha',role:'Gardien & Décoration ou Service',tel:'',domaines:['d2'],accessMode:'domaine',autoAssign:false,inputMode:'notes',noteRows:3,token:'tok_sasha_dss2',forfaitMensuel:400},
     {id:'p3',name:'Pascaline',role:'Ménage',tel:'',domaines:['d3'],accessMode:'calendrierSeul',inputMode:'notes',noteRows:2,flatRate:250,token:'tok_pascaline_lns3'},
     {id:'p4',name:'Dominique',role:'Jardinage',tel:'',domaines:['d1','d2','d3'],accessMode:'occupation',inputMode:'none',token:'tok_dominique_jrd4'},
     {id:'p5',name:'Sébastien',role:'Sécurité',tel:'',domaines:['d1'],accessMode:'manuel',inputMode:'garde',token:'tok_sebastien_sec5'},
@@ -577,6 +577,8 @@ function runMigrations(){
   if(!D.gardeSchedule)D.gardeSchedule=[];
   if(!D.travauxSchedule)D.travauxSchedule=[];
   if(!D.messages)D.messages=[];
+  if(!D.electriciteIndex)D.electriciteIndex={};
+  if(!D.forfaitPaid)D.forfaitPaid={};
   // Corrige les anciennes réservations où le domaine du gardiennage enregistré ne correspond
   // plus au domaine réel/actuel de la réservation (ex : la réservation a changé de domaine
   // après coup). Le lieu du gardiennage doit toujours suivre le domaine de la réservation.
@@ -607,6 +609,8 @@ function runMigrations(){
     if(p.name==='Misha'||p.name==='Sasha')p.autoAssign=false;
     if(p.name==='Pascaline'){p.accessMode='calendrierSeul';if(p.flatRate===undefined)p.flatRate=250;}
     if(p.name==='Yana')p.accessMode='readonly_nofinance';
+    if((p.name==='Misha'||p.name==='Sasha')&&p.forfaitMensuel===undefined)p.forfaitMensuel=400;
+    if(p.name==='Misha'&&p.electricite===undefined)p.electricite=true;
   });
   (D.reservations||[]).forEach(r=>{
     if(r.typeEvenement==='Famille / Cousinade'||r.typeEvenement==='Séjour amis'||r.typeEvenement==='Famille / Ami')r.typeEvenement='Famille / Amis';
@@ -635,6 +639,8 @@ const __deletedTravauxIds=new Set();
 const __deletedGardeIds=new Set();
 const __deletedDominiqueIds=new Set();
 const __deletedMessageIds=new Set();
+const __deletedCommentIds=new Set();
+const __deletedPaiementIds=new Set();
 const TRAVAUX_RATE=12; // € de l'heure pour les travaux hors réservation (Misha/Sacha)
 /* Fusionne un tableau d'objets (identifiés par leur "id") : on part de la version la plus
    récente du serveur, on y superpose nos propres créations/modifications locales, et on
@@ -646,6 +652,52 @@ function mergeById(remoteArr,localArr,deletedIds){
   (localArr||[]).forEach(x=>{if(x&&x.id)map[x.id]=x;}); // nos changements locaux gagnent pour ce qu'on a touché
   deletedIds.forEach(id=>{delete map[id];}); // nos suppressions restent définitives
   return Object.values(map);
+}
+/* Fusionne un sous-tableau imbriqué (commentaires, paiements…) identifié par "id", élément par
+   élément — jamais en bloc. Utilisé pour que le commentaire ou le paiement ajouté par une
+   personne (ex. Misha) ne soit jamais silencieusement effacé par la sauvegarde d'une autre
+   personne (ex. David) qui travaillait sur une version de la réservation pas encore à jour. */
+function mergeNestedArr(remoteArr,localArr,deletedIds){
+  const rMap={};(remoteArr||[]).forEach(x=>{if(x&&x.id)rMap[x.id]=x;});
+  const lMap={};(localArr||[]).forEach(x=>{if(x&&x.id)lMap[x.id]=x;});
+  const map=Object.assign({},rMap,lMap); // la version locale gagne si l'élément a été modifié des deux côtés
+  (deletedIds||new Set()).forEach(id=>{delete map[id];});
+  const order=[];
+  (remoteArr||[]).forEach(x=>{if(x&&x.id&&map[x.id]!==undefined&&!order.includes(x.id))order.push(x.id);});
+  (localArr||[]).forEach(x=>{if(x&&x.id&&map[x.id]!==undefined&&!order.includes(x.id))order.push(x.id);});
+  return order.map(id=>map[id]);
+}
+/* Fusion spécifique aux réservations : comme mergeById, la version locale d'une réservation
+   modifiée gagne pour ses champs simples — MAIS ses commentaires et paiements sont en plus
+   fusionnés finement (mergeNestedArr) pour ne jamais perdre ce qu'une autre personne a ajouté
+   de son côté entre-temps sur la même réservation (c'est le cas concret des commentaires
+   David/Svitlana ↔ Misha/Sasha qui pouvaient disparaître). */
+function mergeResaArr(remoteArr,localArr,deletedIds){
+  const rMap={};(remoteArr||[]).forEach(x=>{if(x&&x.id)rMap[x.id]=x;});
+  const lMap={};(localArr||[]).forEach(x=>{if(x&&x.id)lMap[x.id]=x;});
+  const map=Object.assign({},rMap);
+  Object.keys(lMap).forEach(id=>{
+    const loc=lMap[id],rem=rMap[id];
+    if(rem){
+      const merged=Object.assign({},loc);
+      merged.commentaires=mergeNestedArr(rem.commentaires,loc.commentaires,__deletedCommentIds);
+      merged.paiements=mergeNestedArr(rem.paiements,loc.paiements,__deletedPaiementIds);
+      map[id]=merged;
+    } else {
+      map[id]=loc;
+    }
+  });
+  deletedIds.forEach(id=>{delete map[id];});
+  return Object.values(map);
+}
+/* Fusionne une map à deux niveaux (ex. {p1:{'2026-07':88641}}) sans jamais écraser en bloc :
+   pour chaque prestataire, chaque mois local l'emporte sur le mois distant s'il existe des
+   deux côtés, mais aucun des deux jeux de valeurs n'est perdu. */
+function mergeFlatMap(remoteMap,localMap){
+  const out={};
+  const pids=new Set([...Object.keys(remoteMap||{}),...Object.keys(localMap||{})]);
+  pids.forEach(pid=>{out[pid]=Object.assign({},(remoteMap||{})[pid],(localMap||{})[pid]);});
+  return out;
 }
 /* SÉCURITÉ ANTI-DISPARITION — NE JAMAIS remplacer D par un instantané serveur en bloc.
    Historiquement, le rafraîchissement périodique remplaçait D entièrement par la version
@@ -659,7 +711,7 @@ function mergeById(remoteArr,localArr,deletedIds){
    confirmées côté serveur sont donc protégées, quelle que soit la fenêtre de temps. */
 function mergeRemoteSnapshot(remote){
   const merged=Object.assign({},remote);
-  merged.reservations=mergeById(remote.reservations,D.reservations,__deletedResaIds);
+  merged.reservations=mergeResaArr(remote.reservations,D.reservations,__deletedResaIds);
   merged.visites=mergeById(remote.visites,D.visites,__deletedVisiteIds);
   merged.travauxSchedule=mergeById(remote.travauxSchedule,D.travauxSchedule,__deletedTravauxIds);
   merged.gardeSchedule=mergeById(remote.gardeSchedule,D.gardeSchedule,__deletedGardeIds);
@@ -667,6 +719,8 @@ function mergeRemoteSnapshot(remote){
   merged.messages=mergeById(remote.messages,D.messages,__deletedMessageIds);
   merged.adminLastSeen=mergeSeen(D.adminLastSeen,remote.adminLastSeen);
   merged.prestaLastSeen=mergeSeen(D.prestaLastSeen,remote.prestaLastSeen);
+  merged.electriciteIndex=mergeFlatMap(remote.electriciteIndex,D.electriciteIndex);
+  merged.forfaitPaid=mergeFlatMap(remote.forfaitPaid,D.forfaitPaid);
   return merged;
 }
 async function saveD(){
@@ -887,7 +941,8 @@ function payStatus(r){const t=totPay(r),m=r.montant||0;if(m===0)return'none';if(
 function getMenageInfo(r){
   let info=null;
   const isRepasSeul=(r.typeEvenement==='Déjeuner / Dîner');
-  if(r.domaine==='d1')info={pid:'p1',name:'Misha',montant:isRepasSeul?100:450};
+  const isMariage=(r.typeEvenement==='Mariage');
+  if(r.domaine==='d1')info={pid:'p1',name:'Misha',montant:isRepasSeul?100:(isMariage?500:450)};
   else if(r.domaine==='d2'){const n=r.nbPersonnes||r.nbSoiree||0;info={pid:'p2',name:'Sasha',montant:isRepasSeul?100:(n>=40?500:400)};}
   else if(r.domaine==='d3')info={pid:'p3',name:'Pascaline',montant:250};
   if(!info)return null;
@@ -895,6 +950,101 @@ function getMenageInfo(r){
   return info;
 }
 function gardeRate(duree){return duree==='longue'?110:75;}
+/* === Forfait gardiennage fixe mensuel (Misha & Sasha) — 400€/mois, dû quel que soit le
+   mois, indépendamment des nuits de gardiennage ponctuelles suivies par ailleurs. === */
+function monthKeyOf(y,m){return `${y}-${String(m+1).padStart(2,'0')}`;}
+function isForfaitPaid(pid,key){return!!(D.forfaitPaid&&D.forfaitPaid[pid]&&D.forfaitPaid[pid][key]);}
+function toggleForfaitPaid(pid,key){
+  if(!D.forfaitPaid)D.forfaitPaid={};
+  if(!D.forfaitPaid[pid])D.forfaitPaid[pid]={};
+  D.forfaitPaid[pid][key]=!D.forfaitPaid[pid][key];
+  saveD();render();
+}
+/* === Relevé d'électricité (Misha uniquement) — on ne saisit que l'index de fin de mois ;
+   l'index du mois précédent est repris automatiquement (c'est celui saisi le mois d'avant).
+   La conso (index courant - index précédent) est multipliée par le tarif pour obtenir ce que
+   Misha nous doit, à déduire de ce qu'on lui verse. === */
+const ELEC_RATE=0.25;
+function getElecIndex(pid,key){
+  const v=D.electriciteIndex&&D.electriciteIndex[pid]&&D.electriciteIndex[pid][key];
+  return(v===undefined||v===null||v==='')?null:parseFloat(v);
+}
+function updElecIndex(pid,key,val){
+  if(!D.electriciteIndex)D.electriciteIndex={};
+  if(!D.electriciteIndex[pid])D.electriciteIndex[pid]={};
+  D.electriciteIndex[pid][key]=(val===''||val===null||val===undefined||isNaN(parseFloat(val)))?null:parseFloat(val);
+  saveD();render();
+}
+function computeElecCost(pid,y,m){
+  const curKey=monthKeyOf(y,m);
+  let py=y,pm=m-1;if(pm<0){pm=11;py=y-1;}
+  const prevKey=monthKeyOf(py,pm);
+  const prevIdx=getElecIndex(pid,prevKey);
+  const curIdx=getElecIndex(pid,curKey);
+  const conso=(prevIdx!==null&&curIdx!==null&&curIdx>=prevIdx)?Math.round((curIdx-prevIdx)*100)/100:null;
+  const cost=conso!==null?Math.round(conso*ELEC_RATE*100)/100:0;
+  return{curKey,prevKey,prevIdx,curIdx,conso,cost};
+}
+function renderElecSection(p,y,m){
+  if(!p.electricite)return'';
+  const ec=computeElecCost(p.id,y,m);
+  const prevLabel=MONTHS_FR[(m+11)%12];
+  return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
+    <div class="sec-hdr"><h2>⚡ Électricité — ${MONTHS_FR[m]} ${y}</h2></div>
+    <div style="font-size:11px;color:#888;margin-bottom:10px">Index de compteur en kWh, en fin de mois. La conso du mois est déduite automatiquement de l'index du mois précédent.</div>
+    <div class="g2" style="margin-bottom:10px">
+      <div class="field"><label>Index fin ${prevLabel} (précédent)</label><input type="number" value="${ec.prevIdx!==null?ec.prevIdx:''}" onchange="updElecIndex('${p.id}','${ec.prevKey}',this.value)" placeholder="kWh"></div>
+      <div class="field"><label>Index fin ${MONTHS_FR[m]}</label><input type="number" value="${ec.curIdx!==null?ec.curIdx:''}" onchange="updElecIndex('${p.id}','${ec.curKey}',this.value)" placeholder="kWh"></div>
+    </div>
+    <div class="g3">
+      <div class="metric"><span class="lbl">Consommation</span><span class="val">${ec.conso!==null?ec.conso+' kWh':'—'}</span></div>
+      <div class="metric"><span class="lbl">Tarif</span><span class="val">${ELEC_RATE.toFixed(2)}€/kWh</span></div>
+      <div class="metric"><span class="lbl">Montant dû par ${p.name}</span><span class="val" style="color:#A32D2D">${ec.conso!==null?money(ec.cost):'—'}</span></div>
+    </div>
+  </div>`;
+}
+/* Bilan total consolidé du mois pour Misha/Sasha : ce qu'on leur doit (forfait fixe +
+   ménage + prestations complémentaires "via nous" moins 10% de commission) moins ce qu'ils
+   nous doivent (électricité, Misha uniquement). */
+function computeBilanTotal(p,y,m){
+  const key=monthKeyOf(y,m);
+  const forfaitDu=p.forfaitMensuel||0;
+  const forfaitRecu=isForfaitPaid(p.id,key)?forfaitDu:0;
+  const inMonthArr=r=>{const d=r.dateArrivee||r.dateDepart||r.date;if(!d)return false;const[ry,rm]=d.split('-').map(Number);return ry===y&&rm===(m+1);};
+  const menageEvs=D.reservations.filter(r=>r.status!=='annulé'&&inMonthArr(r)).map(r=>({r,mi:getMenageInfo(r)})).filter(x=>x.mi&&x.mi.pid===p.id);
+  const menageDu=menageEvs.reduce((a,x)=>a+x.mi.montant,0);
+  const menageRecu=menageEvs.filter(x=>x.r.menagePaid).reduce((a,x)=>a+x.mi.montant,0);
+  let compDu=0;
+  D.reservations.filter(r=>r.status!=='annulé'&&r.prestaLines&&r.prestaLines[p.id]&&r.prestaLines[p.id].length).forEach(r=>{
+    const d=r.dateArrivee||r.date;if(!d)return;const[ry,rm]=d.split('-').map(Number);if(!(ry===y&&rm===(m+1)))return;
+    r.prestaLines[p.id].forEach(l=>{if(!l.paidDirect)compDu+=(l.montant||0)*0.9;});
+  });
+  const elec=p.electricite?computeElecCost(p.id,y,m):null;
+  const elecCost=elec?elec.cost:0;
+  const totalDu=forfaitDu+menageDu+compDu-elecCost;
+  const totalRecu=forfaitRecu+menageRecu;
+  const totalReste=totalDu-totalRecu;
+  return{key,forfaitDu,forfaitRecu,menageDu,menageRecu,compDu,elecCost,totalDu,totalRecu,totalReste};
+}
+function renderBilanTotalSection(p,y,m){
+  if(!p.forfaitMensuel)return'';
+  const bt=computeBilanTotal(p,y,m);
+  return`<div style="background:#FBEAF0;border:1px solid #ED93B1;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
+    <div class="sec-hdr" style="background:#993556"><h2>💰 Bilan total — ${MONTHS_FR[m]} ${y}</h2></div>
+    <div style="font-size:12.5px;color:#72243E;margin-bottom:8px">
+      Forfait fixe : ${money(bt.forfaitDu)} · Ménage : ${money(bt.menageDu)} · Prestations complémentaires (nettes de 10%) : ${money(bt.compDu)}${p.electricite?` · Électricité à déduire : -${money(bt.elecCost)}`:''}
+    </div>
+    <div class="g3">
+      <div class="metric"><span class="lbl">Total dû ce mois</span><span class="val">${money(bt.totalDu)}</span></div>
+      <div class="metric"><span class="lbl">Déjà réglé</span><span class="val" style="color:#27500A">${money(bt.totalRecu)}</span></div>
+      <div class="metric"><span class="lbl">Reste à verser</span><span class="val" style="color:#A32D2D">${money(bt.totalReste)}</span></div>
+    </div>
+    <div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:8px;padding:8px 12px">
+      <span style="font-size:12.5px">Forfait gardiennage fixe (${money(bt.forfaitDu)})</span>
+      <span class="pill" style="background:${bt.forfaitRecu?'#E8F3E0':'#FCEBEB'};color:${bt.forfaitRecu?'#27500A':'#791F1F'};cursor:pointer" onclick="toggleForfaitPaid('${p.id}','${bt.key}')">${bt.forfaitRecu?'✓ Réglé':'✗ Régler'}</span>
+    </div>
+  </div>`;
+}
 function payBadge(r){const s=payStatus(r),t=totPay(r),m=r.montant||0;if(s==='full')return'<span class="pay-full">Soldé ✓</span>';if(s==='part')return`<span class="pay-part">${money(t)} / ${money(m)}</span>`;return`<span class="pay-none">${money(t)} / ${money(m)}</span>`;}
 function initials(n){return n.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);}
 const AVB=['#F4C0D1','#F5D98B','#C0DD97','#CECBF6','#B5D4F4'];
@@ -2463,7 +2613,7 @@ function renderBilan(){
   const y=S.bilanYear,m=S.bilanMonth;
   const inPeriod=r=>{const d=r.dateArrivee||r.date;if(!d)return false;const[ry,rm]=d.split('-').map(Number);return viewMode==='year'?ry===y:(ry===y&&rm===(m+1));};
   const todayStr0=dstr(new Date());
-  const inMenagePeriod=r=>{const d=r.dateDepart||r.dateArrivee||r.date;if(!d)return false;const[ry,rm]=d.split('-').map(Number);const inP=viewMode==='year'?ry===y:(ry===y&&rm===(m+1));if(!inP)return false;return d<=todayStr0;};
+  const inMenagePeriod=r=>{const dEnd=r.dateDepart||r.dateArrivee||r.date;if(!dEnd)return false;if(dEnd>todayStr0)return false;const d=r.dateArrivee||r.dateDepart||r.date;if(!d)return false;const[ry,rm]=d.split('-').map(Number);return viewMode==='year'?ry===y:(ry===y&&rm===(m+1));};
   const evs=D.reservations.filter(r=>r.status!=='annulé'&&inPeriod(r)&&r.prestaLines&&Object.values(r.prestaLines).some(l=>l.length>0));
   const byP={};let totalGeneral=0;
   evs.forEach(r=>Object.entries(r.prestaLines).forEach(([pid,lines])=>{
@@ -2727,7 +2877,7 @@ function renderPrestaDetailAdmin(p){
   /* === Forfait ménage (Misha / Sasha / Pascaline) === */
   let menageSection='';
   {
-    const rows=D.reservations.filter(r=>r.status!=='annulé').map(r=>({r,mi:getMenageInfo(r)})).filter(x=>x.mi&&x.mi.pid===p.id&&inMonth(x.r.dateDepart||x.r.dateArrivee)).sort((a,b)=>(a.r.dateArrivee||'').localeCompare(b.r.dateArrivee||''));
+    const rows=D.reservations.filter(r=>r.status!=='annulé').map(r=>({r,mi:getMenageInfo(r)})).filter(x=>x.mi&&x.mi.pid===p.id&&inMonth(x.r.dateArrivee||x.r.dateDepart)).sort((a,b)=>(a.r.dateArrivee||'').localeCompare(b.r.dateArrivee||''));
     if(rows.length||p.flatRate||p.inputMode==='notes'){
       const total=rows.reduce((a,x)=>a+x.mi.montant,0),paid=rows.filter(x=>x.r.menagePaid).reduce((a,x)=>a+x.mi.montant,0);
       menageSection=`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
@@ -2846,8 +2996,10 @@ function renderPrestaDetailAdmin(p){
     </div>`;
   }
 
-  const allEmpty=!menageSection&&!gardeSection&&!commSection&&!dominiqueSection;
-  return`<div style="margin-top:16px">${nav}${menageSection}${gardeSection}${commSection}${travauxSection}${dominiqueSection}${allEmpty?`<div class="empty">Aucun suivi financier spécifique pour ${p.name}.</div>`:''}</div>`;
+  const bilanTotalSection=renderBilanTotalSection(p,y,m);
+  const elecSection=renderElecSection(p,y,m);
+  const allEmpty=!menageSection&&!gardeSection&&!commSection&&!dominiqueSection&&!bilanTotalSection&&!elecSection;
+  return`<div style="margin-top:16px">${nav}${bilanTotalSection}${elecSection}${menageSection}${gardeSection}${commSection}${travauxSection}${dominiqueSection}${allEmpty?`<div class="empty">Aucun suivi financier spécifique pour ${p.name}.</div>`:''}</div>`;
 }
 
 function setClientsSortBy(v){S.clientsSortBy=v;render();}
@@ -4199,7 +4351,7 @@ function visiteAsItem(v){
 function renderPrestaMonBilan(p){
   const y=S.prestaBilanYear,m=S.prestaBilanMonth;
   const inMonth=r=>{const d=r.dateArrivee||r.date;if(!d)return false;const[ry,rm]=d.split('-').map(Number);return ry===y&&rm===(m+1);};
-  const inMenageMonth=r=>{const d=r.dateDepart||r.dateArrivee||r.date;if(!d)return false;const[ry,rm]=d.split('-').map(Number);return ry===y&&rm===(m+1);};
+  const inMenageMonth=r=>{const d=r.dateArrivee||r.dateDepart||r.date;if(!d)return false;const[ry,rm]=d.split('-').map(Number);return ry===y&&rm===(m+1);};
   const evs=D.reservations.filter(r=>r.status!=='annulé'&&inMonth(r)&&r.prestaLines&&r.prestaLines[p.id]&&r.prestaLines[p.id].length>0);
   let total=0,direct=0,aRecevoir=0;
   const rows=evs.map(r=>{const lines=r.prestaLines[p.id];const sousTotal=lines.reduce((a,l)=>a+(l.montant||0),0);total+=sousTotal;lines.forEach(l=>{if(l.paidDirect)direct+=l.montant||0;else aRecevoir+=l.montant||0;});return{r,lines,sousTotal};});
@@ -4207,6 +4359,8 @@ function renderPrestaMonBilan(p){
   const menageTotal=menageEvs.reduce((a,x)=>a+x.mi.montant,0);
   const menagePaid=menageEvs.filter(x=>x.r.menagePaid).reduce((a,x)=>a+x.mi.montant,0);
   return`<div class="cal-header" style="margin-bottom:14px">${monthYearPicker('prestaBilanYear','prestaBilanMonth')}</div>
+  ${renderBilanTotalSection(p,y,m)}
+  ${renderElecSection(p,y,m)}
   <div class="g3" style="margin-bottom:14px">
     <div class="metric"><span class="lbl">Mon total prestations</span><span class="val">${money(total)}</span></div>
     <div class="metric"><span class="lbl">Commission (10%)</span><span class="val" style="color:#27500A">${money(total*0.1)}</span></div>
@@ -4796,6 +4950,7 @@ function delPay(rid,pid){
   const pa=(r.paiements||[]).find(p=>p.id===pid);
   const desc=pa?`${pa.type||''} ${money(pa.montant||0)} du ${ds(pa.date)}`:'';
   r.paiements=(r.paiements||[]).filter(p=>p.id!==pid);
+  __deletedPaiementIds.add(pid);
   stampChange(r,`Paiement supprimé · ${desc}`);
   saveD();S.modal={type:'editResa',id:rid};render();
 }
@@ -5287,7 +5442,6 @@ async function initApp(){
   saveD();
   if(!checkToken())render();else render();
   setInterval(async()=>{
-    if(S.modal)return;
     const fresh=await fetchRemoteD();
     if(!fresh)return;
     const merged=mergeRemoteSnapshot(fresh);
@@ -5299,10 +5453,15 @@ async function initApp(){
       const hadLocalOnly=JSON.stringify(merged)!==JSON.stringify(fresh);
       D=merged;
       try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}
-      render();
+      /* On met toujours les données à jour en arrière-plan (pour ne jamais avoir besoin de
+         "réinitialiser" l'appli pour voir un commentaire arrivé entre-temps), mais on ne
+         rafraîchit l'écran que si aucun formulaire n'est ouvert, pour ne jamais couper une
+         saisie en cours. Dès que la personne ferme son formulaire, le prochain rendu utilisera
+         de toute façon les données déjà à jour. */
+      if(!S.modal)render();
       if(hadLocalOnly)pushRemoteD(D);
     }
-  },8000);
+  },5000);
 }
 let touchStartX=null,touchStartY=null,touchLockDir=null;
 /* Tant que la fiche réservation est ouverte, on rafraîchit le repérage des champs obligatoires
