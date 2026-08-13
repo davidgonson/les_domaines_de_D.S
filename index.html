@@ -251,28 +251,67 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 const SK='domnoрm_prod_v1';
 const SUPA_URL='https://hdtltrnabrgibkcvubzd.supabase.co';
 const SUPA_KEY='sb_publishable_zvpg0YOHegxqXJxbEKhSbQ_3oLwbrr1';
+/* Horodatage de la dernière version serveur connue (mise à jour à chaque lecture réussie).
+   Sert de verrou optimiste dans pushRemoteD ci-dessous : voir le commentaire là-bas pour le
+   problème concret que ça résout (un envoi basé sur une lecture périmée qui écraserait, sans
+   fusion, une suppression pourtant déjà confirmée par un autre appareil entre-temps). */
+let _lastRemoteUpdatedAt=null;
 async function fetchRemoteD(){
   try{
-    const res=await fetch(`${SUPA_URL}/rest/v1/app_state?id=eq.1&select=data`,{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});
+    const res=await fetch(`${SUPA_URL}/rest/v1/app_state?id=eq.1&select=data,updated_at`,{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});
     if(!res.ok)return null;
     const json=await res.json();
-    if(json&&json[0]&&json[0].data&&Object.keys(json[0].data).length)return json[0].data;
+    if(json&&json[0]&&json[0].data&&Object.keys(json[0].data).length){
+      _lastRemoteUpdatedAt=json[0].updated_at||null;
+      return json[0].data;
+    }
     return null;
   }catch(e){console.error('Supabase fetch a échoué, utilisation des données locales',e);return null;}
 }
+/* ENVOI AVEC VERROU OPTIMISTE — auparavant, cet envoi écrasait purement et simplement la ligne
+   serveur (PATCH sans condition), quel que soit ce que d'autres appareils avaient pu y écrire
+   entre notre dernière lecture et cet envoi. Sur deux appareils actifs en même temps (ex. David
+   et Svitlana), une fenêtre de quelques centaines de ms suffisait pour qu'un envoi basé sur une
+   lecture périmée écrase le travail plus récent de l'autre appareil SANS AUCUNE fusion — y
+   compris une suppression déjà confirmée (l'ancienne valeur "revenait" alors indéfiniment tant
+   que personne ne la supprimait à nouveau sur l'appareil qui l'avait, par erreur, fait
+   réapparaître). On conditionne maintenant l'envoi à ce que la ligne serveur n'ait pas changé
+   depuis notre dernière lecture connue (updated_at=eq...) : si quelqu'un d'autre a écrit entre
+   temps, la mise à jour ne touche aucune ligne (on le détecte via Prefer: return=representation),
+   et on refait alors un cycle complet lecture + fusion + nouvel envoi au lieu d'écraser sans
+   fusionner. */
 async function pushRemoteD(d,_retry){
   try{
-    const res=await fetch(`${SUPA_URL}/rest/v1/app_state?id=eq.1`,{
+    const nowIso=new Date().toISOString();
+    const filter=_lastRemoteUpdatedAt?`&updated_at=eq.${encodeURIComponent(_lastRemoteUpdatedAt)}`:'';
+    const res=await fetch(`${SUPA_URL}/rest/v1/app_state?id=eq.1${filter}`,{
       method:'PATCH',
-      headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY,'Content-Type':'application/json',Prefer:'return=minimal'},
-      body:JSON.stringify({data:d,updated_at:new Date().toISOString()})
+      headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY,'Content-Type':'application/json',Prefer:'return=representation'},
+      body:JSON.stringify({data:d,updated_at:nowIso})
     });
     if(!res.ok){
       console.error('Supabase push a échoué (statut '+res.status+'), nouvelle tentative dans 3s');
       // Une tentative de secours : au pire, le rafraîchissement périodique (toutes les 8s)
       // détectera de toute façon que le serveur n'a pas nos données locales et relancera l'envoi.
       if(!_retry)setTimeout(()=>pushRemoteD(d,true),3000);
+      return;
     }
+    let rows=null;try{rows=await res.json();}catch(e){}
+    if(filter&&(!rows||!rows.length)){
+      // Conflit détecté (voir le commentaire ci-dessus) : notre envoi n'a rien modifié côté
+      // serveur car un autre appareil avait déjà écrit une version plus récente. On récupère
+      // cette version, on la fusionne (jamais un écrasement) avec nos propres changements, puis
+      // on retente UNE fois l'envoi de la version fusionnée.
+      const remote=await fetchRemoteD();
+      if(remote){
+        D=mergeRemoteSnapshot(remote);
+        try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}
+        if(!S.modal)render();
+        if(!_retry)pushRemoteD(D,true);
+      }
+      return;
+    }
+    _lastRemoteUpdatedAt=nowIso;
   }catch(e){
     console.error('Supabase push a échoué (données gardées en local en attendant), nouvelle tentative dans 3s',e);
     if(!_retry)setTimeout(()=>pushRemoteD(d,true),3000);
@@ -1186,15 +1225,15 @@ function renderCommissionSection(p,y,m){
       <div style="font-weight:500;font-size:13px;margin-bottom:6px">${r.client||dom.name}${r.typeClient==='entreprise'&&r.societe?` <span style="color:#888;font-weight:400">(${r.societe})</span>`:''} — <span class="pill ${PILL[dom.color||0]}">${dom.name}</span> · ${ds(r.dateArrivee)}</div>
       ${lines.map(l=>{const c=ligneCalc(l,p.id);const via=viaOf(l);return`<div style="background:#f5f4f1;border-radius:8px;padding:7px 8px;margin-bottom:5px">
         <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:4px">
-          <input type="text" value="${(l.label||'').replace(/"/g,'&quot;')}" placeholder="Intitulé (ex. Traiteur)" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','label',this.value)" style="flex:1;min-width:90px;font-size:12px;font-weight:500;padding:3px 5px">
-          <span style="display:flex;align-items:center;gap:2px"><input type="number" value="${l.montant||0}" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','montant',this.value)" style="width:58px;font-size:12px;padding:3px 5px"><span style="font-size:11px;color:#666">€</span></span>
+          <input type="text" id="pl-label-${l.id}" value="${(l.label||'').replace(/"/g,'&quot;')}" placeholder="Intitulé (ex. Traiteur)" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','label',this.value)" style="flex:1;min-width:90px;font-size:12px;font-weight:500;padding:3px 5px">
+          <span style="display:flex;align-items:center;gap:2px"><input type="number" id="pl-montant-${l.id}" value="${l.montant||0}" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','montant',this.value)" style="width:58px;font-size:12px;padding:3px 5px"><span style="font-size:11px;color:#666">€</span></span>
           <button class="btn btn-xs btn-danger" onclick="${delFn}('${r.id}','${p.id}','${l.id}')">✕</button>
         </div>
-        ${p.id==='p1'&&via==='structure'?`<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px;background:#FFF6E8;border-radius:6px;padding:4px 6px"><span style="font-size:10.5px;color:#7A5800;flex:1">Part qui nous revient :</span><input type="number" value="${l.notrePart||''}" placeholder="0" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','notrePart',this.value)" style="width:55px;font-size:11px;padding:3px 5px"><span style="font-size:11px;color:#7A5800">€</span></div>`:''}
+        ${p.id==='p1'&&via==='structure'?`<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px;background:#FFF6E8;border-radius:6px;padding:4px 6px"><span style="font-size:10.5px;color:#7A5800;flex:1">Part qui nous revient :</span><input type="number" id="pl-notrepart-${l.id}" value="${l.notrePart||''}" placeholder="0" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','notrePart',this.value)" style="width:55px;font-size:11px;padding:3px 5px"><span style="font-size:11px;color:#7A5800">€</span></div>`:''}
         <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
           ${viaSelectHtml(r.id,p.id,l.id,via)}
-          <span style="display:flex;align-items:center;gap:2px;font-size:11px;color:#888;flex-shrink:0"><input type="number" value="${l.commission!==undefined&&l.commission!==null?l.commission:10}" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','commission',this.value)" style="width:36px;font-size:11px;padding:3px 4px">%</span>
-          <input type="text" value="${(l.notes||'').replace(/"/g,'&quot;')}" placeholder="Note" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','notes',this.value)" style="flex:1;min-width:60px;font-size:11px;padding:3px 5px">
+          <span style="display:flex;align-items:center;gap:2px;font-size:11px;color:#888;flex-shrink:0"><input type="number" id="pl-commission-${l.id}" value="${l.commission!==undefined&&l.commission!==null?l.commission:10}" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','commission',this.value)" style="width:36px;font-size:11px;padding:3px 4px">%</span>
+          <input type="text" id="pl-notes-${l.id}" value="${(l.notes||'').replace(/"/g,'&quot;')}" placeholder="Note" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','notes',this.value)" style="flex:1;min-width:60px;font-size:11px;padding:3px 5px">
           <span style="font-size:11.5px;font-weight:700;color:${c.net>=0?'#27500A':'#A32D2D'};white-space:nowrap;flex-shrink:0">${money(Math.abs(c.net))}</span>
           ${valideBadge(!!l.valide,`toggleLigneValide('${r.id}','${p.id}','${l.id}')`)}
         </div>
@@ -1259,7 +1298,7 @@ function renderGardeSection(p,y,m){
     </div>`;
   if(isAdmin){
     const body=rows.length===0?'<div class="empty">Aucune nuit de gardiennage ce mois-ci.</div>':`<div style="overflow-x:auto"><table class="list-tbl"><thead><tr><th>Nuit du</th><th>Lieu</th><th>Durée</th><th>Commentaire</th><th>Montant</th><th>Mode</th><th>Validation</th><th>Événement</th><th></th></tr></thead>
-      <tbody>${rows.map(x=>{const dom=gDom(x.domaine);const toggleCall=x.source==='resa'?`toggleGardeNightPaid('${x.resaId}','${p.id}','${x.date}')`:`toggleGardeSchedulePaid('${x.schedId}')`;const methodCall=x.source==='resa'?`setGardeNightPayMethod('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeSchedulePayMethod('${x.schedId}',this.value)`;const dureeCall=x.source==='resa'?`setGardeNightDuree('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleDuree('${x.schedId}',this.value)`;const commentCall=x.source==='resa'?`setGardeNightComment('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleComment('${x.schedId}',this.value)`;const delCall=x.source==='resa'?`delGardeNight('${x.resaId}','${p.id}','${x.date}')`:`delGardePlanning('${x.schedId}')`;const valideCall=x.source==='resa'?`toggleGardeNightValide('${x.resaId}','${p.id}','${x.date}')`:`toggleGardeScheduleValide('${x.schedId}')`;return`<tr><td>${dn(x.date)} ${ds(x.date)}</td><td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td><td><select onchange="${dureeCall}" style="font-size:12px"><option value="courte" ${x.duree==='courte'?'selected':''}>Courte (22h-2h)</option><option value="longue" ${x.duree==='longue'?'selected':''}>Longue (22h-4h)</option></select></td><td><input type="text" value="${x.comment||''}" placeholder="Commentaire" onchange="${commentCall}" style="font-size:12px;padding:3px 5px;width:130px;color:#888"></td><td>${money(gardeRate(x.duree))}</td><td>${regleToggle(x.paid,toggleCall)}</td><td>${valideBadge(x.valide,valideCall)}</td><td>${x.client}</td><td><button class="btn btn-xs btn-danger" onclick="${delCall}">✕</button></td></tr>`;}).join('')}</tbody></table></div>`;
+      <tbody>${rows.map(x=>{const dom=gDom(x.domaine);const toggleCall=x.source==='resa'?`toggleGardeNightPaid('${x.resaId}','${p.id}','${x.date}')`:`toggleGardeSchedulePaid('${x.schedId}')`;const methodCall=x.source==='resa'?`setGardeNightPayMethod('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeSchedulePayMethod('${x.schedId}',this.value)`;const dureeCall=x.source==='resa'?`setGardeNightDuree('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleDuree('${x.schedId}',this.value)`;const commentCall=x.source==='resa'?`setGardeNightComment('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleComment('${x.schedId}',this.value)`;const delCall=x.source==='resa'?`delGardeNight('${x.resaId}','${p.id}','${x.date}')`:`delGardePlanning('${x.schedId}')`;const valideCall=x.source==='resa'?`toggleGardeNightValide('${x.resaId}','${p.id}','${x.date}')`:`toggleGardeScheduleValide('${x.schedId}')`;return`<tr><td>${dn(x.date)} ${ds(x.date)}</td><td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td><td><select onchange="${dureeCall}" style="font-size:12px"><option value="courte" ${x.duree==='courte'?'selected':''}>Courte (22h-2h)</option><option value="longue" ${x.duree==='longue'?'selected':''}>Longue (22h-4h)</option></select></td><td><input type="text" id="garde-com-${x.source==='resa'?(x.resaId+'_'+p.id+'_'+x.date):x.schedId}" value="${x.comment||''}" placeholder="Commentaire" onchange="${commentCall}" style="font-size:12px;padding:3px 5px;width:130px;color:#888"></td><td>${money(gardeRate(x.duree))}</td><td>${regleToggle(x.paid,toggleCall)}</td><td>${valideBadge(x.valide,valideCall)}</td><td>${x.client}</td><td><button class="btn btn-xs btn-danger" onclick="${delCall}">✕</button></td></tr>`;}).join('')}</tbody></table></div>`;
     return`<div id="bloc-garde" class="bilan-sec" style="border-color:#534AB7">${header}${enAttenteCount>0?`<div class="alert" style="background:#B15E00;color:#fff;font-weight:700;margin-bottom:10px;font-size:12.5px">⏳ ${enAttenteCount} nuit${enAttenteCount>1?'s':''} en attente de validation.</div>`:''}${body}</div>`;
   }
   const body=rows.length===0?'<div class="empty">Aucune nuit de gardiennage ce mois-ci.</div>':rows.map((x,xIdx)=>{const dom=gDom(x.domaine);return`<div style="padding:7px 4px;border-bottom:1px solid #f0eee8;font-size:12.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:${xIdx%2===1?'#f7f6f3':'transparent'}">
@@ -1333,8 +1372,8 @@ function renderMenageSection(p,y,m){
       <span class="pill ${PILL[dom.color||0]}" style="flex-shrink:0">${dom.name}</span>
       <span style="white-space:nowrap">${ds(r.dateArrivee)}</span>
       <span style="color:#888">(${displayClientName(r)||'—'})</span>
-      <input type="text" value="${(r.menageComment||'').replace(/"/g,'&quot;')}" placeholder="Note" onchange="updMenageComment('${r.id}',this.value)" style="flex:1;min-width:60px;font-size:11px;padding:3px 5px;color:#888;border:none;background:transparent">
-      <span style="display:flex;align-items:center;gap:2px;flex-shrink:0"><input type="number" value="${mi.montant}" onchange="updMenageMontant('${r.id}',this.value)" style="width:55px;font-weight:600;font-size:12px;padding:3px 5px"><span style="font-size:11px;font-weight:600;color:#666">€</span></span>
+      <input type="text" id="menage-comment-${r.id}" value="${(r.menageComment||'').replace(/"/g,'&quot;')}" placeholder="Note" onchange="updMenageComment('${r.id}',this.value)" style="flex:1;min-width:60px;font-size:11px;padding:3px 5px;color:#888;border:none;background:transparent">
+      <span style="display:flex;align-items:center;gap:2px;flex-shrink:0"><input type="number" id="menage-montant-${r.id}" value="${mi.montant}" onchange="updMenageMontant('${r.id}',this.value)" style="width:55px;font-weight:600;font-size:12px;padding:3px 5px"><span style="font-size:11px;font-weight:600;color:#666">€</span></span>
       ${isAdmin?regleToggle(!!r.menagePaid,`toggleMenagePaid('${r.id}')`):''}
       ${valideBadge(!!r.menageValide,`toggleMenageValide('${r.id}')`)}
     </div>`;}).join('')}
@@ -1409,8 +1448,18 @@ function renderElecSection(p,y,m){
     <div class="sec-hdr" style="background:#0C447C"><h2>⚡ Électricité — ${MONTHS_FR[m]} ${y}</h2>${ec.conso!==null?valideBadge(valide,`toggleElecValide('${p.id}','${key}')`):''}</div>
     <div style="font-size:11px;color:#888;margin-bottom:10px">Index de compteur en kWh, en fin de mois. La conso du mois est déduite automatiquement de l'index du mois précédent.</div>
     <div class="g2" style="margin-bottom:10px">
-      <div class="field"><label>Index fin ${prevLabel} (précédent)</label><input type="number" value="${ec.prevIdx!==null?ec.prevIdx:''}" onchange="updElecIndex('${p.id}','${ec.prevKey}',this.value)" placeholder="kWh"></div>
-      <div class="field"><label>Index fin ${MONTHS_FR[m]}</label><input type="number" value="${ec.curIdx!==null?ec.curIdx:''}" onchange="updElecIndex('${p.id}','${ec.curKey}',this.value)" placeholder="kWh"></div>
+      <div class="field"><label>Index fin ${prevLabel} (précédent)</label>
+        <div style="display:flex;gap:4px;align-items:center">
+          <input type="number" id="elec-prev-${p.id}-${ec.prevKey}" value="${ec.prevIdx!==null?ec.prevIdx:''}" onchange="updElecIndex('${p.id}','${ec.prevKey}',this.value)" placeholder="kWh" style="flex:1;min-width:0">
+          ${ec.prevIdx!==null?`<button type="button" title="Effacer définitivement cet index" onclick="if(confirm('Effacer définitivement cet index électricité ?'))updElecIndex('${p.id}','${ec.prevKey}','')" style="flex-shrink:0;border:none;background:#FCEBEB;color:#A32D2D;border-radius:6px;width:26px;height:26px;font-size:14px;font-weight:700;cursor:pointer;line-height:1">✕</button>`:''}
+        </div>
+      </div>
+      <div class="field"><label>Index fin ${MONTHS_FR[m]}</label>
+        <div style="display:flex;gap:4px;align-items:center">
+          <input type="number" id="elec-cur-${p.id}-${ec.curKey}" value="${ec.curIdx!==null?ec.curIdx:''}" onchange="updElecIndex('${p.id}','${ec.curKey}',this.value)" placeholder="kWh" style="flex:1;min-width:0">
+          ${ec.curIdx!==null?`<button type="button" title="Effacer définitivement cet index" onclick="if(confirm('Effacer définitivement cet index électricité ?'))updElecIndex('${p.id}','${ec.curKey}','')" style="flex-shrink:0;border:none;background:#FCEBEB;color:#A32D2D;border-radius:6px;width:26px;height:26px;font-size:14px;font-weight:700;cursor:pointer;line-height:1">✕</button>`:''}
+        </div>
+      </div>
     </div>
     <div class="g3">
       <div class="metric"><span class="lbl">Consommation</span><span class="val">${ec.conso!==null?ec.conso+' kWh':'—'}</span></div>
@@ -1467,20 +1516,25 @@ function computeBilanTotal(p,y,m){
   gardeDu=Math.round(gardeDu*100)/100;gardeRecu=Math.round(gardeRecu*100)/100;
   const elec=p.electricite?computeElecCost(p.id,y,m):null;
   const elecCost=elec?elec.cost:0;
+  const elecConso=elec?elec.conso:null; // null = aucun index saisi (pas confondre avec une conso à 0)
   const elecEnAttente=(p.electricite&&elec&&elec.conso!==null&&!isElecValide(p.id,key))?1:0;
   const totalDu=Math.round((forfaitDu+menageDu+compDu+travDu-elecCost+gardeDu)*100)/100;
   const totalRecu=forfaitRecu+menageRecu+gardeRecu;
   const totalReste=Math.round((totalDu-totalRecu)*100)/100;
   const enAttente=menageEnAttente+compEnAttente+elecEnAttente+travEnAttente+gardeEnAttente;
-  return{key,forfaitDu,forfaitRecu,menageDu,menageRecu,menageEnAttente,compDu,compLignes,compEnAttente,travDu,travLignes,travEnAttente,gardeDu,gardeRecu,gardeLignes,gardeEnAttente,elecCost,elecEnAttente,totalDu,totalRecu,totalReste,enAttente};
+  return{key,forfaitDu,forfaitRecu,menageDu,menageRecu,menageEnAttente,compDu,compLignes,compEnAttente,travDu,travLignes,travEnAttente,gardeDu,gardeRecu,gardeLignes,gardeEnAttente,elecCost,elecConso,elecEnAttente,totalDu,totalRecu,totalReste,enAttente};
 }
 /* Détail des sous-totaux "Prestations avec commission" pour le Bilan total : une petite ligne
    par réservation (date, nom du client, montant de la prestation pour ce prestataire), puis en
    dessous les totaux — montant brut, 15% de frais de structure retenus (Misha/Sasha via DS),
-   et la commission — pour qu'on voie d'un coup d'œil d'où vient chaque montant et ce qui part
-   en frais/commission avant d'arriver au net. */
+   et la commission — SÉPARÉE PAR TAUX (une ligne "Commission 10%", une ligne "Commission 50%",
+   etc. — jamais mélangées en un seul total, puisque le taux peut varier d'une ligne à l'autre)
+   — pour qu'on voie d'un coup d'œil d'où vient chaque montant et ce qui part en frais/commission
+   avant d'arriver au net. Fonction partagée : s'applique à tout prestataire à commission (Misha,
+   Sasha, et tout autre qui utiliserait ce même mode). */
 function computeCommissionBreakdown(p,y,m){
   const lines=[];
+  const commByRate={};
   let totalBrut=0,totalFiscal=0,totalCommission=0,totalNet=0;
   D.reservations.filter(r=>r.status!=='annulé'&&r.prestaLines&&r.prestaLines[p.id]&&r.prestaLines[p.id].length).forEach(r=>{
     const d=r.dateArrivee||r.date;if(!d)return;const[ry,rm]=d.split('-').map(Number);if(!(ry===y&&rm===(m+1)))return;
@@ -1492,12 +1546,19 @@ function computeCommissionBreakdown(p,y,m){
       totalFiscal+=c.fiscalRetenu||0;
       totalCommission+=c.commissionApplied||0;
       totalNet+=c.net;
+      const ratePct=Math.round((c.tauxCommission||0)*100);
+      commByRate[ratePct]=(commByRate[ratePct]||0)+(c.commissionApplied||0);
     });
     lines.push({date:d,name:displayClientName(r)||r.client||gDom(r.domaine).name,montant:Math.round(resaMontant*100)/100});
   });
   lines.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  const commissionRows=Object.entries(commByRate)
+    .map(([rate,amt])=>({rate:parseInt(rate,10),montant:Math.round(amt*100)/100}))
+    .filter(cr=>cr.montant!==0)
+    .sort((a,b)=>a.rate-b.rate);
   return{
     lines,
+    commissionRows,
     totalBrut:Math.round(totalBrut*100)/100,
     totalFiscal:Math.round(totalFiscal*100)/100,
     totalCommission:Math.round(totalCommission*100)/100,
@@ -1512,7 +1573,7 @@ function renderCommissionBreakdownRow(p,y,m,bt){
     ${cb.lines.map(l=>`<div>· ${ds(l.date)} — ${l.name} : ${money(l.montant)}</div>`).join('')}
     <div style="margin-top:3px">Montant brut : <strong>${money(cb.totalBrut)}</strong></div>
     ${cb.totalFiscal>0?`<div>− 15% frais de structure : ${money(cb.totalFiscal)}</div>`:''}
-    <div>− Commission : ${money(cb.totalCommission)}</div>
+    ${cb.commissionRows.map(cr=>`<div>− Commission ${cr.rate}% : ${money(cr.montant)}</div>`).join('')}
   </div>`;
   return mainRow+sub;
 }
@@ -1537,7 +1598,10 @@ function renderBilanTotalSection(p,y,m){
       ${hasMenage?bilanLigneRow('Ménage',bt.menageDu,'+','bloc-menage'):''}
       ${hasCommission?renderCommissionBreakdownRow(p,y,m,bt):''}
       ${p.accessMode==='domaine'?bilanLigneRow('Travaux hors réservation',bt.travDu,'+','bloc-travaux'):''}
-      ${p.electricite?bilanLigneRow(`Électricité (à charge ${p.name})`,bt.elecCost,'-','bloc-elec'):''}
+      ${p.electricite?(bt.elecConso!==null?bilanLigneRow(`Électricité (à charge ${p.name})`,bt.elecCost,'-','bloc-elec'):`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #F4C6D6;font-size:13px">
+        <span><a href="#bloc-elec" onclick="event.preventDefault();document.getElementById('bloc-elec').scrollIntoView({behavior:'smooth',block:'start'})" style="color:#72243E;text-decoration:underline">Électricité (à charge ${p.name})</a></span>
+        <strong style="color:#B15E00;font-size:11.5px;font-weight:600">index à renseigner</strong>
+      </div>`):''}
       ${isGardeOnly?bilanLigneRow('Gardiennage (nuits)',bt.gardeDu,'+','bloc-garde'):''}
       <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0 4px;margin-top:2px;border-top:1.5px solid #993556;font-size:13px;font-weight:700;color:#72243E">
         <span>TOTAL DÛ CE MOIS</span><span style="font-size:18px">${money(bt.totalDu)}</span>
@@ -2376,7 +2440,7 @@ function injectBands(){
       // juste en dessous (empilés verticalement, jamais côte à côte) — seulement quand chacun
       // des deux est pertinent pour cette bande.
       const lblL=document.createElement('div');
-      lblL.style.position='absolute';lblL.style.top=(topPx-1)+'px';lblL.style.left=leftPx+'px';lblL.style.width=_hourMargin+'px';lblL.style.height=_bandH+'px';
+      lblL.style.position='absolute';lblL.style.top=(topPx-1)+'px';lblL.style.left=leftPx+'px';lblL.style.width=_hourMargin+'px';lblL.style.height=(_bandH+2)+'px';
       lblL.style.display='flex';lblL.style.flexDirection='column';lblL.style.alignItems='flex-end';lblL.style.justifyContent='flex-start';lblL.style.paddingRight='1px';lblL.style.boxSizing='border-box';
       lblL.style.pointerEvents='none';lblL.style.zIndex='3';lblL.style.overflow='hidden';
       let _leftColHtml='';
@@ -2385,7 +2449,7 @@ function injectBands(){
         _leftColHtml+=_hIdxA>=0?`<span style="font-weight:700;color:${_cornerColor};font-size:7px;line-height:1;display:block"><span style="font-size:7px">${timeArrF0.slice(0,_hIdxA)}</span><span style="font-size:5px">${timeArrF0.slice(_hIdxA)}</span></span>`:`<span style="font-weight:700;color:${_cornerColor};font-size:7px;line-height:1;display:block">${timeArrF0}</span>`;
       }
       if(_applyP){
-        _leftColHtml+=`<span class="band-p-badge" data-rid="${b.rid}" style="font-weight:800;color:#38BDF8;font-size:${_applyArr?'6px':'7px'};line-height:1;display:block;margin-top:${_applyArr?'1px':'0'}">P</span>`;
+        _leftColHtml+=`<span class="band-p-badge" data-rid="${b.rid}" style="font-weight:800;color:#38BDF8;font-size:${_applyArr?'7.5px':'8.5px'};line-height:1;display:block;margin-top:${_applyArr?'2px':'1px'}">P</span>`;
       }
       lblL.innerHTML=_leftColHtml;
       grid.appendChild(lblL);
@@ -2687,9 +2751,9 @@ function renderDetailPanel(r){
     }).join('')}</div>`:''}
     ${myLines.length?`<div class="dp-section"><label>🍽 Ma prestation</label>
       ${myLines.map(l=>`<div style="background:#f5f4f1;border-radius:8px;padding:8px;margin-bottom:6px">
-        <input type="text" value="${l.label||''}" placeholder="Intitulé" onchange="updPrestaLine('${r.id}','${S.presta.id}','${l.id}','label',this.value)" style="width:100%;font-size:13px;font-weight:500;padding:4px 5px;margin-bottom:4px;box-sizing:border-box">
+        <input type="text" id="dppl-label-${l.id}" value="${l.label||''}" placeholder="Intitulé" onchange="updPrestaLine('${r.id}','${S.presta.id}','${l.id}','label',this.value)" style="width:100%;font-size:13px;font-weight:500;padding:4px 5px;margin-bottom:4px;box-sizing:border-box">
         <div style="font-size:12px;color:#888;margin-bottom:4px">💶 ${money(l.montant)} · ${viaLabel(S.presta.id,viaOf(l))}</div>
-        <input type="text" value="${l.notes||''}" placeholder="Note (ce que vous voulez préciser)" onchange="updPrestaLine('${r.id}','${S.presta.id}','${l.id}','notes',this.value)" style="width:100%;font-size:12px;padding:4px 5px;box-sizing:border-box">
+        <input type="text" id="dppl-notes-${l.id}" value="${l.notes||''}" placeholder="Note (ce que vous voulez préciser)" onchange="updPrestaLine('${r.id}','${S.presta.id}','${l.id}','notes',this.value)" style="width:100%;font-size:12px;padding:4px 5px;box-sizing:border-box">
       </div>`).join('')}
     </div>`:''}
     <div class="dp-section"><label>Prestataires</label><div>${prs||'<span style="font-size:12px;color:#555">Aucun assigné</span>'}</div></div>
@@ -2723,12 +2787,12 @@ function renderDetailPanel(r){
         _lines.forEach(function(l){
           _html+='<div style="background:#f0f4e8;border-radius:7px;padding:7px;margin-bottom:4px;display:flex;flex-direction:column;gap:4px">';
           _html+='<div style="display:flex;gap:4px;align-items:center">';
-          _html+='<input type="text" value="'+(l.label||'').replace(/"/g,'&quot;')+'" placeholder="Description…" style="flex:1;font-size:12px;padding:4px 6px;font-weight:600" onchange="updPrestaLine(\''+r.id+'\',\''+_pid+'\',\''+l.id+'\',\'label\',this.value)">';
+          _html+='<input type="text" id="dppl-label-'+l.id+'" value="'+(l.label||'').replace(/"/g,'&quot;')+'" placeholder="Description…" style="flex:1;font-size:12px;padding:4px 6px;font-weight:600" onchange="updPrestaLine(\''+r.id+'\',\''+_pid+'\',\''+l.id+'\',\'label\',this.value)">';
           _html+='<button class="btn btn-xs btn-danger" onclick="delPrestaLineSelf(\''+r.id+'\',\''+_pid+'\',\''+l.id+'\')">✕</button></div>';
           _html+='<div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">';
-          _html+='<input type="number" value="'+(l.montant||0)+'" style="width:75px;font-size:12px;padding:4px 6px" onchange="updPrestaLine(\''+r.id+'\',\''+_pid+'\',\''+l.id+'\',\'montant\',this.value)">';
+          _html+='<input type="number" id="dppl-montant-'+l.id+'" value="'+(l.montant||0)+'" style="width:75px;font-size:12px;padding:4px 6px" onchange="updPrestaLine(\''+r.id+'\',\''+_pid+'\',\''+l.id+'\',\'montant\',this.value)">';
           _html+=viaSelectHtml(r.id,_pid,l.id,viaOf(l));
-          _html+='<input type="text" value="'+(l.notes||'').replace(/"/g,'&quot;')+'" placeholder="Note…" style="flex:1;min-width:80px;font-size:12px;padding:4px 6px" onchange="updPrestaLine(\''+r.id+'\',\''+_pid+'\',\''+l.id+'\',\'notes\',this.value)">';
+          _html+='<input type="text" id="dppl-notes-'+l.id+'" value="'+(l.notes||'').replace(/"/g,'&quot;')+'" placeholder="Note…" style="flex:1;min-width:80px;font-size:12px;padding:4px 6px" onchange="updPrestaLine(\''+r.id+'\',\''+_pid+'\',\''+l.id+'\',\'notes\',this.value)">';
           _html+='</div></div>';
         });
         _html+='</div>';
@@ -3323,7 +3387,8 @@ function renderBilanGeneral(){
       if(ec.conso!==null){totalConso=ec.conso;totalCost=ec.cost;monthsCount=1;}
     }
     return{name:p.name,totalConso:Math.round(totalConso*100)/100,totalCost:Math.round(totalCost*100)/100,monthsCount};
-  }).filter(x=>x.monthsCount>0);
+  }); // pas de filtre ici : un prestataire à l'électricité (Misha) doit toujours apparaître,
+      // même sans index encore saisi ce mois-ci — sinon "pas de ligne" ressemble à "pas d'électricité".
   return`<div class="cal-header" style="margin-bottom:10px">
     ${viewMode==='month'?monthYearPicker('bilanYear','bilanMonth'):`<span style="display:inline-flex;align-items:center;gap:4px"><button class="cal-nav" onclick="navYearOnly('bilanYear',-1)">‹</button><span class="month-label" style="width:88px;text-align:center">${y}</span><button class="cal-nav" onclick="navYearOnly('bilanYear',1)">›</button></span>`}
   </div>
@@ -3387,9 +3452,9 @@ function renderBilanGeneral(){
   <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
     <div class="sec-hdr"><h2>⚡ Électricité — déduite du dû, suivie à part</h2></div>
     <div style="font-size:11px;color:#888;margin-bottom:8px">Montant déduit de ce qu'on doit au prestataire (voir le détail dans son propre bilan).</div>
-    ${elecRows.length===0?'<div class="empty">Aucun index électricité renseigné sur cette période.</div>':''}
+    ${elecRows.length===0?'<div class="empty">Aucun prestataire suivi à l\'électricité.</div>':''}
     ${elecRows.length>0?`<table class="list-tbl"><thead><tr><th>Prestataire</th><th>Consommation</th><th>Montant déduit</th></tr></thead>
-    <tbody>${elecRows.map(x=>`<tr><td>${x.name}</td><td style="text-align:center">${x.totalConso} kWh</td><td style="font-weight:600;color:#A32D2D">${money(x.totalCost)}</td></tr>`).join('')}</tbody></table>`:''}
+    <tbody>${elecRows.map(x=>x.monthsCount>0?`<tr><td>${x.name}</td><td style="text-align:center">${x.totalConso} kWh</td><td style="font-weight:600;color:#A32D2D">${money(x.totalCost)}</td></tr>`:`<tr><td>${x.name}</td><td colspan="2" style="color:#B15E00;font-weight:600;font-size:12px">Index à renseigner</td></tr>`).join('')}</tbody></table>`:''}
   </div>
   <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
     <div class="sec-hdr"><h2>Détail par événement (prestations avec commission)</h2></div>
@@ -3403,14 +3468,14 @@ function renderBilanGeneral(){
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
           <span style="font-size:11px;color:#fff;background:#9c9890;border-radius:50%;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700">${lIdx+1}</span>
           <span style="font-size:11px;color:#888;white-space:nowrap;font-weight:600">${who.name||'—'}</span>
-          <input type="text" value="${l.label||''}" placeholder="Intitulé" onchange="updPrestaLine('${r.id}','${pid}','${l.id}','label',this.value)" style="flex:1;min-width:90px;font-size:12.5px;font-weight:500;padding:3px 5px">
+          <input type="text" id="bgpl-label-${l.id}" value="${l.label||''}" placeholder="Intitulé" onchange="updPrestaLine('${r.id}','${pid}','${l.id}','label',this.value)" style="flex:1;min-width:90px;font-size:12.5px;font-weight:500;padding:3px 5px">
           <button class="btn btn-xs btn-danger" onclick="delPrestaLine('${r.id}','${pid}','${l.id}')">✕</button>
         </div>
         <div style="display:flex;align-items:center;gap:5px;flex-wrap:nowrap">
-          <span style="display:flex;align-items:center;gap:2px;flex-shrink:0"><input type="number" value="${l.montant||''}" onchange="updPrestaLine('${r.id}','${pid}','${l.id}','montant',this.value)" style="width:60px;font-size:12px;padding:3px 5px;font-weight:500"><span style="font-size:12px;font-weight:600;color:#666">€</span></span>
+          <span style="display:flex;align-items:center;gap:2px;flex-shrink:0"><input type="number" id="bgpl-montant-${l.id}" value="${l.montant||''}" onchange="updPrestaLine('${r.id}','${pid}','${l.id}','montant',this.value)" style="width:60px;font-size:12px;padding:3px 5px;font-weight:500"><span style="font-size:12px;font-weight:600;color:#666">€</span></span>
           ${viaSelectHtml(r.id,pid,l.id,viaOf(l))}
-          <span style="display:flex;align-items:center;gap:2px;flex-shrink:0"><input type="number" value="${l.commission!==undefined&&l.commission!==null?l.commission:10}" onchange="updPrestaLine('${r.id}','${pid}','${l.id}','commission',this.value)" style="width:36px;font-size:11px;padding:3px 3px"><span style="font-size:11px;color:#666">%</span></span>
-          <input type="text" value="${l.notes||''}" placeholder="Note" onchange="updPrestaLine('${r.id}','${pid}','${l.id}','notes',this.value)" style="flex:1;min-width:0;font-size:12px;padding:3px 5px">
+          <span style="display:flex;align-items:center;gap:2px;flex-shrink:0"><input type="number" id="bgpl-commission-${l.id}" value="${l.commission!==undefined&&l.commission!==null?l.commission:10}" onchange="updPrestaLine('${r.id}','${pid}','${l.id}','commission',this.value)" style="width:36px;font-size:11px;padding:3px 3px"><span style="font-size:11px;color:#666">%</span></span>
+          <input type="text" id="bgpl-notes-${l.id}" value="${l.notes||''}" placeholder="Note" onchange="updPrestaLine('${r.id}','${pid}','${l.id}','notes',this.value)" style="flex:1;min-width:0;font-size:12px;padding:3px 5px">
         </div>
       </div>`;}).join('')}
     </div>`;}).join('')}
@@ -3529,7 +3594,7 @@ function renderPrestaDetailAdmin(p){
       ${rows.map((x,xIdx)=>{const dom=gDom(x.domaine);return`<div style="padding:6px 8px;margin:0 -8px;border-bottom:1px solid #e5e3de;font-size:13px;background:${xIdx%2===1?'#f7f6f3':'transparent'}">
         <div style="margin-bottom:4px"><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span>${dn(x.date)} ${ds(x.date)}</div>
         <div style="display:flex;align-items:center;gap:6px">
-          <input type="text" value="${x.comment||''}" placeholder="Commentaire" onchange="updDominiquePlanningComment('${x.id}',this.value)" style="flex:1;min-width:0;font-size:12px;padding:3px 5px;color:#888">
+          <input type="text" id="domin-comment-${x.id}" value="${x.comment||''}" placeholder="Commentaire" onchange="updDominiquePlanningComment('${x.id}',this.value)" style="flex:1;min-width:0;font-size:12px;padding:3px 5px;color:#888">
           <strong style="white-space:nowrap">${money(x.montant)}</strong>
           <span class="pill" style="background:${x.paid?'#E8F3E0':'#FCEBEB'};color:${x.paid?'#27500A':'#791F1F'};cursor:pointer;flex-shrink:0" onclick="toggleDominiquePlanningPaid('${x.id}')">${x.paid?'✓ Réglé':'✗ Régler'}</span>
         </div>
@@ -3567,7 +3632,7 @@ function updClientField(rid,field,val){
 function clientCellInput(rid,field,value,missing,ph){
   const safe=(value||'').replace(/"/g,'&quot;');
   const bc=missing?'#CC0000':'transparent';const bg=missing?'#fff':'transparent';
-  return '<input type="text" value="'+safe+'" placeholder="'+ph+'" onchange="updClientField(\''+rid+'\',\''+field+'\',this.value)" style="width:100%;min-width:90px;font-size:12px;padding:4px 6px;border:1px solid '+bc+';border-radius:4px;background:'+bg+'" onfocus="this.style.borderColor=\'#8a8678\';this.style.background=\'#fff\'" onblur="this.style.borderColor=this.value.trim()?\'transparent\':\'#CC0000\';this.style.background=this.value.trim()?\'transparent\':\'#fff\'">';
+  return '<input type="text" id="client-field-'+rid+'-'+field+'" value="'+safe+'" placeholder="'+ph+'" onchange="updClientField(\''+rid+'\',\''+field+'\',this.value)" style="width:100%;min-width:90px;font-size:12px;padding:4px 6px;border:1px solid '+bc+';border-radius:4px;background:'+bg+'" onfocus="this.style.borderColor=\'#8a8678\';this.style.background=\'#fff\'" onblur="this.style.borderColor=this.value.trim()?\'transparent\':\'#CC0000\';this.style.background=this.value.trim()?\'transparent\':\'#fff\'">';
 }
 function clientRow(r,dom){
   const isEnt=r.typeClient==='entreprise';
@@ -3577,7 +3642,7 @@ function clientRow(r,dom){
   const socMissing=isEnt&&!r.societe;
   const hasSecond=!!(r.nom2||r.prenom2);
   const telBc=telMissing?'#CC0000':'transparent';const telBg=telMissing?'#fff':'transparent';
-  const telInput='<input type="tel" value="'+displayTel(r.tel)+'" placeholder="À renseigner" onchange="updClientTel(\''+r.id+'\',this.value)" style="width:100%;min-width:110px;font-size:12px;padding:4px 6px;border:1px solid '+telBc+';border-radius:4px;background:'+telBg+'" onfocus="this.style.borderColor=\'#8a8678\';this.style.background=\'#fff\'" onblur="this.style.borderColor=this.value.trim()?\'transparent\':\'#CC0000\';this.style.background=this.value.trim()?\'transparent\':\'#fff\'">';
+  const telInput='<input type="tel" id="client-tel-'+r.id+'" value="'+displayTel(r.tel)+'" placeholder="À renseigner" onchange="updClientTel(\''+r.id+'\',this.value)" style="width:100%;min-width:110px;font-size:12px;padding:4px 6px;border:1px solid '+telBc+';border-radius:4px;background:'+telBg+'" onfocus="this.style.borderColor=\'#8a8678\';this.style.background=\'#fff\'" onblur="this.style.borderColor=this.value.trim()?\'transparent\':\'#CC0000\';this.style.background=this.value.trim()?\'transparent\':\'#fff\'">';
   const socCell=isEnt?clientCellInput(r.id,'societe',r.societe,socMissing,'Raison sociale'):'<span style="color:#ccc">—</span>';
   const adrMissing=isEnt&&!r.adresse; // adresse indispensable seulement pour une société
   const nomCell=hasSecond
@@ -5039,15 +5104,15 @@ function renderModalContent(){
         const intitulePlaceholder=p.name==='Misha'?'Traiteur, …':p.name==='Sasha'?'Décoration, …':'Intitulé…';
         const linesHtml=lines.map((l,li)=>`<div style="padding:8px 0;${li>0?'border-top:1px solid #ddd9d0;margin-top:6px':''}">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-            <input type="text" value="${l.label||''}" placeholder="${intitulePlaceholder}" onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','label',this.value)" style="flex:1;font-size:13px;font-weight:500;padding:5px 6px;box-sizing:border-box">
+            <input type="text" id="modpl-label-${l.id}" value="${l.label||''}" placeholder="${intitulePlaceholder}" onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','label',this.value)" style="flex:1;font-size:13px;font-weight:500;padding:5px 6px;box-sizing:border-box">
             <button class="btn btn-xs btn-danger" onclick="delPrestaLine('${id||''}','${p.id}','${l.id}')">✕</button>
           </div>
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-            <span style="display:flex;align-items:center;gap:3px;flex-shrink:0"><input type="number" value="${l.montant||''}" placeholder="Montant" onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','montant',this.value)" style="width:70px;font-size:12px;padding:4px 6px;font-weight:500"><span style="font-weight:600;color:#666;font-size:12px">€</span></span>
+            <span style="display:flex;align-items:center;gap:3px;flex-shrink:0"><input type="number" id="modpl-montant-${l.id}" value="${l.montant||''}" placeholder="Montant" onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','montant',this.value)" style="width:70px;font-size:12px;padding:4px 6px;font-weight:500"><span style="font-weight:600;color:#666;font-size:12px">€</span></span>
             ${viaSelectHtml(id||'',p.id,l.id,viaOf(l),'flex:1')}
-            <span style="display:flex;align-items:center;gap:2px;flex-shrink:0"><input type="number" value="${l.commission!==undefined&&l.commission!==null?l.commission:10}" onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','commission',this.value)" style="width:40px;font-size:11px;padding:4px 4px"><span style="font-size:11px;color:#666">% comm.</span></span>
+            <span style="display:flex;align-items:center;gap:2px;flex-shrink:0"><input type="number" id="modpl-commission-${l.id}" value="${l.commission!==undefined&&l.commission!==null?l.commission:10}" onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','commission',this.value)" style="width:40px;font-size:11px;padding:4px 4px"><span style="font-size:11px;color:#666">% comm.</span></span>
           </div>
-          <textarea rows="3" placeholder="Note…" onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','notes',this.value)" style="width:100%;font-size:12px;padding:4px 6px;resize:none;box-sizing:border-box">${l.notes||''}</textarea>
+          <textarea id="modpl-notes-${l.id}" rows="3" placeholder="Note…" onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','notes',this.value)" style="width:100%;font-size:12px;padding:4px 6px;resize:none;box-sizing:border-box">${l.notes||''}</textarea>
         </div>`).join('');
         encart=`<div class="presta-encart" id="penc-${p.id}" style="display:${checked?'block':'none'};margin:4px 0 10px 24px;padding:10px;background:#f5f4f1;border-radius:8px">
           ${linesHtml||'<div style="font-size:12px;color:#888;margin-bottom:6px">Aucune prestation ajoutée.</div>'}
@@ -5075,15 +5140,15 @@ function renderModalContent(){
     }).join('');
     const pays=r.paiements||[];const tot=pays.reduce((a,p)=>a+(p.montant||0),0);
     const pR=pays.map(pa=>{return`<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:13px;padding:5px;background:#f5f4f1;border-radius:6px;flex-wrap:wrap">
-      <input type="date" class="pay-inline" value="${pa.date||''}" onchange="updPay('${r.id}','${pa.id}','date',this.value)" style="width:120px;flex-shrink:0">
-      <input type="number" class="pay-inline" value="${pa.montant||''}" onchange="updPay('${r.id}','${pa.id}','montant',this.value)" style="width:65px;font-weight:500;flex-shrink:0">
+      <input type="date" class="pay-inline" id="modpay-date-${pa.id}" value="${pa.date||''}" onchange="updPay('${r.id}','${pa.id}','date',this.value)" style="width:120px;flex-shrink:0">
+      <input type="number" class="pay-inline" id="modpay-montant-${pa.id}" value="${pa.montant||''}" onchange="updPay('${r.id}','${pa.id}','montant',this.value)" style="width:65px;font-weight:500;flex-shrink:0">
       <select class="pay-inline" onchange="updPay('${r.id}','${pa.id}','type',this.value)" style="width:100px;flex-shrink:0">
         <option ${(pa.type||pa.note)==='Acompte'?'selected':''}>Acompte</option>
         <option ${pa.type==='Intermédiaire'?'selected':''}>Intermédiaire</option>
         <option ${pa.type==='Solde'?'selected':''}>Solde</option>
         <option ${pa.type==='Autre'?'selected':''}>Autre</option>
       </select>
-      <input type="text" class="pay-inline" value="${pa.comment||''}" placeholder="Commentaire…" onchange="updPay('${r.id}','${pa.id}','comment',this.value)" style="flex:1 1 130px;min-width:130px;color:#888">
+      <input type="text" class="pay-inline" id="modpay-comment-${pa.id}" value="${pa.comment||''}" placeholder="Commentaire…" onchange="updPay('${r.id}','${pa.id}','comment',this.value)" style="flex:1 1 130px;min-width:130px;color:#888">
       <button class="btn btn-xs btn-danger" onclick="delPay('${r.id||''}','${pa.id}')" style="flex-shrink:0">✕</button></div>`;}).join('');
     const comms=r.commentaires||[];
     return`<div class="modal-sticky-top">
@@ -5152,11 +5217,11 @@ function renderModalContent(){
         existingRows.forEach((p,i)=>{
           payRowsHtml+='<div class="payrow">'
             +'<div class="field pr-date"><div class="date-row"><input type="date" style="padding:3.5px 7px" id="pay-ex-date-'+p.id+'" value="'+p.date+'" onchange="updPayRow(\''+id+'\',\''+p.id+'\',this,\'date\')"><button type="button" class="date-btn" onclick="var el=document.getElementById(\'pay-ex-date-'+p.id+'\');if(el&&el.showPicker)el.showPicker();" title="Choisir une date">📅</button></div></div>'
-            +'<div class="field pr-amt"><input type="number" class="pay-amt-input" style="padding:3.5px 7px" value="'+(p.montant||'')+'" placeholder="0 €" onchange="updPayRow(\''+id+'\',\''+p.id+'\',this,\'montant\')" oninput="refreshSoldeDisplay()"></div>'
+            +'<div class="field pr-amt"><input type="number" class="pay-amt-input" id="pay-ex-amt-'+p.id+'" style="padding:3.5px 7px" value="'+(p.montant||'')+'" placeholder="0 €" onchange="updPayRow(\''+id+'\',\''+p.id+'\',this,\'montant\')" oninput="refreshSoldeDisplay()"></div>'
             +'<div class="field pr-type"><select style="padding:3.5px 7px" onchange="updPayRow(\''+id+'\',\''+p.id+'\',this,\'type\')">'
             +['Acompte','Intermédiaire','Solde','Autre'].map(t=>'<option value="'+t+'"'+(p.type===t?' selected':'')+'>'+t+'</option>').join('')
             +'</select></div>'
-            +'<div class="field pr-com"><input type="text" style="padding:3.5px 7px" value="'+(p.comment||'').replace(/"/g,'&quot;')+'" placeholder="Commentaire…" onchange="updPayRow(\''+id+'\',\''+p.id+'\',this,\'comment\')"></div>'
+            +'<div class="field pr-com"><input type="text" id="pay-ex-com-'+p.id+'" style="padding:3.5px 7px" value="'+(p.comment||'').replace(/"/g,'&quot;')+'" placeholder="Commentaire…" onchange="updPayRow(\''+id+'\',\''+p.id+'\',this,\'comment\')"></div>'
             +'<div class="pr-del"><button class="btn btn-xs btn-danger" onclick="delPay(\''+id+'\',\''+p.id+'\')">✕</button></div>'
           +'</div>';
         });
@@ -5185,7 +5250,7 @@ function renderModalContent(){
     <hr style="border:none;border-top:1px solid #e5e3de;margin:8px 0">
     <div style="font-size:12px;font-weight:500;margin-bottom:5px;color:#555">💬 ${(()=>{const ct=getMenageInfo(r);return`Commentaire visible par ${ct?ct.name:'le gardien'}`;})()}</div>
     ${type==='editResa'?`
-    ${comms.map(c=>`<div class="comment-item"><div class="meta"><span>${c.auteurNom} · ${fmt(c.date)}</span><button type="button" onclick="delComment('${r.id}','${c.id}')" style="background:none;border:none;color:#bbb;cursor:pointer;font-size:13px;padding:0 2px;line-height:1" title="Supprimer">✕</button></div>${c.photoUrl?`<img src="${c.photoUrl}" style="max-width:100%;max-height:220px;border-radius:8px;margin-top:4px;display:block;cursor:pointer" onclick="window.open(this.src,'_blank')">`:''}${(c.texte!==undefined)?`<textarea rows="1" style="resize:none;width:100%;box-sizing:border-box;font-size:12px;padding:3px 5px;border:1px solid transparent;border-radius:4px;background:transparent;font-family:inherit;color:#333;margin-top:2px;overflow:hidden" onfocus="this.style.borderColor='#8a8678';this.style.background='#fff';this.style.overflow='auto'" onblur="this.style.borderColor='transparent';this.style.background='transparent';this.style.overflow='hidden';updComment('${r.id}','${c.id}',this.value)">${(c.texte||'').replace(/</g,'&lt;')}</textarea>`:''}</div>`).join('')}
+    ${comms.map(c=>`<div class="comment-item"><div class="meta"><span>${c.auteurNom} · ${fmt(c.date)}</span><button type="button" onclick="delComment('${r.id}','${c.id}')" style="background:none;border:none;color:#bbb;cursor:pointer;font-size:13px;padding:0 2px;line-height:1" title="Supprimer">✕</button></div>${c.photoUrl?`<img src="${c.photoUrl}" style="max-width:100%;max-height:220px;border-radius:8px;margin-top:4px;display:block;cursor:pointer" onclick="window.open(this.src,'_blank')">`:''}${(c.texte!==undefined)?`<textarea id="comment-text-${c.id}" rows="1" style="resize:none;width:100%;box-sizing:border-box;font-size:12px;padding:3px 5px;border:1px solid transparent;border-radius:4px;background:transparent;font-family:inherit;color:#333;margin-top:2px;overflow:hidden" onfocus="this.style.borderColor='#8a8678';this.style.background='#fff';this.style.overflow='auto'" onblur="this.style.borderColor='transparent';this.style.background='transparent';this.style.overflow='hidden';updComment('${r.id}','${c.id}',this.value)">${(c.texte||'').replace(/</g,'&lt;')}</textarea>`:''}</div>`).join('')}
     <textarea id="com-txt" rows="1" placeholder="Nouveau commentaire ou instruction…" style="resize:none;margin-bottom:4px;padding:3.5px 7px;font-size:12px"></textarea>
     <input type="file" id="com-photo" accept="image/*" style="display:none" onchange="addPhotoComment('${r.id}',this)">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
@@ -5202,8 +5267,8 @@ function renderModalContent(){
     <hr style="border:none;border-top:1px solid #e5e3de;margin:14px 0">
     ${(()=>{if(!id)return'';const mi=getMenageInfo(r);if(!mi)return'';return`<div class="field" style="margin-bottom:12px"><label>🧹 Forfait ménage (${mi.name})</label>
       <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#f5f4f1;border-radius:8px;flex-wrap:wrap">
-        <input type="text" value="${r.menageComment||''}" placeholder="Note (ex. seulement la longère)" onchange="updMenageComment('${id}',this.value)" style="flex:1;min-width:120px;font-size:12px;padding:4px 6px;color:#888">
-        <span style="display:flex;align-items:center;gap:2px;flex-shrink:0"><input type="number" value="${mi.montant}" onchange="updMenageMontant('${id}',this.value)" style="width:65px;font-weight:600;font-size:13px;padding:4px 6px"><span style="font-size:12px;font-weight:600;color:#666">€</span></span>
+        <input type="text" id="modmenage-comment-${id}" value="${r.menageComment||''}" placeholder="Note (ex. seulement la longère)" onchange="updMenageComment('${id}',this.value)" style="flex:1;min-width:120px;font-size:12px;padding:4px 6px;color:#888">
+        <span style="display:flex;align-items:center;gap:2px;flex-shrink:0"><input type="number" id="modmenage-montant-${id}" value="${mi.montant}" onchange="updMenageMontant('${id}',this.value)" style="width:65px;font-weight:600;font-size:13px;padding:4px 6px"><span style="font-size:12px;font-weight:600;color:#666">€</span></span>
         <span class="pill" style="background:${r.menagePaid?'#E8F3E0':'#FCEBEB'};color:${r.menagePaid?'#27500A':'#791F1F'};cursor:pointer" onclick="toggleMenagePaid('${id}')">${r.menagePaid?'✓ Payé':'✗ Non payé'}</span>
       </div></div>`;})()}
     <div class="field" style="margin-bottom:12px"><label>Prestataires — cochez puis détaillez</label>
@@ -5248,7 +5313,7 @@ function renderModalContent(){
     ${rows.length===0?'<div class="empty" style="margin-bottom:10px">Aucune journée programmée.</div>':''}
     ${rows.map(x=>{const dom=gDom(x.domaine);return`<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:13px;padding:6px;background:#f5f4f1;border-radius:6px;flex-wrap:nowrap">
       <span style="white-space:nowrap">${dn(x.date)} ${ds(x.date)}</span><span class="pill ${PILL[dom.color||0]}">${dom.name}</span>
-      <input type="text" value="${x.comment||''}" placeholder="Commentaire" onchange="updDominiquePlanningComment('${x.id}',this.value)" style="flex:1;min-width:0;font-size:12px;padding:3px 5px;color:#888">
+      <input type="text" id="moddomin-comment-${x.id}" value="${x.comment||''}" placeholder="Commentaire" onchange="updDominiquePlanningComment('${x.id}',this.value)" style="flex:1;min-width:0;font-size:12px;padding:3px 5px;color:#888">
       <span style="font-weight:500;white-space:nowrap">${money(x.montant)}</span>
       <span class="pill" style="background:${x.paid?'#E8F3E0':'#FCEBEB'};color:${x.paid?'#27500A':'#791F1F'};cursor:pointer" onclick="toggleDominiquePlanningPaid('${x.id}')">${x.paid?'✓ Réglé':'✗ Régler'}</span>
       <button class="btn btn-xs btn-danger" onclick="delDominiquePlanning('${x.id}')">✕</button></div>`;}).join('')}
