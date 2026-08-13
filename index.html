@@ -581,6 +581,8 @@ function runMigrations(){
   if(!D.forfaitPaid)D.forfaitPaid={};
   if(!D.elecValide)D.elecValide={};
   if(!D.bilanComments)D.bilanComments=[];
+  if(!D.deletedIds)D.deletedIds={};
+  ['resa','visite','travaux','garde','dominique','message','comment','paiement','bilanComment','prestaLine'].forEach(k=>{if(!D.deletedIds[k])D.deletedIds[k]=[];});
   // Corrige les anciennes réservations où le domaine du gardiennage enregistré ne correspond
   // plus au domaine réel/actuel de la réservation (ex : la réservation a changé de domaine
   // après coup). Le lieu du gardiennage doit toujours suivre le domaine de la réservation.
@@ -646,15 +648,9 @@ let S={view:'login',admin:null,presta:null,tab:'calendrier',prestaTab:'calendrie
 let _payRowRenderTimer=null;
 
 function loadD(){try{const r=localStorage.getItem(SK);if(r)return JSON.parse(r);}catch(e){}return JSON.parse(JSON.stringify(DEF));}
-const __deletedResaIds=new Set();
-const __deletedVisiteIds=new Set();
-const __deletedTravauxIds=new Set();
-const __deletedGardeIds=new Set();
-const __deletedDominiqueIds=new Set();
-const __deletedMessageIds=new Set();
-const __deletedCommentIds=new Set();
-const __deletedPaiementIds=new Set();
-const __deletedBilanCommentIds=new Set();
+// Suppressions définitives : la liste des ids supprimés vit désormais dans D.deletedIds
+// (voir markDeleted plus bas), synchronisée comme le reste — plus de Set en mémoire locale
+// qui se réinitialise au rechargement de la page ou ignore les suppressions faites ailleurs.
 const TRAVAUX_RATE=12; // € de l'heure pour les travaux hors réservation (Misha/Sacha)
 /* Fusionne un tableau d'objets (identifiés par leur "id") : on part de la version la plus
    récente du serveur, on y superpose nos propres créations/modifications locales, et on
@@ -682,11 +678,11 @@ function mergeNestedArr(remoteArr,localArr,deletedIds){
   return order.map(id=>map[id]);
 }
 /* Fusion spécifique aux réservations : comme mergeById, la version locale d'une réservation
-   modifiée gagne pour ses champs simples — MAIS ses commentaires et paiements sont en plus
-   fusionnés finement (mergeNestedArr) pour ne jamais perdre ce qu'une autre personne a ajouté
-   de son côté entre-temps sur la même réservation (c'est le cas concret des commentaires
-   David/Svitlana ↔ Misha/Sasha qui pouvaient disparaître). */
-function mergeResaArr(remoteArr,localArr,deletedIds){
+   modifiée gagne pour ses champs simples — MAIS ses commentaires, paiements et prestations
+   (prestaLines) sont en plus fusionnés finement (mergeNestedArr) pour ne jamais perdre ce
+   qu'une autre personne a ajouté de son côté entre-temps sur la même réservation (c'est le cas
+   concret des commentaires David/Svitlana ↔ Misha/Sasha qui pouvaient disparaître). */
+function mergeResaArr(remoteArr,localArr,deletedIds,deletedCommentIds,deletedPaiementIds,deletedPrestaLineIds){
   const rMap={};(remoteArr||[]).forEach(x=>{if(x&&x.id)rMap[x.id]=x;});
   const lMap={};(localArr||[]).forEach(x=>{if(x&&x.id)lMap[x.id]=x;});
   const map=Object.assign({},rMap);
@@ -694,15 +690,28 @@ function mergeResaArr(remoteArr,localArr,deletedIds){
     const loc=lMap[id],rem=rMap[id];
     if(rem){
       const merged=Object.assign({},loc);
-      merged.commentaires=mergeNestedArr(rem.commentaires,loc.commentaires,__deletedCommentIds);
-      merged.paiements=mergeNestedArr(rem.paiements,loc.paiements,__deletedPaiementIds);
+      merged.commentaires=mergeNestedArr(rem.commentaires,loc.commentaires,deletedCommentIds);
+      merged.paiements=mergeNestedArr(rem.paiements,loc.paiements,deletedPaiementIds);
+      merged.prestaLines=mergePrestaLinesMap(rem.prestaLines,loc.prestaLines,deletedPrestaLineIds);
       map[id]=merged;
     } else {
       map[id]=loc;
     }
   });
-  deletedIds.forEach(id=>{delete map[id];});
+  (deletedIds||[]).forEach(id=>{delete map[id];});
   return Object.values(map);
+}
+/* Fusionne les prestations à commission (prestaLines), qui sont une map { pid: [lignes] } —
+   chaque sous-tableau est fusionné élément par élément comme mergeNestedArr, pour ne jamais
+   perdre ou faire réapparaître une ligne ajoutée/supprimée d'un côté ou de l'autre. */
+function mergePrestaLinesMap(remotePL,localPL,deletedIds){
+  const pids=new Set([...Object.keys(remotePL||{}),...Object.keys(localPL||{})]);
+  const out={};
+  pids.forEach(pid=>{
+    const arr=mergeNestedArr((remotePL||{})[pid],(localPL||{})[pid],deletedIds);
+    if(arr.length)out[pid]=arr;
+  });
+  return out;
 }
 /* Fusionne une map à deux niveaux (ex. {p1:{'2026-07':88641}}) sans jamais écraser en bloc :
    pour chaque prestataire, chaque mois local l'emporte sur le mois distant s'il existe des
@@ -711,6 +720,24 @@ function mergeFlatMap(remoteMap,localMap){
   const out={};
   const pids=new Set([...Object.keys(remoteMap||{}),...Object.keys(localMap||{})]);
   pids.forEach(pid=>{out[pid]=Object.assign({},(remoteMap||{})[pid],(localMap||{})[pid]);});
+  return out;
+}
+/* SUPPRESSIONS DÉFINITIVES — au lieu d'un simple Set en mémoire (perdu au rechargement de la
+   page, et invisible aux autres appareils tant qu'il n'est pas synchronisé), la liste des ids
+   supprimés est maintenant stockée DANS D.deletedIds et voyage donc avec chaque sauvegarde,
+   comme n'importe quelle autre donnée. C'est ce qui empêche une suppression faite sur un
+   appareil (ex. David sur son téléphone) de « ressusciter » via le prochain rafraîchissement
+   d'un autre appareil (ex. Svitlana, dont la copie locale n'était pas encore au courant de la
+   suppression et la repousserait sinon vers le serveur en la reconstruisant). */
+function markDeleted(type,id){
+  if(!D.deletedIds)D.deletedIds={};
+  if(!D.deletedIds[type])D.deletedIds[type]=[];
+  if(!D.deletedIds[type].includes(id))D.deletedIds[type].push(id);
+}
+function mergeDeletedIds(remote,local){
+  const out={};
+  const keys=new Set([...Object.keys(remote||{}),...Object.keys(local||{})]);
+  keys.forEach(k=>{out[k]=Array.from(new Set([...((remote&&remote[k])||[]),...((local&&local[k])||[])]));});
   return out;
 }
 /* SÉCURITÉ ANTI-DISPARITION — NE JAMAIS remplacer D par un instantané serveur en bloc.
@@ -725,18 +752,20 @@ function mergeFlatMap(remoteMap,localMap){
    confirmées côté serveur sont donc protégées, quelle que soit la fenêtre de temps. */
 function mergeRemoteSnapshot(remote){
   const merged=Object.assign({},remote);
-  merged.reservations=mergeResaArr(remote.reservations,D.reservations,__deletedResaIds);
-  merged.visites=mergeById(remote.visites,D.visites,__deletedVisiteIds);
-  merged.travauxSchedule=mergeById(remote.travauxSchedule,D.travauxSchedule,__deletedTravauxIds);
-  merged.gardeSchedule=mergeById(remote.gardeSchedule,D.gardeSchedule,__deletedGardeIds);
-  merged.dominiqueSchedule=mergeById(remote.dominiqueSchedule,D.dominiqueSchedule,__deletedDominiqueIds);
-  merged.messages=mergeById(remote.messages,D.messages,__deletedMessageIds);
+  merged.deletedIds=mergeDeletedIds(remote.deletedIds,D.deletedIds);
+  const del=k=>(merged.deletedIds&&merged.deletedIds[k])||[];
+  merged.reservations=mergeResaArr(remote.reservations,D.reservations,del('resa'),del('comment'),del('paiement'),del('prestaLine'));
+  merged.visites=mergeById(remote.visites,D.visites,del('visite'));
+  merged.travauxSchedule=mergeById(remote.travauxSchedule,D.travauxSchedule,del('travaux'));
+  merged.gardeSchedule=mergeById(remote.gardeSchedule,D.gardeSchedule,del('garde'));
+  merged.dominiqueSchedule=mergeById(remote.dominiqueSchedule,D.dominiqueSchedule,del('dominique'));
+  merged.messages=mergeById(remote.messages,D.messages,del('message'));
   merged.adminLastSeen=mergeSeen(D.adminLastSeen,remote.adminLastSeen);
   merged.prestaLastSeen=mergeSeen(D.prestaLastSeen,remote.prestaLastSeen);
   merged.electriciteIndex=mergeFlatMap(remote.electriciteIndex,D.electriciteIndex);
   merged.forfaitPaid=mergeFlatMap(remote.forfaitPaid,D.forfaitPaid);
   merged.elecValide=mergeFlatMap(remote.elecValide,D.elecValide);
-  merged.bilanComments=mergeById(remote.bilanComments,D.bilanComments,__deletedBilanCommentIds);
+  merged.bilanComments=mergeById(remote.bilanComments,D.bilanComments,del('bilanComment'));
   return merged;
 }
 async function saveD(){
@@ -757,7 +786,7 @@ function gid(){return 'x'+Math.random().toString(36).slice(2,9);}
 function logActivity(action,domaine,label,concernsPresta,forAdmin,rid){
   if(!D.activityLog)D.activityLog=[];
   D.activityLog.push({id:gid(),ts:Date.now(),authorId:S.admin?S.admin.id:null,authorName:S.admin?S.admin.name:(S.presta?S.presta.name:'Système'),domaine,action,label,concernsPresta:concernsPresta||[],forAdmin:!!forAdmin,rid:rid||null});
-  if(D.activityLog.length>200)D.activityLog=D.activityLog.slice(-200);
+  if(D.activityLog.length>400)D.activityLog=D.activityLog.slice(-400);
   triggerPushNotification(action,label,concernsPresta);
 }
 /* Envoie une vraie notification push (via la fonction Supabase "send-push") aux personnes
@@ -839,7 +868,7 @@ function sendMessageFromPresta(){
   saveD();showMsg('Message envoyé ✓');render();
 }
 function toggleMessageRead(id){const msg=(D.messages||[]).find(x=>x.id===id);if(!msg)return;msg.read=!msg.read;saveD();render();}
-function delMessage(id){__deletedMessageIds.add(id);D.messages=(D.messages||[]).filter(x=>x.id!==id);saveD();render();}
+function delMessage(id){markDeleted('message',id);D.messages=(D.messages||[]).filter(x=>x.id!==id);saveD();render();}
 function renderNotifBanner(items,dismissFnName){
   if(!items.length)return'';
   return`<div class="alert alert-info" style="margin-bottom:12px">
@@ -1025,6 +1054,7 @@ function toggleLigneValide(rid,pid,lid){
   const r=D.reservations.find(x=>x.id===rid);if(!r||!r.prestaLines||!r.prestaLines[pid])return;
   const l=r.prestaLines[pid].find(x=>x.id===lid);if(!l)return;
   l.valide=!l.valide;
+  logActivity('prestation',r.domaine,`Prestation ${l.valide?'validée':'validation annulée'} : ${l.label||'—'}${l.montant?' · '+money(l.montant):''}`,[],false,rid);
   saveD();render();
 }
 /* === Section "Prestations avec commission" — partagée entre la page perso du prestataire
@@ -1150,7 +1180,7 @@ function addBilanComment(pid,monthKey,inputId){
 }
 function delBilanComment(id){
   D.bilanComments=(D.bilanComments||[]).filter(x=>x.id!==id);
-  __deletedBilanCommentIds.add(id);
+  markDeleted('bilanComment',id);
   saveD();render();
 }
 function renderBilanComments(p,y,m){
@@ -1211,12 +1241,16 @@ function toggleElecValide(pid,key){
   if(!D.elecValide)D.elecValide={};
   if(!D.elecValide[pid])D.elecValide[pid]={};
   D.elecValide[pid][key]=!D.elecValide[pid][key];
+  const p=gPre(pid);
+  logActivity('prestation',(p.domaines||[])[0]||null,`Électricité ${D.elecValide[pid][key]?'validée':'validation annulée'} — ${p.name} (${key})`,[pid],false);
   saveD();render();
 }
 function toggleForfaitPaid(pid,key){
   if(!D.forfaitPaid)D.forfaitPaid={};
   if(!D.forfaitPaid[pid])D.forfaitPaid[pid]={};
   D.forfaitPaid[pid][key]=!D.forfaitPaid[pid][key];
+  const p=gPre(pid);
+  logActivity('prestation',(p.domaines||[])[0]||null,`Forfait gardiennage fixe ${D.forfaitPaid[pid][key]?'marqué réglé':'marqué non réglé'} — ${p.name} (${key})`,[pid],false);
   saveD();render();
 }
 /* === Relevé d'électricité (Misha uniquement) — on ne saisit que l'index de fin de mois ;
@@ -1233,6 +1267,8 @@ function updElecIndex(pid,key,val){
   if(!D.electriciteIndex[pid])D.electriciteIndex[pid]={};
   D.electriciteIndex[pid][key]=(val===''||val===null||val===undefined||isNaN(parseFloat(val)))?null:parseFloat(val);
   if(D.elecValide&&D.elecValide[pid])D.elecValide[pid][key]=false;
+  const p=gPre(pid);
+  logActivity('prestation',(p.domaines||[])[0]||null,`Index électricité — ${p.name} (${key}) : ${D.electriciteIndex[pid][key]!==null?D.electriciteIndex[pid][key]+' kWh':'—'}`,[pid],false);
   saveD();render();
 }
 function computeElecCost(pid,y,m){
@@ -2775,41 +2811,50 @@ function renderListeMerged(){
 }
 
 function renderDernieres(){
-  /* On ne montre que les vraies actions humaines : création de fiche, ajout de commentaire,
-     ajout de prestation, ajout/modification de paiement ou de montant. Pas les petites
-     modifications de champs (téléphone, email…) ni les événements automatiques. */
-  const SHOW={'créée':1,'commentaire':1,'paiement':1,'prestation':1};
+  /* Historique complet des 50 dernières modifications, quel que soit leur type : création/
+     modification/suppression de réservation ou de visite, prestations Misha/Sasha (ajout,
+     modif de montant ou de mode de règlement, validation, suppression), paiements (ajout,
+     modif, suppression), gardiennage (marqué réglé, durée changée, validé), travaux (déclarés,
+     validés, supprimés)… Seuls les messages de chat privé sont exclus (ils ont leur propre
+     fil de discussion, pas un journal de modifications). */
+  const HIDDEN={'message':1};
   const items=(D.activityLog||[])
-    .filter(it=>SHOW[it.action]&&it.rid&&D.reservations.some(x=>x.id===it.rid))
-    .sort((a,b)=>b.ts-a.ts).slice(0,20);
+    .filter(it=>!HIDDEN[it.action])
+    .sort((a,b)=>b.ts-a.ts).slice(0,50);
+  const ACTION_META={
+    'créée':{label:'✚ Créée',color:'#27500A',bg:'#EAF3DE'},
+    'modifiée':{label:'✎ Modifiée',color:'#993556',bg:'#FBEAF0'},
+    'annulée':{label:'✕ Annulée',color:'#791F1F',bg:'#FCEBEB'},
+    'supprimée':{label:'🗑 Supprimée',color:'#791F1F',bg:'#FCEBEB'},
+    'paiement':{label:'💶 Paiement',color:'#0C447C',bg:'#E6F1FB'},
+    'prestation':{label:'🧾 Prestation',color:'#7A5800',bg:'#FFF6E8'},
+    'garde':{label:'🛡 Gardiennage',color:'#534AB7',bg:'#EDEBFB'},
+    'validée':{label:'✓ Validée',color:'#27500A',bg:'#EAF3DE'},
+    'commentaire':{label:'💬 Commentaire',color:'#666',bg:'#F0EFEA'}
+  };
   const rows=items.map(it=>{
     const d=new Date(it.ts);
-    const when=(it.ts>1)?(d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})):'—';
-    const isCreation=it.action==='créée';
+    const when=(it.ts>1)?(d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit'})+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})):'—';
+    const meta=ACTION_META[it.action]||{label:it.action||'—',color:'#666',bg:'#F0EFEA'};
     const r=it.rid?D.reservations.find(x=>x.id===it.rid):null;
     const dom=gDom(it.domaine||(r&&r.domaine));
-    const name=r?(displayClientName(r)||'—'):'—';
-    const arr=r?(r.dateArrivee||''):'';
-    const badgeLabel=isCreation?'✚ Nouvelle résa':'✎ Résa modifiée';
-    const badgeColor=isCreation?'#27500A':'#993556';
-    const badgeBg=isCreation?'#EAF3DE':'#FBEAF0';
-    const detail=isCreation?'Création de la fiche':(it.label||'—');
-    const author=it.authorName||'';
-    const line2=isCreation?(`Création de la fiche · ${author?author+' · ':''}${when}`):(`Modification · ${author?author+' · ':''}${when} : ${detail}`);
+    const hasDom=dom&&dom.name!=='—';
+    const name=r?(displayClientName(r)||'—'):null;
+    const author=it.authorName||'Système';
     const clickAttr=r?`onclick="openM('editResa','${r.id}')"`:'';
     const cursorCss=r?'cursor:pointer;':'';
-    return`<div ${clickAttr} style="${cursorCss}padding:10px 12px 10px 13px;border-bottom:2px solid #efece5;border-left:4px solid ${badgeColor};transition:background .12s" onmouseover="this.style.background='#faf9f7'" onmouseout="this.style.background=''">
+    return`<div ${clickAttr} style="${cursorCss}padding:10px 12px 10px 13px;border-bottom:2px solid #efece5;border-left:4px solid ${meta.color};transition:background .12s" onmouseover="this.style.background='#faf9f7'" onmouseout="this.style.background=''">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <span style="background:${badgeBg};color:${badgeColor};font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap;flex-shrink:0">${badgeLabel}</span>
-        <span style="font-weight:700;font-size:13px;white-space:nowrap">${name}</span>
-        ${dom?`<span class="pill ${PILL[dom.color||0]}" style="font-size:10px;flex-shrink:0">${dom.name}</span>`:''}
-        ${arr?`<span style="font-size:11px;color:#aaa;white-space:nowrap">${dn(arr)} ${ds(arr)}</span>`:''}
-        ${r?'<span style="font-size:11px;color:#ccc;margin-left:auto;flex-shrink:0">→ ouvrir</span>':''}
+        <span style="background:${meta.bg};color:${meta.color};font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap;flex-shrink:0">${meta.label}</span>
+        ${name?`<span style="font-weight:700;font-size:13px;white-space:nowrap">${name}</span>`:''}
+        ${hasDom?`<span class="pill ${PILL[dom.color||0]}" style="font-size:10px;flex-shrink:0">${dom.name}</span>`:''}
+        <span style="font-size:11px;color:#aaa;white-space:nowrap;margin-left:auto;flex-shrink:0">${when}</span>
+        ${r?'<span style="font-size:11px;color:#ccc;flex-shrink:0">→ ouvrir</span>':''}
       </div>
-      <div style="margin-top:4px;font-size:11px;color:#666;padding-left:2px">${line2}</div>
+      <div style="margin-top:4px;font-size:11px;color:#666;padding-left:2px">${it.label||'—'} <span style="color:#aaa">· par ${author}</span></div>
     </div>`;
   }).join('');
-  return`<div style="margin-bottom:12px;font-size:12px;color:#aaa">Les 20 dernières créations, ajouts de commentaire, de prestation et de paiement — cliquer pour ouvrir.</div>
+  return`<div style="margin-bottom:12px;font-size:12px;color:#aaa">Les 50 dernières modifications, tous types confondus (réservations, visites, prestations, paiements, gardiennage, travaux…) — cliquer sur une ligne liée à une réservation pour l'ouvrir.</div>
   <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;overflow:hidden">
     ${items.length===0?'<div class="empty">Aucune activité enregistrée.</div>':rows}
   </div>`;
@@ -2830,7 +2875,7 @@ function saveVisite(id){
   logActivity(isNew?'créée':(status==='annulée'?'annulée':'modifiée'),domaine,`Visite ${isNew?'créée':(status==='annulée'?'annulée':'modifiée')} — ${client||'—'} (${fmt(date)})`);
   saveD();S.modal=null;S.tab='liste';S.listeSubView='visite';showMsg('Visite enregistrée ✓');
 }
-function delVisite(id){if(!confirm('Supprimer cette visite ?'))return;const v=D.visites.find(x=>x.id===id);if(v)logActivity('supprimée',v.domaine,`Visite supprimée — ${v.client||'—'} (${fmt(v.date)})`);D.visites=D.visites.filter(x=>x.id!==id);__deletedVisiteIds.add(id);saveD();render();}
+function delVisite(id){if(!confirm('Supprimer cette visite ?'))return;const v=D.visites.find(x=>x.id===id);if(v)logActivity('supprimée',v.domaine,`Visite supprimée — ${v.client||'—'} (${fmt(v.date)})`);D.visites=D.visites.filter(x=>x.id!==id);markDeleted('visite',id);saveD();render();}
 
 function bilanNav(d){S.bilanMonth+=d;if(S.bilanMonth>11){S.bilanMonth=0;S.bilanYear++;}if(S.bilanMonth<0){S.bilanMonth=11;S.bilanYear--;}render();}
 function setBilanViewMode(mode){S.bilanViewMode=mode;render();}
@@ -5075,7 +5120,9 @@ function updPayRow(rid,pid,el,field){
   const p=(r.paiements||[]).find(x=>x.id===pid);if(!p)return;
   if(field==='montant')p[field]=parseFloat(el.value)||0;
   else p[field]=el.value;
-  stampChange(r,'Paiement modifié');
+  const desc=`${p.type||''} ${money(p.montant||0)} le ${ds(p.date)}`;
+  stampChange(r,'Paiement modifié · '+desc);
+  logActivity('paiement',r.domaine,`Paiement modifié : ${desc}`,[],false,rid);
   saveD();
   if(_payRowRenderTimer)clearTimeout(_payRowRenderTimer);
   _payRowRenderTimer=setTimeout(function(){_payRowRenderTimer=null;S.modal={type:'editResa',id:rid};render();},80);
@@ -5111,8 +5158,9 @@ function delPay(rid,pid){
   const pa=(r.paiements||[]).find(p=>p.id===pid);
   const desc=pa?`${pa.type||''} ${money(pa.montant||0)} du ${ds(pa.date)}`:'';
   r.paiements=(r.paiements||[]).filter(p=>p.id!==pid);
-  __deletedPaiementIds.add(pid);
+  markDeleted('paiement',pid);
   stampChange(r,`Paiement supprimé · ${desc}`);
+  logActivity('paiement',r.domaine,`Paiement supprimé : ${desc}`,[],false,rid);
   saveD();S.modal={type:'editResa',id:rid};render();
 }
 function updPay(rid,pid,field,value){
@@ -5121,7 +5169,9 @@ function updPay(rid,pid,field,value){
   const oldVal=pa[field];
   pa[field]=field==='montant'?(parseFloat(value)||0):value;
   if(field==='montant'||field==='type'||field==='date'){
-    stampChange(r,`Paiement modifié · ${pa.type||''} ${money(pa.montant||0)} le ${ds(pa.date)}`);
+    const desc=`${pa.type||''} ${money(pa.montant||0)} le ${ds(pa.date)}`;
+    stampChange(r,`Paiement modifié · ${desc}`);
+    logActivity('paiement',r.domaine,`Paiement modifié : ${desc}`,[],false,rid);
   }
   saveD();render();
 }
@@ -5135,12 +5185,18 @@ function togglePrestataireChecked(rid,pid,checked){
 function updPrestaLine(rid,pid,lineId,field,value){
   if(!rid)return;const r=D.reservations.find(x=>x.id===rid);if(!r||!r.prestaLines||!r.prestaLines[pid])return;
   const line=r.prestaLines[pid].find(l=>l.id===lineId);if(!line)return;
+  const oldVal=line[field];
   if(field==='montant'){line.montant=parseFloat(value)||0;line.valide=false;}
   else if(field==='notrePart'){line.notrePart=parseFloat(value)||0;line.valide=false;}
   else if(field==='commission'){line.commission=value===''?undefined:parseFloat(value);line.valide=false;}
   else if(field==='via'){line.via=value;line.valide=false;}
   else if(field==='paidDirect'){line.paidDirect=value==='1'||value===true;line.via=line.paidDirect?'cash_presta':'ds';line.valide=false;}
   else line[field]=value;
+  if(field==='montant'||field==='via'||field==='commission'){
+    const fieldLabel=field==='montant'?'montant':(field==='via'?'mode de règlement':'commission');
+    const newValLabel=field==='montant'?money(line.montant):(field==='via'?viaLabel(pid,line.via):`${line.commission!==undefined?line.commission:10}%`);
+    logActivity('prestation',r.domaine,`Prestation modifiée : ${line.label||'—'} — ${fieldLabel} → ${newValLabel}`,[],false,rid);
+  }
   saveD();render();
 }
 function addPrestaLineSelf(rid,pid){
@@ -5159,11 +5215,14 @@ function addPrestaLineSelf(rid,pid){
 }
 function delPrestaLineSelf(rid,pid,lid){
   const r=D.reservations.find(x=>x.id===rid);if(!r||!r.prestaLines||!r.prestaLines[pid])return;
+  const line=r.prestaLines[pid].find(l=>l.id===lid);
   r.prestaLines[pid]=r.prestaLines[pid].filter(l=>l.id!==lid);
+  markDeleted('prestaLine',lid);
+  logActivity('prestation',r.domaine,`Prestation supprimée : ${(line&&line.label)||'—'}${line&&line.montant?' · '+money(line.montant):''}`,[],false,rid);
   saveD();showMsg('Supprimée');S.selResa=rid;render();
 }
 function addPrestaLine(rid,pid){const r=D.reservations.find(x=>x.id===rid);if(!r)return;const lab=(document.getElementById('pline-label-'+pid).value||'').trim(),amt=parseFloat(document.getElementById('pline-amt-'+pid).value)||0,nt=(document.getElementById('pline-notes-'+pid).value||'').trim(),via=(document.getElementById('pline-via-'+pid)||{}).value||'ds',comm=parseFloat((document.getElementById('pline-comm-'+pid)||{}).value);if(!lab&&!amt)return;if(!r.prestaLines)r.prestaLines={};if(!r.prestaLines[pid])r.prestaLines[pid]=[];r.prestaLines[pid].push({id:gid(),label:lab,montant:amt,notes:nt,paidDirect:via!=='ds'&&via!=='cash_ds',via,commission:isNaN(comm)?10:comm,date:r.dateArrivee||'',valide:false});logActivity('prestation',r.domaine,'Prestation ajoutée : '+((lab||'—')+(amt?' · '+money(amt):'')),[],false,rid);saveD();S.modal={type:'editResa',id:rid};render();}
-function delPrestaLine(rid,pid,lineId){if(!rid)return;const r=D.reservations.find(x=>x.id===rid);if(!r||!r.prestaLines||!r.prestaLines[pid])return;r.prestaLines[pid]=r.prestaLines[pid].filter(l=>l.id!==lineId);saveD();render();}
+function delPrestaLine(rid,pid,lineId){if(!rid)return;const r=D.reservations.find(x=>x.id===rid);if(!r||!r.prestaLines||!r.prestaLines[pid])return;const line=r.prestaLines[pid].find(l=>l.id===lineId);r.prestaLines[pid]=r.prestaLines[pid].filter(l=>l.id!==lineId);markDeleted('prestaLine',lineId);logActivity('prestation',r.domaine,`Prestation supprimée : ${(line&&line.label)||'—'}${line&&line.montant?' · '+money(line.montant):''}`,[],false,rid);saveD();render();}
 
 function addComment(rid){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
@@ -5185,6 +5244,7 @@ function delComment(rid,cid){
   if(!confirm('Supprimer ce commentaire ?'))return;
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
   r.commentaires=(r.commentaires||[]).filter(x=>x.id!==cid);
+  markDeleted('comment',cid);
   stampChange(r,'Commentaire supprimé');
   saveD();S.modal={type:'editResa',id:rid};render();
 }
@@ -5360,14 +5420,14 @@ function saveResaCore(id){
     return changes.length?changes.join(' · '):'Enregistrement (aucun changement détecté)';
   }
 
-  let montantChanged=false,prevMontantVal=0;
+  let montantChanged=false,prevMontantVal=0,changeLog='';
   if(id){
     const r=D.reservations.find(x=>x.id===id);
     const prevSnap={...r};
     prevMontantVal=prevSnap.montant||0;
     montantChanged=(String(prevMontantVal)!==String(montant||0));
     const nextSnap={domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,typeEvenement,nbPersonnes,nbSoiree,montant,arrhes,depotGarantie,noteInterne,typeClient,societe,tel,email};
-    const changeLog=buildChangeLog(prevSnap,nextSnap);
+    changeLog=buildChangeLog(prevSnap,nextSnap);
     Object.assign(r,{domaine,dateArrivee,heureArrivee,dateDepart:dep,heureDepart,status,client,civilite1,prenom1,nom1,tel,email,prenom2,nom2,tel2,email2,adresse,typeClient,societe,typeEvenement,nbPersonnes,nbSoiree,nbAdultes,nbEnfants,prestaGarde,noteInterne,caviste,prestasExterieurs,montant,arrhes,depotGarantie,avecContrat,prestataires,updatedAt:nowTs,lastChange:changeLog});
   }
   else{
@@ -5397,12 +5457,13 @@ function saveResaCore(id){
       }
     }
   }
-  /* Journal — uniquement les vraies actions : création, paiements ajoutés, changement de montant.
-     Les petites modifs de champs (téléphone, email, dates…) ne sont pas journalisées. */
+  /* Journal — création, paiements ajoutés, et désormais TOUTE modification de champ
+     (dates, heures, montants, statut…) via le résumé changeLog déjà calculé plus haut, pour
+     que « Dernières modifications » n'oublie plus rien. */
   if(isNew){
     logActivity('créée',domaine,'Création de la fiche',[],false,newId);
   } else {
-    if(montantChanged)logActivity('paiement',domaine,`Montant de la réservation : ${money(prevMontantVal)} → ${money(montant||0)}`,[],false,id);
+    if(changeLog&&changeLog!=='Enregistrement (aucun changement détecté)')logActivity('modifiée',domaine,changeLog,[],false,id);
   }
   _paysAdded.forEach(function(desc){logActivity('paiement',domaine,'Paiement ajouté : '+desc,[],false,newId);});
   Object.keys(prestaGarde).forEach(pid=>{
@@ -5439,21 +5500,26 @@ function addCommentBeforeSave(){
   S.modal={type:'editResa',id:result.newId};
   render();
 }
-function delResa(id){if(!confirm('Supprimer définitivement cette réservation ?'))return;const r=D.reservations.find(x=>x.id===id);if(r)logActivity('supprimée',r.domaine,`Réservation supprimée — ${displayClientName(r)||'—'} (${fmt(r.dateArrivee)})`);D.reservations=D.reservations.filter(x=>x.id!==id);__deletedResaIds.add(id);S.selResa=null;saveD();render();}
-function cancelResa(id){if(!confirm('Annuler cette réservation ? Elle restera enregistrée mais marquée annulée.'))return;const r=D.reservations.find(x=>x.id===id);if(!r)return;r.status='annulé';logActivity('annulée',r.domaine,`Réservation annulée — ${displayClientName(r)||'—'} (${fmt(r.dateArrivee)})`);saveD();S.modal=null;showMsg('Réservation annulée ✓');}
+function delResa(id){if(!confirm('Supprimer définitivement cette réservation ?'))return;const r=D.reservations.find(x=>x.id===id);if(r)logActivity('supprimée',r.domaine,`Réservation supprimée — ${displayClientName(r)||'—'} (${fmt(r.dateArrivee)})`);D.reservations=D.reservations.filter(x=>x.id!==id);markDeleted('resa',id);S.selResa=null;saveD();render();}
+function cancelResa(id){if(!confirm('Annuler cette réservation ? Elle restera enregistrée mais marquée annulée.'))return;const r=D.reservations.find(x=>x.id===id);if(!r)return;r.status='annulé';logActivity('annulée',r.domaine,`Réservation annulée — ${displayClientName(r)||'—'} (${fmt(r.dateArrivee)})`,[],false,id);saveD();S.modal=null;showMsg('Réservation annulée ✓');}
 function toggleGardeNightPaid(rid,pid,date){
   const r=D.reservations.find(x=>x.id===rid);if(!r||!r.prestaGarde||!r.prestaGarde[pid]||!r.prestaGarde[pid].nights[date])return;
-  r.prestaGarde[pid].nights[date].paid=!r.prestaGarde[pid].nights[date].paid;
+  const n=r.prestaGarde[pid].nights[date];
+  n.paid=!n.paid;
+  const p=gPre(pid);
+  logActivity('garde',r.domaine,`Gardiennage ${n.paid?'marqué réglé':'marqué non réglé'} — ${p.name} (${fmt(date)})`,[pid],false,rid);
   saveD();render();
 }
 function toggleMenagePaid(rid){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
   r.menagePaid=!r.menagePaid;
+  logActivity('prestation',r.domaine,`Ménage ${r.menagePaid?'marqué réglé':'marqué non réglé'} — ${displayClientName(r)||'—'} (${fmt(r.dateArrivee)})`,[],false,rid);
   saveD();render();
 }
 function toggleMenageValide(rid){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
   r.menageValide=!r.menageValide;
+  logActivity('prestation',r.domaine,`Ménage ${r.menageValide?'validé':'validation annulée'} — ${displayClientName(r)||'—'} (${fmt(r.dateArrivee)})`,[],false,rid);
   saveD();render();
 }
 function updMenageMontant(rid,value){
@@ -5488,7 +5554,7 @@ function addDominiquePlanning(){
   saveD();S.modal={type:'dominiquePlanning'};render();
 }
 function delDominiquePlanning(id){
-  __deletedDominiqueIds.add(id);
+  markDeleted('dominique',id);
   D.dominiqueSchedule=(D.dominiqueSchedule||[]).filter(x=>x.id!==id);
   saveD();S.modal={type:'dominiquePlanning'};render();
 }
@@ -5507,9 +5573,10 @@ function addGardePlanning(pid){
   saveD();S.modal={type:'gardePlanning',pid};render();
 }
 function delGardePlanning(id){
-  __deletedGardeIds.add(id);
   const x=(D.gardeSchedule||[]).find(x=>x.id===id);
+  markDeleted('garde',id);
   D.gardeSchedule=(D.gardeSchedule||[]).filter(x=>x.id!==id);
+  if(x){const p=gPre(x.pid);logActivity('supprimée',x.domaine,`Gardiennage planifié supprimé — ${p.name} (${fmt(x.date)})`,[x.pid],false);}
   saveD();if(x)S.modal={type:'gardePlanning',pid:x.pid};render();
 }
 /* === Travaux hors réservation (Misha/Sacha) — sans commission, 12€/h, à valider === */
@@ -5526,8 +5593,10 @@ function addTravaux(pid){
   saveD();showMsg('Travaux déclarés, en attente de validation ✓');render();
 }
 function delTravaux(id){
+  const x=(D.travauxSchedule||[]).find(x=>x.id===id);
   D.travauxSchedule=(D.travauxSchedule||[]).filter(x=>x.id!==id);
-  __deletedTravauxIds.add(id);
+  markDeleted('travaux',id);
+  if(x){const p=gPre(x.pid);logActivity('supprimée',x.domaine,`Travaux supprimés — ${p.name} (${fmt(x.date)}, ${x.heures}h)`,[x.pid],false);}
   saveD();render();
 }
 function validateTravaux(id){
@@ -5543,21 +5612,30 @@ function toggleTravauxValide(id){
   const wasValide=x.status==='validé';
   x.status=wasValide?'en_attente':'validé';
   if(!wasValide){x.validatedBy=S.admin?S.admin.name:'';x.validatedAt=Date.now();}
+  const p=gPre(x.pid);
+  logActivity('validée',x.domaine,`Travaux ${wasValide?'validation annulée':'validés'} — ${p.name} (${fmt(x.date)}, ${x.heures}h · ${money(x.montant)})`,[x.pid],false);
   saveD();render();
 }
 function toggleGardeSchedulePaid(id){
   const x=(D.gardeSchedule||[]).find(x=>x.id===id);if(!x)return;
   x.paid=!x.paid;
+  const p=gPre(x.pid);
+  logActivity('garde',x.domaine,`Gardiennage ${x.paid?'marqué réglé':'marqué non réglé'} — ${p.name} (${fmt(x.date)})`,[x.pid],false);
   saveD();render();
 }
 function toggleGardeNightValide(rid,pid,date){
   const r=D.reservations.find(x=>x.id===rid);if(!r||!r.prestaGarde||!r.prestaGarde[pid]||!r.prestaGarde[pid].nights[date])return;
-  r.prestaGarde[pid].nights[date].valide=!r.prestaGarde[pid].nights[date].valide;
+  const n=r.prestaGarde[pid].nights[date];
+  n.valide=!n.valide;
+  const p=gPre(pid);
+  logActivity('garde',r.domaine,`Gardiennage ${n.valide?'validé':'validation annulée'} — ${p.name} (${fmt(date)})`,[pid],false,rid);
   saveD();render();
 }
 function toggleGardeScheduleValide(id){
   const x=(D.gardeSchedule||[]).find(x=>x.id===id);if(!x)return;
   x.valide=!x.valide;
+  const p=gPre(x.pid);
+  logActivity('garde',x.domaine,`Gardiennage ${x.valide?'validé':'validation annulée'} — ${p.name} (${fmt(x.date)})`,[x.pid],false);
   saveD();render();
 }
 function setGardeNightPayMethod(rid,pid,date,method){
@@ -5574,12 +5652,16 @@ function setGardeNightDuree(rid,pid,date,duree){
   const r=D.reservations.find(x=>x.id===rid);if(!r||!r.prestaGarde||!r.prestaGarde[pid]||!r.prestaGarde[pid].nights[date])return;
   r.prestaGarde[pid].nights[date].duree=duree;
   r.prestaGarde[pid].nights[date].valide=false;
+  const p=gPre(pid);
+  logActivity('garde',r.domaine,`Durée de gardiennage modifiée — ${p.name} (${fmt(date)}) : ${duree==='courte'?'Courte':'Longue'}`,[pid],false,rid);
   saveD();render();
 }
 function setGardeScheduleDuree(id,duree){
   const x=(D.gardeSchedule||[]).find(x=>x.id===id);if(!x)return;
   x.duree=duree;
   x.valide=false;
+  const p=gPre(x.pid);
+  logActivity('garde',x.domaine,`Durée de gardiennage modifiée — ${p.name} (${fmt(x.date)}) : ${duree==='courte'?'Courte':'Longue'}`,[x.pid],false);
   saveD();render();
 }
 function setGardeNightComment(rid,pid,date,comment){
@@ -5601,6 +5683,8 @@ function delGardeNight(rid,pid,date){
   const r=D.reservations.find(x=>x.id===rid);if(!r||!r.prestaGarde||!r.prestaGarde[pid])return;
   delete r.prestaGarde[pid].nights[date];
   if(Object.keys(r.prestaGarde[pid].nights).length===0)delete r.prestaGarde[pid];
+  const p=gPre(pid);
+  logActivity('supprimée',r.domaine,`Nuit de gardiennage supprimée — ${p.name} (${fmt(date)})`,[pid],false,rid);
   saveD();render();
 }
 function saveDomaine(id){const name=document.getElementById('m-dname').value.trim(),color=parseInt(document.getElementById('m-dcolor').value);if(!name){alert('Le nom est obligatoire.');return;}if(id){const d=D.domaines.find(x=>x.id===id);Object.assign(d,{name,color});}else D.domaines.push({id:gid(),name,color});saveD();S.modal=null;showMsg('Domaine enregistré ✓');}
