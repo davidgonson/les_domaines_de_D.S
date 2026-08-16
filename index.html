@@ -602,8 +602,8 @@ const DEF={
     {id:'d3',name:'Les Lions',color:2}
   ],
   prestataires:[
-    {id:'p1',name:'Misha',role:'Gardien & Traiteur ou Service',tel:'',domaines:['d1','d2'],accessMode:'domaine',autoAssign:false,inputMode:'notes',noteRows:6,token:'tok_misha_dsr1',forfaitMensuel:400,electricite:true},
-    {id:'p2',name:'Sasha',role:'Gardien & Décoration ou Service',tel:'',domaines:['d2','d1'],accessMode:'domaine',autoAssign:false,inputMode:'notes',noteRows:3,token:'tok_sasha_dss2',forfaitMensuel:400},
+    {id:'p1',name:'Misha',role:'Gardien & Traiteur ou Service',tel:'',domaines:['d1','d2'],homeDomaines:['d1'],accessMode:'domaine',autoAssign:false,inputMode:'notes',noteRows:6,token:'tok_misha_dsr1',forfaitMensuel:400,electricite:true},
+    {id:'p2',name:'Sasha',role:'Gardien & Décoration ou Service',tel:'',domaines:['d2','d1'],homeDomaines:['d2'],accessMode:'domaine',autoAssign:false,inputMode:'notes',noteRows:3,token:'tok_sasha_dss2',forfaitMensuel:400},
     {id:'p3',name:'Pascaline',role:'Ménage',tel:'',domaines:['d3'],accessMode:'calendrierSeul',inputMode:'notes',noteRows:2,flatRate:250,token:'tok_pascaline_lns3'},
     {id:'p4',name:'Dominique',role:'Jardinage',tel:'',domaines:['d1','d2','d3'],accessMode:'occupation',inputMode:'none',token:'tok_dominique_jrd4'},
     {id:'p5',name:'Sébastien',role:'Sécurité',tel:'',domaines:['d1'],accessMode:'manuel',inputMode:'garde',token:'tok_sebastien_sec5'},
@@ -677,10 +677,20 @@ function runMigrations(){
     if(p.role==='Gardien & Traiteur')p.role='Gardien & Traiteur ou Service';
     if(p.role==='Gardien & Décoration')p.role='Gardien & Décoration ou Service';
     if(p.name==='Misha'||p.name==='Sasha')p.autoAssign=false;
-    // Misha et Sasha se remplacent l'un l'autre selon les besoins : chacun doit voir ce qui se
-    // passe aussi sur le domaine de l'autre (gardiennage, planning...), pas seulement le sien.
+    // Misha et Sasha se remplacent l'un l'autre selon les besoins : chacun peut donc TRAVAILLER
+    // sur le domaine de l'autre (être coché comme prestataire, déclarer des travaux…).
     if(p.name==='Misha'&&!(p.domaines||[]).includes('d2'))p.domaines=[...(p.domaines||['d1']),'d2'];
     if(p.name==='Sasha'&&!(p.domaines||[]).includes('d1'))p.domaines=[...(p.domaines||['d2']),'d1'];
+    /* …mais « travailler sur un domaine » et « suivre la vie d'un domaine » sont deux choses
+       différentes. homeDomaines = le(s) domaine(s) dont on suit l'actualité générale
+       (réservations, visites, commentaires) dans « Dernières modifications ». David : « Misha
+       voit tout ce qui se passe chez lui, c'est-à-dire La Désirée, mais aux Déesses il ne doit
+       rien voir. Et inversement Sasha. » Ce qui les concerne personnellement sur le domaine de
+       l'autre (quand ils y sont prestataires) reste évidemment visible — c'est la règle « mine »
+       de prestaVisibleLog, indépendante de homeDomaines. Forcé à chaque démarrage : corrige
+       aussi les données déjà enregistrées. */
+    if(p.name==='Misha')p.homeDomaines=['d1'];
+    if(p.name==='Sasha')p.homeDomaines=['d2'];
     if(p.name==='Pascaline'){p.accessMode='calendrierSeul';if(p.flatRate===undefined)p.flatRate=250;}
     if(p.name==='Yana'){p.accessMode='readonly_nofinance';p.voitFinance=true;}
     if((p.name==='Misha'||p.name==='Sasha')&&p.forfaitMensuel===undefined)p.forfaitMensuel=400;
@@ -1095,7 +1105,7 @@ function gardeRate(duree){return duree==='longue'?110:75;}
                   bancaire/structure (carte, virement…) — de vrais frais bancaires s'appliquent.
    cash_ds      : payé en cash directement à nous — l'argent est chez nous, mais sans les frais
                   bancaires réels du circuit DS (pas de 15% de frais de structure ici).
-   structure    : le prestataire a facturé lui-même via sa structure (Ozarco, Misha uniquement) —
+   structure    : le prestataire a facturé lui-même via sa structure (Ozarko, Misha uniquement) —
                   l'argent est déjà chez lui.
    cash_presta  : payé en cash directement au prestataire — l'argent est déjà chez lui.
    La commission (10% par défaut, modifiable ligne par ligne via l.commission) s'applique dans
@@ -1108,13 +1118,13 @@ function gardeRate(duree){return duree==='longue'?110:75;}
        David) : juste 100€ → 90€ net après 10% de commission.
      - argent déjà chez lui ('structure','cash_presta') → il nous doit simplement la commission
        (duANous), pas de 15% dans ce cas non plus.
-   Cas particulier Misha : quand il facture lui-même via Ozarco ('structure') une partie qui nous
+   Cas particulier Misha : quand il facture lui-même via Ozarko ('structure') une partie qui nous
    revient en réalité (ex. de l'alcool acheté par nous, plus simple que ce soit lui qui le rende
    au client), il nous reverse cette part en gardant 14% de frais de manutention pour lui — sans
    commission dessus (l.notrePart, distinct du montant de sa propre prestation sur la même ligne). */
 function viaOptions(pid){
   const name=(gPre(pid)||{}).name||'';
-  if(pid==='p1')return[['ds','Via DS (nous sommes payés)'],['structure',`Via Ozarco (${name} payé)`],['cash_presta',`Cash ${name}`],['cash_ds','Cash nous']];
+  if(pid==='p1')return[['ds','Via DS (nous sommes payés)'],['structure',`Via Ozarko (${name} payé)`],['cash_presta',`Cash ${name}`],['cash_ds','Cash nous']];
   if(pid==='p2')return[['ds','Via DS (nous sommes payés)'],['cash_presta',`Cash ${name}`],['cash_ds','Cash nous']];
   return[['ds','Via DS (nous sommes payés)'],['cash_presta','Cash au prestataire'],['cash_ds','Cash à nous (DS)']];
 }
@@ -1679,20 +1689,100 @@ function computeCommissionBreakdown(p,y,m){
   };
 }
 /* Libellés des 4 circuits de règlement — repris tels que David/Misha/Sacha les nomment eux-mêmes
-   (Ozarco = la structure de Misha) pour que la présentation "parle" sans jargon interne. */
-const COMMISSION_VIA_LABEL={ds:'Via DS — nous sommes payés',cash_ds:'Cash nous',structure:'Via Ozarco — lui est payé',cash_presta:'Cash à lui'};
+   (Ozarko = la structure de Misha) pour que la présentation "parle" sans jargon interne. */
+const COMMISSION_VIA_LABEL={ds:'Via DS — nous sommes payés',cash_ds:'Cash nous',structure:'Via Ozarko — lui est payé',cash_presta:'Cash à lui'};
 /* Nom court du circuit, pour les lignes du Bilan total (une ligne par circuit). */
-const COMMISSION_VIA_SHORT={ds:'Prestations via DS',cash_ds:'Prestations réglées en cash à nous',structure:'Prestations via Ozarco',cash_presta:'Prestations réglées en cash à lui'};
-/* Une phrase, en français très simple, qui dit qui a l'argent et ce qui se passe ensuite. */
-const COMMISSION_VIA_EXPLAIN={
+const COMMISSION_VIA_SHORT={ds:'Prestations via DS',cash_ds:'Prestations réglées en cash à nous',structure:'Prestations via Ozarko',cash_presta:'Prestations réglées en cash à lui'};
+/* Une phrase, en français très simple, qui dit qui a l'argent et ce qui se passe ensuite.
+   Deux versions rédigées séparément plutôt qu'un bricolage de remplacements de mots : celle qu'on
+   lit côté David/Svitlana (on parle DU prestataire) et celle que le prestataire lit sur sa propre
+   session (on s'adresse À lui). Même contenu, deux formulations correctes. */
+const COMMISSION_VIA_EXPLAIN_ADMIN={
   ds:"Le client nous a payés par virement ou carte. L'argent est chez nous. On retient d'abord 15% de frais de structure, puis la commission sur ce qui reste, et on lui verse le solde.",
   cash_ds:"Le client nous a payés en espèces. L'argent est chez nous. Pas de frais de structure ici : on retient seulement la commission et on lui verse le reste.",
-  structure:"Il a facturé lui-même par sa structure (Ozarco). L'argent est déjà chez lui : on ne lui doit rien, c'est lui qui nous doit la commission.",
+  structure:"Il a facturé lui-même par sa structure (Ozarko). L'argent est déjà chez lui : on ne lui doit rien, c'est lui qui nous doit la commission.",
   cash_presta:"Il a été payé en espèces directement. L'argent est déjà chez lui : on ne lui doit rien, c'est lui qui nous doit la commission."
 };
+const COMMISSION_VIA_EXPLAIN_SELF={
+  ds:"Le client nous a payés par virement ou carte. L'argent est chez nous. On retient d'abord 15% de frais de structure, puis la commission sur ce qui reste, et on vous verse le solde.",
+  cash_ds:"Le client nous a payés en espèces. L'argent est chez nous. Pas de frais de structure ici : on retient seulement la commission et on vous verse le reste.",
+  structure:"Vous avez facturé vous-même par votre structure (Ozarko). L'argent est déjà chez vous : on ne vous doit rien, c'est vous qui nous devez la commission.",
+  cash_presta:"Vous avez été payé en espèces directement. L'argent est déjà chez vous : on ne vous doit rien, c'est vous qui nous devez la commission."
+};
+/* Conservé pour compatibilité : la version « admin » reste la référence par défaut. */
+const COMMISSION_VIA_EXPLAIN=COMMISSION_VIA_EXPLAIN_ADMIN;
 const COMMISSION_VIA_ORDER=['ds','cash_ds','structure','cash_presta'];
+/* Titre de chaque sous-groupe dans les « grands ensembles » du bilan, formulé du point de vue de
+   ce qui se passe concrètement avec l'argent. {n} est remplacé par le nom du prestataire (vue
+   admin) ou par « vous » (quand le prestataire lit son propre bilan). */
+const COMMISSION_VIA_GROUP={
+  ds:'Payées à DS pour {n}',
+  cash_ds:'Encaissées en cash par nous pour {n}',
+  structure:'Payées à Ozarko',
+  cash_presta:'Payées en cash à {n}'
+};
+/* « Prisme de lecture » : le contenu du bilan est rigoureusement le même des deux côtés, seule la
+   FORMULATION change. Quand David/Svitlana consultent, on nomme le prestataire (« Misha nous
+   doit ») ; quand le prestataire est sur SA session, on s'adresse à lui (« vous nous devez »).
+   Une seule et même fonction de rendu, deux habillages — jamais deux calculs différents. */
+function bilanVoix(p){
+  const self=(S.view==='presta'&&S.presta&&S.presta.id===p.id);
+  return{
+    self,
+    nom:self?'vous':p.name,
+    pour:self?'pour vous':`pour ${p.name}`,
+    doit:self?'vous nous devez':`${p.name} nous doit`,
+    aReverser:self?'à vous reverser':`à reverser à ${p.name}`,
+    garde:self?'vous gardez':`${p.name} garde`,
+    encaisse:self?'déjà encaissé par vous':`déjà encaissé par ${p.name}`
+  };
+}
+/* Les « grands ensembles » demandés par David : on regroupe d'abord PAR TAUX DE COMMISSION
+   (un ensemble à 10%, un autre à 50%…), puis, à l'intérieur, par circuit de règlement, avec le
+   listing détaillé — une ligne par prestation (jour, réservation, intitulé, prix). Chaque circuit
+   donne un sous-total ; les 15% de frais de structure sont retenus là où ils s'appliquent (DS) ;
+   tout cela s'additionne en UN SEUL montant brut, et c'est sur ce montant brut qu'on écrit UNE
+   SEULE ligne de commission à la fin de l'ensemble.
+   C'est mathématiquement identique au calcul ligne par ligne (Σ base×taux = taux×Σ base, à taux
+   constant) — d'où le regroupement par taux, qui garantit que la présentation simplifiée donne
+   exactement le même total que le calcul de référence (ligneCalc). */
+function computeCommissionEnsembles(p,y,m){
+  const r2=v=>Math.round(v*100)/100;
+  const byRate={};
+  D.reservations.filter(r=>r.status!=='annulé'&&r.prestaLines&&r.prestaLines[p.id]&&r.prestaLines[p.id].length).forEach(r=>{
+    const d=r.dateArrivee||r.date;if(!d)return;const[ry,rm]=d.split('-').map(Number);if(!(ry===y&&rm===(m+1)))return;
+    r.prestaLines[p.id].forEach(l=>{
+      const c=ligneCalc(l,p.id);
+      const rate=Math.round((c.tauxCommission||0)*100);
+      const ens=byRate[rate]||(byRate[rate]={rate,channels:{},brut:0,fiscal:0,commission:0,
+        aReverser:0,dejaEncaisse:0,notrePart:0,notrePartDue:0,nbTotal:0,nbValide:0});
+      const ch=ens.channels[c.via]||(ens.channels[c.via]={via:c.via,
+        argentChezNous:(c.via==='ds'||c.via==='cash_ds'),lines:[],sousTotal:0,fiscal:0,brut:0});
+      const base=r2(c.montant-(c.fiscalRetenu||0));
+      ch.lines.push({date:d,resaName:displayClientName(r)||r.client||gDom(r.domaine).name,rid:r.id,
+        label:l.label||'Prestation',montant:c.montant,valide:l.valide,
+        notrePart:l.notrePart||0,notrePartDue:c.notrePartDue||0});
+      ch.sousTotal+=c.montant;ch.fiscal+=c.fiscalRetenu||0;ch.brut+=base;
+      ens.brut+=base;ens.fiscal+=c.fiscalRetenu||0;ens.commission+=c.commissionApplied||0;
+      if(ch.argentChezNous)ens.aReverser+=base;else ens.dejaEncaisse+=base;
+      ens.notrePart+=l.notrePart||0;ens.notrePartDue+=c.notrePartDue||0;
+      ens.nbTotal++;if(l.valide)ens.nbValide++;
+    });
+  });
+  return Object.values(byRate).sort((a,b)=>a.rate-b.rate).map(ens=>{
+    const channels=COMMISSION_VIA_ORDER.filter(v=>ens.channels[v]).map(v=>{
+      const ch=ens.channels[v];
+      ch.lines.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+      return{...ch,sousTotal:r2(ch.sousTotal),fiscal:r2(ch.fiscal),brut:r2(ch.brut)};
+    });
+    const brut=r2(ens.brut),commission=r2(ens.commission),notrePartDue=r2(ens.notrePartDue);
+    return{...ens,channels,brut,commission,notrePartDue,fiscal:r2(ens.fiscal),
+      aReverser:r2(ens.aReverser),dejaEncaisse:r2(ens.dejaEncaisse),notrePart:r2(ens.notrePart),
+      net:r2(ens.aReverser-commission-notrePartDue)};
+  });
+}
 /* Regroupement des prestations PAR CIRCUIT DE RÈGLEMENT (et non plus par réservation) — c'est la
-   présentation demandée : un bloc « Prestations via Ozarco », avec juste en dessous la commission
+   présentation demandée : un bloc « Prestations via Ozarko », avec juste en dessous la commission
    associée ; puis un bloc « Prestations via DS », avec ses 15% de frais puis sa commission ; etc.
    Chaque bloc porte aussi le détail ligne par ligne, affiché plus bas dans la page (section
    « Détail du calcul »), vers laquelle pointent les liens du Bilan total. */
@@ -1755,7 +1845,7 @@ function renderCommissionLineDetail(l,presteName){
   return`<div>${money(l.montant)} − ${pct}% (commission) = ${money(l.commissionApplied)}</div>
     <div style="margin-top:2px;font-weight:700;color:#27500A">= ${money(l.duToPresta)} net pour ${presteName}</div>`;
 }
-/* La part "pas sa prestation à lui" (ex : de l'alcool acheté par nous, qu'il revend via Ozarco
+/* La part "pas sa prestation à lui" (ex : de l'alcool acheté par nous, qu'il revend via Ozarko
    parce que c'est plus simple que ce soit lui qui le remette au client) — toujours affichée à
    part de sa propre prestation sur la même ligne, jamais mélangée : il garde 14% de frais de
    manutention, nous reverse le reste, et il n'y a JAMAIS de commission sur cette part-là. */
@@ -1774,30 +1864,33 @@ function viaSubLine(label,montant,sign){
     <span>${label}</span><strong style="color:${col};font-weight:600">${sign==='-'?'− ':(sign==='+'?'+ ':'')}${money(Math.abs(montant))}</strong>
   </div>`;
 }
-/* Bloc « Prestations » du Bilan total, découpé PAR CIRCUIT DE RÈGLEMENT : un ensemble par circuit
-   (via Ozarco, via DS, cash…), et juste en dessous les étapes du calcul — les 15% de frais de
-   structure puis la commission associée. Le titre de chaque circuit est cliquable et renvoie au
-   détail complet, prestation par prestation, plus bas dans la page. */
+/* Bloc « Prestations » du Bilan total, présenté en GRANDS ENSEMBLES : un ensemble par taux de
+   commission (10%, 50%…). Pour chacun : le montant brut consolidé de toutes les prestations, puis
+   UNE SEULE ligne de commission appliquée à ce brut — et non plus un calcul répété circuit par
+   circuit. Le titre est cliquable et mène au listing complet, plus bas dans la page. */
 function renderCommissionBreakdownRow(p,y,m,bt){
-  const groups=computeCommissionByVia(p,y,m);
-  if(!groups.length)return bilanLigneRow('Prestations avec commission (net)',Math.abs(bt.compDu),bt.compDu<0?'-':'+','bloc-commission');
-  const blocks=groups.map(g=>{
-    const ancre=`bloc-comm-${g.via}`;
-    const attente=g.nbTotal-g.nbValide;
-    const head=`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0 2px;font-size:13px">
-      <span><a href="#${ancre}" onclick="event.preventDefault();var _e=document.getElementById('${ancre}');if(_e)_e.scrollIntoView({behavior:'smooth',block:'start'})" style="color:#72243E;text-decoration:underline;font-weight:600">🧾 ${COMMISSION_VIA_SHORT[g.via]||g.via}</a>
+  const ensembles=computeCommissionEnsembles(p,y,m);
+  if(!ensembles.length)return bilanLigneRow('Prestations avec commission (net)',Math.abs(bt.compDu),bt.compDu<0?'-':'+','bloc-commission');
+  const V=bilanVoix(p);
+  const blocks=ensembles.map(ens=>{
+    const ancre=`bloc-ens-${ens.rate}`;
+    const attente=ens.nbTotal-ens.nbValide;
+    const head=`<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0 2px;font-size:13px">
+      <span><a href="#${ancre}" onclick="event.preventDefault();var _e=document.getElementById('${ancre}');if(_e)_e.scrollIntoView({behavior:'smooth',block:'start'})" style="color:#72243E;text-decoration:underline;font-weight:700">🧾 Prestations — commission ${ens.rate}%</a>
         ${attente>0?`<span style="color:#B15E00;font-size:10px;font-weight:700;margin-left:4px">⏳ ${attente} à valider</span>`:''}
-        <span style="display:block;font-size:10px;color:#999;font-weight:400">${g.argentChezNous?'encaissé par nous':'encaissé par lui'} · ${g.nbTotal} prestation${g.nbTotal>1?'s':''}</span></span>
-      <strong style="color:#555;font-weight:600">${money(g.brut)}</strong>
+        <span style="display:block;font-size:10px;color:#999;font-weight:400">${ens.nbTotal} prestation${ens.nbTotal>1?'s':''} · ${ens.channels.length} mode${ens.channels.length>1?'s':''} de règlement</span></span>
+      <strong style="color:#555;font-weight:600">${money(ens.brut)}</strong>
     </div>`;
     let steps='';
-    if(g.fiscal>0)steps+=viaSubLine('15% frais de structure',g.fiscal,'-');
-    g.commRows.forEach(cr=>{steps+=viaSubLine(`Commission ${cr.rate}%${g.argentChezNous?'':' — qu\'il nous doit'}`,cr.montant,'-');});
-    if(g.notrePartDue>0)steps+=viaSubLine(`Vendu pour nous : ${money(g.notrePart)} − 14% qu'il garde`,g.notrePartDue,'-');
-    const netPos=g.net>=0;
-    const concl=`<div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0 6px 16px;font-size:12px;border-bottom:1px solid #F4C6D6">
-      <span style="font-weight:700;color:#72243E">${netPos?`= net pour ${p.name}`:`= ${p.name} nous doit`}</span>
-      <strong style="color:${netPos?'#27500A':'#A32D2D'}">${netPos?'+ ':'− '}${money(Math.abs(g.net))}</strong>
+    if(ens.fiscal>0)steps+=viaSubLine('dont 15% de frais de structure déjà retenus',ens.fiscal,'');
+    if(ens.dejaEncaisse>0)steps+=viaSubLine(V.encaisse,ens.dejaEncaisse,'');
+    if(ens.aReverser>0)steps+=viaSubLine(V.aReverser,ens.aReverser,'+');
+    steps+=viaSubLine(`Commission ${ens.rate}% sur le montant brut`,ens.commission,'-');
+    if(ens.notrePartDue>0)steps+=viaSubLine(`Vendu pour nous : ${money(ens.notrePart)} − 14% que ${V.garde}`,ens.notrePartDue,'-');
+    const netPos=ens.net>=0;
+    const concl=`<div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0 7px 16px;font-size:12px;border-bottom:1px solid #F4C6D6">
+      <span style="font-weight:700;color:#72243E">${netPos?`= net ${V.pour}`:`= ${V.doit}`}</span>
+      <strong style="color:${netPos?'#27500A':'#A32D2D'}">${netPos?'+ ':'− '}${money(Math.abs(ens.net))}</strong>
     </div>`;
     return head+steps+concl;
   }).join('');
@@ -1807,35 +1900,42 @@ function renderCommissionBreakdownRow(p,y,m,bt){
   </div>`;
   return blocks+total;
 }
-/* Détail complet du calcul, tout en bas de la page — une section par circuit de règlement, avec
-   son ancre (bloc-comm-ds, bloc-comm-structure…) pour que les liens du Bilan total y amènent
-   directement. C'est ici qu'on retrouve, prestation par prestation, d'où vient chaque euro. */
+/* Le listing complet, tout en bas de la page : pour chaque ensemble (= un taux de commission), on
+   liste les prestations groupées par mode de règlement — une ligne par prestation : le jour, la
+   réservation, l'intitulé, le prix. Chaque mode donne son sous-total ; les 15% de frais de
+   structure sont retenus là où ils s'appliquent ; tout s'additionne en un seul montant brut, sur
+   lequel on écrit une seule ligne de commission. */
 function renderCommissionDetailSection(p,y,m){
-  const groups=computeCommissionByVia(p,y,m);
-  if(!groups.length)return'';
+  const ensembles=computeCommissionEnsembles(p,y,m);
+  if(!ensembles.length)return'';
+  const V=bilanVoix(p);
+  const grp=v=>(COMMISSION_VIA_GROUP[v]||v).replace('{n}',V.nom);
+  const li=(label,montant,opt)=>`<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:${(opt&&opt.pad)||'2px 0'};font-size:${(opt&&opt.fs)||'11.5px'};${(opt&&opt.style)||''}">
+      <span style="min-width:0">${label}</span><span style="white-space:nowrap;${(opt&&opt.amtStyle)||''}">${(opt&&opt.sign)||''}${money(Math.abs(montant))}</span>
+    </div>`;
   return`<div id="bloc-commission-detail" class="bilan-sec" style="border-color:#A9527A">
-    <div class="sec-hdr" style="background:#A9527A"><h2>🔍 Détail du calcul des prestations — ${MONTHS_FR[m]} ${y}</h2></div>
-    <div style="font-size:11px;color:#888;margin-bottom:10px">Le calcul complet, prestation par prestation, regroupé par mode de règlement. C'est ce qui aboutit aux montants du « Bilan total » en haut de page.</div>
-    ${groups.map(g=>`<div id="bloc-comm-${g.via}" style="scroll-margin-top:12px;margin-bottom:16px">
-      <div style="background:#FBEAF0;border-radius:8px;padding:7px 10px;margin-bottom:7px">
-        <div style="font-weight:700;font-size:12.5px;color:#72243E">${COMMISSION_VIA_SHORT[g.via]||g.via} <span style="font-weight:400;color:#A9527A">— ${money(g.brut)} au total</span></div>
-        <div style="font-size:10.5px;color:#A9527A;margin-top:2px;line-height:1.35">${COMMISSION_VIA_EXPLAIN[g.via]||''}</div>
-      </div>
-      ${g.lines.map(l=>`<div style="margin:0 0 6px 4px;padding:5px 0 5px 9px;border-left:2px solid #F4C6D6">
-        <div style="font-size:11px;color:#888">📅 ${ds(l.resaDate)} — ${l.resaName}</div>
-        <div style="font-size:12px;color:#333;margin-top:1px">
-          <strong>${l.label}</strong> — brut <strong>${money(l.montant)}</strong>
-          ${l.valide!==undefined?`<span style="color:${l.valide?'#27500A':'#B15E00'};font-size:10px;margin-left:3px">${l.valide?'✓ validé':'⏳ à valider'}</span>`:''}
+    <div class="sec-hdr" style="background:#A9527A"><h2>🔍 Le détail des prestations — ${MONTHS_FR[m]} ${y}</h2></div>
+    <div style="font-size:11px;color:#888;margin-bottom:12px">Chaque prestation du mois, une ligne par ligne, regroupée par mode de règlement. Les sous-totaux s'additionnent en un seul montant brut, sur lequel s'applique une seule commission.</div>
+    ${ensembles.map(ens=>`<div id="bloc-ens-${ens.rate}" style="scroll-margin-top:12px;margin-bottom:18px;border:1.5px solid #E6A8C2;border-radius:10px;overflow:hidden">
+      <div style="background:#993556;color:#fff;padding:7px 11px;font-weight:700;font-size:12.5px">🧾 Prestations — commission ${ens.rate}%</div>
+      <div style="padding:9px 11px">
+        ${ens.channels.map(ch=>`<div style="margin-bottom:11px">
+          <div style="font-weight:700;font-size:12px;color:#72243E;margin-bottom:1px">${grp(ch.via)}</div>
+          <div style="font-size:10px;color:#999;margin-bottom:4px;line-height:1.35">${(V.self?COMMISSION_VIA_EXPLAIN_SELF:COMMISSION_VIA_EXPLAIN_ADMIN)[ch.via]||''}</div>
+          ${ch.lines.map(l=>li(
+            `<span style="color:#888">${ds(l.date)}</span> · <span style="font-weight:500">${l.resaName}</span> · ${l.label}${l.valide?'':' <span style="color:#B15E00;font-size:9.5px;font-weight:700">⏳</span>'}${l.notrePart?` <span style="color:#7A5800;font-size:9.5px">(dont ${money(l.notrePart)} vendus pour nous)</span>`:''}`,
+            l.montant,{pad:'3px 0',style:'border-bottom:1px solid #F4E3EA'})).join('')}
+          ${li(`<span style="font-weight:600">Sous-total</span>`,ch.sousTotal,{pad:'4px 0 2px',style:'color:#72243E',amtStyle:'font-weight:700'})}
+          ${ch.fiscal>0?li(`− 15% de frais de structure`,ch.fiscal,{sign:'− ',style:'color:#A32D2D'})+li(`<span style="font-weight:600">Montant brut</span>`,ch.brut,{style:'color:#72243E',amtStyle:'font-weight:700'}):''}
+        </div>`).join('')}
+        <div style="border-top:2px solid #993556;padding-top:7px;margin-top:2px">
+          ${li(`<span style="font-weight:700">Montant brut total des prestations</span>`,ens.brut,{fs:'12.5px',style:'color:#72243E',amtStyle:'font-weight:700'})}
+          ${ens.dejaEncaisse>0?li(`dont ${V.encaisse} (rien à reverser)`,ens.dejaEncaisse,{fs:'11px',style:'color:#888'}):''}
+          ${ens.aReverser>0?li(`dont ${V.aReverser}`,ens.aReverser,{fs:'11px',style:'color:#888'}):''}
+          ${li(`<span style="font-weight:600">Commission ${ens.rate}% sur ce montant brut</span>`,ens.commission,{fs:'12.5px',sign:'− ',style:'color:#A32D2D',amtStyle:'font-weight:700'})}
+          ${ens.notrePartDue>0?li(`Part vendue pour nous : ${money(ens.notrePart)} − 14% que ${V.garde}`,ens.notrePartDue,{fs:'11.5px',sign:'− ',style:'color:#A32D2D'}):''}
+          ${li(`<span style="font-weight:700">${ens.net>=0?`= net ${V.pour}`:`= ${V.doit}`}</span>`,ens.net,{fs:'13px',sign:ens.net>=0?'+ ':'− ',style:`color:${ens.net>=0?'#27500A':'#A32D2D'};padding-top:4px;border-top:1px dashed #D98CAA`,amtStyle:'font-weight:800'})}
         </div>
-        <div style="font-size:10.5px;color:#A9527A;padding-left:4px;margin-top:2px">${renderCommissionLineDetail(l,p.name)}</div>
-        ${renderNotrePartDetail(l,p.name)}
-      </div>`).join('')}
-      <div style="margin-left:4px;padding:7px 0 0 9px;border-top:1px dashed #D98CAA;font-size:11.5px;color:#A9527A">
-        <div>Total brut de ce circuit : <strong>${money(g.brut)}</strong></div>
-        ${g.fiscal>0?`<div>− 15% frais de structure : ${money(g.fiscal)}</div>`:''}
-        ${g.commRows.map(cr=>`<div>− Commission ${cr.rate}% : ${money(cr.montant)}</div>`).join('')}
-        ${g.notrePartDue>0?`<div>− Part vendue pour nous (${money(g.notrePart)} − 14%) : ${money(g.notrePartDue)}</div>`:''}
-        <div style="margin-top:3px;font-weight:700;color:${g.net>=0?'#27500A':'#A32D2D'}">${g.net>=0?`= net pour ${p.name} : ${money(g.net)}`:`= ${p.name} nous doit : ${money(Math.abs(g.net))}`}</div>
       </div>
     </div>`).join('')}
   </div>`;
@@ -3524,23 +3624,72 @@ const ACTION_META_PRESTA={
       d'une réservation (voir labelSafe plus bas).
       Exception explicite : Yana (p.voitFinance) voit tout, y compris le financier — elle ne peut
       juste rien modifier (aucune action d'édition ne lui est jamais proposée). */
+/* Champs purement financiers d'une réservation : jamais montrés à un prestataire pour une entrée
+   qui ne le concerne pas personnellement. */
+const PRESTA_HIDDEN_FIELD=/^(montant|arrhes|d[ée]p[oô]t|acompte|solde|paiement|prix|tarif)\b/i;
+/* Nettoyage d'un libellé du journal AVANT de le montrer à un prestataire.
+   Indispensable en plus de labelSafe : labelSafe n'existe que sur les entrées écrites depuis la
+   correction, alors que le journal contient déjà tout l'historique (« Montant : 2 200 € →
+   2 400 € · Arrhes : 0 € → 2 000 € »…). On nettoie donc à l'AFFICHAGE, ce qui couvre aussi le
+   passé — sans rien effacer côté admin, qui garde l'historique complet. */
+function sanitizePrestaLabel(label,action){
+  if(!label)return label;
+  let out=String(label).split(' · ').filter(seg=>!PRESTA_HIDDEN_FIELD.test(seg.trim())).join(' · ').trim();
+  /* Filet de sécurité : quelle que soit la formulation (ancien format, texte libre, note
+     contenant un prix…), plus aucun montant en euros ne doit subsister. */
+  const EUR=/\d[\d\s.,  ]*€/g;
+  if(EUR.test(out))out=out.replace(EUR,'…').replace(/\s{2,}/g,' ').trim();
+  out=out.replace(/[·\-—\s]+$/,'').trim();
+  if(!out)out=action==='modifiée'?'Réservation modifiée':'Mise à jour';
+  return out;
+}
+/* Une entrée « nouvelle réservation créée » : action 'créée' portant un rid (l'identifiant de la
+   réservation). Les autres 'créée' du journal — visite, travaux, gardiennage planifié, journée
+   jardinage — n'en portent pas, ce qui permet de les distinguer sans ambiguïté. */
+function isResaCreation(it){return it.action==='créée'&&!!it.rid;}
+/* Trois régimes de visibilité, selon le rôle :
+   - 'ownOnly'  : Dominique, Sébastien, Mathilde — STRICTEMENT leur propre planning
+                  (gardiennage / jardinage). Rien d'autre, pas même un commentaire. Ils n'ont
+                  d'ailleurs plus d'onglet « Dernières modifs » : ces mises à jour n'apparaissent
+                  que dans la bannière de notifications.
+   - 'pascaline': les nouvelles réservations de son domaine (sans aucun prix) + les commentaires
+                  échangés avec David/Svitlana. Rien d'autre.
+   - 'domaine'  : Misha, Sasha, Yana — la vie de leur(s) domaine(s) (homeDomaines). */
+function prestaLogRegime(p){
+  if(p.accessMode==='calendrierSeul')return'pascaline';
+  if(p.inputMode==='garde'||p.accessMode==='occupation')return'ownOnly';
+  return'domaine';
+}
 function prestaVisibleLog(p){
-  const doms=p.domaines||[];
+  /* Périmètre « vie du domaine » : homeDomaines quand il est défini (Misha → La Désirée,
+     Sasha → Les Déesses), sinon tous les domaines du prestataire (Yana…). */
+  const doms=(p.homeDomaines&&p.homeDomaines.length)?p.homeDomaines:(p.domaines||[]);
   const HARD_FIN=p.voitFinance?{}:{paiement:1,prestation:1,remboursement:1,garde:1,'validée':1};
-  const ownOnly=p.accessMode==='calendrierSeul'||p.inputMode==='garde';
+  const regime=prestaLogRegime(p);
   return(D.activityLog||[]).filter(it=>{
     if(it.action==='message')return false;
     const mine=(it.concernsPresta||[]).includes(p.id);
-    if(ownOnly){
-      if(!mine)return false;
-      // Sébastien/Mathilde (garde, pas calendrierSeul) : jamais de commentaires, même adressés à eux.
-      if(it.action==='commentaire'&&p.accessMode!=='calendrierSeul')return false;
-      return true;
+    if(regime==='ownOnly')return mine&&it.action!=='commentaire';
+    if(regime==='pascaline'){
+      if(it.action==='commentaire')return mine;      // ce qu'on lui écrit, et ce qu'elle nous écrit
+      return isResaCreation(it)&&doms.includes(it.domaine); // les nouvelles réservations de son domaine
     }
     if(mine)return true;
     if(HARD_FIN[it.action])return false;
     return doms.includes(it.domaine);
-  }).map(it=>it.labelSafe?{...it,label:it.labelSafe}:it).sort((a,b)=>b.ts-a.ts);
+  }).map(it=>{
+    /* Trois cas où les montants sont conservés tels quels :
+       - Yana (voitFinance) : elle a le droit de tout voir ;
+       - ce qui le concerne personnellement : c'est sa propre rémunération ;
+       - les COMMENTAIRES : c'est une conversation entre eux et nous, et un prix y est une
+         consigne, pas une donnée confidentielle (David : « prévoir 250€ de fleurs », il faut
+         le laisser quand on parle entre eux et nous). Le cloisonnement des commentaires se
+         fait en amont, par la règle de visibilité — pas en caviardant le texte.
+       Partout ailleurs (montants/arrhes/dépôt d'une réservation) : aucun montant, jamais. */
+    if(p.voitFinance||it.action==='commentaire'||(it.concernsPresta||[]).includes(p.id))return it;
+    const safe=sanitizePrestaLabel(it.labelSafe||it.label,it.action);
+    return safe===it.label?it:{...it,label:safe};
+  }).sort((a,b)=>b.ts-a.ts);
 }
 function selectAndGoPrestaCal(rid){const r=D.reservations.find(x=>x.id===rid);if(!r)return;const d=r.dateArrivee||r.date;const[y,m]=d.split('-');S.calYear=parseInt(y);S.calMonth=parseInt(m)-1;S.selResa=rid;S.prestaTab='calendrier';S.modal=null;render();}
 function renderDernieresPresta(p){
@@ -6115,8 +6264,9 @@ function renderPrestaDominique(p){
   const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
   const notifs=prestaVisibleLog(p).filter(it=>it.ts>lastSeen);
   let content;
-  if(tab==='dernieres'){content=renderDernieresPresta(p);}
-  else if(tab==='planning'){
+  // Plus d'onglet « Dernières modifs » pour Dominique : il ne reçoit que les mises à jour de son
+  // propre planning, via la bannière de notifications en haut (prestaVisibleLog, régime ownOnly).
+  if(tab==='planning'){
     const y=S.prestaBilanYear,m=S.prestaBilanMonth;
     const inMonth=x=>{const[ry,rm]=x.date.split('-').map(Number);return ry===y&&rm===(m+1);};
     const rows=[...D.dominiqueSchedule].filter(inMonth).sort((a,b)=>a.date.localeCompare(b.date));
@@ -6145,7 +6295,6 @@ function renderPrestaDominique(p){
   <div class="tabs">
     <button class="tab ${tab==='calendrier'?'active':''}" onclick="setPrestaTab('calendrier')"><span class="tab-ic">📅</span><span class="tab-lbl">Planning</span></button>
     <button class="tab ${tab==='planning'?'active':''}" onclick="setPrestaTab('planning')"><span class="tab-ic">🌱</span><span class="tab-lbl">Mon Planning</span></button>
-    <button class="tab ${tab==='dernieres'?'active':''}" onclick="setPrestaTab('dernieres')"><span class="tab-ic">🕓</span><span class="tab-lbl">Dernières<br>modifs</span></button>
   </div>
   ${content}`;
 }
@@ -6193,9 +6342,9 @@ function renderPrestaGardePersonnel(p){
   const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
   const notifs=prestaVisibleLog(p).filter(it=>it.ts>lastSeen);
   let content;
-  if(tab==='dernieres'){
-    content=renderDernieresPresta(p);
-  } else if(tab==='planning'){
+  // Plus d'onglet « Dernières modifs » pour Sébastien/Mathilde : ils ne reçoivent que les mises à
+  // jour de leur propre gardiennage, via la bannière de notifications en haut de page.
+  if(tab==='planning'){
     content=renderGardePlanningCalendar(p);
   } else if(tab==='monbilan'){
     const y=S.prestaBilanYear,m=S.prestaBilanMonth;
@@ -6248,7 +6397,6 @@ function renderPrestaGardePersonnel(p){
     <button class="tab ${tab==='planning'?'active':''}" onclick="setPrestaTab('planning')"><span class="tab-ic">📅</span><span class="tab-lbl">Planning</span></button>
     <button class="tab ${tab==='liste'?'active':''}" onclick="setPrestaTab('liste')"><span class="tab-ic">📋</span><span class="tab-lbl">Liste</span></button>
     <button class="tab ${tab==='monbilan'?'active':''}" onclick="setPrestaTab('monbilan')"><span class="tab-ic">💰</span><span class="tab-lbl">Mon Bilan</span></button>
-    <button class="tab ${tab==='dernieres'?'active':''}" onclick="setPrestaTab('dernieres')"><span class="tab-ic">🕓</span><span class="tab-lbl">Dernières<br>modifs</span></button>
   </div>
   ${content}`;
 }
@@ -6557,7 +6705,10 @@ function addPrestaComment(rid){
   const el=document.getElementById('dp-presta-com');const txt=(el&&el.value||'').trim();if(!txt)return;
   if(!r.commentaires)r.commentaires=[];
   r.commentaires.push({id:gid(),auteur:'presta',auteurNom:S.presta.name,date:new Date().toISOString().slice(0,10),texte:txt,visible:true});
-  logActivity('commentaire',r.domaine,`💬 ${S.presta.name} : « ${txt} »`,[],true,r.id);
+  // Étiqueté à son auteur : il retrouve ainsi son propre commentaire dans « Dernières
+  // modifications » même s'il l'a écrit sur le domaine de l'autre (où il intervient comme
+  // prestataire), sans pour autant lui ouvrir la vie générale de ce domaine.
+  logActivity('commentaire',r.domaine,`💬 ${S.presta.name} : « ${txt} »`,[S.presta.id],true,r.id);
   saveD();showMsg('Commentaire envoyé ✓');render();
 }
 function resizeImageFile(file,maxDim,callback){
