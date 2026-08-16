@@ -631,13 +631,14 @@ function runMigrations(){
   if(!D.gardeSchedule)D.gardeSchedule=[];
   if(!D.travauxSchedule)D.travauxSchedule=[];
   if(!D.remboursements)D.remboursements=[];
+  if(!D.factures)D.factures=[];
   if(!D.messages)D.messages=[];
   if(!D.electriciteIndex)D.electriciteIndex={};
   if(!D.forfaitPaid)D.forfaitPaid={};
   if(!D.elecValide)D.elecValide={};
   if(!D.bilanComments)D.bilanComments=[];
   if(!D.deletedIds)D.deletedIds={};
-  ['resa','visite','travaux','garde','dominique','message','comment','paiement','bilanComment','prestaLine','elecIndex','remboursement'].forEach(k=>{if(!D.deletedIds[k])D.deletedIds[k]=[];});
+  ['resa','visite','travaux','garde','dominique','message','comment','paiement','bilanComment','prestaLine','elecIndex','remboursement','facture'].forEach(k=>{if(!D.deletedIds[k])D.deletedIds[k]=[];});
   // Corrige les anciennes réservations où le domaine du gardiennage enregistré ne correspond
   // plus au domaine réel/actuel de la réservation (ex : la réservation a changé de domaine
   // après coup). Le lieu du gardiennage doit toujours suivre le domaine de la réservation.
@@ -843,6 +844,7 @@ function mergeRemoteSnapshot(remote){
   merged.visites=mergeById(remote.visites,D.visites,del('visite'));
   merged.travauxSchedule=mergeById(remote.travauxSchedule,D.travauxSchedule,del('travaux'));
   merged.remboursements=mergeById(remote.remboursements,D.remboursements,del('remboursement'));
+  merged.factures=mergeById(remote.factures,D.factures,del('facture'));
   merged.gardeSchedule=mergeById(remote.gardeSchedule,D.gardeSchedule,del('garde'));
   merged.dominiqueSchedule=mergeById(remote.dominiqueSchedule,D.dominiqueSchedule,del('dominique'));
   merged.messages=mergeById(remote.messages,D.messages,del('message'));
@@ -1194,6 +1196,18 @@ function toggleLigneValide(rid,pid,lid){
    sont la source de confiance) ; quand c'est le prestataire, elle part en attente de validation
    comme avant — dans les deux cas la pastille de validation reste cliquable pour changer d'avis. */
 function toggleAddPrestaLine(pid){S.addPrestaLineOpen=(S.addPrestaLineOpen===pid)?null:pid;render();}
+/* Choix du taux de commission à la saisie, sans avoir à taper un nombre : le cas normal (10%), le
+   forfait sans commission (0% — ex. un montant convenu qui leur revient entièrement), et le cas
+   particulier à 50%. Le taux reste modifiable ligne par ligne ensuite. */
+const COMMISSION_PRESETS=[[10,'Commission 10% (normal)'],[0,'Sans commission (forfait)'],[50,'Commission 50%']];
+function commissionSelectHtml(id,current){
+  const cur=(current===undefined||current===null||current==='')?10:parseFloat(current);
+  const known=COMMISSION_PRESETS.some(o=>o[0]===cur);
+  return`<select id="${id}" style="font-size:11px;padding:5px 6px">
+    ${COMMISSION_PRESETS.map(([v,lbl])=>`<option value="${v}" ${v===cur?'selected':''}>${lbl}</option>`).join('')}
+    ${known?'':`<option value="${cur}" selected>Commission ${cur}%</option>`}
+  </select>`;
+}
 function renderAddPrestaLineForm(p){
   const doms=p.domaines||[];
   const resas=D.reservations.filter(r=>r.status!=='annulé'&&(doms.length===0||doms.includes(r.domaine))).sort((a,b)=>(b.dateArrivee||'').localeCompare(a.dateArrivee||'')).slice(0,80);
@@ -1207,7 +1221,7 @@ function renderAddPrestaLineForm(p){
     </div>
     <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
       <select id="apl-via-${p.id}" style="font-size:11px;padding:5px 6px">${vOpts}</select>
-      <span style="display:flex;align-items:center;gap:2px;font-size:11px;color:#888"><input type="number" id="apl-comm-${p.id}" value="10" style="width:44px;font-size:11px;padding:4px 5px">% commission</span>
+      ${commissionSelectHtml(`apl-comm-${p.id}`,10)}
     </div>
     <input type="text" id="apl-note-${p.id}" placeholder="Note (optionnel)" style="font-size:12px;padding:5px 6px">
     <button class="btn btn-sm btn-primary" onclick="submitAddPrestaLine('${p.id}')">Ajouter la prestation</button>
@@ -1272,7 +1286,7 @@ function renderCommissionSection(p,y,m){
         ${p.id==='p1'&&via==='structure'?`<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px;background:#FFF6E8;border-radius:6px;padding:4px 6px"><span style="font-size:10.5px;color:#7A5800;flex:1">Part qui nous revient :</span><input type="number" id="pl-notrepart-${l.id}" value="${l.notrePart||''}" placeholder="0" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','notrePart',this.value)" style="width:55px;font-size:11px;padding:3px 5px"><span style="font-size:11px;color:#7A5800">€</span></div>`:''}
         <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
           ${viaSelectHtml(r.id,p.id,l.id,via)}
-          <span style="display:flex;align-items:center;gap:2px;font-size:11px;color:#888;flex-shrink:0"><input type="number" id="pl-commission-${l.id}" value="${l.commission!==undefined&&l.commission!==null?l.commission:10}" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','commission',this.value)" style="width:36px;font-size:11px;padding:3px 4px">%</span>
+          <select id="pl-commission-${l.id}" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','commission',this.value)" style="font-size:10.5px;padding:2px 4px;width:auto;max-width:150px;flex-shrink:0">${COMMISSION_PRESETS.map(([v,lbl])=>`<option value="${v}" ${v===((l.commission===undefined||l.commission===null||l.commission==='')?10:parseFloat(l.commission))?'selected':''}>${lbl}</option>`).join('')}${COMMISSION_PRESETS.some(o=>o[0]===((l.commission===undefined||l.commission===null||l.commission==='')?10:parseFloat(l.commission)))?'':`<option value="${l.commission}" selected>Commission ${l.commission}%</option>`}</select>
           <input type="text" id="pl-notes-${l.id}" value="${(l.notes||'').replace(/"/g,'&quot;')}" placeholder="Note" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','notes',this.value)" style="flex:1;min-width:60px;font-size:11px;padding:3px 5px">
           <span style="font-size:11.5px;font-weight:700;color:${c.net>=0?'#27500A':'#A32D2D'};white-space:nowrap;flex-shrink:0">${money(Math.abs(c.net))}</span>
           ${valideBadge(!!l.valide,`toggleLigneValide('${r.id}','${p.id}','${l.id}')`)}
@@ -1325,6 +1339,79 @@ function renderTravauxSection(p,y,m){
    remboursement. Ce montant s'ajoute à ce qu'on lui doit ce mois-ci, mais reste toujours isolé —
    jamais mélangé — de ce qu'il touche grâce à son activité (forfait/ménage/prestations/travaux/
    électricité/gardiennage), avec une vue mensuelle ET annuelle des deux montants côte à côte. */
+/* === Règlement du mois : facture + espèces ===
+   Une fois le total du mois arrêté (« on te doit 2 888 € »), une partie peut être facturée par le
+   prestataire à l'un des domaines, et le reste est réglé en espèces. On saisit donc une ou
+   plusieurs factures (destinataire + montant), et le solde en espèces se déduit tout seul :
+        total dû 2 888 €  −  facture 600 €  =  600 € facturés + 2 288 € en espèces.
+   Saisissable des deux côtés (eux comme nous), comme le reste du bilan. */
+function computeReglementMois(p,y,m){
+  const key=monthKeyOf(y,m);
+  const bt=computeBilanTotal(p,y,m);
+  const factures=(D.factures||[]).filter(f=>f.pid===p.id&&f.monthKey===key)
+    .sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+  const totalFacture=Math.round(factures.reduce((a,f)=>a+(f.montant||0),0)*100)/100;
+  const totalDu=bt.totalDu;
+  return{key,factures,totalFacture,totalDu,
+    especes:Math.round((totalDu-totalFacture)*100)/100};
+}
+function addFacture(pid,y,m){
+  const key=monthKeyOf(y,m);
+  const dest=((document.getElementById('fact-dest-'+pid)||{}).value||'').trim();
+  const montant=parseFloat((document.getElementById('fact-montant-'+pid)||{}).value)||0;
+  const note=((document.getElementById('fact-note-'+pid)||{}).value||'').trim();
+  if(!dest||!montant){alert('Indiquez à qui la facture est adressée et son montant.');return;}
+  if(!D.factures)D.factures=[];
+  D.factures.push({id:gid(),pid,monthKey:key,destinataire:dest,montant:Math.round(montant*100)/100,
+    note,createdAt:Date.now()});
+  const p=gPre(pid);
+  logActivity('remboursement',(p.domaines||[])[0]||null,`Facture déclarée — ${p.name} : ${dest} ${money(montant)} (${key})`,[pid],true);
+  saveD();showMsg('Facture enregistrée ✓');render();
+}
+function delFacture(id){
+  const f=(D.factures||[]).find(x=>x.id===id);
+  D.factures=(D.factures||[]).filter(x=>x.id!==id);
+  markDeleted('facture',id);
+  if(f){const p=gPre(f.pid);logActivity('remboursement',(p.domaines||[])[0]||null,`Facture supprimée — ${p.name} : ${f.destinataire||'—'} ${money(f.montant)} (${f.monthKey})`,[f.pid],false);}
+  saveD();render();
+}
+function renderReglementSection(p,y,m){
+  if(!(p.inputMode==='notes'||p.flatRate||p.inputMode==='garde'))return'';
+  const V=bilanVoix(p);
+  const R=computeReglementMois(p,y,m);
+  const destOpts=D.domaines.map(d=>`<option value="${d.name}">${d.name}</option>`).join('');
+  const negatif=R.especes<0;
+  return`<div id="bloc-reglement" class="bilan-sec" style="border-color:#1F7A3D">
+    <div class="sec-hdr" style="background:#1F7A3D"><h2>🧾 Règlement du mois — ${MONTHS_FR[m]} ${y}</h2></div>
+    <div style="font-size:11px;color:#888;margin-bottom:10px">Sur le total dû ce mois-ci, indiquez la part qui fait l'objet d'une facture — à quel domaine elle est adressée et pour quel montant. Le reste est automatiquement compté comme réglé en espèces.</div>
+    <div style="background:#fff;border-radius:8px;padding:4px 12px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #DCEBD4;font-size:13px;font-weight:700">
+        <span style="color:#1F5C31">Total dû ce mois</span><strong style="font-size:16px">${money(R.totalDu)}</strong>
+      </div>
+      ${R.factures.map(f=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid #ECF4E7;font-size:12.5px">
+        <span style="min-width:0">📄 Facture à <strong>${f.destinataire}</strong>${f.note?` <span style="color:#888;font-size:11px">— ${f.note}</span>`:''}</span>
+        <span style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+          <strong>${money(f.montant)}</strong>
+          <button class="btn btn-xs btn-danger" onclick="delFacture('${f.id}')">✕</button>
+        </span>
+      </div>`).join('')}
+      ${R.factures.length?`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #DCEBD4;font-size:12px;color:#666">
+        <span>Total facturé</span><strong>${money(R.totalFacture)}</strong>
+      </div>`:'<div style="font-size:11.5px;color:#aaa;font-style:italic;padding:6px 0;border-bottom:1px solid #ECF4E7">Aucune facture déclarée — la totalité est comptée en espèces.</div>'}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;font-size:13px;font-weight:700">
+        <span style="color:#1F5C31">💶 Reste réglé en espèces</span>
+        <strong style="font-size:16px;color:${negatif?'#A32D2D':'#1F7A3D'}">${money(R.especes)}</strong>
+      </div>
+      ${negatif?`<div style="font-size:11px;color:#A32D2D;padding-bottom:8px">⚠️ Le total facturé dépasse ce qui est dû ce mois-ci — vérifiez les montants.</div>`:''}
+    </div>
+    <div class="g3" style="margin-bottom:8px">
+      <div class="field"><label>Facture adressée à</label><select id="fact-dest-${p.id}">${destOpts}</select></div>
+      <div class="field"><label>Montant facturé</label><input type="number" id="fact-montant-${p.id}" step="0.01" placeholder="ex: 600"></div>
+      <div class="field"><label>Référence (optionnel)</label><input type="text" id="fact-note-${p.id}" placeholder="ex: n° 2026-08"></div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="addFacture('${p.id}',${y},${m})">+ Ajouter cette facture</button>
+  </div>`;
+}
 function renderRemboursementSection(p,y,m){
   if(p.accessMode!=='domaine')return''; // réservé à Misha/Sacha (accès complet) — pas Pascaline ni les autres
   const isAdmin=S.view==='admin';
@@ -1711,16 +1798,27 @@ const COMMISSION_VIA_EXPLAIN_SELF={
 };
 /* Conservé pour compatibilité : la version « admin » reste la référence par défaut. */
 const COMMISSION_VIA_EXPLAIN=COMMISSION_VIA_EXPLAIN_ADMIN;
-const COMMISSION_VIA_ORDER=['ds','cash_ds','structure','cash_presta'];
-/* Titre de chaque sous-groupe dans les « grands ensembles » du bilan, formulé du point de vue de
-   ce qui se passe concrètement avec l'argent. {n} est remplacé par le nom du prestataire (vue
-   admin) ou par « vous » (quand le prestataire lit son propre bilan). */
+const COMMISSION_VIA_ORDER=['ds','structure','cash_presta','cash_ds'];
+/* Intitulés des chapitres, tels que David les a dictés. Ils sont affichés EN DUR : les quatre
+   chapitres de Misha (et les trois de Sasha, qui n'a pas de structure Ozarko) apparaissent
+   toujours, même vides — c'est la carte du mois, on voit d'un coup d'œil ce qui est rempli et ce
+   qui ne l'est pas. {n} = le nom du prestataire. */
 const COMMISSION_VIA_GROUP={
-  ds:'Payées à DS pour {n}',
-  cash_ds:'Encaissées en cash par nous pour {n}',
-  structure:'Payées à Ozarko',
-  cash_presta:'Payées en cash à {n}'
+  ds:'Prestations via DS',
+  structure:'Prestations via Ozarko',
+  cash_presta:'Prestations en direct {n}',
+  cash_ds:'Prestations via Svitlana'
 };
+/* Liste ordonnée des chapitres d'un prestataire donné — dérivée de viaOptions() pour rester
+   automatiquement synchronisée avec les modes de règlement réellement proposés à la saisie
+   (4 pour Misha, 3 pour Sasha : pas d'Ozarko). */
+function prestaViaList(pid){
+  const dispo=viaOptions(pid).map(o=>o[0]);
+  return COMMISSION_VIA_ORDER.filter(v=>dispo.includes(v));
+}
+/* Le taux de commission « normal ». Tout ce qui s'en écarte forme son propre chapitre à part
+   (0% = prestations sans commission / forfaits, 50% = cas particulier, etc.). */
+const COMMISSION_TAUX_STANDARD=10;
 /* « Prisme de lecture » : le contenu du bilan est rigoureusement le même des deux côtés, seule la
    FORMULATION change. Quand David/Svitlana consultent, on nomme le prestataire (« Misha nous
    doit ») ; quand le prestataire est sur SA session, on s'adresse à lui (« vous nous devez »).
@@ -1769,17 +1867,37 @@ function computeCommissionEnsembles(p,y,m){
       ens.nbTotal++;if(l.valide)ens.nbValide++;
     });
   });
-  return Object.values(byRate).sort((a,b)=>a.rate-b.rate).map(ens=>{
-    const channels=COMMISSION_VIA_ORDER.filter(v=>ens.channels[v]).map(v=>{
-      const ch=ens.channels[v];
+  /* Les chapitres en dur sont une notion propre à Misha/Sasha (accès « domaine ») : eux seuls ont
+     ces circuits de règlement identifiés. Pour eux, l'ensemble au taux standard existe TOUJOURS,
+     même sans aucune ligne — c'est lui qui porte les chapitres, y compris vides. Pour les autres,
+     on n'affiche que ce qui existe réellement. */
+  const chapitresEnDur=p.accessMode==='domaine';
+  if(chapitresEnDur&&!byRate[COMMISSION_TAUX_STANDARD])byRate[COMMISSION_TAUX_STANDARD]={rate:COMMISSION_TAUX_STANDARD,
+    channels:{},brut:0,fiscal:0,commission:0,aReverser:0,dejaEncaisse:0,notrePart:0,notrePartDue:0,
+    nbTotal:0,nbValide:0};
+  const vias=prestaViaList(p.id);
+  /* Ordre d'affichage : le taux standard d'abord (le gros du bilan), puis les autres taux, et les
+     prestations sans commission (0%) toujours en dernier — ce sont des forfaits à part. */
+  const ordre=a=>a.rate===COMMISSION_TAUX_STANDARD?0:(a.rate===0?2:1);
+  return Object.values(byRate).sort((a,b)=>(ordre(a)-ordre(b))||(a.rate-b.rate)).map(ens=>{
+    const isStd=ens.rate===COMMISSION_TAUX_STANDARD;
+    // Chapitres en dur pour l'ensemble standard de Misha/Sasha ; ailleurs, seulement ceux utilisés.
+    const keys=(isStd&&chapitresEnDur)?vias:COMMISSION_VIA_ORDER.filter(v=>ens.channels[v]);
+    const channels=keys.map(v=>{
+      const ch=ens.channels[v]||{via:v,argentChezNous:(v==='ds'||v==='cash_ds'),lines:[],sousTotal:0,fiscal:0,brut:0};
       ch.lines.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
-      return{...ch,sousTotal:r2(ch.sousTotal),fiscal:r2(ch.fiscal),brut:r2(ch.brut)};
+      return{...ch,vide:ch.lines.length===0,sousTotal:r2(ch.sousTotal),fiscal:r2(ch.fiscal),brut:r2(ch.brut)};
     });
     const brut=r2(ens.brut),commission=r2(ens.commission),notrePartDue=r2(ens.notrePartDue);
-    return{...ens,channels,brut,commission,notrePartDue,fiscal:r2(ens.fiscal),
-      aReverser:r2(ens.aReverser),dejaEncaisse:r2(ens.dejaEncaisse),notrePart:r2(ens.notrePart),
-      net:r2(ens.aReverser-commission-notrePartDue)};
+    return{...ens,isStd,sansCommission:ens.rate===0,channels,brut,commission,notrePartDue,
+      fiscal:r2(ens.fiscal),aReverser:r2(ens.aReverser),dejaEncaisse:r2(ens.dejaEncaisse),
+      notrePart:r2(ens.notrePart),net:r2(ens.aReverser-commission-notrePartDue)};
   });
+}
+/* Ce que le prestataire a gagné ce mois-ci, tous chapitres confondus — le chiffre qu'on affiche
+   en haut de l'ensemble « Prestations ». */
+function totalPrestations(ensembles){
+  return Math.round(ensembles.reduce((a,e)=>a+e.brut,0)*100)/100;
 }
 /* Regroupement des prestations PAR CIRCUIT DE RÈGLEMENT (et non plus par réservation) — c'est la
    présentation demandée : un bloc « Prestations via Ozarko », avec juste en dessous la commission
@@ -1864,38 +1982,53 @@ function viaSubLine(label,montant,sign){
     <span>${label}</span><strong style="color:${col};font-weight:600">${sign==='-'?'− ':(sign==='+'?'+ ':'')}${money(Math.abs(montant))}</strong>
   </div>`;
 }
-/* Bloc « Prestations » du Bilan total, présenté en GRANDS ENSEMBLES : un ensemble par taux de
-   commission (10%, 50%…). Pour chacun : le montant brut consolidé de toutes les prestations, puis
-   UNE SEULE ligne de commission appliquée à ce brut — et non plus un calcul répété circuit par
-   circuit. Le titre est cliquable et mène au listing complet, plus bas dans la page. */
+/* Bloc « Prestations » du Bilan total : un seul ensemble « Prestations » qui reprend, en compact,
+   les chapitres affichés en dur (via DS, via Ozarko, en direct, via Svitlana), puis le sous-total,
+   puis UNE SEULE ligne de commission. Les prestations sans commission et les autres taux forment
+   leurs propres lignes en dessous. Le titre renvoie au listing complet, plus bas dans la page. */
 function renderCommissionBreakdownRow(p,y,m,bt){
   const ensembles=computeCommissionEnsembles(p,y,m);
-  if(!ensembles.length)return bilanLigneRow('Prestations avec commission (net)',Math.abs(bt.compDu),bt.compDu<0?'-':'+','bloc-commission');
+  if(!ensembles.length)return bilanLigneRow('Prestations',Math.abs(bt.compDu),bt.compDu<0?'-':'+','bloc-commission');
   const V=bilanVoix(p);
+  const grp=v=>(COMMISSION_VIA_GROUP[v]||v).replace('{n}',p.name);
+  const lien=(ancre,txt)=>`<a href="#${ancre}" onclick="event.preventDefault();var _e=document.getElementById('${ancre}');if(_e)_e.scrollIntoView({behavior:'smooth',block:'start'})" style="color:#72243E;text-decoration:underline;font-weight:700">${txt}</a>`;
   const blocks=ensembles.map(ens=>{
     const ancre=`bloc-ens-${ens.rate}`;
     const attente=ens.nbTotal-ens.nbValide;
+    const titre=ens.sansCommission?'🧾 Prestations sans commission (forfaits)'
+      :(ens.isStd?'🧾 Prestations':`🧾 Prestations — commission ${ens.rate}%`);
     const head=`<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0 2px;font-size:13px">
-      <span><a href="#${ancre}" onclick="event.preventDefault();var _e=document.getElementById('${ancre}');if(_e)_e.scrollIntoView({behavior:'smooth',block:'start'})" style="color:#72243E;text-decoration:underline;font-weight:700">🧾 Prestations — commission ${ens.rate}%</a>
-        ${attente>0?`<span style="color:#B15E00;font-size:10px;font-weight:700;margin-left:4px">⏳ ${attente} à valider</span>`:''}
-        <span style="display:block;font-size:10px;color:#999;font-weight:400">${ens.nbTotal} prestation${ens.nbTotal>1?'s':''} · ${ens.channels.length} mode${ens.channels.length>1?'s':''} de règlement</span></span>
+      <span>${lien(ancre,titre)}${attente>0?`<span style="color:#B15E00;font-size:10px;font-weight:700;margin-left:4px">⏳ ${attente} à valider</span>`:''}</span>
       <strong style="color:#555;font-weight:600">${money(ens.brut)}</strong>
     </div>`;
     let steps='';
-    if(ens.fiscal>0)steps+=viaSubLine('dont 15% de frais de structure déjà retenus',ens.fiscal,'');
-    if(ens.dejaEncaisse>0)steps+=viaSubLine(V.encaisse,ens.dejaEncaisse,'');
-    if(ens.aReverser>0)steps+=viaSubLine(V.aReverser,ens.aReverser,'+');
-    steps+=viaSubLine(`Commission ${ens.rate}% sur le montant brut`,ens.commission,'-');
-    if(ens.notrePartDue>0)steps+=viaSubLine(`Vendu pour nous : ${money(ens.notrePart)} − 14% que ${V.garde}`,ens.notrePartDue,'-');
-    const netPos=ens.net>=0;
+    // Les chapitres, en dur : on voit tout de suite lesquels sont remplis et lesquels sont vides.
+    if(ens.isStd||ens.sansCommission){
+      ens.channels.forEach(ch=>{
+        steps+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0 2px 16px;font-size:11.5px;color:${ch.vide?'#c7c2bb':'#A9527A'}">
+          <span>${grp(ch.via)}</span>
+          <span style="font-weight:600">${ch.vide?'<span style="font-style:italic">—</span>':money(ch.sousTotal)+(ch.fiscal>0?` <span style="color:#A32D2D;font-size:10px">− 15% = ${money(ch.brut)}</span>`:'')}</span>
+        </div>`;
+      });
+    }
+    if(!ens.sansCommission){
+      steps+=viaSubLine('Sous-total des prestations',ens.brut,'');
+      steps+=viaSubLine(`Commission ${ens.rate}%`,ens.commission,'-');
+      if(ens.notrePartDue>0)steps+=viaSubLine(`Vendu pour nous : ${money(ens.notrePart)} − 14% que ${V.garde}`,ens.notrePartDue,'-');
+    } else if(ens.dejaEncaisse>0){
+      steps+=viaSubLine(`dont ${V.encaisse} — rien à reverser`,ens.dejaEncaisse,'');
+    }
+    // Jamais le brut : un forfait encaissé en direct est déjà chez lui, on ne lui doit rien dessus.
+    const net=ens.net;
+    const netPos=net>=0;
     const concl=`<div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0 7px 16px;font-size:12px;border-bottom:1px solid #F4C6D6">
       <span style="font-weight:700;color:#72243E">${netPos?`= net ${V.pour}`:`= ${V.doit}`}</span>
-      <strong style="color:${netPos?'#27500A':'#A32D2D'}">${netPos?'+ ':'− '}${money(Math.abs(ens.net))}</strong>
+      <strong style="color:${netPos?'#27500A':'#A32D2D'}">${netPos?'+ ':'− '}${money(Math.abs(net))}</strong>
     </div>`;
     return head+steps+concl;
   }).join('');
   const total=`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #F4C6D6;font-size:13px;font-weight:700">
-    <span style="color:#72243E">Sous-total prestations</span>
+    <span style="color:#72243E">Total prestations</span>
     <strong style="color:${bt.compDu<0?'#A32D2D':'#27500A'}">${bt.compDu<0?'− ':'+ '}${money(Math.abs(bt.compDu))}</strong>
   </div>`;
   return blocks+total;
@@ -1906,38 +2039,94 @@ function renderCommissionBreakdownRow(p,y,m,bt){
    structure sont retenus là où ils s'appliquent ; tout s'additionne en un seul montant brut, sur
    lequel on écrit une seule ligne de commission. */
 function renderCommissionDetailSection(p,y,m){
+  /* Réservé aux prestataires qui font des prestations à commission (Misha/Sasha). Depuis que
+     l'ensemble au taux standard existe toujours — pour afficher les chapitres en dur, même vides —
+     il faut ce garde-fou explicite : sans lui, Pascaline & co. verraient une section « Prestations »
+     vide avec des chapitres qui ne les concernent pas. */
+  if(p.inputMode!=='notes')return'';
   const ensembles=computeCommissionEnsembles(p,y,m);
   if(!ensembles.length)return'';
   const V=bilanVoix(p);
-  const grp=v=>(COMMISSION_VIA_GROUP[v]||v).replace('{n}',V.nom);
-  const li=(label,montant,opt)=>`<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:${(opt&&opt.pad)||'2px 0'};font-size:${(opt&&opt.fs)||'11.5px'};${(opt&&opt.style)||''}">
-      <span style="min-width:0">${label}</span><span style="white-space:nowrap;${(opt&&opt.amtStyle)||''}">${(opt&&opt.sign)||''}${money(Math.abs(montant))}</span>
+  const grp=v=>(COMMISSION_VIA_GROUP[v]||v).replace('{n}',p.name);
+  const total=totalPrestations(ensembles);
+  const nbTotal=ensembles.reduce((a,e)=>a+e.nbTotal,0);
+  const nbAttente=ensembles.reduce((a,e)=>a+(e.nbTotal-e.nbValide),0);
+  /* Présentation en tableau : une colonne « libellé » qui s'étire, et deux colonnes de montants
+     alignées à droite — comme un tableau Excel, pour que tous les chiffres se lisent en colonne. */
+  const row=(cells,opt)=>`<tr style="${(opt&&opt.style)||''}">
+    <td style="padding:${(opt&&opt.pad)||'3px 6px 3px 0'};font-size:${(opt&&opt.fs)||'11.5px'};${(opt&&opt.tdStyle)||''}">${cells[0]}</td>
+    <td style="padding:${(opt&&opt.pad)||'3px 6px 3px 0'};font-size:${(opt&&opt.fs)||'11.5px'};text-align:right;white-space:nowrap;${(opt&&opt.tdStyle)||''}">${cells[1]||''}</td>
+    <td style="padding:${(opt&&opt.pad)||'3px 0'};font-size:${(opt&&opt.fs)||'11.5px'};text-align:right;white-space:nowrap;${(opt&&opt.amtStyle)||''}">${cells[2]||''}</td>
+  </tr>`;
+  const ensembleHtml=ens=>{
+    const titre=ens.sansCommission
+      ?'🧾 Prestations sans commission — forfaits'
+      :(ens.isStd?'🧾 Prestations':`🧾 Prestations — commission ${ens.rate}%`);
+    const soustitre=ens.sansCommission
+      ?`Un montant convenu qui ${V.self?'vous revient':'lui revient'} intégralement — aucune commission n'est prélevée dessus.`
+      :'';
+    let body='';
+    ens.channels.forEach(ch=>{
+      body+=row([`<span style="font-weight:700;color:#72243E">${grp(ch.via)}</span>`,'',
+        ch.vide?'<span style="color:#c7c2bb;font-style:italic;font-weight:400">aucune ce mois-ci</span>':''],
+        {pad:'9px 6px 1px 0',fs:'12px'});
+      if(ch.vide)return;
+      /* Pas d'explication de circuit dans le bloc « sans commission » : ces phrases parlent de la
+         commission due, ce qui n'a aucun sens ici — le sous-titre du bloc suffit. */
+      if(!ens.sansCommission)body+=row([`<span style="font-size:9.5px;color:#aaa;font-weight:400">${(V.self?COMMISSION_VIA_EXPLAIN_SELF:COMMISSION_VIA_EXPLAIN_ADMIN)[ch.via]||''}</span>`,'',''],
+        {pad:'0 6px 4px 0',fs:'9.5px'});
+      ch.lines.forEach(l=>{
+        body+=row([
+          `<span style="color:#999">${ds(l.date)}</span> &nbsp;<span style="font-weight:500">${l.resaName}</span> <span style="color:#777">· ${l.label}</span>`
+          +(l.valide?'':' <span style="color:#B15E00;font-size:9.5px;font-weight:700" title="en attente de validation">⏳</span>')
+          +(l.notrePart?` <span style="color:#7A5800;font-size:9.5px">(dont ${money(l.notrePart)} vendus pour nous)</span>`:''),
+          '',money(l.montant)],{style:'border-bottom:1px solid #F4E3EA'});
+      });
+      body+=row(['<span style="color:#888">Sous-total</span>','',`<strong>${money(ch.sousTotal)}</strong>`],{pad:'4px 6px 3px 0'});
+      if(ch.fiscal>0){
+        body+=row(['<span style="color:#A32D2D">− 15% de frais de structure</span>','',`<span style="color:#A32D2D">− ${money(ch.fiscal)}</span>`]);
+        body+=row([`<span style="font-weight:600;color:#72243E">Montant brut</span>`,'',`<strong style="color:#72243E">${money(ch.brut)}</strong>`]);
+      }
+    });
+    // Récapitulatif de l'ensemble
+    body+=row([`<span style="font-weight:700;color:#72243E">${ens.sansCommission?'Total des forfaits':'Sous-total des prestations'}</span>`,'',
+      `<strong style="color:#72243E">${money(ens.brut)}</strong>`],
+      {pad:'8px 6px 3px 0',fs:'12.5px',style:'border-top:2px solid #993556'});
+    if(!ens.sansCommission){
+      if(ens.dejaEncaisse>0)body+=row([`<span style="color:#888">dont ${V.encaisse} — rien à reverser</span>`,'',`<span style="color:#888">${money(ens.dejaEncaisse)}</span>`],{fs:'10.5px'});
+      if(ens.aReverser>0)body+=row([`<span style="color:#888">dont ${V.aReverser}</span>`,'',`<span style="color:#888">${money(ens.aReverser)}</span>`],{fs:'10.5px'});
+      body+=row([`<span style="font-weight:600">Commission ${ens.rate}%</span>`,'',
+        `<strong style="color:#A32D2D">− ${money(ens.commission)}</strong>`],{fs:'12.5px'});
+    }
+    if(ens.notrePartDue>0)body+=row([`Part vendue pour nous : ${money(ens.notrePart)} − 14% que ${V.garde}`,'',
+      `<span style="color:#A32D2D">− ${money(ens.notrePartDue)}</span>`]);
+    /* Le net n'est JAMAIS le total brut, même sans commission : un forfait encaissé en direct est
+       de l'argent qu'il a déjà — on ne lui doit rien dessus. Seul ce qui est passé par nous
+       (via DS / via Svitlana) nous reste à reverser. */
+    if(ens.sansCommission&&ens.dejaEncaisse>0)
+      body+=row([`<span style="color:#888">dont ${V.encaisse} — rien à reverser</span>`,'',
+        `<span style="color:#888">${money(ens.dejaEncaisse)}</span>`],{fs:'10.5px'});
+    const net=ens.net;
+    body+=row([`<span style="font-weight:700">${net>=0?`= net ${V.pour}`:`= ${V.doit}`}</span>`,'',
+      `<strong style="color:${net>=0?'#27500A':'#A32D2D'};font-size:13px">${net>=0?'+ ':'− '}${money(Math.abs(net))}</strong>`],
+      {pad:'5px 6px 4px 0',fs:'13px',style:'border-top:1px dashed #D98CAA'});
+    return`<div id="bloc-ens-${ens.rate}" style="scroll-margin-top:12px;margin-bottom:16px;border:1.5px solid #E6A8C2;border-radius:10px;overflow:hidden">
+      <div style="background:#993556;color:#fff;padding:7px 11px;font-weight:700;font-size:12.5px">${titre}</div>
+      ${soustitre?`<div style="background:#FBEAF0;color:#72243E;font-size:10.5px;padding:5px 11px;line-height:1.35">${soustitre}</div>`:''}
+      <table style="width:100%;border-collapse:collapse;padding:0 11px"><tbody>
+        <tr><td colspan="3" style="padding:0 11px"><table style="width:100%;border-collapse:collapse"><tbody>${body}</tbody></table></td></tr>
+      </tbody></table>
+      <div style="height:9px"></div>
     </div>`;
+  };
   return`<div id="bloc-commission-detail" class="bilan-sec" style="border-color:#A9527A">
-    <div class="sec-hdr" style="background:#A9527A"><h2>🔍 Le détail des prestations — ${MONTHS_FR[m]} ${y}</h2></div>
-    <div style="font-size:11px;color:#888;margin-bottom:12px">Chaque prestation du mois, une ligne par ligne, regroupée par mode de règlement. Les sous-totaux s'additionnent en un seul montant brut, sur lequel s'applique une seule commission.</div>
-    ${ensembles.map(ens=>`<div id="bloc-ens-${ens.rate}" style="scroll-margin-top:12px;margin-bottom:18px;border:1.5px solid #E6A8C2;border-radius:10px;overflow:hidden">
-      <div style="background:#993556;color:#fff;padding:7px 11px;font-weight:700;font-size:12.5px">🧾 Prestations — commission ${ens.rate}%</div>
-      <div style="padding:9px 11px">
-        ${ens.channels.map(ch=>`<div style="margin-bottom:11px">
-          <div style="font-weight:700;font-size:12px;color:#72243E;margin-bottom:1px">${grp(ch.via)}</div>
-          <div style="font-size:10px;color:#999;margin-bottom:4px;line-height:1.35">${(V.self?COMMISSION_VIA_EXPLAIN_SELF:COMMISSION_VIA_EXPLAIN_ADMIN)[ch.via]||''}</div>
-          ${ch.lines.map(l=>li(
-            `<span style="color:#888">${ds(l.date)}</span> · <span style="font-weight:500">${l.resaName}</span> · ${l.label}${l.valide?'':' <span style="color:#B15E00;font-size:9.5px;font-weight:700">⏳</span>'}${l.notrePart?` <span style="color:#7A5800;font-size:9.5px">(dont ${money(l.notrePart)} vendus pour nous)</span>`:''}`,
-            l.montant,{pad:'3px 0',style:'border-bottom:1px solid #F4E3EA'})).join('')}
-          ${li(`<span style="font-weight:600">Sous-total</span>`,ch.sousTotal,{pad:'4px 0 2px',style:'color:#72243E',amtStyle:'font-weight:700'})}
-          ${ch.fiscal>0?li(`− 15% de frais de structure`,ch.fiscal,{sign:'− ',style:'color:#A32D2D'})+li(`<span style="font-weight:600">Montant brut</span>`,ch.brut,{style:'color:#72243E',amtStyle:'font-weight:700'}):''}
-        </div>`).join('')}
-        <div style="border-top:2px solid #993556;padding-top:7px;margin-top:2px">
-          ${li(`<span style="font-weight:700">Montant brut total des prestations</span>`,ens.brut,{fs:'12.5px',style:'color:#72243E',amtStyle:'font-weight:700'})}
-          ${ens.dejaEncaisse>0?li(`dont ${V.encaisse} (rien à reverser)`,ens.dejaEncaisse,{fs:'11px',style:'color:#888'}):''}
-          ${ens.aReverser>0?li(`dont ${V.aReverser}`,ens.aReverser,{fs:'11px',style:'color:#888'}):''}
-          ${li(`<span style="font-weight:600">Commission ${ens.rate}% sur ce montant brut</span>`,ens.commission,{fs:'12.5px',sign:'− ',style:'color:#A32D2D',amtStyle:'font-weight:700'})}
-          ${ens.notrePartDue>0?li(`Part vendue pour nous : ${money(ens.notrePart)} − 14% que ${V.garde}`,ens.notrePartDue,{fs:'11.5px',sign:'− ',style:'color:#A32D2D'}):''}
-          ${li(`<span style="font-weight:700">${ens.net>=0?`= net ${V.pour}`:`= ${V.doit}`}</span>`,ens.net,{fs:'13px',sign:ens.net>=0?'+ ':'− ',style:`color:${ens.net>=0?'#27500A':'#A32D2D'};padding-top:4px;border-top:1px dashed #D98CAA`,amtStyle:'font-weight:800'})}
-        </div>
-      </div>
-    </div>`).join('')}
+    <div class="sec-hdr" style="background:#A9527A"><h2>🧾 Prestations — ${MONTHS_FR[m]} ${y}</h2>
+      ${nbAttente>0?`<span class="bb bb-warn" style="flex-shrink:0">⏳ ${nbAttente} à valider</span>`:(nbTotal>0?`<span class="bb bb-good" style="flex-shrink:0">✓ ${nbTotal}/${nbTotal} validées</span>`:'')}</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#FBEAF0;border:1.5px solid #993556;border-radius:9px;padding:9px 12px;margin-bottom:12px">
+      <span style="font-weight:700;font-size:13px;color:#72243E">Total des prestations du mois</span>
+      <strong style="font-size:19px;color:#72243E">${money(total)}</strong>
+    </div>
+    ${ensembles.map(ensembleHtml).join('')}
   </div>`;
 }
 function bilanLigneRow(label,montant,sign,ancre){
@@ -3220,7 +3409,7 @@ function renderDetailPanel(r){
         _html+='<div style="display:flex;gap:5px;flex-wrap:wrap">';
         _html+='<input type="number" id="pself-amt-'+r.id+'" placeholder="Montant €" style="width:85px;font-size:13px;padding:5px 6px">';
         _html+='<select id="pself-via-'+r.id+'" style="flex:1;min-width:120px;font-size:11px;padding:5px">'+viaOptions(_pid).map(function(o){return '<option value="'+o[0]+'">'+o[1]+'</option>';}).join('')+'</select>';
-        _html+='<select id="pself-comm-'+r.id+'" style="width:65px;font-size:11px;padding:5px"><option value="10">10%</option><option value="50">50%</option><option value="0">0%</option></select>';
+        _html+=commissionSelectHtml('pself-comm-'+r.id,10);
         _html+='</div>';
         _html+='<input type="text" id="pself-note-'+r.id+'" placeholder="Note…" style="font-size:12px;padding:5px 7px">';
         _html+='<button class="btn btn-sm btn-primary" onclick="addPrestaLineSelf(\''+r.id+'\',\''+_pid+'\')">';
@@ -4198,8 +4387,9 @@ function renderPrestaDetailAdmin(p){
   const commentsSection=renderBilanComments(p,y,m);
   /* Détail du calcul des prestations, tout en bas — cible des liens par circuit du Bilan total. */
   const commDetailSection=(p.inputMode==='notes')?renderCommissionDetailSection(p,y,m):'';
+  const reglementSection=renderReglementSection(p,y,m);
   const allEmpty=!menageSection&&!gardeSection&&!commSection&&!travauxSection&&!remboursementSection&&!dominiqueSection&&!bilanTotalSection&&!elecSection;
-  return`<div style="margin-top:16px">${nav}${bilanTotalSection}${commentsSection}${menageSection}${commSection}${travauxSection}${remboursementSection}${elecSection}${gardeSection}${dominiqueSection}${commDetailSection}${allEmpty?`<div class="empty">Aucun suivi financier spécifique pour ${p.name}.</div>`:''}</div>`;
+  return`<div style="margin-top:16px">${nav}${bilanTotalSection}${commentsSection}${menageSection}${commSection}${travauxSection}${remboursementSection}${elecSection}${gardeSection}${dominiqueSection}${commDetailSection}${reglementSection}${allEmpty?`<div class="empty">Aucun suivi financier spécifique pour ${p.name}.</div>`:''}</div>`;
 }function setClientsSortBy(v){S.clientsSortBy=v;render();}
 function updClientTel(rid,val){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
@@ -6066,7 +6256,8 @@ function renderPrestaMonBilan(p){
   ${renderTravauxSection(p,y,m)}
   ${renderRemboursementSection(p,y,m)}
   ${renderElecSection(p,y,m)}
-  ${renderCommissionDetailSection(p,y,m)}`;
+  ${renderCommissionDetailSection(p,y,m)}
+  ${renderReglementSection(p,y,m)}`;
 }
 /* renderPrestaMonBilanFlat a été remplacé par le rendu unifié renderPrestaMonBilan (voir
    renderPrestaCalendrierSeul ci-dessous) : Pascaline utilise désormais exactement la même
@@ -6656,7 +6847,10 @@ function addPrestaLineSelf(rid,pid){
   const lbl=(document.getElementById('pself-lbl-'+rid)||{}).value||'';
   const amt=parseFloat((document.getElementById('pself-amt-'+rid)||{}).value)||0;
   const via=(document.getElementById('pself-via-'+rid)||{}).value||'ds';
-  const comm=parseFloat((document.getElementById('pself-comm-'+rid)||{}).value)||10;
+  // Attention : ||10 transformerait une commission à 0% (forfait sans commission) en 10%.
+  const commRaw=(document.getElementById('pself-comm-'+rid)||{}).value;
+  const commNum=parseFloat(commRaw);
+  const comm=(commRaw===''||commRaw===undefined||isNaN(commNum))?10:commNum;
   const note=(document.getElementById('pself-note-'+rid)||{}).value||'';
   if(!lbl&&!amt)return;
   if(!r.prestaLines)r.prestaLines={};
