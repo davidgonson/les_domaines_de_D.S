@@ -2899,6 +2899,38 @@ function isoWeekNum(date){
   firstThursday.setUTCDate(firstThursday.getUTCDate()-fdDayNum+3);
   return 1+Math.round((d-firstThursday)/(7*86400000));
 }
+/* Taille de la pastille de visite — partagée par le placement des bandes et par le placement des
+   pastilles, pour que les deux réservent exactement la même largeur. */
+function visiteMarkerGeom(){
+  const isMobile=window.innerWidth<=640;
+  const bs=window.__bandSizing||{offset:isMobile?21:22,pitch:isMobile?20:19,bandH:isMobile?17:16};
+  return{d:Math.max(13,Math.min(20,Math.round((bs.bandH||16)*0.95))),gap:2,
+         pitch:bs.pitch,off:bs.offset};
+}
+/* Emplacement réservé aux pastilles de visite : à GAUCHE de la case du jour, sur la ligne du
+   domaine concerné. Compté AVANT de poser les bandes, pour que la réservation qui commence ce
+   jour-là décale son départ (et l'heure d'arrivée qui la précède) et laisse la place — plutôt
+   que de se retrouver l'une sur l'autre, ou la pastille reléguée sur une autre ligne.
+   Renvoie une table « indice de case _ ligne » → nombre de visites. */
+function buildVisiteReserve(y,m){
+  const res={};
+  if(S.presta&&S.presta.id==='p4')return res;              // pas de visites pour Dominique
+  const{dtc}=buildDateCellMap(y,m);
+  const domIdx={};D.domaines.forEach((d,i)=>domIdx[d.id]=i);
+  (D.visites||[])
+    .filter(v=>(!CAL_DOMAIN_FILTER||CAL_DOMAIN_FILTER.includes(v.domaine))&&!(S.hiddenDomains||[]).includes(v.domaine))
+    .forEach(v=>{
+      if(!v.date||!dtc[v.date])return;
+      const k=dtc[v.date].ci+'_'+(domIdx[v.domaine]||0);
+      res[k]=(res[k]||0)+1;
+    });
+  return res;
+}
+function visiteReserveWidth(n){
+  if(!n)return 0;
+  const g=visiteMarkerGeom();
+  return n*g.d+(n-1)*g.gap+3;   // +3 : un petit air entre la pastille et la bande
+}
 function injectBands(){
   const inCalView=(S.view==='admin'&&S.tab==='calendrier')||(S.view==='presta'&&S.prestaTab==='calendrier');
   if(!inCalView)return;
@@ -2907,6 +2939,7 @@ function injectBands(){
   const{bands}=buildBands(S.calYear,S.calMonth);
   const gridRect=grid.getBoundingClientRect();
   const dayFrac=h=>Math.max(0,Math.min(1,(h-7)/15));
+  const visReserve=buildVisiteReserve(S.calYear,S.calMonth);
   const placed=[];
   bands.forEach(b=>{
     const startIdx=b.row*7+b.colStart,endIdx=b.row*7+b.colStart+b.spanCols-1;
@@ -2938,6 +2971,22 @@ function injectBands(){
     } else {
       leftPx=(sRect.left-gridRect.left);
       widthPx=(eRect.left+eRect.width-gridRect.left)-leftPx;
+    }
+    /* S'il y a une visite ce jour-là sur cette ligne, on décale le départ de la bande (et donc
+       l'heure d'arrivée et le badge P qui la précèdent) juste après la pastille. Tout reste ainsi
+       sur la MÊME ligne, sans rien se superposer — sur téléphone comme sur ordinateur. On ne le
+       fait que pour les bandes qui COMMENCENT dans cette case : une bande qui ne fait que la
+       traverser ne peut pas être coupée, la pastille se placera alors dans l'espace libre. */
+    const _startCi=b.row*7+b.colStart;
+    const _nVis=visReserve[_startCi+'_'+b.slot]||0;
+    if(_nVis&&(b.shapeClass==='band-start'||b.shapeClass==='band-startend')){
+      const _cellLeft=(sRect.left-gridRect.left);
+      const _minLeft=_cellLeft+1+visiteReserveWidth(_nVis);
+      if(leftPx<_minLeft){
+        const _delta=_minLeft-leftPx;
+        // On ne rogne jamais la bande au point de la rendre illisible.
+        if(widthPx-_delta>=18){leftPx=_minLeft;widthPx-=_delta;}
+      }
     }
     const _isMobileNow=window.innerWidth<=640;
     const _bs=window.__bandSizing||{offset:_isMobileNow?21:22,pitch:_isMobileNow?20:19,bandH:_isMobileNow?17:16};
@@ -3118,11 +3167,10 @@ function injectVisiteMarkers(){
     width:parseFloat(el.style.width)||0,
     top:parseFloat(el.style.top)||0
   })).filter(o=>o.width>0);
-  const _isMobileNowV=window.innerWidth<=640;
-  const _bsV=window.__bandSizing||{offset:_isMobileNowV?21:22,pitch:_isMobileNowV?20:19};
-  const _pitchV=_bsV.pitch,_offV=_bsV.offset;
-  const markerD=Math.max(15,Math.min(22,Math.round((_bsV.bandH||20)*0.85))); // diamètre du rond
-  const gap=3;
+  const _gV=visiteMarkerGeom();
+  const _pitchV=_gV.pitch,_offV=_gV.off;
+  const markerD=_gV.d;   // même diamètre que celui réservé par injectBands
+  const gap=_gV.gap;
   const bgColors=['#FF5CA6','#FFB300','#43CB60','#6B64C8','#3A7AB8'];
   /* On regroupe les visites par jour + domaine : plutôt que de les placer sous leur heure réelle
      (ce qui les fait se chevaucher si les heures sont proches), on les centre en groupe dans la
@@ -3175,7 +3223,15 @@ function injectVisiteMarkers(){
     }
     const need=n*markerD+(n-1)*gap;
     let chosen=null;
-    for(let ri=0;ri<rowOrder.length;ri++){
+    /* Emplacement normal : tout à gauche de la case, sur la ligne du domaine — c'est exactement
+       la place qu'injectBands vient de libérer en décalant le départ de la bande. On ne cherche
+       ailleurs que si cette place est malgré tout occupée (bande qui traverse la journée). */
+    const rowTop0=cellTop+_offV+slot*_pitchV;
+    const startX0=cellLeft+1;
+    if(freeSpans(rowTop0,cellLeft,cellRight).some(sp=>sp[0]<=startX0+0.5&&sp[1]>=startX0+need-0.5)){
+      chosen={rowTop:rowTop0,startX:startX0,d:markerD,g:gap,moved:false};
+    }
+    for(let ri=0;!chosen&&ri<rowOrder.length;ri++){
       const rowTop=cellTop+_offV+rowOrder[ri]*_pitchV;
       const fit=freeSpans(rowTop,cellLeft,cellRight).find(sp=>sp[1]-sp[0]>=need);
       if(fit){
@@ -5471,12 +5527,141 @@ function parseFullBackupWorkbook(wb){
     travauxSchedule,dominiqueSchedule,bilanComments,electriciteIndex,forfaitPaid,elecValide,skipped};
 }
 
+/* === Restauration « remettre à l'identique » ===
+   Deux modes, choisis par l'utilisateur avant d'appliquer :
+     • « compléter »  : on n'ajoute que ce qui manque, on ne touche à rien d'autre (mode d'origine).
+     • « identique »  : le fichier Excel fait FOI. Ce qui manque est ajouté, ce qui diffère est
+                        corrigé d'après le fichier, et ce qui n'est PAS dans le fichier est
+                        supprimé. C'est le mode « je repars de ma sauvegarde ».
+   En mode identique, deux précautions indispensables :
+     - les suppressions sont enregistrées comme telles (tombstones), sinon la prochaine synchro
+       avec le téléphone d'un autre les ferait revenir aussitôt ;
+     - à l'inverse, un élément présent dans le fichier voit son éventuel tombstone effacé, sinon
+       il serait re-supprimé dans la foulée par la synchro. Le fichier prime, dans les deux sens. */
+function assembleSnapResas(snap){
+  const byId={};
+  snap.reservations.forEach(r=>{byId[r.id]=JSON.parse(JSON.stringify(r));
+    const t=byId[r.id];t.commentaires=t.commentaires||[];t.paiements=t.paiements||[];
+    t.prestaLines=t.prestaLines||{};t.prestaGarde=t.prestaGarde||{};t.prestasExterieurs=t.prestasExterieurs||[];});
+  snap.commentaires.forEach(c=>{const r=byId[c.reservationId];if(r&&!r.commentaires.some(x=>x.id===c.id))r.commentaires.push(c);});
+  snap.paiements.forEach(p=>{const r=byId[p.reservationId];if(r&&!r.paiements.some(x=>x.id===p.id))r.paiements.push(p);});
+  snap.prestaLines.forEach(l=>{const r=byId[l.reservationId];if(!r)return;
+    if(!r.prestaLines[l.pid])r.prestaLines[l.pid]=[];
+    if(!r.prestaLines[l.pid].some(x=>x.id===l.id))
+      r.prestaLines[l.pid].push({id:l.id,label:l.label,montant:l.montant,via:l.via,commission:l.commission,notrePart:l.notrePart,notes:l.notes,valide:l.valide,date:l.date});});
+  snap.gardeResa.forEach(g=>{const r=byId[g.reservationId];if(!r)return;
+    if(!r.prestaGarde[g.pid])r.prestaGarde[g.pid]={domaine:g.domaine||r.domaine,nights:{}};
+    r.prestaGarde[g.pid].nights[g.date]={duree:g.duree,paid:g.paid,payMethod:g.payMethod,comment:g.comment,valide:g.valide};});
+  snap.prestasExterieurs.forEach(x=>{const r=byId[x.reservationId];if(!r)return;
+    if(!r.prestasExterieurs.some(y=>y.id===x.id))
+      r.prestasExterieurs.push({id:x.id,intitule:x.intitule,montant:x.montant,sens:x.sens,note:x.note});});
+  return byId;
+}
+/* Forme canonique d'une réservation pour la COMPARAISON avec une sauvegarde Excel.
+   Indispensable : l'aller-retour par Excel normalise les données (un champ absent revient avec sa
+   valeur par défaut — « Avec contrat » = Oui, « Ménage validé » = Oui, notes vides…). Sans cette
+   mise au même format des deux côtés, TOUTES les réservations apparaîtraient « à corriger » alors
+   qu'elles sont identiques, et la restauration réécrirait tout inutilement. On applique donc aux
+   deux côtés exactement les mêmes valeurs par défaut que le lecteur de sauvegarde. */
+function canonResaForCompare(r){
+  const s=v=>(v===undefined||v===null)?'':String(v);
+  const n=v=>{const x=parseFloat(v);return isNaN(x)?0:x;};
+  const byId=(a,b)=>String(a.id||'').localeCompare(String(b.id||''));
+  return{
+    id:r.id,domaine:r.domaine,status:s(r.status)||'confirmé',
+    civilite1:s(r.civilite1),prenom1:s(r.prenom1),nom1:s(r.nom1),
+    client:s(r.client)||[s(r.prenom1),s(r.nom1)].filter(Boolean).join(' '),
+    prenom2:s(r.prenom2),nom2:s(r.nom2),societe:s(r.societe),
+    typeClient:r.typeClient==='entreprise'?'entreprise':'particulier',
+    tel:s(r.tel),tel2:s(r.tel2),email:s(r.email),email2:s(r.email2),adresse:s(r.adresse),
+    typeEvenement:s(r.typeEvenement),dateArrivee:s(r.dateArrivee),heureArrivee:s(r.heureArrivee),
+    dateDepart:s(r.dateDepart)||s(r.dateArrivee),heureDepart:s(r.heureDepart),
+    nbPersonnes:n(r.nbPersonnes),nbAdultes:n(r.nbAdultes),nbEnfants:n(r.nbEnfants),nbSoiree:n(r.nbSoiree),
+    montant:n(r.montant),arrhes:n(r.arrhes),depotGarantie:n(r.depotGarantie),
+    avecContrat:r.avecContrat!==false,noteInterne:s(r.noteInterne),caviste:s(r.caviste),
+    menagePaid:!!r.menagePaid,menageValide:r.menageValide!==false,
+    prestataires:(r.prestataires||[]).slice().sort(),
+    commentaires:(r.commentaires||[]).map(c=>({id:c.id,texte:s(c.texte),date:s(c.date),
+      auteurNom:s(c.auteurNom),visible:c.visible!==false})).sort(byId),
+    paiements:(r.paiements||[]).map(p=>({id:p.id,date:s(p.date),montant:n(p.montant),
+      type:s(p.type||p.note),comment:s(p.comment)})).sort(byId),
+    prestaLines:Object.keys(r.prestaLines||{}).sort().reduce((o,pid)=>{
+      const arr=(r.prestaLines[pid]||[]).map(l=>({id:l.id,label:s(l.label),montant:n(l.montant),
+        via:s(l.via||'ds'),commission:(l.commission===undefined||l.commission===null||l.commission==='')?10:n(l.commission),
+        notrePart:n(l.notrePart),notes:s(l.notes),valide:!!l.valide})).sort(byId);
+      if(arr.length)o[pid]=arr;return o;},{}),
+    prestaGarde:Object.keys(r.prestaGarde||{}).sort().reduce((o,pid)=>{
+      const nights=(r.prestaGarde[pid]||{}).nights||{};
+      const keys=Object.keys(nights).sort();
+      if(keys.length)o[pid]=keys.reduce((m,d)=>{const v=nights[d]||{};
+        m[d]={duree:s(v.duree),paid:!!v.paid,comment:s(v.comment),valide:v.valide!==false};return m;},{});
+      return o;},{}),
+    prestasExterieurs:(r.prestasExterieurs||[]).map(x=>({id:x.id,intitule:s(x.intitule),
+      montant:n(x.montant),sens:s(x.sens),note:s(x.note)})).sort(byId)
+  };
+}
+/* Comparaison « le contenu est-il le même ? » — indépendante de l'ordre des clés. */
+function sameContent(a,b){
+  const norm=v=>JSON.stringify(v,(k,val)=>{
+    if(val&&typeof val==='object'&&!Array.isArray(val)){
+      return Object.keys(val).sort().reduce((o,k2)=>{if(val[k2]!==undefined&&val[k2]!==null&&val[k2]!=='')o[k2]=val[k2];return o;},{});
+    }
+    return val;
+  });
+  return norm(a)===norm(b);
+}
+function computeIdentiqueExtras(snap){
+  const assembled=assembleSnapResas(snap);
+  const snapResaIds=new Set(Object.keys(assembled));
+  const resaToReplace=[],resaToRemove=[];
+  D.reservations.forEach(r=>{
+    if(!snapResaIds.has(r.id)){resaToRemove.push(r);return;}
+    if(!sameContent(canonResaForCompare(r),canonResaForCompare(assembled[r.id])))resaToReplace.push(assembled[r.id]);
+  });
+  const listDiff=(local,snapArr)=>{
+    const snapIds=new Set((snapArr||[]).map(x=>x.id));
+    const localById={};(local||[]).forEach(x=>localById[x.id]=x);
+    return{
+      toRemove:(local||[]).filter(x=>!snapIds.has(x.id)),
+      toReplace:(snapArr||[]).filter(x=>localById[x.id]&&!sameContent(localById[x.id],x))
+    };
+  };
+  /* Tous les identifiants présents dans le fichier, par catégorie de tombstone : à l'application,
+     on effacera leur marqueur de suppression. Sans ça, un élément ressuscité par la restauration
+     serait re-supprimé quelques secondes plus tard par la synchronisation, qui verrait encore son
+     tombstone — l'élément réapparaîtrait puis disparaîtrait, sans qu'on comprenne pourquoi. */
+  const ids=a=>(a||[]).map(x=>x.id).filter(Boolean);
+  const snapIdsByCat={
+    resa:Array.from(snapResaIds),
+    visite:ids(snap.visites),
+    travaux:ids(snap.travauxSchedule),
+    garde:ids(snap.gardeSchedule),
+    dominique:ids(snap.dominiqueSchedule),
+    bilanComment:ids(snap.bilanComments),
+    comment:ids(snap.commentaires),
+    paiement:ids(snap.paiements),
+    prestaLine:ids(snap.prestaLines)
+  };
+  return{
+    resaToReplace,resaToRemove,
+    visites:listDiff(D.visites,snap.visites),
+    travaux:listDiff(D.travauxSchedule,snap.travauxSchedule),
+    gardeSched:listDiff(D.gardeSchedule,snap.gardeSchedule),
+    dominique:listDiff(D.dominiqueSchedule,snap.dominiqueSchedule),
+    bilanComments:listDiff(D.bilanComments,snap.bilanComments),
+    snapResaIds,snapIdsByCat
+  };
+}
 /* === DIFF (préparation, rien n'est encore modifié) ===
    Ne retient QUE ce qui manque réellement : un id déjà présent dans D n'est jamais touché, et
    un id qui a été supprimé volontairement (présent dans D.deletedIds) n'est jamais ressuscité —
    c'est ce qui distingue cette restauration de l'ancienne, qui écrasait tout sans distinction. */
-function computeRestoreDiff(snap){
-  const delSet=k=>new Set((D.deletedIds&&D.deletedIds[k])||[]);
+function computeRestoreDiff(snap,mode){
+  const identique=(mode==='identique');
+  /* En mode « identique », le fichier fait foi : un élément qu'il contient doit revenir même s'il
+     avait été supprimé (son tombstone sera effacé à l'application). On neutralise donc ici les
+     listes de suppressions, sinon rien ne serait réintégré. */
+  const delSet=k=>identique?new Set():new Set((D.deletedIds&&D.deletedIds[k])||[]);
   const dResa=delSet('resa'),dVisite=delSet('visite'),dComment=delSet('comment'),dPaiement=delSet('paiement'),
         dPrestaLine=delSet('prestaLine'),dTravaux=delSet('travaux'),dGarde=delSet('garde'),
         dDominique=delSet('dominique'),dBilanComment=delSet('bilanComment'),dElecIndex=delSet('elecIndex');
@@ -5592,7 +5777,15 @@ function computeRestoreDiff(snap){
     financesMensuelles:Object.keys(elecIndexToFill).length+Object.keys(forfaitPaidToFill).length+Object.keys(elecValideToFill).length
   };
 
-  return{resaToAdd,commentsToAttach,paiementsToAttach,prestaLinesToAttach,gardeNightsToAttach,extToAttach,
+  const extras=identique?computeIdentiqueExtras(snap):null;
+  if(extras){
+    counts.corriges=extras.resaToReplace.length+extras.visites.toReplace.length+extras.travaux.toReplace.length
+      +extras.gardeSched.toReplace.length+extras.dominique.toReplace.length+extras.bilanComments.toReplace.length;
+    counts.supprimes=extras.resaToRemove.length+extras.visites.toRemove.length+extras.travaux.toRemove.length
+      +extras.gardeSched.toRemove.length+extras.dominique.toRemove.length+extras.bilanComments.toRemove.length;
+  }
+  return{mode:mode||'complete',identique,extras,
+    resaToAdd,commentsToAttach,paiementsToAttach,prestaLinesToAttach,gardeNightsToAttach,extToAttach,
     visitesToAdd,travauxToAdd,gardeScheduleToAdd,dominiqueToAdd,bilanCommentsToAdd,
     elecIndexToFill,forfaitPaidToFill,elecValideToFill,counts,skipped:snap.skipped};
 }
@@ -5614,6 +5807,31 @@ function applyRestoreDiff(diff){
   Object.entries(diff.forfaitPaidToFill).forEach(([pid,months])=>{if(!D.forfaitPaid)D.forfaitPaid={};if(!D.forfaitPaid[pid])D.forfaitPaid[pid]={};Object.entries(months).forEach(([mk,v])=>{D.forfaitPaid[pid][mk]=v;});});
   Object.entries(diff.elecValideToFill).forEach(([pid,months])=>{if(!D.elecValide)D.elecValide={};if(!D.elecValide[pid])D.elecValide[pid]={};Object.entries(months).forEach(([mk,v])=>{D.elecValide[pid][mk]=v;});});
 
+  /* Mode « remettre à l'identique » : on corrige ce qui diffère et on supprime ce qui n'est pas
+     dans le fichier. Chaque suppression est tombstonée pour qu'elle se propage aux autres
+     appareils ; chaque élément présent dans le fichier voit son tombstone effacé pour qu'il ne
+     soit pas re-supprimé par la synchro juste après. */
+  if(diff.identique&&diff.extras){
+    const E=diff.extras;
+    const untomb=(cat,ids)=>{if(!D.deletedIds||!D.deletedIds[cat])return;
+      const keep=new Set(ids);D.deletedIds[cat]=D.deletedIds[cat].filter(t=>!keep.has(t&&t.id?t.id:t));};
+    E.resaToReplace.forEach(nr=>{const i=D.reservations.findIndex(x=>x.id===nr.id);if(i>=0)D.reservations[i]=nr;});
+    E.resaToRemove.forEach(r=>{D.reservations=D.reservations.filter(x=>x.id!==r.id);markDeleted('resa',r.id);});
+    const applyList=(key,cat,getArr,setArr)=>{
+      const d=E[key];
+      d.toReplace.forEach(nx=>{const arr=getArr()||[];const i=arr.findIndex(x=>x.id===nx.id);if(i>=0){arr[i]=nx;setArr(arr);}});
+      d.toRemove.forEach(x=>{setArr((getArr()||[]).filter(y=>y.id!==x.id));markDeleted(cat,x.id);});
+    };
+    applyList('visites','visite',()=>D.visites,a2=>{D.visites=a2;});
+    applyList('travaux','travaux',()=>D.travauxSchedule,a2=>{D.travauxSchedule=a2;});
+    applyList('gardeSched','garde',()=>D.gardeSchedule,a2=>{D.gardeSchedule=a2;});
+    applyList('dominique','dominique',()=>D.dominiqueSchedule,a2=>{D.dominiqueSchedule=a2;});
+    applyList('bilanComments','bilanComment',()=>D.bilanComments,a2=>{D.bilanComments=a2;});
+    /* En dernier : on efface les tombstones de TOUT ce que le fichier contient (toutes catégories),
+       pour qu'aucun élément restauré ne soit re-supprimé par la synchronisation juste après. */
+    Object.entries(E.snapIdsByCat||{}).forEach(([cat,idList])=>untomb(cat,idList));
+  }
+
   const c=diff.counts;
   const parts=[];
   if(c.reservations)parts.push(`${c.reservations} réservation(s)`);
@@ -5628,7 +5846,9 @@ function applyRestoreDiff(diff){
   if(c.jardinageDominique)parts.push(`${c.jardinageDominique} journée(s) de jardinage`);
   if(c.commentairesBilan)parts.push(`${c.commentairesBilan} commentaire(s) de bilan`);
   if(c.financesMensuelles)parts.push(`${c.financesMensuelles} donnée(s) financière(s) mensuelle(s)`);
-  const summary=parts.length?parts.join(', '):'rien à restaurer (tout était déjà présent)';
+  if(c.corriges)parts.push(`${c.corriges} corrigé(s) d'après le fichier`);
+  if(c.supprimes)parts.push(`${c.supprimes} supprimé(s) (absent(s) du fichier)`);
+  const summary=parts.length?parts.join(', '):'rien à restaurer (tout était déjà identique)';
   logActivity('modifiée',null,`Restauration depuis sauvegarde Excel : ${summary}`,[],false);
   saveD();
   return summary;
@@ -5645,8 +5865,9 @@ function handleRestoreFile(input){
       const wb=XLSX.read(data,{type:'array',cellDates:true});
       if(!wb.Sheets['Réservations'])throw new Error("Ce fichier ne ressemble pas à une sauvegarde complète de l'application (feuille « Réservations » introuvable). Utilise le bouton « Sauvegarde complète » pour générer un fichier compatible.");
       const snap=parseFullBackupWorkbook(wb);
-      const diff=computeRestoreDiff(snap);
-      S.restorePreview={status:'ready',fileName:file.name,diff};
+      const mode=S.restoreMode||'complete';
+      const diff=computeRestoreDiff(snap,mode);
+      S.restorePreview={status:'ready',fileName:file.name,diff,snap,mode};
     }catch(err){
       S.restorePreview={status:'error',fileName:file.name,error:err.message};
     }
@@ -5663,6 +5884,12 @@ function confirmRestore(){
   render();
 }
 function cancelRestorePreview(){S.restorePreview=null;render();}
+function setRestoreMode(mode){
+  S.restoreMode=mode;
+  const rp=S.restorePreview;
+  if(rp&&rp.snap){rp.mode=mode;rp.diff=computeRestoreDiff(rp.snap,mode);}
+  render();
+}
 
 function renderRestoreSection(){
   const rp=S.restorePreview;
@@ -5677,25 +5904,44 @@ function renderRestoreSection(){
     <button class="btn btn-sm" style="margin-top:8px" onclick="cancelRestorePreview()">Réessayer</button>`;
   } else if(rp.status==='ready'){
     const c=rp.diff.counts;
+    const ident=rp.diff.identique;
+    /* Choix du mode, expliqué en clair : « compléter » ne fait qu'ajouter ; « remettre à
+       l'identique » aligne l'application sur le fichier, suppressions comprises. */
+    const modeChooser=`<div style="background:#f5f4f1;border-radius:8px;padding:9px 11px;margin-bottom:10px">
+      <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Que doit faire cette restauration ?</div>
+      <label style="display:flex;gap:7px;align-items:flex-start;font-size:12.5px;cursor:pointer;margin-bottom:6px">
+        <input type="radio" name="restore-mode" value="complete" ${ident?'':'checked'} onchange="setRestoreMode('complete')" style="width:auto;margin-top:2px">
+        <span><strong>Compléter</strong> — on ajoute seulement ce qui manque. Rien de ce qui existe déjà n'est modifié ni supprimé.</span>
+      </label>
+      <label style="display:flex;gap:7px;align-items:flex-start;font-size:12.5px;cursor:pointer">
+        <input type="radio" name="restore-mode" value="identique" ${ident?'checked':''} onchange="setRestoreMode('identique')" style="width:auto;margin-top:2px">
+        <span><strong>Remettre à l'identique</strong> — le fichier fait foi : ce qui manque est ajouté, ce qui diffère est corrigé, et <strong>ce qui n'est pas dans le fichier est supprimé</strong>.</span>
+      </label>
+    </div>`;
     const rowsDef=[['Réservations',c.reservations],['Commentaires',c.commentaires],['Paiements',c.paiements],
       ['Prestations (commission)',c.prestations],['Nuits de gardiennage (résa)',c.gardiennageResa],
       ['Prestataires extérieurs',c.prestasExterieurs],['Visites',c.visites],['Travaux',c.travaux],
       ['Gardiennage planifié',c.gardiennagePlanning],['Jardinage Dominique',c.jardinageDominique],
-      ['Commentaires de bilan',c.commentairesBilan],['Données financières mensuelles',c.financesMensuelles]];
+      ['Commentaires de bilan',c.commentairesBilan],['Données financières mensuelles',c.financesMensuelles],
+      ['Corrigés d\'après le fichier',c.corriges||0],['Supprimés (absents du fichier)',c.supprimes||0]];
     const total=Object.values(c).reduce((a,b)=>a+b,0);
     if(total===0){
       body=`<div style="font-size:13px;margin-bottom:6px">Fichier : <strong>${rp.fileName}</strong></div>
-      <div class="alert alert-ok">✓ Rien à restaurer — tout ce que contient ce fichier est déjà présent dans l'application (ou a été supprimé volontairement depuis).${rp.diff.skipped?` (${rp.diff.skipped} ligne(s) du fichier n'ont pas pu être lues et ont été ignorées.)`:''}</div>
+      ${modeChooser}
+      <div class="alert alert-ok">✓ Rien à faire — l'application correspond déjà à ce fichier.${rp.diff.skipped?` (${rp.diff.skipped} ligne(s) du fichier n'ont pas pu être lues et ont été ignorées.)`:''}</div>
       <button class="btn btn-sm" style="margin-top:8px" onclick="cancelRestorePreview()">Fermer</button>`;
     } else {
       body=`<div style="font-size:13px;margin-bottom:6px">Fichier : <strong>${rp.fileName}</strong></div>
-      <div class="alert" style="background:#FFF3D6;color:#7A5800;margin-bottom:10px">⏳ Voici ce qui sera <strong>ajouté</strong> — rien de ce qui existe déjà dans l'application ne sera modifié ni écrasé :</div>
+      ${modeChooser}
+      ${ident?`<div class="alert" style="background:${c.supprimes?'#FCEBEB':'#FFF3D6'};color:${c.supprimes?'#791F1F':'#7A5800'};margin-bottom:10px">${c.supprimes?`⚠️ Après cette restauration, l'application correspondra <strong>exactement</strong> au fichier. <strong>${c.supprimes} élément(s) seront supprimés</strong> car ils ne figurent pas dedans${c.corriges?`, et ${c.corriges} seront corrigés`:''}.`:`⏳ L'application sera alignée sur le fichier${c.corriges?` — ${c.corriges} élément(s) seront corrigés`:''}. Rien ne sera supprimé.`}</div>`
+      :`<div class="alert" style="background:#FFF3D6;color:#7A5800;margin-bottom:10px">⏳ Voici ce qui sera <strong>ajouté</strong> — rien de ce qui existe déjà dans l'application ne sera modifié ni écrasé :</div>`}
       <table class="list-tbl" style="margin-bottom:12px"><tbody>
         ${rowsDef.filter(([,n])=>n>0).map(([label,n])=>`<tr><td>${label}</td><td style="text-align:right;font-weight:600">${n}</td></tr>`).join('')}
       </tbody></table>
       ${c.reservations>0?`<div style="font-size:11px;color:#888;margin-bottom:10px">Réservations qui seraient recréées : ${rp.diff.resaToAdd.slice(0,15).map(r=>`${r.client||r.societe||'—'} (${ds(r.dateArrivee)})`).join(', ')}${rp.diff.resaToAdd.length>15?'…':''}</div>`:''}
       ${rp.diff.skipped?`<div style="font-size:11px;color:#888;margin-bottom:10px">${rp.diff.skipped} ligne(s) du fichier n'ont pas pu être identifiées (domaine ou prestataire non reconnu) et ont été ignorées.</div>`:''}
-      <button class="btn btn-primary" style="padding:10px 18px;font-size:13px;margin-right:8px" onclick="confirmRestore()">✓ Confirmer la restauration</button>
+      ${ident&&c.supprimes?`<div style="font-size:11px;color:#791F1F;margin-bottom:10px">À supprimer : ${(rp.diff.extras.resaToRemove||[]).slice(0,10).map(r=>`${r.client||r.societe||'—'} (${ds(r.dateArrivee)})`).join(', ')||'—'}${(rp.diff.extras.resaToRemove||[]).length>10?'…':''}</div>`:''}
+      <button class="btn btn-primary" style="padding:10px 18px;font-size:13px;margin-right:8px${ident&&c.supprimes?';background:#A32D2D;border-color:#A32D2D':''}" onclick="confirmRestore()">${ident?(c.supprimes?`✓ Remettre à l'identique (dont ${c.supprimes} suppression(s))`:`✓ Remettre à l'identique`):'✓ Confirmer la restauration'}</button>
       <button class="btn btn-sm" onclick="cancelRestorePreview()">Annuler</button>`;
     }
   } else if(rp.status==='done'){
@@ -5705,7 +5951,7 @@ function renderRestoreSection(){
   return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
     <div class="sec-hdr"><h2>♻️ Restaurer une sauvegarde</h2></div>
     <div style="font-size:13px;color:#555;margin-bottom:14px;line-height:1.5">
-      Choisis un fichier « Sauvegarde complète » exporté depuis ce logiciel. L'appli te montrera d'abord <strong>précisément ce qui manque</strong> avant de toucher à quoi que ce soit — rien n'est modifié tant que tu n'as pas confirmé, et ce qui existe déjà (ou a été supprimé volontairement) n'est jamais écrasé ni ressuscité.
+      Choisis un fichier « Sauvegarde complète » exporté depuis ce logiciel. L'appli te montrera d'abord <strong>précisément ce qui manque</strong> avant de toucher à quoi que ce soit — rien n'est modifié tant que tu n'as pas confirmé. Tu choisis ensuite si la restauration doit seulement <strong>compléter</strong> ce qui manque, ou <strong>remettre l'application à l'identique</strong> du fichier (avec les suppressions que cela implique).
     </div>
     ${body}
   </div>`;
