@@ -267,16 +267,36 @@ let _syncPending=false;      // il reste des modifications non confirmées côt�
 let _syncLastOk=null;        // horodatage du dernier envoi confirmé
 let _pushRetryDelay=3000;    // délai avant relance, doublé à chaque échec (plafonné)
 let _pushTimer=null;
+let _pendingSince=null;
+/* Seuil d'alerte : un envoi met normalement moins d'une seconde. Tant qu'on est sous ce seuil,
+   la pastille reste sur « à jour » — sinon elle clignoterait entre les deux états à chaque
+   sauvegarde, ce qui attire l'œil pour rien. Elle ne bascule sur « à envoyer » que si quelque
+   chose est vraiment bloqué (réseau coupé, serveur injoignable). */
+const SYNC_ALERT_MS=15000;
 function syncPending(){return _syncPending;}
+/* État AFFICHÉ (différent de l'état interne) : 'ok' tant que rien n'est bloqué durablement. */
+function syncBadgeState(){
+  if(_syncPending&&_pendingSince&&(Date.now()-_pendingSince)>=SYNC_ALERT_MS)return'pending';
+  return'ok';
+}
 function markSyncPending(){
-  if(!_syncPending){_syncPending=true;if(!S.modal)renderSyncBadgeInPlace();}
+  if(!_syncPending){_syncPending=true;_pendingSince=Date.now();}
   try{localStorage.setItem(SK+'_pending','1');}catch(e){}
+  refreshSyncBadge();
 }
 function markSynced(){
-  const was=_syncPending;
-  _syncPending=false;_syncLastOk=Date.now();_pushRetryDelay=3000;
+  _syncPending=false;_pendingSince=null;_syncLastOk=Date.now();_pushRetryDelay=3000;
   try{localStorage.removeItem(SK+'_pending');}catch(e){}
-  if(was&&!S.modal)renderSyncBadgeInPlace();
+  refreshSyncBadge();
+}
+/* On ne redessine la pastille que si son état AFFICHÉ a réellement changé — jamais à chaque
+   sauvegarde. */
+let _syncBadgeShown='ok';
+function refreshSyncBadge(){
+  const st=syncBadgeState();
+  if(st===_syncBadgeShown)return;
+  _syncBadgeShown=st;
+  if(!S.modal)renderSyncBadgeInPlace();
 }
 function schedulePushRetry(){
   if(_pushTimer)return;
@@ -286,7 +306,7 @@ function schedulePushRetry(){
 /* Pastille de synchronisation : « ⏳ à envoyer » tant que quelque chose n'est pas confirmé côté
    serveur, « ✓ à jour » sinon. On la met à jour sur place, sans re-rendre toute la page. */
 function renderSyncBadge(){
-  return _syncPending
+  return syncBadgeState()==='pending'
     ?`<span id="sync-badge" title="Des modifications ne sont pas encore parties. Elles sont enregistrées sur cet appareil et repartiront automatiquement dès que la connexion reviendra." style="display:inline-flex;align-items:center;gap:3px;background:#FFF3D6;color:#7A5800;border:1px solid #E8C97A;border-radius:20px;padding:2px 8px;font-size:10.5px;font-weight:700;white-space:nowrap;flex-shrink:0">⏳ à envoyer</span>`
     :`<span id="sync-badge" title="Tout est enregistré et transmis${_syncLastOk?' — dernier envoi à '+new Date(_syncLastOk).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):''}." style="display:inline-flex;align-items:center;gap:3px;background:#EAF3DE;color:#27500A;border:1px solid #BEDCA4;border-radius:20px;padding:2px 8px;font-size:10.5px;font-weight:700;white-space:nowrap;flex-shrink:0">✓ à jour</span>`;
 }
@@ -1357,19 +1377,21 @@ function renderTravauxSection(p,y,m){
   const domOpts=D.domaines.map(d=>`<option value="${d.id}" ${d.id===defaultDom?'selected':''}>${d.name}</option>`).join('');
   return`<div id="bloc-travaux" class="bilan-sec" style="border-color:#8B4A1F">
     <div class="sec-hdr" style="background:#8B4A1F"><h2>🔧 Travaux &amp; ménages ponctuels — ${MONTHS_FR[m]} ${y}</h2></div>
-    <div style="font-size:11px;color:#888;margin-bottom:10px">Travaux dans un domaine (${TRAVAUX_RATE}€/h ou au forfait, ex. changer des fenêtres) OU ménage ponctuel non automatique (trimestriel, annuel — montant libre) — sans commission dans les deux cas. ${isAdmin?'Validez chaque ligne, ou laissez en attente.':'David/Svitlana valide chaque ligne.'}</div>
-    ${!isAdmin?`<div class="g3" style="margin-bottom:8px">
-      <div class="field"><label>Domaine</label><select id="trav-domaine-${p.id}">${domOpts}</select></div>
-      <div class="field"><label>Jour</label><input type="date" id="trav-date-${p.id}"></div>
-      <div class="field"><label>Type</label><select id="trav-type-${p.id}" onchange="document.getElementById('trav-mode-wrap-${p.id}').style.display=this.value==='travaux'?'':'none';if(this.value==='menage'){document.getElementById('trav-heures-wrap-${p.id}').style.display='none';document.getElementById('trav-forfait-wrap-${p.id}').style.display='';}else{document.getElementById('trav-heures-wrap-${p.id}').style.display='';document.getElementById('trav-forfait-wrap-${p.id}').style.display='none';}"><option value="travaux">Travaux</option><option value="menage">Ménage ponctuel</option></select></div>
-    </div>
-    <div class="g3" style="margin-bottom:8px">
-      <div class="field" id="trav-mode-wrap-${p.id}"><label>Mode</label><select id="trav-mode-${p.id}" onchange="document.getElementById('trav-heures-wrap-${p.id}').style.display=this.value==='heure'?'':'none';document.getElementById('trav-forfait-wrap-${p.id}').style.display=this.value==='forfait'?'':'none';"><option value="heure">À l'heure</option><option value="forfait">Au forfait</option></select></div>
-      <div class="field" id="trav-heures-wrap-${p.id}"><label>Nombre d'heures</label><input type="number" id="trav-heures-${p.id}" step="0.5" placeholder="ex: 3.5"></div>
-      <div class="field" id="trav-forfait-wrap-${p.id}" style="display:none"><label>Montant convenu</label><input type="number" id="trav-forfait-${p.id}" step="0.01" placeholder="ex: 1000"></div>
-    </div>
-    <div class="field" style="margin-bottom:8px"><label>Description (ex : changement des fenêtres, ménage trimestriel…)</label><input type="text" id="trav-note-${p.id}" placeholder="Ce qui a été fait…"></div>
-    <button class="btn btn-primary btn-sm" onclick="addTravaux('${p.id}')" style="margin-bottom:10px">+ Déclarer</button>`:''}
+    <div style="font-size:11px;color:#888;margin-bottom:8px">${TRAVAUX_RATE}€/h ou au forfait, et les ménages ponctuels (trimestriel, annuel) — sans commission. ${isAdmin?'Validez chaque ligne.':'David/Svitlana valide.'}</div>
+    ${!isAdmin?`<div style="background:#f5f4f1;border-radius:8px;padding:7px;margin-bottom:10px">
+      <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:5px">
+        <select id="trav-domaine-${p.id}" style="font-size:11.5px;padding:4px 5px;flex:1;min-width:88px">${domOpts}</select>
+        <input type="date" id="trav-date-${p.id}" style="font-size:11.5px;padding:4px 5px;width:132px">
+        <select id="trav-type-${p.id}" style="font-size:11.5px;padding:4px 5px" onchange="var f=this.value==='menage';document.getElementById('trav-mode-${p.id}').style.display=f?'none':'';document.getElementById('trav-heures-${p.id}').style.display=f?'none':'';document.getElementById('trav-forfait-${p.id}').style.display=f?'':'none';"><option value="travaux">🔧 Travaux</option><option value="menage">🧹 Ménage ponctuel</option></select>
+        <select id="trav-mode-${p.id}" style="font-size:11.5px;padding:4px 5px" onchange="var h=this.value==='heure';document.getElementById('trav-heures-${p.id}').style.display=h?'':'none';document.getElementById('trav-forfait-${p.id}').style.display=h?'none':'';"><option value="heure">À l'heure</option><option value="forfait">Au forfait</option></select>
+        <input type="number" id="trav-heures-${p.id}" step="0.5" placeholder="heures" style="font-size:11.5px;padding:4px 5px;width:70px">
+        <input type="number" id="trav-forfait-${p.id}" step="0.01" placeholder="montant €" style="font-size:11.5px;padding:4px 5px;width:88px;display:none">
+      </div>
+      <div style="display:flex;gap:5px;align-items:center">
+        <input type="text" id="trav-note-${p.id}" placeholder="Ce qui a été fait (ex : changement des fenêtres)" style="flex:1;min-width:0;font-size:11.5px;padding:4px 5px">
+        <button class="btn btn-primary btn-sm" onclick="addTravaux('${p.id}')" style="flex-shrink:0">+ Déclarer</button>
+      </div>
+    </div>`:''}
     ${rows.length===0?'<div class="empty">Aucun travaux ni ménage ponctuel déclaré ce mois-ci.</div>':''}
     ${rows.map(x=>{const dom=gDom(x.domaine);const detail=x.mode==='forfait'?`${money(x.montant)} (forfait)`:`${x.heures}h · ${money(x.montant)}`;const typeIcon=x.type==='menage'?'🧹 Ménage ponctuel':'🔧 Travaux';return`<div style="padding:8px 0;border-bottom:1px solid #e5e3de;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
       <div><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span><span style="font-size:11px;color:#8B4A1F;font-weight:600;margin-right:4px">${typeIcon}</span><span style="font-size:13px">${ds(x.date)} · ${detail}</span>${x.note?`<div style="font-size:11px;color:#888;margin-top:2px">${x.note}</div>`:''}</div>
@@ -1451,12 +1473,12 @@ function renderReglementSection(p,y,m){
       </div>
       ${negatif?`<div style="font-size:11px;color:#A32D2D;padding-bottom:8px">⚠️ Le total facturé dépasse ce qui est dû ce mois-ci — vérifiez les montants.</div>`:''}
     </div>
-    <div class="g3" style="margin-bottom:8px">
-      <div class="field"><label>Facture adressée à</label><select id="fact-dest-${p.id}">${destOpts}</select></div>
-      <div class="field"><label>Montant facturé</label><input type="number" id="fact-montant-${p.id}" step="0.01" placeholder="ex: 600"></div>
-      <div class="field"><label>Référence (optionnel)</label><input type="text" id="fact-note-${p.id}" placeholder="ex: n° 2026-08"></div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;background:#f5f4f1;border-radius:8px;padding:7px">
+      <select id="fact-dest-${p.id}" style="font-size:11.5px;padding:4px 5px;flex:1;min-width:110px">${destOpts}</select>
+      <input type="number" id="fact-montant-${p.id}" step="0.01" placeholder="montant facturé €" style="font-size:11.5px;padding:4px 5px;width:130px">
+      <input type="text" id="fact-note-${p.id}" placeholder="n° facture" style="font-size:11.5px;padding:4px 5px;width:100px">
+      <button class="btn btn-primary btn-sm" onclick="addFacture('${p.id}',${y},${m})" style="flex-shrink:0">+ Ajouter</button>
     </div>
-    <button class="btn btn-primary btn-sm" onclick="addFacture('${p.id}',${y},${m})">+ Ajouter cette facture</button>
   </div>`;
 }
 function renderRemboursementSection(p,y,m){
@@ -1467,20 +1489,21 @@ function renderRemboursementSection(p,y,m){
   const rows=(D.remboursements||[]).filter(x=>x.pid===p.id&&inMonth(x.date)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   const defaultDom=(p.domaines||[])[0];
   const domOpts=D.domaines.map(d=>`<option value="${d.id}" ${d.id===defaultDom?'selected':''}>${d.name}</option>`).join('');
-  const annuel=computeAnnualActiviteVsRemb(p,y);
   return`<div id="bloc-remb" class="bilan-sec" style="border-color:#0C447C">
     <div class="sec-hdr" style="background:#0C447C"><h2>💳 Paiement fait / divers — ${MONTHS_FR[m]} ${y}</h2></div>
     <div style="font-size:11px;color:#888;margin-bottom:10px">Toute dépense que ${p.name} fait de sa poche pour notre compte — régler quelqu'un pour nous, acheter/avancer quelque chose (boissons, envoi postal, petit matériel…) — c'est un remboursement, pas une rémunération : ça s'ajoute à ce qu'on lui doit, mais reste toujours compté à part. ${isAdmin?'Validez chaque ligne, ou laissez en attente.':'David/Svitlana valide chaque ligne.'}</div>
-    ${!isAdmin?`<div class="g3" style="margin-bottom:8px">
-      <div class="field"><label>Domaine</label><select id="remb-domaine-${p.id}">${domOpts}</select></div>
-      <div class="field"><label>Jour</label><input type="date" id="remb-date-${p.id}"></div>
-      <div class="field"><label>Montant dépensé</label><input type="number" id="remb-montant-${p.id}" step="0.01" placeholder="ex: 200"></div>
-    </div>
-    <div class="g2" style="margin-bottom:8px">
-      <div class="field"><label>Pour qui / pour quoi ?</label><input type="text" id="remb-benef-${p.id}" placeholder="ex: Pascaline, La Poste, boissons…"></div>
-      <div class="field"><label>Motif (optionnel)</label><input type="text" id="remb-note-${p.id}" placeholder="ex: extra bar samedi"></div>
-    </div>
-    <button class="btn btn-primary btn-sm" onclick="addRemboursement('${p.id}')" style="margin-bottom:10px">+ Déclarer cette dépense</button>`:''}
+    ${!isAdmin?`<div style="background:#f5f4f1;border-radius:8px;padding:7px;margin-bottom:10px">
+      <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:5px">
+        <select id="remb-domaine-${p.id}" style="font-size:11.5px;padding:4px 5px;flex:1;min-width:88px">${domOpts}</select>
+        <input type="date" id="remb-date-${p.id}" style="font-size:11.5px;padding:4px 5px;width:132px">
+        <input type="number" id="remb-montant-${p.id}" step="0.01" placeholder="montant €" style="font-size:11.5px;padding:4px 5px;width:92px">
+      </div>
+      <div style="display:flex;gap:5px;align-items:center">
+        <input type="text" id="remb-benef-${p.id}" placeholder="Pour qui / quoi (ex : La Poste)" style="flex:1;min-width:0;font-size:11.5px;padding:4px 5px">
+        <input type="text" id="remb-note-${p.id}" placeholder="Motif" style="flex:1;min-width:0;font-size:11.5px;padding:4px 5px">
+        <button class="btn btn-primary btn-sm" onclick="addRemboursement('${p.id}')" style="flex-shrink:0">+ Déclarer</button>
+      </div>
+    </div>`:''}
     ${rows.length===0?'<div class="empty">Aucune dépense pour nous déclarée ce mois-ci.</div>':''}
     ${rows.map(x=>{const dom=gDom(x.domaine);return`<div style="padding:8px 0;border-bottom:1px solid #e5e3de;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
       <div><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span><span style="font-size:13px">${ds(x.date)} · ${x.beneficiaire||'—'} · ${money(x.montant)}</span>${x.note?`<div style="font-size:11px;color:#888;margin-top:2px">${x.note}</div>`:''}</div>
@@ -1489,13 +1512,6 @@ function renderRemboursementSection(p,y,m){
         ${x.status!=='validé'?`<button class="btn btn-xs btn-danger" onclick="delRemboursement('${x.id}')">✕</button>`:''}
       </div>
     </div>`;}).join('')}
-    <div style="margin-top:12px;padding-top:10px;border-top:1px dashed #B5D4F4">
-      <div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Vue d'ensemble ${y} — à ne pas confondre</div>
-      <div class="g2">
-        <div class="metric"><span class="lbl">Touché grâce à son activité (${y})</span><span class="val" style="color:#27500A">${money(annuel.totalActivite)}</span></div>
-        <div class="metric"><span class="lbl">Remboursements (${y})</span><span class="val" style="color:#0C447C">${money(annuel.totalRemb)}</span></div>
-      </div>
-    </div>
   </div>`;
 }
 /* === Gardiennage (Mathilde/Sébastien, mais aussi Misha/Sacha via le planning ponctuel) —
@@ -1876,7 +1892,7 @@ function bilanVoix(p){
     self,
     nom:self?'vous':p.name,
     pour:self?'pour vous':`pour ${p.name}`,
-    doit:self?'vous nous devez':`${p.name} nous doit`,
+    aRegler:self?'à vous régler':`à régler à ${p.name}`,
     aReverser:self?'à vous reverser':`à reverser à ${p.name}`,
     garde:self?'vous gardez':`${p.name} garde`,
     encaisse:self?'déjà encaissé par vous':`déjà encaissé par ${p.name}`
@@ -2059,23 +2075,24 @@ function renderCommissionBreakdownRow(p,y,m,bt){
       });
     }
     if(!ens.sansCommission){
+      // La commission est reprise en GRANDE ligne juste en dessous : pas de doublon ici.
       steps+=viaSubLine('Sous-total des prestations',ens.brut,'');
-      steps+=viaSubLine(`Commission ${ens.rate}%`,ens.commission,'-');
-      if(ens.notrePartDue>0)steps+=viaSubLine(`Vendu pour nous : ${money(ens.notrePart)} − 14% que ${V.garde}`,ens.notrePartDue,'-');
+      if(ens.notrePartDue>0)steps+=viaSubLine(`dont vendu pour nous : ${money(ens.notrePart)} − 14% que ${V.garde}`,ens.notrePartDue,'');
     } else if(ens.dejaEncaisse>0){
       steps+=viaSubLine(`dont ${V.encaisse} — rien à reverser`,ens.dejaEncaisse,'');
     }
-    // Jamais le brut : un forfait encaissé en direct est déjà chez lui, on ne lui doit rien dessus.
-    const net=ens.net;
-    const netPos=net>=0;
-    const concl=`<div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0 7px 16px;font-size:12px;border-bottom:1px solid #F4C6D6">
-      <span style="font-weight:700;color:#72243E">${netPos?`= net ${V.pour}`:`= ${V.doit}`}</span>
-      <strong style="color:${netPos?'#27500A':'#A32D2D'}">${netPos?'+ ':'− '}${money(Math.abs(net))}</strong>
-    </div>`;
+    /* Deux GRANDES lignes bien distinctes, jamais un solde net qui mélange les deux sens :
+       ce qu'on doit lui régler d'un côté, la commission qu'il nous doit de l'autre. */
+    const grosse=(lbl,val,col)=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0 6px 10px;font-size:13.5px;font-weight:700;border-bottom:1px solid #F4C6D6">
+      <span style="color:#72243E">${lbl}</span><strong style="color:${col};font-size:15px">${money(val)}</strong></div>`;
+    let concl='';
+    if(ens.aReverser>0)concl+=grosse(`Prestations ${V.aRegler}`,ens.aReverser,'#27500A');
+    const duANous=Math.round((ens.commission+ens.notrePartDue)*100)/100;
+    if(duANous>0)concl+=grosse(ens.sansCommission?'Part qui nous revient':`Commission ${ens.rate}%${ens.notrePartDue?' + part qui nous revient':''}`,duANous,'#A32D2D');
     return head+steps+concl;
   }).join('');
   const total=`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #F4C6D6;font-size:13px;font-weight:700">
-    <span style="color:#72243E">Total prestations</span>
+    <span style="color:#72243E">= Net prestations (repris dans le total du mois)</span>
     <strong style="color:${bt.compDu<0?'#A32D2D':'#27500A'}">${bt.compDu<0?'− ':'+ '}${money(Math.abs(bt.compDu))}</strong>
   </div>`;
   return blocks+total;
@@ -2147,16 +2164,20 @@ function renderCommissionDetailSection(p,y,m){
     }
     if(ens.notrePartDue>0)body+=row([`Part vendue pour nous : ${money(ens.notrePart)} − 14% que ${V.garde}`,'',
       `<span style="color:#A32D2D">− ${money(ens.notrePartDue)}</span>`]);
-    /* Le net n'est JAMAIS le total brut, même sans commission : un forfait encaissé en direct est
-       de l'argent qu'il a déjà — on ne lui doit rien dessus. Seul ce qui est passé par nous
-       (via DS / via Svitlana) nous reste à reverser. */
+    /* Deux lignes séparées et explicites, jamais un solde net : ce qu'on lui règle, et ce qu'il
+       nous doit. Un forfait encaissé en direct est de l'argent qu'il a déjà — rien à lui reverser. */
     if(ens.sansCommission&&ens.dejaEncaisse>0)
       body+=row([`<span style="color:#888">dont ${V.encaisse} — rien à reverser</span>`,'',
         `<span style="color:#888">${money(ens.dejaEncaisse)}</span>`],{fs:'10.5px'});
-    const net=ens.net;
-    body+=row([`<span style="font-weight:700">${net>=0?`= net ${V.pour}`:`= ${V.doit}`}</span>`,'',
-      `<strong style="color:${net>=0?'#27500A':'#A32D2D'};font-size:13px">${net>=0?'+ ':'− '}${money(Math.abs(net))}</strong>`],
-      {pad:'5px 6px 4px 0',fs:'13px',style:'border-top:1px dashed #D98CAA'});
+    if(ens.aReverser>0)
+      body+=row([`<span style="font-weight:700">Prestations ${V.aRegler}</span>`,'',
+        `<strong style="color:#27500A;font-size:13.5px">${money(ens.aReverser)}</strong>`],
+        {pad:'6px 6px 4px 0',fs:'13.5px',style:'border-top:1px dashed #D98CAA'});
+    const duANousD=Math.round((ens.commission+ens.notrePartDue)*100)/100;
+    if(duANousD>0)
+      body+=row([`<span style="font-weight:700">${ens.sansCommission?'Part qui nous revient':`Commission ${ens.rate}%${ens.notrePartDue?' + part qui nous revient':''}`}</span>`,'',
+        `<strong style="color:#A32D2D;font-size:13.5px">${money(duANousD)}</strong>`],
+        {pad:'4px 6px 5px 0',fs:'13.5px'});
     return`<div id="bloc-ens-${ens.rate}" style="scroll-margin-top:12px;margin-bottom:16px;border:1.5px solid #E6A8C2;border-radius:10px;overflow:hidden">
       <div style="background:#993556;color:#fff;padding:7px 11px;font-weight:700;font-size:12.5px">${titre}</div>
       ${soustitre?`<div style="background:#FBEAF0;color:#72243E;font-size:10.5px;padding:5px 11px;line-height:1.35">${soustitre}</div>`:''}
@@ -2972,20 +2993,42 @@ function injectBands(){
       leftPx=(sRect.left-gridRect.left);
       widthPx=(eRect.left+eRect.width-gridRect.left)-leftPx;
     }
-    /* S'il y a une visite ce jour-là sur cette ligne, on décale le départ de la bande (et donc
-       l'heure d'arrivée et le badge P qui la précèdent) juste après la pastille. Tout reste ainsi
-       sur la MÊME ligne, sans rien se superposer — sur téléphone comme sur ordinateur. On ne le
-       fait que pour les bandes qui COMMENCENT dans cette case : une bande qui ne fait que la
-       traverser ne peut pas être coupée, la pastille se placera alors dans l'espace libre. */
-    const _startCi=b.row*7+b.colStart;
-    const _nVis=visReserve[_startCi+'_'+b.slot]||0;
-    if(_nVis&&(b.shapeClass==='band-start'||b.shapeClass==='band-startend')){
-      const _cellLeft=(sRect.left-gridRect.left);
-      const _minLeft=_cellLeft+1+visiteReserveWidth(_nVis);
-      if(leftPx<_minLeft){
-        const _delta=_minLeft-leftPx;
-        // On ne rogne jamais la bande au point de la rendre illisible.
-        if(widthPx-_delta>=18){leftPx=_minLeft;widthPx-=_delta;}
+    /* === La bande s'efface devant les pastilles de visite ===
+       Pour CHAQUE jour couvert par cette bande où il y a une visite sur la même ligne (même
+       domaine), on réserve un emplacement à gauche de la case. La bande est ensuite découpée
+       autour de ces emplacements : son début est décalé si la visite est le jour de l'arrivée,
+       sa fin est raccourcie si c'est le jour du départ, et elle est coupée en deux morceaux si
+       la visite tombe au milieu du séjour. Tout reste ainsi sur la MÊME ligne, sans jamais se
+       superposer et sans jamais renvoyer la pastille ailleurs. */
+    const _zones=[];
+    for(let _ci=b.row*7+b.colStart;_ci<=b.row*7+b.colStart+b.spanCols-1;_ci++){
+      const _n=visReserve[_ci+'_'+b.slot]||0;
+      if(!_n)continue;
+      const _c=cells[_ci];if(!_c)continue;
+      const _cl=(_c.getBoundingClientRect().left-gridRect.left);
+      _zones.push([_cl,_cl+1+visiteReserveWidth(_n)+1]);
+    }
+    _zones.sort((a,z)=>a[0]-z[0]);
+    /* Découpe de l'EMPRISE COMPLÈTE de la bande (colonne heure/badge P comprise) autour des
+       emplacements réservés. On le fait avant tout le reste, pour que l'heure d'arrivée et le
+       badge P se retrouvent eux aussi du bon côté de la pastille et non dessous. */
+    let _otherPieces=[];
+    if(_zones.length){
+      let pieces=[[leftPx,leftPx+widthPx]];
+      _zones.forEach(([zs,ze])=>{
+        const out=[];
+        pieces.forEach(([ps,pe])=>{
+          if(ze<=ps||zs>=pe){out.push([ps,pe]);return;}
+          if(zs>ps)out.push([ps,Math.min(zs,pe)]);
+          if(ze<pe)out.push([Math.max(ze,ps),pe]);
+        });
+        pieces=out;
+      });
+      pieces=pieces.filter(([ps,pe])=>pe-ps>=6);
+      if(pieces.length){
+        let bi=0;pieces.forEach((p,i)=>{if(p[1]-p[0]>pieces[bi][1]-pieces[bi][0])bi=i;});
+        leftPx=pieces[bi][0];widthPx=pieces[bi][1]-pieces[bi][0];
+        _otherPieces=pieces.filter((p,i)=>i!==bi);
       }
     }
     const _isMobileNow=window.innerWidth<=640;
@@ -3016,6 +3059,19 @@ function injectBands(){
         if(_applyDep){_renderWidth-=_hourMargin;}
       }
     }
+    /* Les morceaux secondaires (quand la visite tombe au milieu du séjour) : de simples aplats
+       de la couleur du domaine, cliquables comme la bande principale, sans texte. */
+    _otherPieces.forEach(p=>{
+      const seg=document.createElement('div');
+      seg.className=`band ${b.bandCls}${b.optCls}${b.isPaid?' paid':''}`;
+      seg.style.position='absolute';seg.style.top=topPx+'px';
+      seg.style.left=p[0]+'px';seg.style.width=(p[1]-p[0])+'px';
+      seg.style.height=_bandH+'px';seg.style.borderRadius='0';
+      seg.style.pointerEvents='all';seg.style.cursor=STRIP_BAND_INFO?'default':'pointer';
+      seg.title=(b.nameTxt||'')+' — cliquer pour détail';
+      if(!STRIP_BAND_INFO)seg.onclick=ev=>{ev.stopPropagation();selectResa(b.rid,ev);};
+      grid.appendChild(seg);
+    });
     const div=document.createElement('div');
     div.className=`band ${b.shapeClass} ${b.bandCls}${b.optCls}${b.isPaid?' paid':''}`;
     div.style.position='absolute';
@@ -3210,59 +3266,16 @@ function injectVisiteMarkers(){
     const cellCenter=cellLeft+cRect.width/2;
     const cellTop=cRect.top-gridRect.top;
     const n=list.length;
-    /* On cherche d'abord de la place sur la ligne du domaine de la visite ; si la journée est
-       chargée (réservation qui occupe toute la case avec son heure d'arrivée et son P), on
-       accepte de DÉCALER le groupe de pastilles sur une autre ligne de la même case plutôt que
-       de recouvrir quoi que ce soit — David : « si tu dois décaler des choses, tu peux le faire,
-       il faut qu'on voit tout tout le temps ». La couleur de la pastille continue d'indiquer le
-       domaine, et l'infobulle le rappelle explicitement quand la ligne n'est pas celle d'origine. */
-    const rowOrder=[slot];
-    for(let d=1;d<nSlots;d++){
-      if(slot+d<nSlots)rowOrder.push(slot+d);
-      if(slot-d>=0)rowOrder.push(slot-d);
-    }
+    /* Emplacement DÉTERMINISTE : toujours à gauche de la case, toujours sur la ligne du domaine
+       de la visite. C'est exactement la place qu'injectBands vient de libérer en découpant la
+       bande. La pastille n'est plus jamais renvoyée sur une autre ligne — c'était précisément ce
+       qui donnait l'impression qu'elle « passait en dessous ». */
     const need=n*markerD+(n-1)*gap;
-    let chosen=null;
-    /* Emplacement normal : tout à gauche de la case, sur la ligne du domaine — c'est exactement
-       la place qu'injectBands vient de libérer en décalant le départ de la bande. On ne cherche
-       ailleurs que si cette place est malgré tout occupée (bande qui traverse la journée). */
-    const rowTop0=cellTop+_offV+slot*_pitchV;
-    const startX0=cellLeft+1;
-    if(freeSpans(rowTop0,cellLeft,cellRight).some(sp=>sp[0]<=startX0+0.5&&sp[1]>=startX0+need-0.5)){
-      chosen={rowTop:rowTop0,startX:startX0,d:markerD,g:gap,moved:false};
-    }
-    for(let ri=0;!chosen&&ri<rowOrder.length;ri++){
-      const rowTop=cellTop+_offV+rowOrder[ri]*_pitchV;
-      const fit=freeSpans(rowTop,cellLeft,cellRight).find(sp=>sp[1]-sp[0]>=need);
-      if(fit){
-        chosen={rowTop,startX:fit[0]+((fit[1]-fit[0])-need)/2,d:markerD,g:gap,moved:rowOrder[ri]!==slot};
-        break;
-      }
-    }
-    if(!chosen){
-      /* Plus assez de place à la taille normale : on réduit la pastille et on prend le plus grand
-         espace libre de la case, quelle que soit la ligne — toujours mieux que de masquer une info. */
-      let best=null;
-      rowOrder.forEach(s=>{
-        const rowTop=cellTop+_offV+s*_pitchV;
-        freeSpans(rowTop,cellLeft,cellRight).forEach(sp=>{
-          const w=sp[1]-sp[0];
-          if(!best||w>best.w)best={rowTop,left:sp[0],w,slot:s};
-        });
-      });
-      const gSmall=2;
-      if(best&&best.w>=n*9+(n-1)*gSmall){
-        const dSmall=Math.max(9,Math.min(markerD,Math.floor((best.w-(n-1)*gSmall)/n)));
-        chosen={rowTop:best.rowTop,startX:best.left,d:dSmall,g:gSmall,moved:best.slot!==slot};
-      }
-    }
-    if(!chosen){
-      // Cas extrême (case entièrement pleine sur les 3 lignes) : on repasse au placement centré
-      // d'origine, en gardant la pastille au-dessus pour qu'elle reste au moins cliquable.
-      let sx=cellCenter-need/2;
-      if(sx<cellLeft+1)sx=cellLeft+1;
-      if(sx+need>cellRight-1)sx=Math.max(cellLeft+1,cellRight-1-need);
-      chosen={rowTop:cellTop+_offV+slot*_pitchV,startX:sx,d:markerD,g:gap,moved:false};
+    const chosen={rowTop:cellTop+_offV+slot*_pitchV,startX:cellLeft+1,d:markerD,g:gap,moved:false};
+    // Sécurité : si la case est vraiment trop étroite, on réduit la pastille plutôt que de déborder.
+    if(chosen.startX+need>cellRight-1){
+      const dispo=(cellRight-1)-chosen.startX;
+      chosen.d=Math.max(9,Math.floor((dispo-(n-1)*gap)/n));
     }
     list.forEach((v,i)=>{
       const leftPx=chosen.startX+i*(chosen.d+chosen.g);
@@ -4122,6 +4135,47 @@ function paidForYear(r,y){
   let inY=0;Object.entries(counts).forEach(([k,n])=>{if(k.startsWith(y+'-'))inY+=n;});
   return totPay(r)*(inY/total);
 }
+/* Récapitulatif ANNUEL par prestataire — réservé à David/Svitlana (jamais côté prestataire).
+   Trois ensembles, comme demandé : ce que le ménage a rapporté sur l'année, ce que les
+   prestations ont rapporté, ce que les travaux ont rapporté. Plus, à part, ce qu'on lui a
+   remboursé — qui n'est pas de l'activité et ne doit jamais être confondu avec elle. */
+function computeAnnuelParPoste(p,y){
+  let menage=0,prestations=0,travaux=0,forfait=0,gardiennage=0,elec=0,remb=0;
+  for(let mi=0;mi<12;mi++){
+    const bt=computeBilanTotal(p,y,mi);
+    menage+=bt.menageDu;prestations+=bt.compDu;travaux+=bt.travDu;
+    forfait+=bt.forfaitDu;gardiennage+=bt.gardeDu;elec+=bt.elecCost;remb+=bt.rembDu;
+  }
+  const r2=v=>Math.round(v*100)/100;
+  const activite=r2(menage+prestations+travaux+forfait+gardiennage-elec);
+  return{menage:r2(menage),prestations:r2(prestations),travaux:r2(travaux),forfait:r2(forfait),
+    gardiennage:r2(gardiennage),elec:r2(elec),remb:r2(remb),activite};
+}
+function renderBilanAnnuelPresta(p,y){
+  if(S.view!=='admin')return'';          // jamais visible côté prestataire
+  const A=computeAnnuelParPoste(p,y);
+  const ligne=(lbl,val,col)=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #E8E5DE;font-size:13px">
+    <span>${lbl}</span><strong style="color:${col||'#1a1a1a'}">${money(val)}</strong></div>`;
+  return`<div class="bilan-sec" style="border-color:#5B5952;margin-bottom:14px">
+    <div class="sec-hdr" style="background:#5B5952"><h2>📅 Année ${y} — ${p.name}</h2></div>
+    <div style="font-size:11px;color:#888;margin-bottom:8px">Vue interne, visible uniquement par David et Svitlana.</div>
+    <div style="background:#fff;border-radius:8px;padding:2px 12px">
+      ${p.flatRate||p.inputMode==='notes'?ligne('🧹 Ménage',A.menage,'#1E7A6E'):''}
+      ${p.inputMode==='notes'?ligne('🧾 Prestations (net)',A.prestations,'#7A5800'):''}
+      ${p.accessMode==='domaine'?ligne('🔧 Travaux &amp; ménages ponctuels',A.travaux,'#8B4A1F'):''}
+      ${p.forfaitMensuel?ligne('🛡 Forfait gardiennage fixe',A.forfait,'#534AB7'):''}
+      ${p.inputMode==='garde'?ligne('🛡 Gardiennage (nuits)',A.gardiennage,'#534AB7'):''}
+      ${p.electricite&&A.elec?ligne('⚡ Électricité (à sa charge)',-A.elec,'#A32D2D'):''}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0 4px;border-top:2px solid #5B5952;font-size:14px;font-weight:700">
+        <span>Total activité ${y}</span><span style="font-size:17px">${money(A.activite)}</span>
+      </div>
+    </div>
+    ${A.remb?`<div style="margin-top:10px;background:#E6F1FB;border-radius:8px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:12px;color:#0C447C">💳 Remboursé en plus (dépenses avancées pour nous) — ce n'est pas de l'activité</span>
+      <strong style="color:#0C447C;white-space:nowrap;margin-left:8px">${money(A.remb)}</strong>
+    </div>`:''}
+  </div>`;
+}
 function renderBilan(){
   const bilanPrestas=D.prestataires.filter(p=>p.forfaitMensuel||p.inputMode==='notes'||p.flatRate||p.inputMode==='garde');
   const subTab=S.bilanSubTab||'general';
@@ -4131,7 +4185,7 @@ function renderBilan(){
   </div>`;
   if(subTab!=='general'){
     const p=D.prestataires.find(x=>x.id===subTab);
-    if(p)return tabsHtml+renderPrestaDetailAdmin(p);
+    if(p)return tabsHtml+`<div style="margin-top:14px">${renderBilanAnnuelPresta(p,S.adminPrestaYear||new Date().getFullYear())}</div>`+renderPrestaDetailAdmin(p);
   }
   return tabsHtml+renderBilanGeneral();
 }
@@ -7760,6 +7814,7 @@ async function syncCycle(){
   }
   if(serveurIncomplet){markSyncPending();pushRemoteD(D);}
   else markSynced();
+  refreshSyncBadge();   // laisse la pastille basculer si le blocage dure vraiment
   return true;
 }
 let touchStartX=null,touchStartY=null,touchLockDir=null;
