@@ -256,6 +256,44 @@ const SUPA_KEY='sb_publishable_zvpg0YOHegxqXJxbEKhSbQ_3oLwbrr1';
    problème concret que ça résout (un envoi basé sur une lecture périmée qui écraserait, sans
    fusion, une suppression pourtant déjà confirmée par un autre appareil entre-temps). */
 let _lastRemoteUpdatedAt=null;
+/* === Garantie « rien ne se perd » ===
+   Tout ce qui est saisi part d'abord dans localStorage (donc survit à la fermeture de l'app et au
+   redémarrage du téléphone), puis on tente de l'envoyer au serveur. Tant que cet envoi n'est pas
+   CONFIRMÉ, on considère qu'il reste des choses en attente, et on retente : au prochain battement
+   de synchro (3 s), au retour du réseau, au retour sur l'application, et via une relance à délai
+   croissant. L'état est visible à l'écran (pastille dans le bandeau du haut) pour ne jamais avoir
+   à se demander si c'est bien parti. */
+let _syncPending=false;      // il reste des modifications non confirmées côté serveur
+let _syncLastOk=null;        // horodatage du dernier envoi confirmé
+let _pushRetryDelay=3000;    // délai avant relance, doublé à chaque échec (plafonné)
+let _pushTimer=null;
+function syncPending(){return _syncPending;}
+function markSyncPending(){
+  if(!_syncPending){_syncPending=true;if(!S.modal)renderSyncBadgeInPlace();}
+  try{localStorage.setItem(SK+'_pending','1');}catch(e){}
+}
+function markSynced(){
+  const was=_syncPending;
+  _syncPending=false;_syncLastOk=Date.now();_pushRetryDelay=3000;
+  try{localStorage.removeItem(SK+'_pending');}catch(e){}
+  if(was&&!S.modal)renderSyncBadgeInPlace();
+}
+function schedulePushRetry(){
+  if(_pushTimer)return;
+  _pushTimer=setTimeout(()=>{_pushTimer=null;pushRemoteD(D);},_pushRetryDelay);
+  _pushRetryDelay=Math.min(_pushRetryDelay*2,60000);
+}
+/* Pastille de synchronisation : « ⏳ à envoyer » tant que quelque chose n'est pas confirmé côté
+   serveur, « ✓ à jour » sinon. On la met à jour sur place, sans re-rendre toute la page. */
+function renderSyncBadge(){
+  return _syncPending
+    ?`<span id="sync-badge" title="Des modifications ne sont pas encore parties. Elles sont enregistrées sur cet appareil et repartiront automatiquement dès que la connexion reviendra." style="display:inline-flex;align-items:center;gap:3px;background:#FFF3D6;color:#7A5800;border:1px solid #E8C97A;border-radius:20px;padding:2px 8px;font-size:10.5px;font-weight:700;white-space:nowrap;flex-shrink:0">⏳ à envoyer</span>`
+    :`<span id="sync-badge" title="Tout est enregistré et transmis${_syncLastOk?' — dernier envoi à '+new Date(_syncLastOk).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):''}." style="display:inline-flex;align-items:center;gap:3px;background:#EAF3DE;color:#27500A;border:1px solid #BEDCA4;border-radius:20px;padding:2px 8px;font-size:10.5px;font-weight:700;white-space:nowrap;flex-shrink:0">✓ à jour</span>`;
+}
+function renderSyncBadgeInPlace(){
+  const el=document.getElementById('sync-badge');
+  if(el)el.outerHTML=renderSyncBadge();
+}
 async function fetchRemoteD(){
   try{
     const res=await fetch(`${SUPA_URL}/rest/v1/app_state?id=eq.1&select=data,updated_at`,{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});
@@ -290,10 +328,12 @@ async function pushRemoteD(d,_retry){
       body:JSON.stringify({data:d,updated_at:nowIso})
     });
     if(!res.ok){
-      console.error('Supabase push a échoué (statut '+res.status+'), nouvelle tentative dans 3s');
-      // Une tentative de secours : au pire, le rafraîchissement périodique (toutes les 8s)
-      // détectera de toute façon que le serveur n'a pas nos données locales et relancera l'envoi.
-      if(!_retry)setTimeout(()=>pushRemoteD(d,true),3000);
+      console.error('Supabase push a échoué (statut '+res.status+'), nouvelle tentative programmée');
+      /* On ne se contente plus d'UNE seule tentative de secours : tant que l'envoi n'a pas été
+         confirmé, on considère qu'il reste des choses en attente et on relance à délai croissant.
+         Le battement de synchro (3 s) et les événements « réseau revenu / retour sur l'app »
+         constituent en plus des filets indépendants. */
+      markSyncPending();schedulePushRetry();
       return;
     }
     let rows=null;try{rows=await res.json();}catch(e){}
@@ -308,13 +348,15 @@ async function pushRemoteD(d,_retry){
         try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}
         if(!S.modal)render();
         if(!_retry)pushRemoteD(D,true);
+        else{markSyncPending();schedulePushRetry();} // 2e conflit d'affilée : on retentera plus tard
       }
       return;
     }
     _lastRemoteUpdatedAt=nowIso;
+    markSynced();
   }catch(e){
-    console.error('Supabase push a échoué (données gardées en local en attendant), nouvelle tentative dans 3s',e);
-    if(!_retry)setTimeout(()=>pushRemoteD(d,true),3000);
+    console.error('Supabase push a échoué (données gardées en local en attendant), nouvelle tentative programmée',e);
+    markSyncPending();schedulePushRetry();
   }
 }
 const DOMAIN_LOGOS={
@@ -867,7 +909,12 @@ function mergeRemoteSnapshot(remote){
   return merged;
 }
 async function saveD(){
+  /* 1) On sécurise d'abord sur l'appareil : à partir d'ici, même si l'app est fermée, si le
+        téléphone redémarre ou si le réseau ne revient que dans deux heures, la saisie est gardée
+        et repartira toute seule. 2) On marque « en attente » tant que le serveur n'a pas
+        confirmé. 3) On tente l'envoi. */
   try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}
+  markSyncPending();
   try{
     const remote=await fetchRemoteD();
     if(remote){
@@ -3217,7 +3264,7 @@ function renderAdmin(){
   else if(S.tab==='clientsExport')content=renderClientsExport();
   const lastSeen=(D.adminLastSeen||{})[S.admin.id]||0;
   const notifs=(D.activityLog||[]).filter(it=>((it.authorId&&it.authorId!==S.admin.id)||it.forAdmin)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
-  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge ba" style="flex-shrink:0">Admin — ${S.admin.name}</span><button class="btn btn-sm" onclick="toggleCalSearch()" title="Rechercher une réservation (prénom, nom, société)" style="flex-shrink:0">🔍</button><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone" style="flex-shrink:0">🔔</button><button class="btn btn-sm" onclick="logout()" style="flex-shrink:0;font-size:11px;padding:5px 8px">Déconnexion</button></div>${S.calSearchOpen?renderCalSearchBox():''}${notifBanner}${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}${renderNotifBanner(notifs,'dismissAdminNotifs')}<div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${S.tab===k?'active':''}" onclick="setTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>${content}${S.modal?renderModalWrap():''}`;
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge ba" style="flex-shrink:0">Admin — ${S.admin.name}</span><button class="btn btn-sm" onclick="toggleCalSearch()" title="Rechercher une réservation (prénom, nom, société)" style="flex-shrink:0">🔍</button><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone" style="flex-shrink:0">🔔</button>${renderSyncBadge()}<button class="btn btn-sm" onclick="logout()" style="flex-shrink:0;font-size:11px;padding:5px 8px">Déconnexion</button></div>${S.calSearchOpen?renderCalSearchBox():''}${notifBanner}${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}${renderNotifBanner(notifs,'dismissAdminNotifs')}<div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${S.tab===k?'active':''}" onclick="setTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>${content}${S.modal?renderModalWrap():''}`;
 }
 
 function renderCalendrier(){
@@ -6270,7 +6317,7 @@ function renderPrestaCalendrierSeul(p){
   const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
   const notifs=prestaVisibleLog(p).filter(it=>it.ts>lastSeen);
   const content=tab==='monbilan'?renderPrestaMonBilan(p):tab==='dernieres'?renderDernieresPresta(p):renderCalendrier();
-  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone">🔔</button><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone">🔔</button>${renderSyncBadge()}<button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
   <div class="tabs">
@@ -6294,7 +6341,7 @@ function renderPrestaReadOnly(p){
   else if(tab==='clientsExport')content=renderClientsExport();
   const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
   const notifs=prestaVisibleLog(p).filter(it=>it.ts>lastSeen);
-  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone">🔔</button><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone">🔔</button>${renderSyncBadge()}<button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
   <div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${tab===k?'active':''}" onclick="setPrestaTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>
@@ -6335,7 +6382,7 @@ function renderPrestaFull(p){
   else if(tab==='monbilan')content=renderPrestaMonBilan(p);
   const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
   const notifs=prestaVisibleLog(p).filter(it=>it.ts>lastSeen);
-  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone">🔔</button><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone">🔔</button>${renderSyncBadge()}<button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
   <div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${tab===k?'active':''}" onclick="setPrestaTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>
@@ -6354,7 +6401,7 @@ function renderPresta(){
   myR=myR.sort((a,b)=>(a.dateArrivee||a.date).localeCompare(b.dateArrivee||b.date));
   const future=myR.filter(r=>(r.dateDepart||r.dateArrivee||r.date)>=today);
   const past=myR.filter(r=>(r.dateDepart||r.dateArrivee||r.date)<today);
-  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Mes interventions</h1><span class="badge bp">${p.name}</span></div>
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Mes interventions</h1><span class="badge bp">${p.name}</span>${renderSyncBadge()}</div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${future.length===0?`<div class="ev-card"><div class="empty">Aucune intervention à venir pour l'instant.</div></div>`:''}
   ${future.map(r=>{const dom=gDom(r.domaine);
@@ -6480,7 +6527,7 @@ function renderPrestaDominique(p){
       </div>`;}).join('')}
     </div>`;
   } else content=renderCalendrier();
-  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone">🔔</button><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone">🔔</button>${renderSyncBadge()}<button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
   <div class="tabs">
@@ -6581,7 +6628,7 @@ function renderPrestaGardePersonnel(p){
       </div>
     </div>`:''}`;
   }
-  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Mes gardiennages</h1><span class="badge bp">${p.name}</span></div>
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Mes gardiennages</h1><span class="badge bp">${p.name}</span>${renderSyncBadge()}</div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
   <div class="tabs">
@@ -7432,27 +7479,42 @@ async function initApp(){
   runMigrations();
   saveD();
   if(!checkToken())render();else render();
-  setInterval(async()=>{
-    const fresh=await fetchRemoteD();
-    if(!fresh)return;
-    const merged=mergeRemoteSnapshot(fresh);
-    if(JSON.stringify(merged)!==JSON.stringify(D)){
-      /* Si la fusion diffère de la version serveur brute, c'est qu'on avait localement des
-         éléments (ou des modifs) que le serveur n'a pas encore. On les garde ET on relance
-         immédiatement leur envoi — ceci rattrape automatiquement un précédent envoi qui aurait
-         échoué (coupure réseau, etc.) au lieu de le laisser silencieusement perdu. */
-      const hadLocalOnly=JSON.stringify(merged)!==JSON.stringify(fresh);
-      D=merged;
-      try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}
-      /* On met toujours les données à jour en arrière-plan (pour ne jamais avoir besoin de
-         "réinitialiser" l'appli pour voir un commentaire arrivé entre-temps), mais on ne
-         rafraîchit l'écran que si aucun formulaire n'est ouvert, pour ne jamais couper une
-         saisie en cours. Dès que la personne ferme son formulaire, le prochain rendu utilisera
-         de toute façon les données déjà à jour. */
-      if(!S.modal)render();
-      if(hadLocalOnly)pushRemoteD(D);
-    }
-  },3000);
+  setInterval(syncCycle,3000);
+  /* Filets de rattrapage supplémentaires : dès que le réseau revient, ou dès qu'on rouvre
+     l'application (retour sur l'onglet, sortie de veille du téléphone), on relance tout de suite
+     un cycle complet au lieu d'attendre le prochain battement. C'est exactement le scénario de
+     l'ascenseur : on ressort, le téléphone retrouve du réseau, et l'envoi part immédiatement. */
+  window.addEventListener('online',()=>{_pushRetryDelay=3000;syncCycle();});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden){_pushRetryDelay=3000;syncCycle();}});
+  window.addEventListener('focus',()=>{syncCycle();});
+}
+/* UN cycle de synchronisation : on lit le serveur, on fusionne, et — c'est le point essentiel —
+   on vérifie SÉPARÉMENT deux choses :
+     1. est-ce que le serveur a du nouveau pour nous ?   (merged ≠ D)      → on met à jour l'écran
+     2. est-ce que NOUS avons du nouveau pour le serveur ? (merged ≠ fresh) → on renvoie
+
+   Ces deux questions étaient auparavant imbriquées : le renvoi (2) ne se faisait QUE si (1) était
+   vrai. Autrement dit, une saisie faite hors ligne ne repartait jamais tant que quelqu'un d'autre
+   n'avait pas, par chance, modifié quelque chose de son côté. Si personne d'autre ne touchait à
+   rien, la saisie restait indéfiniment sur l'appareil, invisible pour tous les autres. */
+async function syncCycle(){
+  const fresh=await fetchRemoteD();
+  if(!fresh)return false;                       // pas de réseau : on retentera au prochain battement
+  const merged=mergeRemoteSnapshot(fresh);
+  const mergedStr=JSON.stringify(merged);
+  const serveurIncomplet=(mergedStr!==JSON.stringify(fresh)); // on a des choses qu'il n'a pas
+  if(mergedStr!==JSON.stringify(D)){
+    D=merged;
+    try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}
+    /* On met toujours les données à jour en arrière-plan (pour ne jamais avoir besoin de
+       "réinitialiser" l'appli pour voir un commentaire arrivé entre-temps), mais on ne
+       rafraîchit l'écran que si aucun formulaire n'est ouvert, pour ne jamais couper une
+       saisie en cours. */
+    if(!S.modal)render();
+  }
+  if(serveurIncomplet){markSyncPending();pushRemoteD(D);}
+  else markSynced();
+  return true;
 }
 let touchStartX=null,touchStartY=null,touchLockDir=null;
 /* Tant que la fiche réservation est ouverte, on rafraîchit le repérage des champs obligatoires
