@@ -630,13 +630,14 @@ function runMigrations(){
   if(!D.dominiqueSchedule)D.dominiqueSchedule=[];
   if(!D.gardeSchedule)D.gardeSchedule=[];
   if(!D.travauxSchedule)D.travauxSchedule=[];
+  if(!D.remboursements)D.remboursements=[];
   if(!D.messages)D.messages=[];
   if(!D.electriciteIndex)D.electriciteIndex={};
   if(!D.forfaitPaid)D.forfaitPaid={};
   if(!D.elecValide)D.elecValide={};
   if(!D.bilanComments)D.bilanComments=[];
   if(!D.deletedIds)D.deletedIds={};
-  ['resa','visite','travaux','garde','dominique','message','comment','paiement','bilanComment','prestaLine','elecIndex'].forEach(k=>{if(!D.deletedIds[k])D.deletedIds[k]=[];});
+  ['resa','visite','travaux','garde','dominique','message','comment','paiement','bilanComment','prestaLine','elecIndex','remboursement'].forEach(k=>{if(!D.deletedIds[k])D.deletedIds[k]=[];});
   // Corrige les anciennes réservations où le domaine du gardiennage enregistré ne correspond
   // plus au domaine réel/actuel de la réservation (ex : la réservation a changé de domaine
   // après coup). Le lieu du gardiennage doit toujours suivre le domaine de la réservation.
@@ -657,7 +658,8 @@ function runMigrations(){
   (D.admins||[]).forEach(a=>{if(a.name==='Gestionnaire')a.name='Svitlana';});
   if(!D.admins)D.admins=[];
   if(!D.admins.some(a=>a.name==='Svitlana')&&!D.admins.some(a=>a.id==='a2'))D.admins.push({id:'a2',name:'Svitlana',pin:'2024',tel:'0630868569'});
-  D.admins.forEach(a=>{if(!a.tel){if(a.name==='David')a.tel='0620143322';else if(a.name==='Svitlana')a.tel='0630868569';}if(a.name==='Svitlana'&&a.tel==='0634268569')a.tel='0630868569';if(!a.token){if(a.name==='David')a.token='adm_david_x7q2';else if(a.name==='Svitlana')a.token='adm_svitlana_k4m9';}});
+  D.admins.forEach(a=>{if(!a.tel){if(a.name==='David')a.tel='0620143322';else if(a.name==='Svitlana')a.tel='0630868569';}if(a.name==='Svitlana'&&a.tel==='0634268569')a.tel='0630868569';if(!a.token){if(a.name==='David')a.token='adm_david_x7q2';else if(a.name==='Svitlana')a.token='adm_svitlana_k4m9';}if(a.email===undefined)a.email=a.name==='David'?'david.gonson@gmail.com':'';});
+  (D.prestataires||[]).forEach(p=>{if(p.email===undefined)p.email='';});
   const defByID={};DEF.prestataires.forEach(p=>defByID[p.id]=p);
   if(!D.prestataires)D.prestataires=[];
   const existingIds=new Set(D.prestataires.map(p=>p.id));
@@ -830,6 +832,7 @@ function mergeRemoteSnapshot(remote){
   merged.reservations=mergeResaArr(remote.reservations,D.reservations,del('resa'),del('comment'),del('paiement'),del('prestaLine'));
   merged.visites=mergeById(remote.visites,D.visites,del('visite'));
   merged.travauxSchedule=mergeById(remote.travauxSchedule,D.travauxSchedule,del('travaux'));
+  merged.remboursements=mergeById(remote.remboursements,D.remboursements,del('remboursement'));
   merged.gardeSchedule=mergeById(remote.gardeSchedule,D.gardeSchedule,del('garde'));
   merged.dominiqueSchedule=mergeById(remote.dominiqueSchedule,D.dominiqueSchedule,del('dominique'));
   merged.messages=mergeById(remote.messages,D.messages,del('message'));
@@ -954,14 +957,18 @@ function toggleMessageRead(id){const msg=(D.messages||[]).find(x=>x.id===id);if(
 function delMessage(id){markDeleted('message',id);D.messages=(D.messages||[]).filter(x=>x.id!==id);saveD();render();}
 function renderNotifBanner(items,dismissFnName){
   if(!items.length)return'';
+  // Toutes les mises à jour sont listées (pas seulement les 8 premières) — au-delà d'une dizaine
+  // d'éléments, la liste défile dans une zone de hauteur limitée plutôt que d'être tronquée avec
+  // un vague « et N autres » qui empêchait de voir le détail.
   return`<div class="alert alert-info" style="margin-bottom:12px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
-      <div style="flex:1">
+      <div style="flex:1;min-width:0">
         <div style="font-weight:600;margin-bottom:4px">🔔 ${items.length} mise${items.length>1?'s':''} à jour</div>
-        ${items.slice(0,8).map(it=>`<div style="font-size:12px">${it.authorName?it.authorName+' — ':''}${it.label}</div>`).join('')}
-        ${items.length>8?`<div style="font-size:11px;color:#888;margin-top:2px">… et ${items.length-8} autre(s)</div>`:''}
+        <div style="max-height:220px;overflow-y:auto">
+          ${items.map(it=>`<div style="font-size:12px;padding:2px 0">${it.authorName?it.authorName+' — ':''}${it.label}</div>`).join('')}
+        </div>
       </div>
-      <button class="btn btn-xs" onclick="${dismissFnName}()">Marquer comme lu</button>
+      <button class="btn btn-xs" style="flex-shrink:0" onclick="${dismissFnName}()">Marquer comme lu</button>
     </div>
   </div>`;
 }
@@ -1277,6 +1284,51 @@ function renderTravauxSection(p,y,m){
     </div>`;}).join('')}
   </div>`;
 }
+/* === Paiement fait (remboursement) — Misha/Sacha uniquement, comme les travaux : quand le
+   prestataire avance de l'argent DE SA POCHE pour régler un tiers pour notre compte (ex : Micha
+   paie Pascaline pour nous), ce n'est pas une rémunération pour son activité mais un simple
+   remboursement. Ce montant s'ajoute à ce qu'on lui doit ce mois-ci, mais reste toujours isolé —
+   jamais mélangé — de ce qu'il touche grâce à son activité (forfait/ménage/prestations/travaux/
+   électricité/gardiennage), avec une vue mensuelle ET annuelle des deux montants côte à côte. */
+function renderRemboursementSection(p,y,m){
+  if(p.accessMode!=='domaine')return''; // réservé à Misha/Sacha (accès complet) — pas Pascaline ni les autres
+  const isAdmin=S.view==='admin';
+  const monthKey=`${y}-${String(m+1).padStart(2,'0')}`;
+  const inMonth=dateStr=>!!dateStr&&dateStr.startsWith(monthKey);
+  const rows=(D.remboursements||[]).filter(x=>x.pid===p.id&&inMonth(x.date)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const defaultDom=(p.domaines||[])[0];
+  const domOpts=D.domaines.map(d=>`<option value="${d.id}" ${d.id===defaultDom?'selected':''}>${d.name}</option>`).join('');
+  const annuel=computeAnnualActiviteVsRemb(p,y);
+  return`<div id="bloc-remb" class="bilan-sec" style="border-color:#0C447C">
+    <div class="sec-hdr" style="background:#0C447C"><h2>💳 Paiement fait — ${MONTHS_FR[m]} ${y}</h2></div>
+    <div style="font-size:11px;color:#888;margin-bottom:10px">Quand ${p.name} paie quelqu'un de sa poche pour notre compte (ex : régler un autre prestataire) — c'est un remboursement, pas une rémunération : ça s'ajoute à ce qu'on lui doit, mais reste toujours compté à part. ${isAdmin?'Validez chaque ligne, ou laissez en attente.':'David/Svitlana valide chaque ligne.'}</div>
+    ${!isAdmin?`<div class="g3" style="margin-bottom:8px">
+      <div class="field"><label>Domaine</label><select id="remb-domaine-${p.id}">${domOpts}</select></div>
+      <div class="field"><label>Jour</label><input type="date" id="remb-date-${p.id}"></div>
+      <div class="field"><label>Montant réglé</label><input type="number" id="remb-montant-${p.id}" step="0.01" placeholder="ex: 200"></div>
+    </div>
+    <div class="g2" style="margin-bottom:8px">
+      <div class="field"><label>Qui avez-vous réglé ?</label><input type="text" id="remb-benef-${p.id}" placeholder="ex: Pascaline"></div>
+      <div class="field"><label>Motif (optionnel)</label><input type="text" id="remb-note-${p.id}" placeholder="ex: extra bar samedi"></div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="addRemboursement('${p.id}')" style="margin-bottom:10px">+ Déclarer ce paiement</button>`:''}
+    ${rows.length===0?'<div class="empty">Aucun paiement fait pour nous déclaré ce mois-ci.</div>':''}
+    ${rows.map(x=>{const dom=gDom(x.domaine);return`<div style="padding:8px 0;border-bottom:1px solid #e5e3de;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+      <div><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span><span style="font-size:13px">${ds(x.date)} · réglé à ${x.beneficiaire||'—'} · ${money(x.montant)}</span>${x.note?`<div style="font-size:11px;color:#888;margin-top:2px">${x.note}</div>`:''}</div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        ${valideBadge(x.status==='validé',`toggleRemboursementValide('${x.id}')`)}
+        ${x.status!=='validé'?`<button class="btn btn-xs btn-danger" onclick="delRemboursement('${x.id}')">✕</button>`:''}
+      </div>
+    </div>`;}).join('')}
+    <div style="margin-top:12px;padding-top:10px;border-top:1px dashed #B5D4F4">
+      <div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Vue d'ensemble ${y} — à ne pas confondre</div>
+      <div class="g2">
+        <div class="metric"><span class="lbl">Touché grâce à son activité (${y})</span><span class="val" style="color:#27500A">${money(annuel.totalActivite)}</span></div>
+        <div class="metric"><span class="lbl">Remboursements (${y})</span><span class="val" style="color:#0C447C">${money(annuel.totalRemb)}</span></div>
+      </div>
+    </div>
+  </div>`;
+}
 /* === Gardiennage (Mathilde/Sébastien, mais aussi Misha/Sacha via le planning ponctuel) —
    nuits de garde valorisées à gardeRate(duree). Rendu partagé perso/admin : côté admin,
    tableau complet éditable (durée, commentaire, mode de paiement) + validation ; côté
@@ -1522,11 +1574,37 @@ function computeBilanTotal(p,y,m){
   const elecCost=elec?elec.cost:0;
   const elecConso=elec?elec.conso:null; // null = aucun index saisi (pas confondre avec une conso à 0)
   const elecEnAttente=(p.electricite&&elec&&elec.conso!==null&&!isElecValide(p.id,key))?1:0;
-  const totalDu=Math.round((forfaitDu+menageDu+compDu+travDu-elecCost+gardeDu)*100)/100;
+  /* Remboursements — « Paiement fait » : quand le prestataire avance de sa poche de l'argent pour
+     notre compte (il paie un tiers pour nous), ce n'est PAS une rémunération pour son activité —
+     c'est un remboursement pur et simple. Ça s'ADDITIONNE quand même à ce qu'on lui doit ce
+     mois-ci (totalDu), mais il faut pouvoir isoler à tout moment ce qu'il a réellement GAGNÉ
+     grâce à son activité (totalActivite : forfait + ménage + prestations + travaux + électricité
+     + gardiennage) de ce qu'on lui doit simplement en remboursement (rembDu) — d'où les deux
+     champs distincts ci-dessous, jamais mélangés. */
+  let rembDu=0,rembLignes=0,rembEnAttente=0;
+  (D.remboursements||[]).filter(x=>x.pid===p.id&&inMonthDate(x.date)).forEach(x=>{
+    rembDu+=x.montant||0;rembLignes++;
+    if(x.status!=='validé')rembEnAttente++;
+  });
+  rembDu=Math.round(rembDu*100)/100;
+  const totalActivite=Math.round((forfaitDu+menageDu+compDu+travDu-elecCost+gardeDu)*100)/100;
+  const totalDu=Math.round((totalActivite+rembDu)*100)/100;
   const totalRecu=forfaitRecu+menageRecu+gardeRecu;
   const totalReste=Math.round((totalDu-totalRecu)*100)/100;
-  const enAttente=menageEnAttente+compEnAttente+elecEnAttente+travEnAttente+gardeEnAttente;
-  return{key,forfaitDu,forfaitRecu,menageDu,menageRecu,menageEnAttente,compDu,compLignes,compEnAttente,travDu,travLignes,travEnAttente,gardeDu,gardeRecu,gardeLignes,gardeEnAttente,elecCost,elecConso,elecEnAttente,totalDu,totalRecu,totalReste,enAttente};
+  const enAttente=menageEnAttente+compEnAttente+elecEnAttente+travEnAttente+gardeEnAttente+rembEnAttente;
+  return{key,forfaitDu,forfaitRecu,menageDu,menageRecu,menageEnAttente,compDu,compLignes,compEnAttente,travDu,travLignes,travEnAttente,gardeDu,gardeRecu,gardeLignes,gardeEnAttente,elecCost,elecConso,elecEnAttente,rembDu,rembLignes,rembEnAttente,totalActivite,totalDu,totalRecu,totalReste,enAttente};
+}
+/* Vue annuelle : additionne totalActivite et rembDu sur les 12 mois de l'année y, pour isoler —
+   comme demandé — ce que le prestataire a touché grâce à son activité vs. ce qu'on lui doit en
+   simples remboursements, sur l'année entière (et pas seulement mois par mois). */
+function computeAnnualActiviteVsRemb(p,y){
+  let totalActivite=0,totalRemb=0;
+  for(let mi=0;mi<12;mi++){
+    const bt=computeBilanTotal(p,y,mi);
+    totalActivite+=bt.totalActivite;
+    totalRemb+=bt.rembDu;
+  }
+  return{totalActivite:Math.round(totalActivite*100)/100,totalRemb:Math.round(totalRemb*100)/100};
 }
 /* Détail des sous-totaux "Prestations avec commission" pour le Bilan total : une petite ligne
    par réservation (date, nom du client, montant de la prestation pour ce prestataire), puis en
@@ -1537,15 +1615,20 @@ function computeBilanTotal(p,y,m){
    avant d'arriver au net. Fonction partagée : s'applique à tout prestataire à commission (Misha,
    Sasha, et tout autre qui utiliserait ce même mode). */
 function computeCommissionBreakdown(p,y,m){
-  const lines=[];
+  /* Détail ligne par ligne (et non plus seulement par réservation) : chaque prestation vendue
+     garde son libellé, son montant brut, son mode de règlement et le détail exact du calcul
+     (frais de structure éventuels, taux de commission, net) — pour que la présentation du bilan
+     retrace précisément d'où vient chaque euro, au lieu d'un seul total agrégé par réservation. */
+  const resaGroups=[];
   const commByRate={};
   let totalBrut=0,totalFiscal=0,totalCommission=0,totalNet=0;
   D.reservations.filter(r=>r.status!=='annulé'&&r.prestaLines&&r.prestaLines[p.id]&&r.prestaLines[p.id].length).forEach(r=>{
     const d=r.dateArrivee||r.date;if(!d)return;const[ry,rm]=d.split('-').map(Number);if(!(ry===y&&rm===(m+1)))return;
-    let resaMontant=0;
+    const grp={date:d,name:displayClientName(r)||r.client||gDom(r.domaine).name,rid:r.id,montant:0,lines:[]};
     r.prestaLines[p.id].forEach(l=>{
       const c=ligneCalc(l,p.id);
-      resaMontant+=c.montant;
+      grp.montant+=c.montant;
+      grp.lines.push({label:l.label||'Prestation',montant:c.montant,via:c.via,tauxCommission:c.tauxCommission,fiscalRetenu:c.fiscalRetenu||0,commissionApplied:c.commissionApplied||0,net:c.net,valide:l.valide});
       totalBrut+=c.montant;
       totalFiscal+=c.fiscalRetenu||0;
       totalCommission+=c.commissionApplied||0;
@@ -1553,15 +1636,16 @@ function computeCommissionBreakdown(p,y,m){
       const ratePct=Math.round((c.tauxCommission||0)*100);
       commByRate[ratePct]=(commByRate[ratePct]||0)+(c.commissionApplied||0);
     });
-    lines.push({date:d,name:displayClientName(r)||r.client||gDom(r.domaine).name,montant:Math.round(resaMontant*100)/100});
+    grp.montant=Math.round(grp.montant*100)/100;
+    resaGroups.push(grp);
   });
-  lines.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  resaGroups.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
   const commissionRows=Object.entries(commByRate)
     .map(([rate,amt])=>({rate:parseInt(rate,10),montant:Math.round(amt*100)/100}))
     .filter(cr=>cr.montant!==0)
     .sort((a,b)=>a.rate-b.rate);
   return{
-    lines,
+    resaGroups,
     commissionRows,
     totalBrut:Math.round(totalBrut*100)/100,
     totalFiscal:Math.round(totalFiscal*100)/100,
@@ -1569,15 +1653,33 @@ function computeCommissionBreakdown(p,y,m){
     totalNet:Math.round(totalNet*100)/100,
   };
 }
+const COMMISSION_VIA_LABEL={ds:'réglé directement à nous (DS)',cash_ds:'réglé cash, remis à nous (DS)',structure:'réglé via sa structure à lui',cash:'réglé cash à lui directement'};
 function renderCommissionBreakdownRow(p,y,m,bt){
   const mainRow=bilanLigneRow('Prestations avec commission (net)',Math.abs(bt.compDu),bt.compDu<0?'-':'+','bloc-commission');
   const cb=computeCommissionBreakdown(p,y,m);
-  if(cb.lines.length===0)return mainRow;
+  if(cb.resaGroups.length===0)return mainRow;
+  const groupsHtml=cb.resaGroups.map(g=>`
+    <div style="margin-top:8px;padding:7px 9px;background:#fff;border-radius:7px;border:1px solid #F4C6D6">
+      <div style="font-weight:700;font-size:11px;color:#72243E;margin-bottom:3px">📅 ${ds(g.date)} — ${g.name} <span style="font-weight:400;color:#A9527A">(${money(g.montant)} au total)</span></div>
+      ${g.lines.map(l=>`
+        <div style="margin:5px 0 0 4px;padding:4px 0 4px 8px;border-left:2px solid #F4C6D6">
+          <div style="font-size:11.5px;color:#333">
+            <strong>${l.label}</strong>${l.valide!==undefined?` <span style="color:${l.valide?'#27500A':'#B15E00'};font-size:10px">${l.valide?'✓ validé':'⏳ à valider'}</span>`:''}
+            — brut <strong>${money(l.montant)}</strong> <span style="color:#999;font-size:10px">· ${COMMISSION_VIA_LABEL[l.via]||l.via}</span>
+          </div>
+          ${l.fiscalRetenu>0?`<div style="font-size:10.5px;color:#A9527A;padding-left:4px">− 15% frais de structure : − ${money(l.fiscalRetenu)}</div>`:''}
+          <div style="font-size:10.5px;color:#A9527A;padding-left:4px">− Commission ${Math.round(l.tauxCommission*100)}% : − ${money(l.commissionApplied)}</div>
+          <div style="font-size:11.5px;font-weight:700;padding-left:4px;color:${l.net>=0?'#27500A':'#A32D2D'}">${l.net>=0?`= ${money(l.net)} net pour ${p.name}`:`= ${money(Math.abs(l.net))} — ${p.name} nous doit cette commission`}</div>
+        </div>`).join('')}
+    </div>`).join('');
   const sub=`<div style="padding:2px 0 8px 10px;margin-top:-4px;margin-bottom:2px;border-bottom:1px solid #F4C6D6;font-size:10.5px;color:#A9527A">
-    ${cb.lines.map(l=>`<div>· ${ds(l.date)} — ${l.name} : ${money(l.montant)}</div>`).join('')}
-    <div style="margin-top:3px">Montant brut : <strong>${money(cb.totalBrut)}</strong></div>
-    ${cb.totalFiscal>0?`<div>− 15% frais de structure : ${money(cb.totalFiscal)}</div>`:''}
-    ${cb.commissionRows.map(cr=>`<div>− Commission ${cr.rate}% : ${money(cr.montant)}</div>`).join('')}
+    ${groupsHtml}
+    <div style="margin-top:10px;padding-top:8px;border-top:1px dashed #D98CAA">
+      <div>Montant brut total : <strong>${money(cb.totalBrut)}</strong></div>
+      ${cb.totalFiscal>0?`<div>− 15% frais de structure (total) : ${money(cb.totalFiscal)}</div>`:''}
+      ${cb.commissionRows.map(cr=>`<div>− Commission ${cr.rate}% (total) : ${money(cr.montant)}</div>`).join('')}
+      <div style="margin-top:2px;font-weight:700;color:#72243E">= Net total : ${money(cb.totalNet)}</div>
+    </div>
   </div>`;
   return mainRow+sub;
 }
@@ -1607,9 +1709,11 @@ function renderBilanTotalSection(p,y,m){
         <strong style="color:#B15E00;font-size:11.5px;font-weight:600">index à renseigner</strong>
       </div>`):''}
       ${isGardeOnly?bilanLigneRow('Gardiennage (nuits)',bt.gardeDu,'+','bloc-garde'):''}
+      ${p.accessMode==='domaine'?bilanLigneRow('Paiement fait pour nous (remboursement)',bt.rembDu,'+','bloc-remb'):''}
       <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0 4px;margin-top:2px;border-top:1.5px solid #993556;font-size:13px;font-weight:700;color:#72243E">
         <span>TOTAL DÛ CE MOIS</span><span style="font-size:18px">${money(bt.totalDu)}</span>
       </div>
+      ${p.accessMode==='domaine'&&bt.rembDu>0?`<div style="font-size:10.5px;color:#888;text-align:right;padding-bottom:4px">dont ${money(bt.totalActivite)} d'activité + ${money(bt.rembDu)} de remboursement</div>`:''}
     </div>
     <div class="g2">
       <div class="metric" style="border-width:1.5px;border-color:#1F7A3D"><span class="lbl">Déjà réglé</span><span class="val" style="color:#1F7A3D;font-weight:600;font-size:17px">${money(bt.totalRecu)}</span></div>
@@ -3127,6 +3231,7 @@ function renderDernieres(){
     'paiement':{label:'💶 Paiement',color:'#0C447C',bg:'#E6F1FB'},
     'prestation':{label:'🧾 Prestation',color:'#7A5800',bg:'#FFF6E8'},
     'garde':{label:'🛡 Gardiennage',color:'#534AB7',bg:'#EDEBFB'},
+    'remboursement':{label:'💳 Paiement fait',color:'#0C447C',bg:'#E6F1FB'},
     'validée':{label:'✓ Validée',color:'#27500A',bg:'#EAF3DE'},
     'commentaire':{label:'💬 Commentaire',color:'#666',bg:'#F0EFEA'}
   };
@@ -3155,6 +3260,64 @@ function renderDernieres(){
   return`<div style="margin-bottom:12px;font-size:12px;color:#aaa">Les 50 dernières modifications, tous types confondus (réservations, visites, prestations, paiements, gardiennage, travaux…) — cliquer sur une ligne liée à une réservation pour l'ouvrir.</div>
   <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;overflow:hidden">
     ${items.length===0?'<div class="empty">Aucune activité enregistrée.</div>':rows}
+  </div>`;
+}
+const ACTION_META_PRESTA={
+  'créée':{label:'✚ Créée',color:'#27500A',bg:'#EAF3DE'},
+  'modifiée':{label:'✎ Modifiée',color:'#993556',bg:'#FBEAF0'},
+  'annulée':{label:'✕ Annulée',color:'#791F1F',bg:'#FCEBEB'},
+  'supprimée':{label:'🗑 Supprimée',color:'#791F1F',bg:'#FCEBEB'},
+  'prestation':{label:'🧾 Prestation',color:'#7A5800',bg:'#FFF6E8'},
+  'garde':{label:'🛡 Gardiennage',color:'#534AB7',bg:'#EDEBFB'},
+  'remboursement':{label:'💳 Paiement fait',color:'#0C447C',bg:'#E6F1FB'},
+  'validée':{label:'✓ Validée',color:'#27500A',bg:'#EAF3DE'},
+  'commentaire':{label:'💬 Commentaire',color:'#666',bg:'#F0EFEA'}
+};
+/* Modifications visibles par un prestataire donné, tous accès confondus (domaine, calendrier
+   seul, occupation, manuel/garde…) : ce qui touche personnellement le prestataire (concernsPresta
+   — c'est alors sa propre rémunération, qu'il a le droit de voir en détail) OU ce qui touche l'un
+   de ses domaines, à l'exclusion de tout ce qui est financier (paiements, montants de prestation/
+   ménage/forfait/électricité) dès que ça ne le concerne pas personnellement — pour qu'un
+   prestataire ne voie jamais ce qu'un autre gagne sur un domaine partagé (Misha/Sasha). */
+function prestaVisibleLog(p){
+  const doms=p.domaines||[];
+  const FIN={paiement:1,prestation:1,remboursement:1};
+  return(D.activityLog||[]).filter(it=>{
+    if(it.action==='message')return false;
+    const mine=(it.concernsPresta||[]).includes(p.id);
+    if(mine)return true;
+    if(FIN[it.action])return false;
+    return doms.includes(it.domaine);
+  }).sort((a,b)=>b.ts-a.ts);
+}
+function selectAndGoPrestaCal(rid){const r=D.reservations.find(x=>x.id===rid);if(!r)return;const d=r.dateArrivee||r.date;const[y,m]=d.split('-');S.calYear=parseInt(y);S.calMonth=parseInt(m)-1;S.selResa=rid;S.prestaTab='calendrier';S.modal=null;render();}
+function renderDernieresPresta(p){
+  const canNav=['domaine','calendrierSeul','occupation','readonly_nofinance'].includes(p.accessMode);
+  const items=prestaVisibleLog(p).slice(0,50);
+  const rows=items.map(it=>{
+    const d=new Date(it.ts);
+    const when=(it.ts>1)?(d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit'})+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})):'—';
+    const meta=ACTION_META_PRESTA[it.action]||{label:it.action||'—',color:'#666',bg:'#F0EFEA'};
+    const r=it.rid?D.reservations.find(x=>x.id===it.rid):null;
+    const dom=gDom(it.domaine||(r&&r.domaine));
+    const hasDom=dom&&dom.name!=='—';
+    const name=r?(displayClientName(r)||'—'):null;
+    const clickAttr=(canNav&&r)?`onclick="selectAndGoPrestaCal('${r.id}')"`:'';
+    const cursorCss=(canNav&&r)?'cursor:pointer;':'';
+    return`<div ${clickAttr} style="${cursorCss}padding:10px 12px 10px 13px;border-bottom:2px solid #efece5;border-left:4px solid ${meta.color};transition:background .12s" onmouseover="this.style.background='#faf9f7'" onmouseout="this.style.background=''">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="background:${meta.bg};color:${meta.color};font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap;flex-shrink:0">${meta.label}</span>
+        ${name?`<span style="font-weight:700;font-size:13px;white-space:nowrap">${name}</span>`:''}
+        ${hasDom?`<span class="pill ${PILL[dom.color||0]}" style="font-size:10px;flex-shrink:0">${dom.name}</span>`:''}
+        <span style="font-size:11px;color:#aaa;white-space:nowrap;margin-left:auto;flex-shrink:0">${when}</span>
+        ${(canNav&&r)?'<span style="font-size:11px;color:#ccc;flex-shrink:0">→ ouvrir</span>':''}
+      </div>
+      <div style="margin-top:4px;font-size:11px;color:#666;padding-left:2px">${it.label||'—'}</div>
+    </div>`;
+  }).join('');
+  return`<div style="margin-bottom:12px;font-size:12px;color:#aaa">Les 50 dernières modifications qui vous concernent.</div>
+  <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;overflow:hidden">
+    ${items.length===0?'<div class="empty">Aucune activité pour l’instant.</div>':rows}
   </div>`;
 }
 
@@ -3539,6 +3702,21 @@ function renderPrestaList(){
   ${sel?renderPrestaDetailAdmin(D.prestataires.find(x=>x.id===sel)):''}
   ${renderDomaineList()}
   <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-top:14px">
+    <div class="sec-hdr"><h2>📧 Emails — résumé quotidien</h2></div>
+    <div style="font-size:11px;color:#888;margin-bottom:12px">Chaque personne dont l'email est renseigné ici reçoit un résumé quotidien de ce qui la concerne dans l'app (sans aucune information financière pour les prestataires — mêmes règles que dans le reste de l'application). Laisser vide pour ne rien envoyer à cette personne.</div>
+    <div style="font-size:11px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Administrateurs</div>
+    ${D.admins.map(a=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #e5e3de">
+      <span style="font-weight:500;font-size:13px;width:80px;flex-shrink:0">${a.name}</span>
+      <input type="email" value="${a.email||''}" placeholder="nom@email.com" onchange="updAdminEmail('${a.id}',this.value)" style="flex:1;min-width:0;font-size:12px;padding:4px 6px">
+    </div>`).join('')}
+    <div style="font-size:11px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:.04em;margin-top:14px;margin-bottom:8px">Prestataires</div>
+    ${D.prestataires.length===0?'<div style="font-size:12px;color:#888">Aucun prestataire enregistré.</div>':''}
+    ${D.prestataires.map(p=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #e5e3de">
+      <span style="font-weight:500;font-size:13px;width:100px;flex-shrink:0">${p.name}</span>
+      <input type="email" value="${p.email||''}" placeholder="nom@email.com" onchange="updPrestaEmail('${p.id}',this.value)" style="flex:1;min-width:0;font-size:12px;padding:4px 6px">
+    </div>`).join('')}
+  </div>
+  <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-top:14px">
     <div class="sec-hdr"><h2>🔗 Liens personnels</h2></div>
     <div style="font-size:11px;color:#888;margin-bottom:12px">Connexion directe sans code — à enregistrer sur l'appareil personnel de chaque personne (raccourci bureau ou écran d'accueil).</div>
     <div style="font-size:11px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Administrateurs</div>
@@ -3584,6 +3762,9 @@ function renderPrestaDetailAdmin(p){
   /* === Travaux hors réservation (Misha/Sacha uniquement — pas Pascaline) — rendu partagé avec la page perso, intégré à Mon Bilan === */
   const travauxSection=(p.accessMode==='domaine')?renderTravauxSection(p,y,m):'';
 
+  /* === Paiement fait / remboursement (Misha/Sacha uniquement) — rendu partagé avec la page perso === */
+  const remboursementSection=(p.accessMode==='domaine')?renderRemboursementSection(p,y,m):'';
+
   /* === Dominique (jardinage) === */
   let dominiqueSection='';
   if(p.name==='Dominique'){
@@ -3614,8 +3795,8 @@ function renderPrestaDetailAdmin(p){
   const bilanTotalSection=p.inputMode==='garde'?'':renderBilanTotalSection(p,y,m);
   const elecSection=renderElecSection(p,y,m);
   const commentsSection=renderBilanComments(p,y,m);
-  const allEmpty=!menageSection&&!gardeSection&&!commSection&&!travauxSection&&!dominiqueSection&&!bilanTotalSection&&!elecSection;
-  return`<div style="margin-top:16px">${nav}${bilanTotalSection}${commentsSection}${menageSection}${commSection}${travauxSection}${elecSection}${gardeSection}${dominiqueSection}${allEmpty?`<div class="empty">Aucun suivi financier spécifique pour ${p.name}.</div>`:''}</div>`;
+  const allEmpty=!menageSection&&!gardeSection&&!commSection&&!travauxSection&&!remboursementSection&&!dominiqueSection&&!bilanTotalSection&&!elecSection;
+  return`<div style="margin-top:16px">${nav}${bilanTotalSection}${commentsSection}${menageSection}${commSection}${travauxSection}${remboursementSection}${elecSection}${gardeSection}${dominiqueSection}${allEmpty?`<div class="empty">Aucun suivi financier spécifique pour ${p.name}.</div>`:''}</div>`;
 }function setClientsSortBy(v){S.clientsSortBy=v;render();}
 function updClientTel(rid,val){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
@@ -5439,7 +5620,10 @@ function renderModalContent(){
     const dC=D.domaines.map(d=>`<label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;padding:3px 0"><input type="checkbox" value="${d.id}" ${(p.domaines||[]).includes(d.id)?'checked':''} style="width:auto"><span class="pill ${PILL[d.color||0]}">${d.name}</span></label>`).join('');
     return`<h3>${type==='newPresta'?'➕ Nouveau prestataire':'✏️ Modifier — '+p.name}</h3>
     <div class="g2" style="margin-bottom:12px"><div class="field"><label>Nom complet</label><input type="text" id="m-pname" value="${p.name||''}"></div><div class="field"><label>Rôle / Métier</label><input type="text" id="m-prole" value="${p.role||''}" placeholder="Ménage, Traiteur, Jardinage…"></div></div>
-    <div class="field" style="margin-bottom:12px"><label>Téléphone WhatsApp (laisser vide si pas de WhatsApp)</label><input type="tel" id="m-ptel" value="${p.tel||''}" placeholder="06 XX XX XX XX"></div>
+    <div class="g2" style="margin-bottom:12px">
+      <div class="field"><label>Téléphone WhatsApp (laisser vide si pas de WhatsApp)</label><input type="tel" id="m-ptel" value="${p.tel||''}" placeholder="06 XX XX XX XX"></div>
+      <div class="field"><label>Email (résumé quotidien)</label><input type="email" id="m-pemail" value="${p.email||''}" placeholder="nom@email.com"></div>
+    </div>
     <div class="field" style="margin-bottom:12px"><label>Mode d'accès</label>
       <select id="m-pmode">
         <option value="manuel" ${(p.accessMode||'manuel')==='manuel'?'selected':''}>Sur assignation — voit seulement les événements où il est coché</option>
@@ -5477,6 +5661,7 @@ function renderPrestaMonBilan(p){
   ${renderMenageSection(p,y,m)}
   ${renderCommissionSection(p,y,m)}
   ${renderTravauxSection(p,y,m)}
+  ${renderRemboursementSection(p,y,m)}
   ${renderElecSection(p,y,m)}`;
 }
 /* renderPrestaMonBilanFlat a été remplacé par le rendu unifié renderPrestaMonBilan (voir
@@ -5488,15 +5673,15 @@ function renderPrestaMonBilan(p){
 function renderPrestaCalendrierSeul(p){
   const tab=S.prestaTab||'calendrier';
   const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
-  const doms=p.domaines||[];
-  const notifs=(D.activityLog||[]).filter(it=>doms.includes(it.domaine)&&it.action!=='paiement'&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
-  const content=tab==='monbilan'?renderPrestaMonBilan(p):renderCalendrier();
+  const notifs=prestaVisibleLog(p).filter(it=>it.ts>lastSeen);
+  const content=tab==='monbilan'?renderPrestaMonBilan(p):tab==='dernieres'?renderDernieresPresta(p):renderCalendrier();
   return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone">🔔</button><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
   <div class="tabs">
     <button class="tab ${tab==='calendrier'?'active':''}" onclick="setPrestaTab('calendrier')"><span class="tab-ic">📅</span><span class="tab-lbl">Planning</span></button>
     <button class="tab ${tab==='monbilan'?'active':''}" onclick="setPrestaTab('monbilan')"><span class="tab-ic">💰</span><span class="tab-lbl">Mon Bilan</span></button>
+    <button class="tab ${tab==='dernieres'?'active':''}" onclick="setPrestaTab('dernieres')"><span class="tab-ic">🕓</span><span class="tab-lbl">Dernières<br>modifs</span></button>
   </div>
   ${content}`;
 }
@@ -5506,11 +5691,13 @@ function renderPrestaReadOnly(p){
   let content='';
   if(tab==='calendrier')content=renderCalendrier();
   else if(tab==='liste')content=renderListeYana();
-  else if(tab==='dernieres')content=renderDernieres();
+  else if(tab==='dernieres')content=renderDernieresPresta(p);
   else if(tab==='clientsExport')content=renderClientsExport();
-  const notifs=[];
+  const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
+  const notifs=prestaVisibleLog(p).filter(it=>it.ts>lastSeen);
   return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone">🔔</button><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
+  ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
   <div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${tab===k?'active':''}" onclick="setPrestaTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>
   ${content}${S.modal?renderModalWrap():''}`;
 }
@@ -5535,15 +5722,16 @@ function renderListeYana(){
 }
 function renderPrestaFull(p){
   const tab=S.prestaTab||'calendrier';
-  const tabs=[['calendrier','📅','Planning'],['liste','🎉','Événements'],['visites','👀','Visites']];
+  const tabs=[['calendrier','📅','Planning'],['liste','🎉','Événements'],['visites','👀','Visites'],['dernieres','🕓','Dernières<br>modifs']];
   if(p.inputMode==='notes'){tabs.push(['monbilan','💰','Mon Bilan']);}
   let content='';
   if(tab==='calendrier')content=renderCalendrier();
   else if(tab==='liste')content=renderListe();
   else if(tab==='visites')content=renderVisiteList();
+  else if(tab==='dernieres')content=renderDernieresPresta(p);
   else if(tab==='monbilan')content=renderPrestaMonBilan(p);
   const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
-  const notifs=(D.activityLog||[]).filter(it=>(p.domaines||[]).includes(it.domaine)&&it.action!=='paiement'&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
+  const notifs=prestaVisibleLog(p).filter(it=>it.ts>lastSeen);
   return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone">🔔</button><button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
@@ -5607,15 +5795,24 @@ function renderPresta(){
 
 function renderPrestaHoraires(p){
   const hasBilan=p.inputMode==='notes';
-  const tab=hasBilan?(S.prestaTab||'horaires'):'horaires';
+  const tab=S.prestaTab==='dernieres'?'dernieres':(hasBilan?(S.prestaTab||'horaires'):'horaires');
+  const horairesTabsBar=`<div class="tabs"><button class="tab ${tab==='horaires'?'active':''}" onclick="setPrestaTab('horaires')"><span class="tab-ic">🕐</span><span class="tab-lbl">Horaires</span></button>${hasBilan?`<button class="tab ${tab==='monbilan'?'active':''}" onclick="setPrestaTab('monbilan')"><span class="tab-ic">💰</span><span class="tab-lbl">Mon Bilan</span></button>`:''}<button class="tab ${tab==='dernieres'?'active':''}" onclick="setPrestaTab('dernieres')"><span class="tab-ic">🕓</span><span class="tab-lbl">Dernières<br>modifs</span></button></div>`;
+  if(tab==='dernieres'){
+    const lastSeenD=(D.prestaLastSeen||{})[p.id]||0;
+    const notifsD=prestaVisibleLog(p).filter(it=>it.ts>lastSeenD);
+    return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Arrivées / départs</h1><span class="badge bp">${p.name}</span></div>
+    ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
+    ${renderNotifBanner(notifsD,'dismissPrestaNotifs')}
+    ${horairesTabsBar}
+    ${renderDernieresPresta(p)}`;
+  }
   if(hasBilan&&tab==='monbilan'){
     const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
-    const doms0=p.domaines||[];
-    const notifs0=(D.activityLog||[]).filter(it=>doms0.includes(it.domaine)&&it.action!=='paiement'&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
+    const notifs0=prestaVisibleLog(p).filter(it=>it.ts>lastSeen);
     return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Arrivées / départs</h1><span class="badge bp">${p.name}</span></div>
     ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
     ${renderNotifBanner(notifs0,'dismissPrestaNotifs')}
-    <div class="tabs"><button class="tab" onclick="setPrestaTab('horaires')"><span class="tab-ic">🕐</span><span class="tab-lbl">Horaires</span></button><button class="tab active" onclick="setPrestaTab('monbilan')"><span class="tab-ic">💰</span><span class="tab-lbl">Mon Bilan</span></button></div>
+    ${horairesTabsBar}
     ${renderPrestaMonBilan(p)}`;
   }
   const today=new Date().toISOString().slice(0,10);
@@ -5624,11 +5821,11 @@ function renderPrestaHoraires(p){
   const future=occ.filter(r=>(r.dateDepart||r.dateArrivee||r.date)>=today);
   const past=occ.filter(r=>(r.dateDepart||r.dateArrivee||r.date)<today);
   const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
-  const notifs=(D.activityLog||[]).filter(it=>doms.includes(it.domaine)&&it.action!=='paiement'&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
+  const notifs=prestaVisibleLog(p).filter(it=>it.ts>lastSeen);
   return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Arrivées / départs</h1><span class="badge bp">${p.name}</span></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
-  ${hasBilan?`<div class="tabs"><button class="tab active" onclick="setPrestaTab('horaires')"><span class="tab-ic">🕐</span><span class="tab-lbl">Horaires</span></button><button class="tab" onclick="setPrestaTab('monbilan')"><span class="tab-ic">💰</span><span class="tab-lbl">Mon Bilan</span></button></div>`:''}
+  ${horairesTabsBar}
   ${future.length===0?`<div class="ev-card"><div class="empty">Aucune arrivée/départ à venir pour l'instant.</div></div>`:''}
   ${future.map(r=>{const dom=gDom(r.domaine);const isJ=r.dateArrivee===r.dateDepart;
     const cavisteInfo=r.caviste?`<div style="margin-top:8px;padding:6px 10px;background:#FFF8E6;border-left:3px solid #F5D98B;border-radius:0 6px 6px 0;font-size:12px"><span style="font-weight:600;color:#7A5800">🍷 Caviste :</span> ${r.caviste}</div>`:'';
@@ -5653,9 +5850,10 @@ function renderPrestaHoraires(p){
 function renderPrestaDominique(p){
   const tab=S.prestaTab||'calendrier';
   const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
-  const notifs=(D.activityLog||[]).filter(it=>(it.concernsPresta||[]).includes(p.id)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
+  const notifs=prestaVisibleLog(p).filter(it=>it.ts>lastSeen);
   let content;
-  if(tab==='planning'){
+  if(tab==='dernieres'){content=renderDernieresPresta(p);}
+  else if(tab==='planning'){
     const y=S.prestaBilanYear,m=S.prestaBilanMonth;
     const inMonth=x=>{const[ry,rm]=x.date.split('-').map(Number);return ry===y&&rm===(m+1);};
     const rows=[...D.dominiqueSchedule].filter(inMonth).sort((a,b)=>a.date.localeCompare(b.date));
@@ -5684,6 +5882,7 @@ function renderPrestaDominique(p){
   <div class="tabs">
     <button class="tab ${tab==='calendrier'?'active':''}" onclick="setPrestaTab('calendrier')"><span class="tab-ic">📅</span><span class="tab-lbl">Planning</span></button>
     <button class="tab ${tab==='planning'?'active':''}" onclick="setPrestaTab('planning')"><span class="tab-ic">🌱</span><span class="tab-lbl">Mon Planning</span></button>
+    <button class="tab ${tab==='dernieres'?'active':''}" onclick="setPrestaTab('dernieres')"><span class="tab-ic">🕓</span><span class="tab-lbl">Dernières<br>modifs</span></button>
   </div>
   ${content}`;
 }
@@ -5729,9 +5928,11 @@ function renderPrestaGardePersonnel(p){
   const totalDu=rows.reduce((a,x)=>a+gardeRate(x.duree),0);
   const totalRecu=rows.filter(x=>x.paid).reduce((a,x)=>a+gardeRate(x.duree),0);
   const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
-  const notifs=(D.activityLog||[]).filter(it=>(it.concernsPresta||[]).includes(p.id)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
+  const notifs=prestaVisibleLog(p).filter(it=>it.ts>lastSeen);
   let content;
-  if(tab==='planning'){
+  if(tab==='dernieres'){
+    content=renderDernieresPresta(p);
+  } else if(tab==='planning'){
     content=renderGardePlanningCalendar(p);
   } else if(tab==='monbilan'){
     const y=S.prestaBilanYear,m=S.prestaBilanMonth;
@@ -5784,6 +5985,7 @@ function renderPrestaGardePersonnel(p){
     <button class="tab ${tab==='planning'?'active':''}" onclick="setPrestaTab('planning')"><span class="tab-ic">📅</span><span class="tab-lbl">Planning</span></button>
     <button class="tab ${tab==='liste'?'active':''}" onclick="setPrestaTab('liste')"><span class="tab-ic">📋</span><span class="tab-lbl">Liste</span></button>
     <button class="tab ${tab==='monbilan'?'active':''}" onclick="setPrestaTab('monbilan')"><span class="tab-ic">💰</span><span class="tab-lbl">Mon Bilan</span></button>
+    <button class="tab ${tab==='dernieres'?'active':''}" onclick="setPrestaTab('dernieres')"><span class="tab-ic">🕓</span><span class="tab-lbl">Dernières<br>modifs</span></button>
   </div>
   ${content}`;
 }
@@ -6375,15 +6577,27 @@ function updMenageComment(rid,value){
   saveD();render();
 }
 function savePresta(id){
-  const name=document.getElementById('m-pname').value.trim(),role=document.getElementById('m-prole').value.trim(),tel=document.getElementById('m-ptel').value.trim(),accessMode=document.getElementById('m-pmode').value;
+  const name=document.getElementById('m-pname').value.trim(),role=document.getElementById('m-prole').value.trim(),tel=document.getElementById('m-ptel').value.trim(),email=(document.getElementById('m-pemail').value||'').trim(),accessMode=document.getElementById('m-pmode').value;
   const cbs=document.querySelectorAll('#root input[type=checkbox]');const domaines=Array.from(cbs).filter(c=>c.checked).map(c=>c.value);
   if(!name){alert('Le nom est obligatoire.');return;}
   if(!isValidPhone(tel)){alert("Numéro de téléphone invalide. En France : 10 chiffres commençant par 0 (ex. 06 12 34 56 78). À l'étranger : commencez par + ou 00 suivi de l'indicatif.");return;}
-  if(id){const p=D.prestataires.find(x=>x.id===id);Object.assign(p,{name,role,tel,domaines,accessMode});}
-  else D.prestataires.push({id:gid(),name,role,tel,domaines,accessMode,token:'tok_'+name.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'')+'_'+Math.random().toString(36).slice(2,7)});
+  if(id){const p=D.prestataires.find(x=>x.id===id);Object.assign(p,{name,role,tel,email,domaines,accessMode});}
+  else D.prestataires.push({id:gid(),name,role,tel,email,domaines,accessMode,token:'tok_'+name.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'')+'_'+Math.random().toString(36).slice(2,7)});
   saveD();S.modal=null;showMsg('Prestataire enregistré ✓');
 }
 function delPresta(id){if(!confirm('Supprimer ce prestataire ?'))return;D.prestataires=D.prestataires.filter(x=>x.id!==id);D.reservations.forEach(r=>{r.prestataires=(r.prestataires||[]).filter(p=>p!==id);});saveD();render();}
+function updAdminEmail(aid,val){
+  const v=(val||'').trim();
+  if(v&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){alert('Adresse email invalide.');render();return;}
+  const a=D.admins.find(x=>x.id===aid);if(!a)return;
+  a.email=v;saveD();showMsg('Email enregistré ✓');
+}
+function updPrestaEmail(pid,val){
+  const v=(val||'').trim();
+  if(v&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){alert('Adresse email invalide.');render();return;}
+  const p=D.prestataires.find(x=>x.id===pid);if(!p)return;
+  p.email=v;saveD();showMsg('Email enregistré ✓');
+}
 function addDominiquePlanning(){
   const domaine=document.getElementById('dom-pl-domaine').value,date=document.getElementById('dom-pl-date').value;
   if(!domaine||!date)return;
@@ -6438,6 +6652,35 @@ function delTravaux(id){
   D.travauxSchedule=(D.travauxSchedule||[]).filter(x=>x.id!==id);
   markDeleted('travaux',id);
   if(x){const p=gPre(x.pid);logActivity('supprimée',x.domaine,`Travaux supprimés — ${p.name} (${fmt(x.date)}, ${x.heures}h)`,[x.pid],false);}
+  saveD();render();
+}
+function addRemboursement(pid){
+  const domaine=(document.getElementById('remb-domaine-'+pid)||{}).value;
+  const date=(document.getElementById('remb-date-'+pid)||{}).value;
+  const montant=parseFloat((document.getElementById('remb-montant-'+pid)||{}).value)||0;
+  const beneficiaire=((document.getElementById('remb-benef-'+pid)||{}).value||'').trim();
+  const note=((document.getElementById('remb-note-'+pid)||{}).value||'').trim();
+  if(!domaine||!date||!montant)return;
+  if(!D.remboursements)D.remboursements=[];
+  D.remboursements.push({id:gid(),pid,domaine,date,montant:Math.round(montant*100)/100,beneficiaire,note,status:'en_attente',createdAt:Date.now()});
+  const p=D.prestataires.find(x=>x.id===pid);
+  logActivity('remboursement',domaine,`Paiement fait pour nous — ${p?p.name:''} a réglé ${beneficiaire||'un tiers'} : ${money(montant)}${note?' ('+note+')':''}`,[pid],true);
+  saveD();showMsg('Paiement déclaré, en attente de validation ✓');render();
+}
+function delRemboursement(id){
+  const x=(D.remboursements||[]).find(x=>x.id===id);
+  D.remboursements=(D.remboursements||[]).filter(x=>x.id!==id);
+  markDeleted('remboursement',id);
+  if(x){const p=gPre(x.pid);logActivity('remboursement',x.domaine,`Paiement fait supprimé — ${p.name} (${fmt(x.date)}, ${money(x.montant)})`,[x.pid],false);}
+  saveD();render();
+}
+function toggleRemboursementValide(id){
+  const x=(D.remboursements||[]).find(x=>x.id===id);if(!x)return;
+  const wasValide=x.status==='validé';
+  x.status=wasValide?'en_attente':'validé';
+  if(!wasValide){x.validatedBy=S.admin?S.admin.name:'';x.validatedAt=Date.now();}
+  const p=gPre(x.pid);
+  logActivity('remboursement',x.domaine,`Paiement fait ${wasValide?'validation annulée':'validé'} — ${p.name} (${fmt(x.date)}, ${money(x.montant)})`,[x.pid],false);
   saveD();render();
 }
 function validateTravaux(id){
