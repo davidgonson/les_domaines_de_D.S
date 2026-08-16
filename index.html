@@ -602,8 +602,8 @@ const DEF={
     {id:'d3',name:'Les Lions',color:2}
   ],
   prestataires:[
-    {id:'p1',name:'Misha',role:'Gardien & Traiteur ou Service',tel:'',domaines:['d1'],accessMode:'domaine',autoAssign:false,inputMode:'notes',noteRows:6,token:'tok_misha_dsr1',forfaitMensuel:400,electricite:true},
-    {id:'p2',name:'Sasha',role:'Gardien & Décoration ou Service',tel:'',domaines:['d2'],accessMode:'domaine',autoAssign:false,inputMode:'notes',noteRows:3,token:'tok_sasha_dss2',forfaitMensuel:400},
+    {id:'p1',name:'Misha',role:'Gardien & Traiteur ou Service',tel:'',domaines:['d1','d2'],accessMode:'domaine',autoAssign:false,inputMode:'notes',noteRows:6,token:'tok_misha_dsr1',forfaitMensuel:400,electricite:true},
+    {id:'p2',name:'Sasha',role:'Gardien & Décoration ou Service',tel:'',domaines:['d2','d1'],accessMode:'domaine',autoAssign:false,inputMode:'notes',noteRows:3,token:'tok_sasha_dss2',forfaitMensuel:400},
     {id:'p3',name:'Pascaline',role:'Ménage',tel:'',domaines:['d3'],accessMode:'calendrierSeul',inputMode:'notes',noteRows:2,flatRate:250,token:'tok_pascaline_lns3'},
     {id:'p4',name:'Dominique',role:'Jardinage',tel:'',domaines:['d1','d2','d3'],accessMode:'occupation',inputMode:'none',token:'tok_dominique_jrd4'},
     {id:'p5',name:'Sébastien',role:'Sécurité',tel:'',domaines:['d1'],accessMode:'manuel',inputMode:'garde',token:'tok_sebastien_sec5'},
@@ -675,6 +675,10 @@ function runMigrations(){
     if(p.role==='Gardien & Traiteur')p.role='Gardien & Traiteur ou Service';
     if(p.role==='Gardien & Décoration')p.role='Gardien & Décoration ou Service';
     if(p.name==='Misha'||p.name==='Sasha')p.autoAssign=false;
+    // Misha et Sasha se remplacent l'un l'autre selon les besoins : chacun doit voir ce qui se
+    // passe aussi sur le domaine de l'autre (gardiennage, planning...), pas seulement le sien.
+    if(p.name==='Misha'&&!(p.domaines||[]).includes('d2'))p.domaines=[...(p.domaines||['d1']),'d2'];
+    if(p.name==='Sasha'&&!(p.domaines||[]).includes('d1'))p.domaines=[...(p.domaines||['d2']),'d1'];
     if(p.name==='Pascaline'){p.accessMode='calendrierSeul';if(p.flatRate===undefined)p.flatRate=250;}
     if(p.name==='Yana')p.accessMode='readonly_nofinance';
     if((p.name==='Misha'||p.name==='Sasha')&&p.forfaitMensuel===undefined)p.forfaitMensuel=400;
@@ -2449,7 +2453,7 @@ function injectBands(){
         _leftColHtml+=_hIdxA>=0?`<span style="font-weight:700;color:${_cornerColor};font-size:7px;line-height:1;display:block"><span style="font-size:7px">${timeArrF0.slice(0,_hIdxA)}</span><span style="font-size:5px">${timeArrF0.slice(_hIdxA)}</span></span>`:`<span style="font-weight:700;color:${_cornerColor};font-size:7px;line-height:1;display:block">${timeArrF0}</span>`;
       }
       if(_applyP){
-        _leftColHtml+=`<span class="band-p-badge" data-rid="${b.rid}" style="font-weight:800;color:#38BDF8;font-size:${_applyArr?'7.5px':'8.5px'};line-height:1;display:block;margin-top:${_applyArr?'2px':'1px'}">P</span>`;
+        _leftColHtml+=`<span class="band-p-badge" data-rid="${b.rid}" style="font-weight:800;color:#38BDF8;font-size:${_applyArr?'8px':'9px'};line-height:1;display:block;margin-top:${_applyArr?'2px':'1px'}">P</span>`;
       }
       lblL.innerHTML=_leftColHtml;
       grid.appendChild(lblL);
@@ -2615,7 +2619,10 @@ function renderCalendrier(){
   });
   const gardeByDate={};
   const GARDE_COLORS=['#FF5CA6','#FFB300','#43CB60','#6B64C8','#3A7AB8'];
-  // GC/GL visibles : David et Svitlana (admin) + Misha(p1) pour d1 + Sacha(p2) pour d2
+  // GC/GL visibles : David et Svitlana (admin) + Misha/Sacha (accès complet, "domaine") pour
+  // chacun des domaines qui LEUR sont associés (p.domaines) — Misha et Sacha se remplacent l'un
+  // l'autre selon les besoins, donc voient le gardiennage sur les deux domaines, pas seulement
+  // le leur en propre. Pas de liste figée p1/d1, p2/d2 : ça suit p.domaines dynamiquement.
   const _gpid=S.presta?S.presta.id:null;
   const _isAdm=S.view==='admin';
   D.reservations.forEach(function(r){
@@ -2624,9 +2631,8 @@ function renderCalendrier(){
     if(_isAdm){
       // les deux administrateurs voient le détail du gardiennage
     } else {
-      if(_gpid==='p1'&&r.domaine!=='d1')return;
-      if(_gpid==='p2'&&r.domaine!=='d2')return;
-      if(_gpid!=='p1'&&_gpid!=='p2')return;
+      if(!S.presta||S.presta.accessMode!=='domaine')return;
+      if(!(S.presta.domaines||[]).includes(r.domaine))return;
     }
     const domColor=(gDom(r.domaine)||{}).color||0;
     const col=GARDE_COLORS[domColor];
@@ -2648,7 +2654,8 @@ function renderCalendrier(){
     const ds3=`${yr}-${String(mo+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
     const dc=dayCls(ds3),tag=dayTag(ds3);
     let cls='cal-cell';if(isO)cls+=' other';if(ds3===todayStr)cls+=' today';if(dc)cls+=` ${dc}`;
-    const cellClick=readOnly?'':` onclick="openDayMenu('${ds3}')"`;
+    const dayClickAllowed=!readOnly||(S.presta&&S.presta.accessMode==='domaine');
+    const cellClick=dayClickAllowed?` onclick="openDayMenu('${ds3}')"`:'';
     var _dd=_domDay[ds3];
     var _isDavidView=S.view==='admin'&&!S.presta&&S.admin&&S.admin.id==='a1';
     var _showCircle=_dd&&_cp==='p4';
@@ -5359,6 +5366,18 @@ function renderModalContent(){
     const date=prefDate;
     const evs=D.reservations.filter(r=>r.status!=='annulé'&&date>=(r.dateArrivee||r.date)&&date<=(r.dateDepart||r.dateArrivee||r.date));
     const vis=D.visites.filter(v=>v.date===date&&v.status!=='annulée');
+    if(S.view!=='admin'){
+      // Vue lecture seule (ex. Misha/Sasha, accès complet mais sans la main sur les réservations) :
+      // on liste ce qui se passe ce jour-là, un clic ouvre le même panneau de détail que sur la
+      // bande du calendrier (sans montant ni paiements — voir renderDetailPanel), jamais le
+      // formulaire d'édition réservé à l'admin, et aucun bouton de création.
+      return`<h3>📅 ${dn(date)} ${fmt(date)}</h3>
+      ${(evs.length||vis.length)?`<div style="margin-bottom:6px">
+        ${evs.map(r=>{const dom=gDom(r.domaine);return`<div style="padding:8px 10px;border:1px solid #e5e3de;border-radius:8px;margin-bottom:6px;cursor:pointer" onclick="closeM();selectResa('${r.id}')"><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span><strong>${displayClientName(r)||'—'}</strong> <span style="color:#888;font-size:12px">${r.typeEvenement||''}</span></div>`;}).join('')}
+        ${vis.map(v=>{const dom=gDom(v.domaine);return`<div style="padding:8px 10px;border:1px dashed #d5d3ce;border-radius:8px;margin-bottom:6px">👀 <span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span><strong>${v.client||'—'}</strong> <span style="color:#888;font-size:12px">${v.heure||''}</span></div>`;}).join('')}
+      </div>`:'<div class="empty" style="margin-bottom:14px">Rien de prévu ce jour-là.</div>'}
+      <div class="modal-actions"><button class="btn" onclick="closeM()">Fermer</button></div>`;
+    }
     return`<h3>📅 ${dn(date)} ${fmt(date)}</h3>
     ${(evs.length||vis.length)?`<div style="margin-bottom:14px">
       <div style="font-size:12px;color:#888;margin-bottom:6px">Sur cette date :</div>
@@ -6557,7 +6576,7 @@ async function initApp(){
       if(!S.modal)render();
       if(hadLocalOnly)pushRemoteD(D);
     }
-  },5000);
+  },3000);
 }
 let touchStartX=null,touchStartY=null,touchLockDir=null;
 /* Tant que la fiche réservation est ouverte, on rafraîchit le repérage des champs obligatoires
