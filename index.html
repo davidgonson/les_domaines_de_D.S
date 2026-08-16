@@ -100,8 +100,8 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .comment-item .meta{font-size:11px;color:#666;margin-bottom:4px;display:flex;justify-content:space-between}
 .link-box{display:flex;align-items:center;gap:8px;background:#f5f4f1;border-radius:8px;padding:8px 12px;font-size:11px;font-family:monospace;word-break:break-all;border:1px solid #e5e3de}
 .wa-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:8px;background:#25D366;color:#fff;font-size:12px;font-weight:500;text-decoration:none;border:none;cursor:pointer;font-family:inherit;white-space:nowrap}
-.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin:-1rem -1.25rem 12px -1.25rem;padding:10px 1.25rem;background:#9c9890;border-radius:12px 12px 0 0}
-.sec-hdr h2{font-size:15px;font-weight:500;color:#fff}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:-.55rem -.75rem 8px -.75rem;padding:6px .75rem;background:#4a4640;border-radius:9px 9px 0 0}
+.sec-hdr h2{font-size:12.5px;font-weight:600;color:#fff;letter-spacing:.01em}
 .sec-hdr .btn{background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)}
 .sec-hdr .btn:hover{background:rgba(255,255,255,.25)}
 /* === Badges à contraste fort (validation / réglé), utilisés dans le bilan financier ===
@@ -112,13 +112,18 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .bb-warn{background:#B15E00}
 .bb-bad{background:#B93232}
 .bb-clickable{cursor:pointer}
-/* Carte de section du bilan : bordure épaisse colorée par sujet (ménage/commission/travaux/
-   électricité/gardiennage) au lieu du liseré gris uniforme — chaque sujet devient reconnaissable
-   d'un coup d'œil, identique des deux côtés (prestataire et admin). */
-.bilan-sec{background:#fff;border-width:2px;border-style:solid;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px;scroll-margin-top:12px}
+/* Carte de section du bilan — volontairement sobre et compacte : un seul liseré neutre et un
+   seul bandeau anthracite pour TOUTES les sections. Ce sont les icônes et les intitulés qui
+   distinguent les sujets, plus une mosaïque de couleurs. Seul le « Bilan total » garde l'accent
+   bordeaux de la maison : une seule couleur forte par page, c'est elle qu'on doit voir. */
+.bilan-sec{background:#fff;border:1px solid #e2ded7;border-radius:10px;padding:.55rem .75rem;margin-bottom:9px;scroll-margin-top:12px}
 .bilan-sec .sec-hdr{color:#fff}
-.bilan-sec .metric{border-width:1.5px;border-color:#d7d5cd;padding:.6rem}
-.bilan-sec .metric .val{font-size:17px;font-weight:600}
+.bilan-sec .metric{border-width:1px;border-color:#e2ded7;padding:.45rem}
+.bilan-sec .metric .val{font-size:15px;font-weight:600}
+.bilan-sec .empty{padding:.8rem;font-size:12px}
+.bilan-sec .g2,.bilan-sec .g3{gap:5px}
+/* Champs de saisie du bilan : compacts, pour que remplir aille vite. */
+.bilan-sec input,.bilan-sec select{padding:4px 5px;font-size:11.5px}
 .empty{text-align:center;padding:2.5rem;color:#666;font-size:13px}
 .note-box{background:#f5f4f1;border-radius:6px;padding:8px 12px;font-size:12px;color:#555;border-left:3px solid #ED93B1;margin-top:6px}
 .ev-card{border:1px solid #e5e3de;border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fff}
@@ -1320,49 +1325,68 @@ function submitAddPrestaLine(pid){
    (Misha/Sasha peuvent déclarer leurs lignes) et la page admin (David/Svitlana valident ou
    corrigent). L'affichage et les droits de saisie sont identiques ; seule la validation du
    calcul est réservée à l'admin (valideBadge s'en charge). === */
+/* UNE SEULE section « Prestations » — auparavant il y en avait deux (la saisie ici, et un
+   listing détaillé plus bas) qui affichaient les mêmes lignes deux fois, d'où une page
+   interminable. Tout est réuni : les chapitres en dur (via DS, via Ozarko, en direct, via
+   Svitlana), les lignes modifiables à l'intérieur, puis les totaux et la commission à la fin. */
 function renderCommissionSection(p,y,m){
   const isAdmin=S.view==='admin';
+  const V=bilanVoix(p);
+  const delFn=isAdmin?'delPrestaLine':'delPrestaLineSelf';
+  const grp=v=>(COMMISSION_VIA_GROUP[v]||v).replace('{n}',p.name);
+  const ensembles=computeCommissionEnsembles(p,y,m);
   const inMonth=r=>{const d=r.dateArrivee||r.date;if(!d)return false;const[ry,rm]=d.split('-').map(Number);return ry===y&&rm===(m+1);};
   const evs=D.reservations.filter(r=>r.status!=='annulé'&&inMonth(r)&&r.prestaLines&&r.prestaLines[p.id]&&r.prestaLines[p.id].length>0);
-  const rows=evs.map(r=>{const lines=r.prestaLines[p.id];const sousTotal=lines.reduce((a,l)=>a+(l.montant||0),0);return{r,lines,sousTotal};});
-  const delFn=isAdmin?'delPrestaLine':'delPrestaLineSelf';
-  /* Même vue, des deux côtés (David/Svitlana ET le prestataire) : cette section — et son détail
-     de calcul ligne par ligne — est rendue par cette MÊME fonction, appelée aussi bien depuis
-     "Mon Bilan" (côté prestataire) que depuis la fiche admin. Pour qu'on voie tous du premier
-     coup d'œil si on est d'accord, un petit badge résume l'état de validation : chacun peut
-     ensuite en discuter dans les commentaires du mois juste au-dessus (renderBilanComments). */
-  const allLines=rows.flatMap(x=>x.lines);
+  // index : id de ligne -> {réservation, ligne}, pour retrouver la ligne modifiable depuis un chapitre
+  const lineById={};
+  evs.forEach(r=>r.prestaLines[p.id].forEach(l=>{lineById[l.id]={r,l};}));
+  const allLines=evs.flatMap(r=>r.prestaLines[p.id]);
   const nbValide=allLines.filter(l=>l.valide).length,nbTotal=allLines.length;
-  const validSummary=nbTotal>0?`<span class="bb ${nbValide===nbTotal?'bb-good':'bb-warn'}" style="flex-shrink:0">${nbValide===nbTotal?`✓ ${nbTotal}/${nbTotal} validées`:`⏳ ${nbValide}/${nbTotal} validées`}</span>`:'';
-  return`<div id="bloc-commission" class="bilan-sec" style="border-color:#7A5800">
-    <div class="sec-hdr" style="background:#7A5800"><h2>🧾 Prestations avec commission — ${MONTHS_FR[m]} ${y}</h2>${validSummary}</div>
-    <div style="font-size:11px;color:#888;margin-bottom:10px">Choisissez comment le client a réglé (via DS, via structure, cash…) — le calcul se met à jour automatiquement. ${isAdmin?'Validez-le, ou corrigez le montant si besoin.':'David/Svitlana valide ensuite le calcul — vous pouvez commenter ci-dessus si un montant vous semble faux.'}</div>
-    <div style="margin-bottom:10px">
-      <button class="btn btn-sm btn-primary" onclick="toggleAddPrestaLine('${p.id}')">${S.addPrestaLineOpen===p.id?'✕ Annuler':'+ Ajouter une prestation'}</button>
-      ${S.addPrestaLineOpen===p.id?renderAddPrestaLineForm(p):''}
+  const validSummary=nbTotal>0?`<span class="bb ${nbValide===nbTotal?'bb-good':'bb-warn'}" style="flex-shrink:0">${nbValide===nbTotal?`✓ ${nbTotal}/${nbTotal}`:`⏳ ${nbValide}/${nbTotal}`}</span>`:'';
+  /* Une prestation = deux lignes : intitulé + montant + suppression, puis mode de règlement,
+     commission, note, net et validation. C'est le format que David trouve juste. */
+  const ligneEditable=(rid,l)=>{
+    const c=ligneCalc(l,p.id);const via=viaOf(l);const r=lineById[l.id].r;
+    return`<div style="background:#f7f6f3;border-radius:7px;padding:5px 6px;margin-bottom:4px">
+      <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:3px">
+        <span style="font-size:10px;color:#9a958c;white-space:nowrap">${ds(r.dateArrivee)} · ${displayClientName(r)||gDom(r.domaine).name}</span>
+        <input type="text" id="pl-label-${l.id}" value="${(l.label||'').replace(/"/g,'&quot;')}" placeholder="Intitulé" onchange="updPrestaLine('${rid}','${p.id}','${l.id}','label',this.value)" style="flex:1;min-width:80px;font-weight:500">
+        <input type="number" id="pl-montant-${l.id}" value="${l.montant||0}" onchange="updPrestaLine('${rid}','${p.id}','${l.id}','montant',this.value)" style="width:62px">
+        <button class="btn btn-xs btn-danger" onclick="${delFn}('${rid}','${p.id}','${l.id}')">✕</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+        ${viaSelectHtml(rid,p.id,l.id,via)}
+        <select id="pl-commission-${l.id}" onchange="updPrestaLine('${rid}','${p.id}','${l.id}','commission',this.value)" style="max-width:145px;flex-shrink:0">${COMMISSION_PRESETS.map(([v,lbl])=>`<option value="${v}" ${v===((l.commission===undefined||l.commission===null||l.commission==='')?10:parseFloat(l.commission))?'selected':''}>${lbl}</option>`).join('')}${COMMISSION_PRESETS.some(o=>o[0]===((l.commission===undefined||l.commission===null||l.commission==='')?10:parseFloat(l.commission)))?'':`<option value="${l.commission}" selected>Commission ${l.commission}%</option>`}</select>
+        ${p.id==='p1'&&via==='structure'?`<span style="display:flex;align-items:center;gap:2px;background:#FFF6E8;border-radius:5px;padding:1px 4px"><span style="font-size:9.5px;color:#7A5800">pour nous</span><input type="number" id="pl-notrepart-${l.id}" value="${l.notrePart||''}" placeholder="0" onchange="updPrestaLine('${rid}','${p.id}','${l.id}','notrePart',this.value)" style="width:48px"></span>`:''}
+        <input type="text" id="pl-notes-${l.id}" value="${(l.notes||'').replace(/"/g,'&quot;')}" placeholder="Note" onchange="updPrestaLine('${rid}','${p.id}','${l.id}','notes',this.value)" style="flex:1;min-width:50px">
+        <span style="font-size:11px;font-weight:700;color:${c.net>=0?'#27500A':'#A32D2D'};white-space:nowrap;flex-shrink:0">${money(Math.abs(c.net))}</span>
+        ${valideBadge(!!l.valide,`toggleLigneValide('${rid}','${p.id}','${l.id}')`)}
+      </div>
+    </div>`;
+  };
+  const ligneTot=(lbl,val,col,gros)=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:${gros?'5px':'2px'} 0;font-size:${gros?'12.5px':'11px'};${gros?'font-weight:700;':'color:#8a8678;'}border-top:${gros?'1px solid #e2ded7':'none'}">
+    <span${gros?' style="color:#4a4640"':''}>${lbl}</span><strong style="color:${col||'#4a4640'}">${money(val)}</strong></div>`;
+  const ensembleHtml=ens=>`<div id="bloc-ens-${ens.rate}" style="scroll-margin-top:12px;margin-bottom:8px">
+    ${ens.sansCommission||!ens.isStd?`<div style="font-size:11px;font-weight:700;color:#993556;margin:8px 0 4px">${ens.sansCommission?'Prestations sans commission (forfaits)':`Prestations — commission ${ens.rate}%`}</div>`:''}
+    ${ens.channels.map(ch=>`<div style="margin-bottom:6px">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:6px;padding:3px 0 2px;border-bottom:1px solid #efece6">
+        <span style="font-size:11.5px;font-weight:700;color:#4a4640">${grp(ch.via)}</span>
+        <span style="font-size:11px;white-space:nowrap;color:${ch.vide?'#c7c2bb':'#4a4640'}">${ch.vide?'—':money(ch.sousTotal)+(ch.fiscal>0?` <span style="color:#A32D2D;font-size:10px">− 15% = ${money(ch.brut)}</span>`:'')}</span>
+      </div>
+      ${ch.lines.map(l=>lineById[l.id]?ligneEditable(lineById[l.id].r.id,lineById[l.id].l):'').join('')}
+    </div>`).join('')}
+    ${ligneTot('Sous-total des prestations',ens.brut,'#4a4640')}
+    ${ens.aReverser>0?ligneTot(`Prestations ${V.aRegler}`,ens.aReverser,'#1F7A3D',true):''}
+    ${(ens.commission+ens.notrePartDue)>0?ligneTot(ens.sansCommission?'Part qui nous revient':`Commission ${ens.rate}%${ens.notrePartDue?' + part qui nous revient':''}`,Math.round((ens.commission+ens.notrePartDue)*100)/100,'#A32D2D',true):''}
+  </div>`;
+  return`<div id="bloc-commission" class="bilan-sec">
+    <div class="sec-hdr"><h2>🧾 Prestations — ${MONTHS_FR[m]} ${y}</h2>${validSummary}</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px">
+      <button class="btn btn-sm btn-primary" onclick="toggleAddPrestaLine('${p.id}')">${S.addPrestaLineOpen===p.id?'✕ Annuler':'+ Ajouter'}</button>
+      <span style="font-size:10px;color:#9a958c;text-align:right">Le mode de règlement pilote le calcul.</span>
     </div>
-    ${rows.length===0?'<div class="empty">Aucune prestation ce mois-ci.</div>':''}
-    ${rows.map(({r,lines,sousTotal},rIdx)=>{const dom=gDom(r.domaine);return`<div style="padding:8px 8px;margin:0 -8px 6px;border-bottom:1px solid #e5e3de;background:${rIdx%2===1?'#f7f6f3':'transparent'}">
-      <div style="font-weight:500;font-size:13px;margin-bottom:6px">${r.client||dom.name}${r.typeClient==='entreprise'&&r.societe?` <span style="color:#888;font-weight:400">(${r.societe})</span>`:''} — <span class="pill ${PILL[dom.color||0]}">${dom.name}</span> · ${ds(r.dateArrivee)}</div>
-      ${lines.map(l=>{const c=ligneCalc(l,p.id);const via=viaOf(l);return`<div style="background:#f5f4f1;border-radius:8px;padding:7px 8px;margin-bottom:5px">
-        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:4px">
-          <input type="text" id="pl-label-${l.id}" value="${(l.label||'').replace(/"/g,'&quot;')}" placeholder="Intitulé (ex. Traiteur)" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','label',this.value)" style="flex:1;min-width:90px;font-size:12px;font-weight:500;padding:3px 5px">
-          <span style="display:flex;align-items:center;gap:2px"><input type="number" id="pl-montant-${l.id}" value="${l.montant||0}" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','montant',this.value)" style="width:58px;font-size:12px;padding:3px 5px"><span style="font-size:11px;color:#666">€</span></span>
-          <button class="btn btn-xs btn-danger" onclick="${delFn}('${r.id}','${p.id}','${l.id}')">✕</button>
-        </div>
-        ${p.id==='p1'&&via==='structure'?`<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px;background:#FFF6E8;border-radius:6px;padding:4px 6px"><span style="font-size:10.5px;color:#7A5800;flex:1">Part qui nous revient :</span><input type="number" id="pl-notrepart-${l.id}" value="${l.notrePart||''}" placeholder="0" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','notrePart',this.value)" style="width:55px;font-size:11px;padding:3px 5px"><span style="font-size:11px;color:#7A5800">€</span></div>`:''}
-        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
-          ${viaSelectHtml(r.id,p.id,l.id,via)}
-          <select id="pl-commission-${l.id}" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','commission',this.value)" style="font-size:10.5px;padding:2px 4px;width:auto;max-width:150px;flex-shrink:0">${COMMISSION_PRESETS.map(([v,lbl])=>`<option value="${v}" ${v===((l.commission===undefined||l.commission===null||l.commission==='')?10:parseFloat(l.commission))?'selected':''}>${lbl}</option>`).join('')}${COMMISSION_PRESETS.some(o=>o[0]===((l.commission===undefined||l.commission===null||l.commission==='')?10:parseFloat(l.commission)))?'':`<option value="${l.commission}" selected>Commission ${l.commission}%</option>`}</select>
-          <input type="text" id="pl-notes-${l.id}" value="${(l.notes||'').replace(/"/g,'&quot;')}" placeholder="Note" onchange="updPrestaLine('${r.id}','${p.id}','${l.id}','notes',this.value)" style="flex:1;min-width:60px;font-size:11px;padding:3px 5px">
-          <span style="font-size:11.5px;font-weight:700;color:${c.net>=0?'#27500A':'#A32D2D'};white-space:nowrap;flex-shrink:0">${money(Math.abs(c.net))}</span>
-          ${valideBadge(!!l.valide,`toggleLigneValide('${r.id}','${p.id}','${l.id}')`)}
-        </div>
-        <div style="font-size:10px;color:#999;margin-top:3px">${renderCommissionLineDetail({montant:l.montant||0,via,tauxCommission:c.tauxCommission,fiscalRetenu:c.fiscalRetenu,commissionApplied:c.commissionApplied,duToPresta:c.duToPresta},p.name)}</div>
-        ${renderNotrePartDetail({notrePart:l.notrePart||0,notrePartDue:c.notrePartDue},p.name)}
-      </div>`;}).join('')}
-      <div style="font-size:12px;font-weight:600;color:#555">Sous-total prestation : ${money(sousTotal)}</div>
-    </div>`;}).join('')}
+    ${S.addPrestaLineOpen===p.id?renderAddPrestaLineForm(p):''}
+    ${nbTotal===0?'<div class="empty">Aucune prestation ce mois-ci.</div>':ensembles.map(ensembleHtml).join('')}
   </div>`;
 }
 /* === Travaux hors réservation (Misha/Sacha) — intégrés à Mon Bilan, même logique de
@@ -1375,9 +1399,9 @@ function renderTravauxSection(p,y,m){
   const rows=(D.travauxSchedule||[]).filter(x=>x.pid===p.id&&inMonth(x.date)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   const defaultDom=(p.domaines||[])[0];
   const domOpts=D.domaines.map(d=>`<option value="${d.id}" ${d.id===defaultDom?'selected':''}>${d.name}</option>`).join('');
-  return`<div id="bloc-travaux" class="bilan-sec" style="border-color:#8B4A1F">
-    <div class="sec-hdr" style="background:#8B4A1F"><h2>🔧 Travaux &amp; ménages ponctuels — ${MONTHS_FR[m]} ${y}</h2></div>
-    <div style="font-size:11px;color:#888;margin-bottom:8px">${TRAVAUX_RATE}€/h ou au forfait, et les ménages ponctuels (trimestriel, annuel) — sans commission. ${isAdmin?'Validez chaque ligne.':'David/Svitlana valide.'}</div>
+  return`<div id="bloc-travaux" class="bilan-sec">
+    <div class="sec-hdr"><h2>🔧 Travaux &amp; ménages ponctuels — ${MONTHS_FR[m]} ${y}</h2></div>
+    <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">${TRAVAUX_RATE}€/h ou au forfait, et les ménages ponctuels (trimestriel, annuel) — sans commission. ${isAdmin?'Validez chaque ligne.':'David/Svitlana valide.'}</div>
     ${!isAdmin?`<div style="background:#f5f4f1;border-radius:8px;padding:7px;margin-bottom:10px">
       <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:5px">
         <select id="trav-domaine-${p.id}" style="font-size:11.5px;padding:4px 5px;flex:1;min-width:88px">${domOpts}</select>
@@ -1450,9 +1474,9 @@ function renderReglementSection(p,y,m){
   const R=computeReglementMois(p,y,m);
   const destOpts=D.domaines.map(d=>`<option value="${d.name}">${d.name}</option>`).join('');
   const negatif=R.especes<0;
-  return`<div id="bloc-reglement" class="bilan-sec" style="border-color:#1F7A3D">
-    <div class="sec-hdr" style="background:#1F7A3D"><h2>🧾 Règlement du mois — ${MONTHS_FR[m]} ${y}</h2></div>
-    <div style="font-size:11px;color:#888;margin-bottom:10px">Sur le total dû ce mois-ci, indiquez la part qui fait l'objet d'une facture — à quel domaine elle est adressée et pour quel montant. Le reste est automatiquement compté comme réglé en espèces.</div>
+  return`<div id="bloc-reglement" class="bilan-sec">
+    <div class="sec-hdr"><h2>🧾 Règlement du mois — ${MONTHS_FR[m]} ${y}</h2></div>
+    <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">Sur le total dû ce mois-ci, indiquez la part qui fait l'objet d'une facture — à quel domaine elle est adressée et pour quel montant. Le reste est automatiquement compté comme réglé en espèces.</div>
     <div style="background:#fff;border-radius:8px;padding:4px 12px;margin-bottom:10px">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #DCEBD4;font-size:13px;font-weight:700">
         <span style="color:#1F5C31">Total dû ce mois</span><strong style="font-size:16px">${money(R.totalDu)}</strong>
@@ -1489,9 +1513,9 @@ function renderRemboursementSection(p,y,m){
   const rows=(D.remboursements||[]).filter(x=>x.pid===p.id&&inMonth(x.date)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   const defaultDom=(p.domaines||[])[0];
   const domOpts=D.domaines.map(d=>`<option value="${d.id}" ${d.id===defaultDom?'selected':''}>${d.name}</option>`).join('');
-  return`<div id="bloc-remb" class="bilan-sec" style="border-color:#0C447C">
-    <div class="sec-hdr" style="background:#0C447C"><h2>💳 Paiement fait / divers — ${MONTHS_FR[m]} ${y}</h2></div>
-    <div style="font-size:11px;color:#888;margin-bottom:10px">Toute dépense que ${p.name} fait de sa poche pour notre compte — régler quelqu'un pour nous, acheter/avancer quelque chose (boissons, envoi postal, petit matériel…) — c'est un remboursement, pas une rémunération : ça s'ajoute à ce qu'on lui doit, mais reste toujours compté à part. ${isAdmin?'Validez chaque ligne, ou laissez en attente.':'David/Svitlana valide chaque ligne.'}</div>
+  return`<div id="bloc-remb" class="bilan-sec">
+    <div class="sec-hdr"><h2>💳 Paiement fait / divers — ${MONTHS_FR[m]} ${y}</h2></div>
+    <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">Toute dépense que ${p.name} fait de sa poche pour notre compte — régler quelqu'un pour nous, acheter/avancer quelque chose (boissons, envoi postal, petit matériel…) — c'est un remboursement, pas une rémunération : ça s'ajoute à ce qu'on lui doit, mais reste toujours compté à part. ${isAdmin?'Validez chaque ligne, ou laissez en attente.':'David/Svitlana valide chaque ligne.'}</div>
     ${!isAdmin?`<div style="background:#f5f4f1;border-radius:8px;padding:7px;margin-bottom:10px">
       <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:5px">
         <select id="remb-domaine-${p.id}" style="font-size:11.5px;padding:4px 5px;flex:1;min-width:88px">${domOpts}</select>
@@ -1531,7 +1555,7 @@ function renderGardeSection(p,y,m){
   rows.sort((a,b)=>a.date.localeCompare(b.date));
   const total=rows.reduce((a,x)=>a+gardeRate(x.duree),0),paid=rows.filter(x=>x.paid).reduce((a,x)=>a+gardeRate(x.duree),0);
   const enAttenteCount=rows.filter(x=>!x.valide).length;
-  const header=`<div class="sec-hdr" style="background:#534AB7"><h2>🛡 Gardiennage — ${MONTHS_FR[m]} ${y}</h2>${isAdmin?`<button class="btn btn-xs btn-primary" onclick="openM('gardePlanning',null,{pid:'${p.id}'})">📅 Planning</button>`:''}</div>
+  const header=`<div class="sec-hdr"><h2>🛡 Gardiennage — ${MONTHS_FR[m]} ${y}</h2>${isAdmin?`<button class="btn btn-xs btn-primary" onclick="openM('gardePlanning',null,{pid:'${p.id}'})">📅 Planning</button>`:''}</div>
     <div class="g3" style="margin-bottom:14px">
       <div class="metric"><span class="lbl">Total dû ce mois</span><span class="val">${money(total)}</span></div>
       <div class="metric"><span class="lbl">Réglé</span><span class="val" style="color:#27500A">${money(paid)}</span></div>
@@ -1540,7 +1564,7 @@ function renderGardeSection(p,y,m){
   if(isAdmin){
     const body=rows.length===0?'<div class="empty">Aucune nuit de gardiennage ce mois-ci.</div>':`<div style="overflow-x:auto"><table class="list-tbl"><thead><tr><th>Nuit du</th><th>Lieu</th><th>Durée</th><th>Commentaire</th><th>Montant</th><th>Mode</th><th>Validation</th><th>Événement</th><th></th></tr></thead>
       <tbody>${rows.map(x=>{const dom=gDom(x.domaine);const toggleCall=x.source==='resa'?`toggleGardeNightPaid('${x.resaId}','${p.id}','${x.date}')`:`toggleGardeSchedulePaid('${x.schedId}')`;const methodCall=x.source==='resa'?`setGardeNightPayMethod('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeSchedulePayMethod('${x.schedId}',this.value)`;const dureeCall=x.source==='resa'?`setGardeNightDuree('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleDuree('${x.schedId}',this.value)`;const commentCall=x.source==='resa'?`setGardeNightComment('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleComment('${x.schedId}',this.value)`;const delCall=x.source==='resa'?`delGardeNight('${x.resaId}','${p.id}','${x.date}')`:`delGardePlanning('${x.schedId}')`;const valideCall=x.source==='resa'?`toggleGardeNightValide('${x.resaId}','${p.id}','${x.date}')`:`toggleGardeScheduleValide('${x.schedId}')`;return`<tr><td>${dn(x.date)} ${ds(x.date)}</td><td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td><td><select onchange="${dureeCall}" style="font-size:12px"><option value="courte" ${x.duree==='courte'?'selected':''}>Courte (22h-2h)</option><option value="longue" ${x.duree==='longue'?'selected':''}>Longue (22h-4h)</option></select></td><td><input type="text" id="garde-com-${x.source==='resa'?(x.resaId+'_'+p.id+'_'+x.date):x.schedId}" value="${x.comment||''}" placeholder="Commentaire" onchange="${commentCall}" style="font-size:12px;padding:3px 5px;width:130px;color:#888"></td><td>${money(gardeRate(x.duree))}</td><td>${regleToggle(x.paid,toggleCall)}</td><td>${valideBadge(x.valide,valideCall)}</td><td>${x.client}</td><td><button class="btn btn-xs btn-danger" onclick="${delCall}">✕</button></td></tr>`;}).join('')}</tbody></table></div>`;
-    return`<div id="bloc-garde" class="bilan-sec" style="border-color:#534AB7">${header}${enAttenteCount>0?`<div class="alert" style="background:#B15E00;color:#fff;font-weight:700;margin-bottom:10px;font-size:12.5px">⏳ ${enAttenteCount} nuit${enAttenteCount>1?'s':''} en attente de validation.</div>`:''}${body}</div>`;
+    return`<div id="bloc-garde" class="bilan-sec">${header}${enAttenteCount>0?`<div class="alert" style="background:#B15E00;color:#fff;font-weight:700;margin-bottom:10px;font-size:12.5px">⏳ ${enAttenteCount} nuit${enAttenteCount>1?'s':''} en attente de validation.</div>`:''}${body}</div>`;
   }
   const body=rows.length===0?'<div class="empty">Aucune nuit de gardiennage ce mois-ci.</div>':rows.map((x,xIdx)=>{const dom=gDom(x.domaine);return`<div style="padding:7px 4px;border-bottom:1px solid #f0eee8;font-size:12.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:${xIdx%2===1?'#f7f6f3':'transparent'}">
     <span class="pill ${PILL[dom.color||0]}" style="flex-shrink:0">${dom.name}</span>
@@ -1549,7 +1573,7 @@ function renderGardeSection(p,y,m){
     ${x.comment?`<span style="color:#534AB7;font-style:italic">${x.comment}</span>`:''}
     <span style="margin-left:auto">${valideBadge(x.valide,'')}</span>
   </div>`;}).join('');
-  return`<div id="bloc-garde" class="bilan-sec" style="border-color:#534AB7">${header}${body}</div>`;
+  return`<div id="bloc-garde" class="bilan-sec">${header}${body}</div>`;
 }
 /* === Section "Forfait ménage" — partagée entre la page perso et la page admin. Le montant
    n'est ajustable que côté admin (comme avant) ; la validation aussi. === */
@@ -1578,8 +1602,8 @@ function renderBilanComments(p,y,m){
   const isAdmin=S.view==='admin';
   const thread=(D.bilanComments||[]).filter(c=>c.pid===p.id&&c.monthKey===key).sort((a,b)=>(a.ts||0)-(b.ts||0));
   const inputId=`bc-input-${p.id}-${key}`;
-  return`<div id="bloc-comments" class="bilan-sec" style="border-color:#5B5952;padding:.7rem .9rem">
-    <div class="sec-hdr" style="background:#5B5952;padding:5px 10px"><h2 style="font-size:12.5px">💬 Discussion — ${MONTHS_FR[m]} ${y}</h2></div>
+  return`<div id="bloc-comments" class="bilan-sec" style="padding:.7rem .9rem">
+    <div class="sec-hdr" style="padding:5px 10px"><h2 style="font-size:12.5px">💬 Discussion — ${MONTHS_FR[m]} ${y}</h2></div>
     <div style="font-size:10px;color:#999;margin:6px 0 8px">Pas lié à une réservation précise. Visible par ${p.name} et David/Svitlana.</div>
     ${thread.length===0?'<div class="empty" style="font-size:11.5px;padding:8px">Aucun message pour ce mois.</div>':''}
     ${thread.map(c=>{const mine=(isAdmin&&c.auteur==='admin')||(!isAdmin&&c.auteur==='presta');return`<div style="display:flex;flex-direction:column;align-items:${mine?'flex-end':'flex-start'};margin-bottom:5px">
@@ -1601,8 +1625,8 @@ function renderMenageSection(p,y,m){
   const menageEvs=D.reservations.filter(r=>r.status!=='annulé'&&inMenageMonth(r)).map(r=>({r,mi:getMenageInfo(r)})).filter(x=>x.mi&&x.mi.pid===p.id);
   const menageTotal=menageEvs.reduce((a,x)=>a+x.mi.montant,0);
   const menagePaid=menageEvs.filter(x=>x.r.menagePaid).reduce((a,x)=>a+x.mi.montant,0);
-  return`<div id="bloc-menage" class="bilan-sec" style="border-color:#1E7A6E">
-    <div class="sec-hdr" style="background:#1E7A6E"><h2>🧹 Forfait ménage — sans commission — ${MONTHS_FR[m]} ${y}</h2></div>
+  return`<div id="bloc-menage" class="bilan-sec">
+    <div class="sec-hdr"><h2>🧹 Forfait ménage — sans commission — ${MONTHS_FR[m]} ${y}</h2></div>
     <div class="g3" style="margin-bottom:10px">
       <div class="metric"><span class="lbl">Total dû</span><span class="val">${money(menageTotal)}</span></div>
       <div class="metric"><span class="lbl">Reçu</span><span class="val" style="color:#27500A">${money(menagePaid)}</span></div>
@@ -1685,9 +1709,9 @@ function renderElecSection(p,y,m){
   const key=monthKeyOf(y,m);
   const valide=isElecValide(p.id,key);
   const prevLabel=MONTHS_FR[(m+11)%12];
-  return`<div id="bloc-elec" class="bilan-sec" style="border-color:#0C447C">
-    <div class="sec-hdr" style="background:#0C447C"><h2>⚡ Électricité — ${MONTHS_FR[m]} ${y}</h2>${ec.conso!==null?valideBadge(valide,`toggleElecValide('${p.id}','${key}')`):''}</div>
-    <div style="font-size:11px;color:#888;margin-bottom:10px">Index de compteur en kWh, en fin de mois. La conso du mois est déduite automatiquement de l'index du mois précédent.</div>
+  return`<div id="bloc-elec" class="bilan-sec">
+    <div class="sec-hdr"><h2>⚡ Électricité — ${MONTHS_FR[m]} ${y}</h2>${ec.conso!==null?valideBadge(valide,`toggleElecValide('${p.id}','${key}')`):''}</div>
+    <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">Index de compteur en kWh, en fin de mois. La conso du mois est déduite automatiquement de l'index du mois précédent.</div>
     <div class="g2" style="margin-bottom:10px">
       <div class="field"><label>Index fin ${prevLabel} (précédent)</label>
         <div style="display:flex;gap:4px;align-items:center">
@@ -1848,16 +1872,16 @@ const COMMISSION_VIA_SHORT={ds:'Prestations via DS',cash_ds:'Prestations réglé
    lit côté David/Svitlana (on parle DU prestataire) et celle que le prestataire lit sur sa propre
    session (on s'adresse À lui). Même contenu, deux formulations correctes. */
 const COMMISSION_VIA_EXPLAIN_ADMIN={
-  ds:"Le client nous a payés par virement ou carte. L'argent est chez nous. On retient d'abord 15% de frais de structure, puis la commission sur ce qui reste, et on lui verse le solde.",
-  cash_ds:"Le client nous a payés en espèces. L'argent est chez nous. Pas de frais de structure ici : on retient seulement la commission et on lui verse le reste.",
-  structure:"Il a facturé lui-même par sa structure (Ozarko). L'argent est déjà chez lui : on ne lui doit rien, c'est lui qui nous doit la commission.",
-  cash_presta:"Il a été payé en espèces directement. L'argent est déjà chez lui : on ne lui doit rien, c'est lui qui nous doit la commission."
+  ds:"Encaissé par nous — 15% de frais de structure, puis la commission sur le reste ; le solde lui est versé.",
+  cash_ds:"Encaissé par nous en espèces — pas de frais de structure, seulement la commission ; le reste lui est versé.",
+  structure:"Réglé directement à sa structure (Ozarko) — rien à lui verser, seule la commission reste à percevoir.",
+  cash_presta:"Réglé directement en espèces — rien à lui verser, seule la commission reste à percevoir."
 };
 const COMMISSION_VIA_EXPLAIN_SELF={
-  ds:"Le client nous a payés par virement ou carte. L'argent est chez nous. On retient d'abord 15% de frais de structure, puis la commission sur ce qui reste, et on vous verse le solde.",
-  cash_ds:"Le client nous a payés en espèces. L'argent est chez nous. Pas de frais de structure ici : on retient seulement la commission et on vous verse le reste.",
-  structure:"Vous avez facturé vous-même par votre structure (Ozarko). L'argent est déjà chez vous : on ne vous doit rien, c'est vous qui nous devez la commission.",
-  cash_presta:"Vous avez été payé en espèces directement. L'argent est déjà chez vous : on ne vous doit rien, c'est vous qui nous devez la commission."
+  ds:"Encaissé par nous — 15% de frais de structure, puis la commission sur le reste ; le solde vous est versé.",
+  cash_ds:"Encaissé par nous en espèces — pas de frais de structure, seulement la commission ; le reste vous est versé.",
+  structure:"Réglé directement à votre structure (Ozarko) — rien à vous verser, seule la commission reste à percevoir.",
+  cash_presta:"Réglé directement en espèces — rien à vous verser, seule la commission reste à percevoir."
 };
 /* Conservé pour compatibilité : la version « admin » reste la référence par défaut. */
 const COMMISSION_VIA_EXPLAIN=COMMISSION_VIA_EXPLAIN_ADMIN;
@@ -1920,7 +1944,8 @@ function computeCommissionEnsembles(p,y,m){
       const ch=ens.channels[c.via]||(ens.channels[c.via]={via:c.via,
         argentChezNous:(c.via==='ds'||c.via==='cash_ds'),lines:[],sousTotal:0,fiscal:0,brut:0});
       const base=r2(c.montant-(c.fiscalRetenu||0));
-      ch.lines.push({date:d,resaName:displayClientName(r)||r.client||gDom(r.domaine).name,rid:r.id,
+      // id : indispensable pour retrouver la ligne MODIFIABLE correspondante dans la section.
+      ch.lines.push({id:l.id,date:d,resaName:displayClientName(r)||r.client||gDom(r.domaine).name,rid:r.id,
         label:l.label||'Prestation',montant:c.montant,valide:l.valide,
         notrePart:l.notrePart||0,notrePartDue:c.notrePartDue||0});
       ch.sousTotal+=c.montant;ch.fiscal+=c.fiscalRetenu||0;ch.brut+=base;
@@ -2053,49 +2078,25 @@ function renderCommissionBreakdownRow(p,y,m,bt){
   const ensembles=computeCommissionEnsembles(p,y,m);
   if(!ensembles.length)return bilanLigneRow('Prestations',Math.abs(bt.compDu),bt.compDu<0?'-':'+','bloc-commission');
   const V=bilanVoix(p);
-  const grp=v=>(COMMISSION_VIA_GROUP[v]||v).replace('{n}',p.name);
-  const lien=(ancre,txt)=>`<a href="#${ancre}" onclick="event.preventDefault();var _e=document.getElementById('${ancre}');if(_e)_e.scrollIntoView({behavior:'smooth',block:'start'})" style="color:#72243E;text-decoration:underline;font-weight:700">${txt}</a>`;
-  const blocks=ensembles.map(ens=>{
-    const ancre=`bloc-ens-${ens.rate}`;
-    const attente=ens.nbTotal-ens.nbValide;
-    const titre=ens.sansCommission?'🧾 Prestations sans commission (forfaits)'
-      :(ens.isStd?'🧾 Prestations':`🧾 Prestations — commission ${ens.rate}%`);
-    const head=`<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0 2px;font-size:13px">
-      <span>${lien(ancre,titre)}${attente>0?`<span style="color:#B15E00;font-size:10px;font-weight:700;margin-left:4px">⏳ ${attente} à valider</span>`:''}</span>
-      <strong style="color:#555;font-weight:600">${money(ens.brut)}</strong>
-    </div>`;
-    let steps='';
-    // Les chapitres, en dur : on voit tout de suite lesquels sont remplis et lesquels sont vides.
-    if(ens.isStd||ens.sansCommission){
-      ens.channels.forEach(ch=>{
-        steps+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0 2px 16px;font-size:11.5px;color:${ch.vide?'#c7c2bb':'#A9527A'}">
-          <span>${grp(ch.via)}</span>
-          <span style="font-weight:600">${ch.vide?'<span style="font-style:italic">—</span>':money(ch.sousTotal)+(ch.fiscal>0?` <span style="color:#A32D2D;font-size:10px">− 15% = ${money(ch.brut)}</span>`:'')}</span>
-        </div>`;
-      });
-    }
-    if(!ens.sansCommission){
-      // La commission est reprise en GRANDE ligne juste en dessous : pas de doublon ici.
-      steps+=viaSubLine('Sous-total des prestations',ens.brut,'');
-      if(ens.notrePartDue>0)steps+=viaSubLine(`dont vendu pour nous : ${money(ens.notrePart)} − 14% que ${V.garde}`,ens.notrePartDue,'');
-    } else if(ens.dejaEncaisse>0){
-      steps+=viaSubLine(`dont ${V.encaisse} — rien à reverser`,ens.dejaEncaisse,'');
-    }
-    /* Deux GRANDES lignes bien distinctes, jamais un solde net qui mélange les deux sens :
-       ce qu'on doit lui régler d'un côté, la commission qu'il nous doit de l'autre. */
-    const grosse=(lbl,val,col)=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0 6px 10px;font-size:13.5px;font-weight:700;border-bottom:1px solid #F4C6D6">
-      <span style="color:#72243E">${lbl}</span><strong style="color:${col};font-size:15px">${money(val)}</strong></div>`;
-    let concl='';
-    if(ens.aReverser>0)concl+=grosse(`Prestations ${V.aRegler}`,ens.aReverser,'#27500A');
-    const duANous=Math.round((ens.commission+ens.notrePartDue)*100)/100;
-    if(duANous>0)concl+=grosse(ens.sansCommission?'Part qui nous revient':`Commission ${ens.rate}%${ens.notrePartDue?' + part qui nous revient':''}`,duANous,'#A32D2D');
-    return head+steps+concl;
-  }).join('');
-  const total=`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #F4C6D6;font-size:13px;font-weight:700">
-    <span style="color:#72243E">= Net prestations (repris dans le total du mois)</span>
+  const lien=t=>`<a href="#bloc-commission" onclick="event.preventDefault();var _e=document.getElementById('bloc-commission');if(_e)_e.scrollIntoView({behavior:'smooth',block:'start'})" style="color:#72243E;text-decoration:underline;font-weight:700">${t}</a>`;
+  /* Le détail par chapitre vit désormais dans la section « Prestations » elle-même : ici on ne
+     garde que l'essentiel — ce qu'on lui règle, ce qu'il nous doit — pour ne pas répéter trois
+     fois la même liste et allonger la page pour rien. */
+  const sousLigne=(lbl,val,col)=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0 2px 14px;font-size:12px">
+    <span style="color:#72243E">${lbl}</span><strong style="color:${col}">${money(val)}</strong></div>`;
+  let out=`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0 2px;font-size:13px">
+    <span>${lien('🧾 Prestations')}<span style="display:block;font-size:10px;color:#999;font-weight:400">${ensembles.reduce((a,e)=>a+e.nbTotal,0)} prestation(s) — voir le détail</span></span>
+    <strong style="color:#555">${money(totalPrestations(ensembles))}</strong>
+  </div>`;
+  const aRegler=ensembles.reduce((a,e)=>a+e.aReverser,0);
+  const duANous=ensembles.reduce((a,e)=>a+e.commission+e.notrePartDue,0);
+  if(aRegler>0)out+=sousLigne(`Prestations ${V.aRegler}`,Math.round(aRegler*100)/100,'#1F7A3D');
+  if(duANous>0)out+=sousLigne('Commission qui nous revient',Math.round(duANous*100)/100,'#A32D2D');
+  out+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #F4C6D6;font-size:13px;font-weight:700">
+    <span style="color:#72243E">= Net prestations</span>
     <strong style="color:${bt.compDu<0?'#A32D2D':'#27500A'}">${bt.compDu<0?'− ':'+ '}${money(Math.abs(bt.compDu))}</strong>
   </div>`;
-  return blocks+total;
+  return out;
 }
 /* Le listing complet, tout en bas de la page : pour chaque ensemble (= un taux de commission), on
    liste les prestations groupées par mode de règlement — une ligne par prestation : le jour, la
@@ -2118,8 +2119,8 @@ function renderCommissionDetailSection(p,y,m){
   /* Présentation en tableau : une colonne « libellé » qui s'étire, et deux colonnes de montants
      alignées à droite — comme un tableau Excel, pour que tous les chiffres se lisent en colonne. */
   const row=(cells,opt)=>`<tr style="${(opt&&opt.style)||''}">
-    <td style="padding:${(opt&&opt.pad)||'3px 6px 3px 0'};font-size:${(opt&&opt.fs)||'11.5px'};${(opt&&opt.tdStyle)||''}">${cells[0]}</td>
-    <td style="padding:${(opt&&opt.pad)||'3px 6px 3px 0'};font-size:${(opt&&opt.fs)||'11.5px'};text-align:right;white-space:nowrap;${(opt&&opt.tdStyle)||''}">${cells[1]||''}</td>
+    <td style="padding:${(opt&&opt.pad)||'2px 6px 2px 0'};font-size:${(opt&&opt.fs)||'11.5px'};${(opt&&opt.tdStyle)||''}">${cells[0]}</td>
+    <td style="padding:${(opt&&opt.pad)||'2px 6px 2px 0'};font-size:${(opt&&opt.fs)||'11.5px'};text-align:right;white-space:nowrap;${(opt&&opt.tdStyle)||''}">${cells[1]||''}</td>
     <td style="padding:${(opt&&opt.pad)||'3px 0'};font-size:${(opt&&opt.fs)||'11.5px'};text-align:right;white-space:nowrap;${(opt&&opt.amtStyle)||''}">${cells[2]||''}</td>
   </tr>`;
   const ensembleHtml=ens=>{
@@ -2133,7 +2134,7 @@ function renderCommissionDetailSection(p,y,m){
     ens.channels.forEach(ch=>{
       body+=row([`<span style="font-weight:700;color:#72243E">${grp(ch.via)}</span>`,'',
         ch.vide?'<span style="color:#c7c2bb;font-style:italic;font-weight:400">aucune ce mois-ci</span>':''],
-        {pad:'9px 6px 1px 0',fs:'12px'});
+        {pad:'7px 6px 1px 0',fs:'11.5px'});
       if(ch.vide)return;
       /* Pas d'explication de circuit dans le bloc « sans commission » : ces phrases parlent de la
          commission due, ce qui n'a aucun sens ici — le sous-titre du bloc suffit. */
@@ -2178,8 +2179,8 @@ function renderCommissionDetailSection(p,y,m){
       body+=row([`<span style="font-weight:700">${ens.sansCommission?'Part qui nous revient':`Commission ${ens.rate}%${ens.notrePartDue?' + part qui nous revient':''}`}</span>`,'',
         `<strong style="color:#A32D2D;font-size:13.5px">${money(duANousD)}</strong>`],
         {pad:'4px 6px 5px 0',fs:'13.5px'});
-    return`<div id="bloc-ens-${ens.rate}" style="scroll-margin-top:12px;margin-bottom:16px;border:1.5px solid #E6A8C2;border-radius:10px;overflow:hidden">
-      <div style="background:#993556;color:#fff;padding:7px 11px;font-weight:700;font-size:12.5px">${titre}</div>
+    return`<div id="bloc-ens-${ens.rate}" style="scroll-margin-top:12px;margin-bottom:10px;border:1px solid #E6D2DA;border-radius:9px;overflow:hidden">
+      <div style="background:#993556;color:#fff;padding:5px 10px;font-weight:600;font-size:11.5px">${titre}</div>
       ${soustitre?`<div style="background:#FBEAF0;color:#72243E;font-size:10.5px;padding:5px 11px;line-height:1.35">${soustitre}</div>`:''}
       <table style="width:100%;border-collapse:collapse;padding:0 11px"><tbody>
         <tr><td colspan="3" style="padding:0 11px"><table style="width:100%;border-collapse:collapse"><tbody>${body}</tbody></table></td></tr>
@@ -2187,12 +2188,12 @@ function renderCommissionDetailSection(p,y,m){
       <div style="height:9px"></div>
     </div>`;
   };
-  return`<div id="bloc-commission-detail" class="bilan-sec" style="border-color:#A9527A">
-    <div class="sec-hdr" style="background:#A9527A"><h2>🧾 Prestations — ${MONTHS_FR[m]} ${y}</h2>
+  return`<div id="bloc-commission-detail" class="bilan-sec">
+    <div class="sec-hdr"><h2>🧾 Prestations — ${MONTHS_FR[m]} ${y}</h2>
       ${nbAttente>0?`<span class="bb bb-warn" style="flex-shrink:0">⏳ ${nbAttente} à valider</span>`:(nbTotal>0?`<span class="bb bb-good" style="flex-shrink:0">✓ ${nbTotal}/${nbTotal} validées</span>`:'')}</div>
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#FBEAF0;border:1.5px solid #993556;border-radius:9px;padding:9px 12px;margin-bottom:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#FBEAF0;border:1px solid #D9A8BC;border-radius:8px;padding:6px 10px;margin-bottom:8px">
       <span style="font-weight:700;font-size:13px;color:#72243E">Total des prestations du mois</span>
-      <strong style="font-size:19px;color:#72243E">${money(total)}</strong>
+      <strong style="font-size:16px;color:#72243E">${money(total)}</strong>
     </div>
     ${ensembles.map(ensembleHtml).join('')}
   </div>`;
@@ -2210,10 +2211,10 @@ function renderBilanTotalSection(p,y,m){
   const hasCommission=p.inputMode==='notes';
   if(!hasMenage&&!hasCommission&&!isGardeOnly)return'';
   const bt=computeBilanTotal(p,y,m);
-  return`<div style="background:#FBEAF0;border:1.5px solid #993556;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
+  return`<div class="bilan-sec" style="background:#FBEAF0;border-color:#D9A8BC;margin-bottom:12px">
     <div class="sec-hdr" style="background:#993556"><h2>💰 Bilan total — ${MONTHS_FR[m]} ${y}</h2></div>
-    ${bt.enAttente>0?`<div class="alert" style="background:#B15E00;color:#fff;font-weight:700;margin-bottom:10px;font-size:12.5px">⏳ ${bt.enAttente} élément${bt.enAttente>1?'s':''} ci-dessous en attente de validation — vérifiez le calcul et validez, ou corrigez le montant.</div>`:''}
-    <div style="background:#fff;border-radius:8px;padding:2px 12px;margin-bottom:10px">
+    ${bt.enAttente>0?`<div class="alert" style="background:#B15E00;color:#fff;font-weight:600;margin-bottom:7px;font-size:11.5px;padding:5px 9px">⏳ ${bt.enAttente} élément${bt.enAttente>1?'s':''} ci-dessous en attente de validation — vérifiez le calcul et validez, ou corrigez le montant.</div>`:''}
+    <div style="background:#fff;border-radius:8px;padding:1px 9px;margin-bottom:7px">
       ${p.forfaitMensuel?bilanLigneRow('Forfait gardiennage fixe',bt.forfaitDu,'+','bloc-forfait'):''}
       ${hasMenage?bilanLigneRow('Ménage',bt.menageDu,'+','bloc-menage'):''}
       ${hasCommission?renderCommissionBreakdownRow(p,y,m,bt):''}
@@ -2229,12 +2230,12 @@ function renderBilanTotalSection(p,y,m){
       </div>
       ${p.accessMode==='domaine'&&bt.rembDu>0?`<div style="font-size:10.5px;color:#888;text-align:right;padding-bottom:4px">dont ${money(bt.totalActivite)} d'activité + ${money(bt.rembDu)} de remboursement</div>`:''}
     </div>
-    <div class="g2">
-      <div class="metric" style="border-width:1.5px;border-color:#1F7A3D"><span class="lbl">Déjà réglé</span><span class="val" style="color:#1F7A3D;font-weight:600;font-size:17px">${money(bt.totalRecu)}</span></div>
-      <div class="metric" style="border-width:1.5px;border-color:#B93232"><span class="lbl">Reste à verser</span><span class="val" style="color:#B93232;font-weight:600;font-size:17px">${money(bt.totalReste)}</span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border-radius:8px;padding:6px 9px;font-size:12px">
+      <span>Déjà réglé <strong style="color:#1F7A3D;margin-left:3px">${money(bt.totalRecu)}</strong></span>
+      <span>Reste à verser <strong style="color:#B93232;margin-left:3px">${money(bt.totalReste)}</strong></span>
     </div>
-    ${p.forfaitMensuel?`<div id="bloc-forfait" style="margin-top:10px;display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:8px;padding:8px 12px;scroll-margin-top:12px">
-      <span style="font-size:12.5px">Forfait gardiennage fixe (${money(bt.forfaitDu)}) — montant constant, pas de validation de calcul nécessaire</span>
+    ${p.forfaitMensuel?`<div id="bloc-forfait" style="margin-top:7px;display:flex;align-items:center;justify-content:space-between;gap:8px;background:#fff;border-radius:8px;padding:6px 9px;scroll-margin-top:12px">
+      <span style="font-size:11.5px;color:#666">Forfait gardiennage fixe — ${money(bt.forfaitDu)}, montant constant</span>
       ${S.view==='admin'?regleToggle(bt.forfaitRecu,`toggleForfaitPaid('${p.id}','${bt.key}')`):''}
     </div>`:''}
   </div>`;
@@ -4156,9 +4157,9 @@ function renderBilanAnnuelPresta(p,y){
   const A=computeAnnuelParPoste(p,y);
   const ligne=(lbl,val,col)=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #E8E5DE;font-size:13px">
     <span>${lbl}</span><strong style="color:${col||'#1a1a1a'}">${money(val)}</strong></div>`;
-  return`<div class="bilan-sec" style="border-color:#5B5952;margin-bottom:14px">
-    <div class="sec-hdr" style="background:#5B5952"><h2>📅 Année ${y} — ${p.name}</h2></div>
-    <div style="font-size:11px;color:#888;margin-bottom:8px">Vue interne, visible uniquement par David et Svitlana.</div>
+  return`<div class="bilan-sec" style="margin-bottom:14px">
+    <div class="sec-hdr"><h2>📅 Année ${y} — ${p.name}</h2></div>
+    <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">Vue interne, visible uniquement par David et Svitlana.</div>
     <div style="background:#fff;border-radius:8px;padding:2px 12px">
       ${p.flatRate||p.inputMode==='notes'?ligne('🧹 Ménage',A.menage,'#1E7A6E'):''}
       ${p.inputMode==='notes'?ligne('🧾 Prestations (net)',A.prestations,'#7A5800'):''}
@@ -4313,7 +4314,7 @@ function renderBilanGeneral(){
   ${viewMode==='year'?renderBilanAnnualSummary(y):''}
   <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
     <div class="sec-hdr"><h2>💶 Performance de location</h2></div>
-    <div style="font-size:11px;color:#888;margin-bottom:10px">Les séjours à cheval sur deux périodes sont répartis au prorata du nombre de nuits dans chacune (location et paiements). Occupation sur ${daysInPeriod} ${viewMode==='year'?'jours de l\'année':'jours du mois'}.</div>
+    <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">Les séjours à cheval sur deux périodes sont répartis au prorata du nombre de nuits dans chacune (location et paiements). Occupation sur ${daysInPeriod} ${viewMode==='year'?'jours de l\'année':'jours du mois'}.</div>
     ${viewMode==='year'?`
     <div style="margin-bottom:10px">
       <div style="font-size:12px;font-weight:700;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:.03em">📌 Déjà réalisé (jusqu'à aujourd'hui)</div>
@@ -4355,7 +4356,7 @@ function renderBilanGeneral(){
   </div>
   <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
     <div class="sec-hdr"><h2>🧹 Forfaits ménage — passé uniquement (à vérifier)</h2></div>
-    <div style="font-size:11px;color:#888;margin-bottom:8px">Le futur n'est pas affiché ici : on ne suit que ce qui est déjà passé, pour vérifier ce qui a été payé ou non.</div>
+    <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">Le futur n'est pas affiché ici : on ne suit que ce qui est déjà passé, pour vérifier ce qui a été payé ou non.</div>
     ${menageRows.length===0?'<div class="empty">Aucun forfait ménage sur cette période.</div>':''}
     ${menageRows.length>0?`<table class="list-tbl"><thead><tr><th>Prestataire</th><th>Nb vacations</th><th>Total dû</th><th>Payé</th><th>Reste à payer</th></tr></thead>
     <tbody>${menageRows.map(([pid,v])=>`<tr><td>${v.name}</td><td style="text-align:center">${v.count}</td><td style="font-weight:500">${money(v.total)}</td><td style="color:#27500A">${money(v.paid)}</td><td style="font-weight:600;color:${v.total-v.paid>0?'#A32D2D':'#27500A'}">${money(v.total-v.paid)}</td></tr>`).join('')}</tbody></table>`:''}
@@ -4368,14 +4369,14 @@ function renderBilanGeneral(){
   </div>
   <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
     <div class="sec-hdr"><h2>⚡ Électricité — déduite du dû, suivie à part</h2></div>
-    <div style="font-size:11px;color:#888;margin-bottom:8px">Montant déduit de ce qu'on doit au prestataire (voir le détail dans son propre bilan).</div>
+    <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">Montant déduit de ce qu'on doit au prestataire (voir le détail dans son propre bilan).</div>
     ${elecRows.length===0?'<div class="empty">Aucun prestataire suivi à l\'électricité.</div>':''}
     ${elecRows.length>0?`<table class="list-tbl"><thead><tr><th>Prestataire</th><th>Consommation</th><th>Montant déduit</th></tr></thead>
     <tbody>${elecRows.map(x=>x.monthsCount>0?`<tr><td>${x.name}</td><td style="text-align:center">${x.totalConso} kWh</td><td style="font-weight:600;color:#A32D2D">${money(x.totalCost)}</td></tr>`:`<tr><td>${x.name}</td><td colspan="2" style="color:#B15E00;font-weight:600;font-size:12px">Index à renseigner</td></tr>`).join('')}</tbody></table>`:''}
   </div>
   <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem">
     <div class="sec-hdr"><h2>Détail par événement (prestations avec commission)</h2></div>
-    <div style="font-size:11px;color:#888;margin-bottom:8px">Toute modification ici se répercute automatiquement dans l'événement et dans la fiche du prestataire.</div>
+    <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">Toute modification ici se répercute automatiquement dans l'événement et dans la fiche du prestataire.</div>
     ${evs.length===0?'<div class="empty">Aucun détail sur cette période.</div>':''}
     ${evs.map((r,evIdx)=>{const dom=gDom(r.domaine);
       const allLines=Object.entries(r.prestaLines).flatMap(([pid,lines])=>lines.map(l=>({pid,l})));
@@ -4450,7 +4451,7 @@ function renderPrestaList(){
   ${renderDomaineList()}
   <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-top:14px">
     <div class="sec-hdr"><h2>📧 Emails — résumé quotidien</h2></div>
-    <div style="font-size:11px;color:#888;margin-bottom:12px">Chaque personne dont l'email est renseigné ici reçoit un résumé quotidien de ce qui la concerne dans l'app (sans aucune information financière pour les prestataires — mêmes règles que dans le reste de l'application). Laisser vide pour ne rien envoyer à cette personne.</div>
+    <div style="font-size:10px;color:#9a958c;margin-bottom:7px;line-height:1.35">Chaque personne dont l'email est renseigné ici reçoit un résumé quotidien de ce qui la concerne dans l'app (sans aucune information financière pour les prestataires — mêmes règles que dans le reste de l'application). Laisser vide pour ne rien envoyer à cette personne.</div>
     <div style="font-size:11px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Administrateurs</div>
     ${D.admins.map(a=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #e5e3de">
       <span style="font-weight:500;font-size:13px;width:80px;flex-shrink:0">${a.name}</span>
@@ -4465,7 +4466,7 @@ function renderPrestaList(){
   </div>
   <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-top:14px">
     <div class="sec-hdr"><h2>🔗 Liens personnels</h2></div>
-    <div style="font-size:11px;color:#888;margin-bottom:12px">Connexion directe sans code — à enregistrer sur l'appareil personnel de chaque personne (raccourci bureau ou écran d'accueil).</div>
+    <div style="font-size:10px;color:#9a958c;margin-bottom:7px;line-height:1.35">Connexion directe sans code — à enregistrer sur l'appareil personnel de chaque personne (raccourci bureau ou écran d'accueil).</div>
     <div style="font-size:11px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Administrateurs</div>
     ${D.admins.map(a=>{const url=window.location.origin+window.location.pathname+'?admin='+a.token;return`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #e5e3de">
       <span style="font-weight:500;font-size:13px;width:80px;flex-shrink:0">${a.name}</span>
@@ -4473,7 +4474,7 @@ function renderPrestaList(){
       <button class="btn btn-xs" onclick="copyL('${url}',this)">Copier</button>
     </div>`;}).join('')}
     <div style="font-size:11px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:.04em;margin-top:14px;margin-bottom:8px">Prestataires</div>
-    <div style="font-size:11px;color:#888;margin-bottom:10px">📲 Envoyer ce lien par WhatsApp à chaque prestataire. Il voit uniquement ses interventions.</div>
+    <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">📲 Envoyer ce lien par WhatsApp à chaque prestataire. Il voit uniquement ses interventions.</div>
     ${D.prestataires.length===0?'<div style="font-size:12px;color:#888">Aucun prestataire enregistré.</div>':''}
     ${D.prestataires.map(p=>{
       const url=window.location.origin+window.location.pathname+'?t='+p.token;
@@ -4543,7 +4544,7 @@ function renderPrestaDetailAdmin(p){
   const elecSection=renderElecSection(p,y,m);
   const commentsSection=renderBilanComments(p,y,m);
   /* Détail du calcul des prestations, tout en bas — cible des liens par circuit du Bilan total. */
-  const commDetailSection=(p.inputMode==='notes')?renderCommissionDetailSection(p,y,m):'';
+  const commDetailSection='';
   const reglementSection=renderReglementSection(p,y,m);
   const allEmpty=!menageSection&&!gardeSection&&!commSection&&!travauxSection&&!remboursementSection&&!dominiqueSection&&!bilanTotalSection&&!elecSection;
   return`<div style="margin-top:16px">${nav}${bilanTotalSection}${commentsSection}${menageSection}${commSection}${travauxSection}${remboursementSection}${elecSection}${gardeSection}${dominiqueSection}${commDetailSection}${reglementSection}${allEmpty?`<div class="empty">Aucun suivi financier spécifique pour ${p.name}.</div>`:''}</div>`;
@@ -5992,8 +5993,8 @@ function renderRestoreSection(){
       <table class="list-tbl" style="margin-bottom:12px"><tbody>
         ${rowsDef.filter(([,n])=>n>0).map(([label,n])=>`<tr><td>${label}</td><td style="text-align:right;font-weight:600">${n}</td></tr>`).join('')}
       </tbody></table>
-      ${c.reservations>0?`<div style="font-size:11px;color:#888;margin-bottom:10px">Réservations qui seraient recréées : ${rp.diff.resaToAdd.slice(0,15).map(r=>`${r.client||r.societe||'—'} (${ds(r.dateArrivee)})`).join(', ')}${rp.diff.resaToAdd.length>15?'…':''}</div>`:''}
-      ${rp.diff.skipped?`<div style="font-size:11px;color:#888;margin-bottom:10px">${rp.diff.skipped} ligne(s) du fichier n'ont pas pu être identifiées (domaine ou prestataire non reconnu) et ont été ignorées.</div>`:''}
+      ${c.reservations>0?`<div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">Réservations qui seraient recréées : ${rp.diff.resaToAdd.slice(0,15).map(r=>`${r.client||r.societe||'—'} (${ds(r.dateArrivee)})`).join(', ')}${rp.diff.resaToAdd.length>15?'…':''}</div>`:''}
+      ${rp.diff.skipped?`<div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">${rp.diff.skipped} ligne(s) du fichier n'ont pas pu être identifiées (domaine ou prestataire non reconnu) et ont été ignorées.</div>`:''}
       ${ident&&c.supprimes?`<div style="font-size:11px;color:#791F1F;margin-bottom:10px">À supprimer : ${(rp.diff.extras.resaToRemove||[]).slice(0,10).map(r=>`${r.client||r.societe||'—'} (${ds(r.dateArrivee)})`).join(', ')||'—'}${(rp.diff.extras.resaToRemove||[]).length>10?'…':''}</div>`:''}
       <button class="btn btn-primary" style="padding:10px 18px;font-size:13px;margin-right:8px${ident&&c.supprimes?';background:#A32D2D;border-color:#A32D2D':''}" onclick="confirmRestore()">${ident?(c.supprimes?`✓ Remettre à l'identique (dont ${c.supprimes} suppression(s))`:`✓ Remettre à l'identique`):'✓ Confirmer la restauration'}</button>
       <button class="btn btn-sm" onclick="cancelRestorePreview()">Annuler</button>`;
@@ -6419,7 +6420,7 @@ function renderModalContent(){
       })()}
       <div>${pC||'<span style="font-size:12px;color:#888">Aucun prestataire créé</span>'}</div>
       </div></div>
-    ${type==='editResa'?`<div style="margin-bottom:14px;padding:10px 12px;background:#f5f4f1;border-radius:8px"><div style="font-size:11px;color:#888;margin-bottom:8px">📄 Visualiser le contrat — imprimer ou enregistrer en PDF depuis la fenêtre</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-sm" style="border-color:#993556;color:#993556" onclick="downloadContractPdf('${id}')">📄 Voir le contrat PDF</button><button type="button" class="btn btn-sm" style="border-color:#185FA5;color:#185FA5" onclick="downloadContractDocx('${id}')">📝 Ouvrir en Word</button></div></div>`:''}
+    ${type==='editResa'?`<div style="margin-bottom:14px;padding:10px 12px;background:#f5f4f1;border-radius:8px"><div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">📄 Visualiser le contrat — imprimer ou enregistrer en PDF depuis la fenêtre</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-sm" style="border-color:#993556;color:#993556" onclick="downloadContractPdf('${id}')">📄 Voir le contrat PDF</button><button type="button" class="btn btn-sm" style="border-color:#185FA5;color:#185FA5" onclick="downloadContractDocx('${id}')">📝 Ouvrir en Word</button></div></div>`:''}
     <div class="modal-actions"><button class="btn" onclick="closeM()">Fermer</button>${type==='editResa'?`<button class="btn btn-danger" onclick="cancelResa('${id}')">🚫 Annuler la réservation</button>`:''}<button class="btn btn-primary" onclick="saveResa('${id||''}')">Enregistrer</button></div>`;
   }
   if(type==='dominiquePlanning'){
@@ -6603,7 +6604,6 @@ function renderPrestaMonBilan(p){
   ${renderTravauxSection(p,y,m)}
   ${renderRemboursementSection(p,y,m)}
   ${renderElecSection(p,y,m)}
-  ${renderCommissionDetailSection(p,y,m)}
   ${renderReglementSection(p,y,m)}`;
 }
 /* renderPrestaMonBilanFlat a été remplacé par le rendu unifié renderPrestaMonBilan (voir
@@ -7021,7 +7021,7 @@ function renderBilanAnnualSummary(y){
   const totalPaid=rows.reduce((a,r)=>a+r.paid,0);
   return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
     <div class="sec-hdr"><h2>📆 Récapitulatif mensuel ${y}</h2></div>
-    <div style="font-size:11px;color:#888;margin-bottom:10px">Cliquez sur un mois pour voir le détail.</div>
+    <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">Cliquez sur un mois pour voir le détail.</div>
     <table class="list-tbl">
       <thead><tr><th>Mois</th><th>Rés.</th><th>CA attendu</th><th>Encaissé</th><th>Reste</th></tr></thead>
       <tbody>
