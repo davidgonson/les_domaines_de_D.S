@@ -1681,6 +1681,55 @@ function computeCommissionBreakdown(p,y,m){
 /* Libellés des 4 circuits de règlement — repris tels que David/Misha/Sacha les nomment eux-mêmes
    (Ozarco = la structure de Misha) pour que la présentation "parle" sans jargon interne. */
 const COMMISSION_VIA_LABEL={ds:'Via DS — nous sommes payés',cash_ds:'Cash nous',structure:'Via Ozarco — lui est payé',cash_presta:'Cash à lui'};
+/* Nom court du circuit, pour les lignes du Bilan total (une ligne par circuit). */
+const COMMISSION_VIA_SHORT={ds:'Prestations via DS',cash_ds:'Prestations réglées en cash à nous',structure:'Prestations via Ozarco',cash_presta:'Prestations réglées en cash à lui'};
+/* Une phrase, en français très simple, qui dit qui a l'argent et ce qui se passe ensuite. */
+const COMMISSION_VIA_EXPLAIN={
+  ds:"Le client nous a payés par virement ou carte. L'argent est chez nous. On retient d'abord 15% de frais de structure, puis la commission sur ce qui reste, et on lui verse le solde.",
+  cash_ds:"Le client nous a payés en espèces. L'argent est chez nous. Pas de frais de structure ici : on retient seulement la commission et on lui verse le reste.",
+  structure:"Il a facturé lui-même par sa structure (Ozarco). L'argent est déjà chez lui : on ne lui doit rien, c'est lui qui nous doit la commission.",
+  cash_presta:"Il a été payé en espèces directement. L'argent est déjà chez lui : on ne lui doit rien, c'est lui qui nous doit la commission."
+};
+const COMMISSION_VIA_ORDER=['ds','cash_ds','structure','cash_presta'];
+/* Regroupement des prestations PAR CIRCUIT DE RÈGLEMENT (et non plus par réservation) — c'est la
+   présentation demandée : un bloc « Prestations via Ozarco », avec juste en dessous la commission
+   associée ; puis un bloc « Prestations via DS », avec ses 15% de frais puis sa commission ; etc.
+   Chaque bloc porte aussi le détail ligne par ligne, affiché plus bas dans la page (section
+   « Détail du calcul »), vers laquelle pointent les liens du Bilan total. */
+function computeCommissionByVia(p,y,m){
+  const byVia={};
+  D.reservations.filter(r=>r.status!=='annulé'&&r.prestaLines&&r.prestaLines[p.id]&&r.prestaLines[p.id].length).forEach(r=>{
+    const d=r.dateArrivee||r.date;if(!d)return;const[ry,rm]=d.split('-').map(Number);if(!(ry===y&&rm===(m+1)))return;
+    r.prestaLines[p.id].forEach(l=>{
+      const c=ligneCalc(l,p.id);
+      const g=byVia[c.via]||(byVia[c.via]={via:c.via,argentChezNous:(c.via==='ds'||c.via==='cash_ds'),
+        brut:0,fiscal:0,commission:0,commByRate:{},notrePart:0,notrePartDue:0,net:0,
+        nbValide:0,nbTotal:0,lines:[]});
+      g.brut+=c.montant;
+      g.fiscal+=c.fiscalRetenu||0;
+      g.commission+=c.commissionApplied||0;
+      const rate=Math.round((c.tauxCommission||0)*100);
+      g.commByRate[rate]=(g.commByRate[rate]||0)+(c.commissionApplied||0);
+      g.notrePart+=l.notrePart||0;
+      g.notrePartDue+=c.notrePartDue||0;
+      g.net+=c.net;
+      g.nbTotal++;if(l.valide)g.nbValide++;
+      g.lines.push({label:l.label||'Prestation',montant:c.montant,via:c.via,tauxCommission:c.tauxCommission,
+        fiscalRetenu:c.fiscalRetenu||0,commissionApplied:c.commissionApplied||0,duToPresta:c.duToPresta||0,
+        duANous:c.duANous||0,notrePart:l.notrePart||0,notrePartDue:c.notrePartDue||0,net:c.net,valide:l.valide,
+        resaDate:d,resaName:displayClientName(r)||r.client||gDom(r.domaine).name,rid:r.id});
+    });
+  });
+  const r2=v=>Math.round(v*100)/100;
+  return COMMISSION_VIA_ORDER.filter(v=>byVia[v]).map(v=>{
+    const g=byVia[v];
+    g.lines.sort((a,b)=>(a.resaDate||'').localeCompare(b.resaDate||''));
+    return{...g,brut:r2(g.brut),fiscal:r2(g.fiscal),commission:r2(g.commission),
+      notrePart:r2(g.notrePart),notrePartDue:r2(g.notrePartDue),net:r2(g.net),
+      commRows:Object.entries(g.commByRate).map(([rate,amt])=>({rate:parseInt(rate,10),montant:r2(amt)}))
+        .filter(x=>x.montant!==0).sort((a,b)=>a.rate-b.rate)};
+  });
+}
 /* Raconte, étape par étape et en français très simple, comment on passe du montant brut au net —
    pour CHACUN des 4 circuits possibles, chaque étape sur sa propre ligne (et non plus une seule
    phrase dense) :
@@ -1718,33 +1767,78 @@ function renderNotrePartDetail(l,presteName){
     <div style="font-size:11px;font-weight:700;color:#A32D2D;margin-top:2px">→ ${presteName} nous doit ${money(l.notrePartDue)} — pas de commission sur cette part</div>
   </div>`;
 }
-function renderCommissionBreakdownRow(p,y,m,bt){
-  const mainRow=bilanLigneRow('Prestations avec commission (net)',Math.abs(bt.compDu),bt.compDu<0?'-':'+','bloc-commission');
-  const cb=computeCommissionBreakdown(p,y,m);
-  if(cb.resaGroups.length===0)return mainRow;
-  const groupsHtml=cb.resaGroups.map(g=>`
-    <div style="margin-top:8px;padding:7px 9px;background:#fff;border-radius:7px;border:1px solid #F4C6D6">
-      <div style="font-weight:700;font-size:11px;color:#72243E;margin-bottom:3px">📅 ${ds(g.date)} — ${g.name} <span style="font-weight:400;color:#A9527A">(${money(g.montant)} au total)</span></div>
-      ${g.lines.map(l=>`
-        <div style="margin:5px 0 0 4px;padding:4px 0 4px 8px;border-left:2px solid #F4C6D6">
-          <div style="font-size:11.5px;color:#333">
-            <strong>${l.label}</strong>${l.valide!==undefined?` <span style="color:${l.valide?'#27500A':'#B15E00'};font-size:10px">${l.valide?'✓ validé':'⏳ à valider'}</span>`:''}
-            — brut <strong>${money(l.montant)}</strong> <span style="color:#999;font-size:10px">· ${COMMISSION_VIA_LABEL[l.via]||l.via}</span>
-          </div>
-          <div style="font-size:10.5px;color:#A9527A;padding-left:4px;margin-top:2px">${renderCommissionLineDetail(l,p.name)}</div>
-          ${renderNotrePartDetail(l,p.name)}
-        </div>`).join('')}
-    </div>`).join('');
-  const sub=`<div style="padding:2px 0 8px 10px;margin-top:-4px;margin-bottom:2px;border-bottom:1px solid #F4C6D6;font-size:10.5px;color:#A9527A">
-    ${groupsHtml}
-    <div style="margin-top:10px;padding-top:8px;border-top:1px dashed #D98CAA">
-      <div>Montant brut total : <strong>${money(cb.totalBrut)}</strong></div>
-      ${cb.totalFiscal>0?`<div>− 15% frais de structure (total) : ${money(cb.totalFiscal)}</div>`:''}
-      ${cb.commissionRows.map(cr=>`<div>− Commission ${cr.rate}% (total) : ${money(cr.montant)}</div>`).join('')}
-      <div style="margin-top:2px;font-weight:700;color:#72243E">= Net total : ${money(cb.totalNet)}</div>
-    </div>
+/* Une petite ligne de calcul à l'intérieur d'un bloc de circuit (indentée, discrète). */
+function viaSubLine(label,montant,sign){
+  const col=sign==='-'?'#A32D2D':(sign==='+'?'#27500A':'#888');
+  return`<div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0 2px 16px;font-size:11.5px;color:#A9527A">
+    <span>${label}</span><strong style="color:${col};font-weight:600">${sign==='-'?'− ':(sign==='+'?'+ ':'')}${money(Math.abs(montant))}</strong>
   </div>`;
-  return mainRow+sub;
+}
+/* Bloc « Prestations » du Bilan total, découpé PAR CIRCUIT DE RÈGLEMENT : un ensemble par circuit
+   (via Ozarco, via DS, cash…), et juste en dessous les étapes du calcul — les 15% de frais de
+   structure puis la commission associée. Le titre de chaque circuit est cliquable et renvoie au
+   détail complet, prestation par prestation, plus bas dans la page. */
+function renderCommissionBreakdownRow(p,y,m,bt){
+  const groups=computeCommissionByVia(p,y,m);
+  if(!groups.length)return bilanLigneRow('Prestations avec commission (net)',Math.abs(bt.compDu),bt.compDu<0?'-':'+','bloc-commission');
+  const blocks=groups.map(g=>{
+    const ancre=`bloc-comm-${g.via}`;
+    const attente=g.nbTotal-g.nbValide;
+    const head=`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0 2px;font-size:13px">
+      <span><a href="#${ancre}" onclick="event.preventDefault();var _e=document.getElementById('${ancre}');if(_e)_e.scrollIntoView({behavior:'smooth',block:'start'})" style="color:#72243E;text-decoration:underline;font-weight:600">🧾 ${COMMISSION_VIA_SHORT[g.via]||g.via}</a>
+        ${attente>0?`<span style="color:#B15E00;font-size:10px;font-weight:700;margin-left:4px">⏳ ${attente} à valider</span>`:''}
+        <span style="display:block;font-size:10px;color:#999;font-weight:400">${g.argentChezNous?'encaissé par nous':'encaissé par lui'} · ${g.nbTotal} prestation${g.nbTotal>1?'s':''}</span></span>
+      <strong style="color:#555;font-weight:600">${money(g.brut)}</strong>
+    </div>`;
+    let steps='';
+    if(g.fiscal>0)steps+=viaSubLine('15% frais de structure',g.fiscal,'-');
+    g.commRows.forEach(cr=>{steps+=viaSubLine(`Commission ${cr.rate}%${g.argentChezNous?'':' — qu\'il nous doit'}`,cr.montant,'-');});
+    if(g.notrePartDue>0)steps+=viaSubLine(`Vendu pour nous : ${money(g.notrePart)} − 14% qu'il garde`,g.notrePartDue,'-');
+    const netPos=g.net>=0;
+    const concl=`<div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0 6px 16px;font-size:12px;border-bottom:1px solid #F4C6D6">
+      <span style="font-weight:700;color:#72243E">${netPos?`= net pour ${p.name}`:`= ${p.name} nous doit`}</span>
+      <strong style="color:${netPos?'#27500A':'#A32D2D'}">${netPos?'+ ':'− '}${money(Math.abs(g.net))}</strong>
+    </div>`;
+    return head+steps+concl;
+  }).join('');
+  const total=`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #F4C6D6;font-size:13px;font-weight:700">
+    <span style="color:#72243E">Sous-total prestations</span>
+    <strong style="color:${bt.compDu<0?'#A32D2D':'#27500A'}">${bt.compDu<0?'− ':'+ '}${money(Math.abs(bt.compDu))}</strong>
+  </div>`;
+  return blocks+total;
+}
+/* Détail complet du calcul, tout en bas de la page — une section par circuit de règlement, avec
+   son ancre (bloc-comm-ds, bloc-comm-structure…) pour que les liens du Bilan total y amènent
+   directement. C'est ici qu'on retrouve, prestation par prestation, d'où vient chaque euro. */
+function renderCommissionDetailSection(p,y,m){
+  const groups=computeCommissionByVia(p,y,m);
+  if(!groups.length)return'';
+  return`<div id="bloc-commission-detail" class="bilan-sec" style="border-color:#A9527A">
+    <div class="sec-hdr" style="background:#A9527A"><h2>🔍 Détail du calcul des prestations — ${MONTHS_FR[m]} ${y}</h2></div>
+    <div style="font-size:11px;color:#888;margin-bottom:10px">Le calcul complet, prestation par prestation, regroupé par mode de règlement. C'est ce qui aboutit aux montants du « Bilan total » en haut de page.</div>
+    ${groups.map(g=>`<div id="bloc-comm-${g.via}" style="scroll-margin-top:12px;margin-bottom:16px">
+      <div style="background:#FBEAF0;border-radius:8px;padding:7px 10px;margin-bottom:7px">
+        <div style="font-weight:700;font-size:12.5px;color:#72243E">${COMMISSION_VIA_SHORT[g.via]||g.via} <span style="font-weight:400;color:#A9527A">— ${money(g.brut)} au total</span></div>
+        <div style="font-size:10.5px;color:#A9527A;margin-top:2px;line-height:1.35">${COMMISSION_VIA_EXPLAIN[g.via]||''}</div>
+      </div>
+      ${g.lines.map(l=>`<div style="margin:0 0 6px 4px;padding:5px 0 5px 9px;border-left:2px solid #F4C6D6">
+        <div style="font-size:11px;color:#888">📅 ${ds(l.resaDate)} — ${l.resaName}</div>
+        <div style="font-size:12px;color:#333;margin-top:1px">
+          <strong>${l.label}</strong> — brut <strong>${money(l.montant)}</strong>
+          ${l.valide!==undefined?`<span style="color:${l.valide?'#27500A':'#B15E00'};font-size:10px;margin-left:3px">${l.valide?'✓ validé':'⏳ à valider'}</span>`:''}
+        </div>
+        <div style="font-size:10.5px;color:#A9527A;padding-left:4px;margin-top:2px">${renderCommissionLineDetail(l,p.name)}</div>
+        ${renderNotrePartDetail(l,p.name)}
+      </div>`).join('')}
+      <div style="margin-left:4px;padding:7px 0 0 9px;border-top:1px dashed #D98CAA;font-size:11.5px;color:#A9527A">
+        <div>Total brut de ce circuit : <strong>${money(g.brut)}</strong></div>
+        ${g.fiscal>0?`<div>− 15% frais de structure : ${money(g.fiscal)}</div>`:''}
+        ${g.commRows.map(cr=>`<div>− Commission ${cr.rate}% : ${money(cr.montant)}</div>`).join('')}
+        ${g.notrePartDue>0?`<div>− Part vendue pour nous (${money(g.notrePart)} − 14%) : ${money(g.notrePartDue)}</div>`:''}
+        <div style="margin-top:3px;font-weight:700;color:${g.net>=0?'#27500A':'#A32D2D'}">${g.net>=0?`= net pour ${p.name} : ${money(g.net)}`:`= ${p.name} nous doit : ${money(Math.abs(g.net))}`}</div>
+      </div>
+    </div>`).join('')}
+  </div>`;
 }
 function bilanLigneRow(label,montant,sign,ancre){
   const isNeg=sign==='-';
@@ -2611,6 +2705,11 @@ function injectBands(){
       // juste en dessous (empilés verticalement, jamais côte à côte) — seulement quand chacun
       // des deux est pertinent pour cette bande.
       const lblL=document.createElement('div');
+      /* class band-lbl : marque cette colonne (heure d'arrivée + badge P) comme une zone occupée,
+         au même titre que la bande colorée elle-même — injectVisiteMarkers s'en sert pour ne
+         JAMAIS poser une pastille de visite par-dessus (David : « il faut qu'on voit tout tout
+         le temps »). */
+      lblL.className='band-lbl';
       lblL.style.position='absolute';lblL.style.top=(topPx-1)+'px';lblL.style.left=leftPx+'px';lblL.style.width=_hourMargin+'px';lblL.style.height=(_bandH+2)+'px';
       lblL.style.display='flex';lblL.style.flexDirection='column';lblL.style.alignItems='flex-end';lblL.style.justifyContent='flex-start';lblL.style.paddingRight='1px';lblL.style.boxSizing='border-box';
       lblL.style.pointerEvents='none';lblL.style.zIndex='3';lblL.style.overflow='hidden';
@@ -2627,6 +2726,7 @@ function injectBands(){
     }
     if(_applyDep){
       const lblD=document.createElement('div');
+      lblD.className='band-lbl'; // idem : l'heure de départ ne doit jamais être masquée par une pastille
       lblD.style.position='absolute';lblD.style.top=(topPx+1)+'px';lblD.style.left=(_renderLeft+Math.max(10,_renderWidth))+'px';lblD.style.width=_hourMargin+'px';lblD.style.height=_bandH+'px';
       lblD.style.display='flex';lblD.style.alignItems='flex-end';lblD.style.justifyContent='flex-start';lblD.style.paddingLeft='1px';lblD.style.boxSizing='border-box';
       lblD.style.fontWeight='700';lblD.style.color=_cornerColor;lblD.style.pointerEvents='none';lblD.style.zIndex='3';lblD.style.overflow='hidden';
@@ -2672,8 +2772,16 @@ function injectVisiteMarkers(){
   const{dtc}=buildDateCellMap(S.calYear,S.calMonth);
   const domIdx={};D.domaines.forEach((d,i)=>domIdx[d.id]=i);
   const gridRect=grid.getBoundingClientRect();
-  /* Bandes déjà posées par injectBands, pour éviter de superposer une visite sur une réservation */
-  const existingBands=Array.from(grid.querySelectorAll('.band')).map(el=>({left:parseFloat(el.style.left),width:parseFloat(el.style.width),top:parseFloat(el.style.top)}));
+  /* Zones déjà occupées par injectBands : la bande colorée ELLE-MÊME (.band) **et** les petites
+     colonnes qui la bordent (.band-lbl : heure d'arrivée + badge P à gauche, heure de départ à
+     droite). Avant, seules les bandes étaient prises en compte : une pastille de visite pouvait
+     donc atterrir pile sur l'heure d'arrivée ou sur le petit P et les masquer complètement.
+     Maintenant tout est traité comme obstacle — rien n'est jamais recouvert. */
+  const obstacles=Array.from(grid.querySelectorAll('.band,.band-lbl')).map(el=>({
+    left:parseFloat(el.style.left)||0,
+    width:parseFloat(el.style.width)||0,
+    top:parseFloat(el.style.top)||0
+  })).filter(o=>o.width>0);
   const _isMobileNowV=window.innerWidth<=640;
   const _bsV=window.__bandSizing||{offset:_isMobileNowV?21:22,pitch:_isMobileNowV?20:19};
   const _pitchV=_bsV.pitch,_offV=_bsV.offset;
@@ -2691,6 +2799,22 @@ function injectVisiteMarkers(){
     const key=v.date+'|'+v.domaine;
     (groups[key]=groups[key]||[]).push(v);
   });
+  /* Intervalles horizontaux réellement LIBRES sur une ligne donnée, à l'intérieur de la case :
+     on retire de la largeur de la case tout ce qui est déjà occupé (bandes + colonnes d'heure/P). */
+  function freeSpans(rowTop,cellLeft,cellRight){
+    const busy=obstacles
+      .filter(o=>Math.abs(o.top-rowTop)<5) // même ligne (les libellés sont à ±1px de la bande)
+      .map(o=>[o.left-1.5,o.left+o.width+1.5])
+      .sort((a,b)=>a[0]-b[0]);
+    const spans=[];let cur=cellLeft+1;
+    busy.forEach(([a,b])=>{
+      if(a>cur)spans.push([cur,Math.min(a,cellRight-1)]);
+      if(b>cur)cur=b;
+    });
+    if(cur<cellRight-1)spans.push([cur,cellRight-1]);
+    return spans.filter(s=>s[1]-s[0]>0.5);
+  }
+  const nSlots=Math.max(1,D.domaines.length);
   Object.keys(groups).forEach(key=>{
     const list=groups[key].sort((a,b)=>(a.heure||'').localeCompare(b.heure||''));
     const v0=list[0];
@@ -2700,32 +2824,71 @@ function injectVisiteMarkers(){
     const cellLeft=cRect.left-gridRect.left;
     const cellRight=cellLeft+cRect.width;
     const cellCenter=cellLeft+cRect.width/2;
-    const rowTopPx=(cRect.top-gridRect.top)+_offV+(slot*_pitchV);
+    const cellTop=cRect.top-gridRect.top;
     const n=list.length;
-    const totalW=n*markerD+(n-1)*gap;
-    let startX=cellCenter-totalW/2;
-    if(startX<cellLeft+1)startX=cellLeft+1;
-    if(startX+totalW>cellRight-1)startX=Math.max(cellLeft+1,cellRight-1-totalW);
-    list.forEach((v,i)=>{
-      let leftPx=startX+i*(markerD+gap);
-      /* Anti-collision avec une bande de réservation sur la même ligne */
-      const collide=existingBands.find(b=>Math.abs(b.top-rowTopPx)<4&&leftPx>=b.left-markerD&&leftPx<=b.left+b.width+markerD);
-      if(collide){
-        const proposedRight=collide.left+collide.width+4;
-        leftPx=(proposedRight<cellRight-markerD)?proposedRight:Math.max(cellLeft+2,collide.left-markerD-4);
+    /* On cherche d'abord de la place sur la ligne du domaine de la visite ; si la journée est
+       chargée (réservation qui occupe toute la case avec son heure d'arrivée et son P), on
+       accepte de DÉCALER le groupe de pastilles sur une autre ligne de la même case plutôt que
+       de recouvrir quoi que ce soit — David : « si tu dois décaler des choses, tu peux le faire,
+       il faut qu'on voit tout tout le temps ». La couleur de la pastille continue d'indiquer le
+       domaine, et l'infobulle le rappelle explicitement quand la ligne n'est pas celle d'origine. */
+    const rowOrder=[slot];
+    for(let d=1;d<nSlots;d++){
+      if(slot+d<nSlots)rowOrder.push(slot+d);
+      if(slot-d>=0)rowOrder.push(slot-d);
+    }
+    const need=n*markerD+(n-1)*gap;
+    let chosen=null;
+    for(let ri=0;ri<rowOrder.length;ri++){
+      const rowTop=cellTop+_offV+rowOrder[ri]*_pitchV;
+      const fit=freeSpans(rowTop,cellLeft,cellRight).find(sp=>sp[1]-sp[0]>=need);
+      if(fit){
+        chosen={rowTop,startX:fit[0]+((fit[1]-fit[0])-need)/2,d:markerD,g:gap,moved:rowOrder[ri]!==slot};
+        break;
       }
+    }
+    if(!chosen){
+      /* Plus assez de place à la taille normale : on réduit la pastille et on prend le plus grand
+         espace libre de la case, quelle que soit la ligne — toujours mieux que de masquer une info. */
+      let best=null;
+      rowOrder.forEach(s=>{
+        const rowTop=cellTop+_offV+s*_pitchV;
+        freeSpans(rowTop,cellLeft,cellRight).forEach(sp=>{
+          const w=sp[1]-sp[0];
+          if(!best||w>best.w)best={rowTop,left:sp[0],w,slot:s};
+        });
+      });
+      const gSmall=2;
+      if(best&&best.w>=n*9+(n-1)*gSmall){
+        const dSmall=Math.max(9,Math.min(markerD,Math.floor((best.w-(n-1)*gSmall)/n)));
+        chosen={rowTop:best.rowTop,startX:best.left,d:dSmall,g:gSmall,moved:best.slot!==slot};
+      }
+    }
+    if(!chosen){
+      // Cas extrême (case entièrement pleine sur les 3 lignes) : on repasse au placement centré
+      // d'origine, en gardant la pastille au-dessus pour qu'elle reste au moins cliquable.
+      let sx=cellCenter-need/2;
+      if(sx<cellLeft+1)sx=cellLeft+1;
+      if(sx+need>cellRight-1)sx=Math.max(cellLeft+1,cellRight-1-need);
+      chosen={rowTop:cellTop+_offV+slot*_pitchV,startX:sx,d:markerD,g:gap,moved:false};
+    }
+    list.forEach((v,i)=>{
+      const leftPx=chosen.startX+i*(chosen.d+chosen.g);
       const dom=gDom(v.domaine);const c=dom.color||0;
       const cancelled=v.status==='annulée';
       const heureLbl=(v.heure||'').split(':')[0]||'';
       const div=document.createElement('div');
-      div.style.position='absolute';div.style.left=leftPx+'px';div.style.top=rowTopPx+'px';div.style.zIndex='4';div.style.cursor='pointer';
-      div.style.width=markerD+'px';div.style.height=markerD+'px';
-      div.title=`Visite — ${v.client||''} ${v.heure||''}${cancelled?' (annulée)':''}`;
+      div.className='visite-marker';
+      div.style.position='absolute';div.style.left=leftPx+'px';div.style.top=chosen.rowTop+'px';div.style.zIndex='4';div.style.cursor='pointer';
+      div.style.width=chosen.d+'px';div.style.height=chosen.d+'px';
+      div.title=`Visite${chosen.moved?' ('+dom.name+')':''} — ${v.client||''} ${v.heure||''}${cancelled?' (annulée)':''}`;
       div.onclick=ev=>{ev.stopPropagation();openM('editVisite',v.id);};
       div.innerHTML=`<div style="width:100%;height:100%;border-radius:50%;background:${bgColors[c]};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;overflow:hidden;${cancelled?'opacity:.55':''}">
-        <span style="font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:${markerD<=17?8:9}px;font-weight:800;color:#fff;line-height:1;${cancelled?'text-decoration:line-through':''}">${heureLbl}</span>
+        <span style="font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:${chosen.d<=17?8:9}px;font-weight:800;color:#fff;line-height:1;${cancelled?'text-decoration:line-through':''}">${heureLbl}</span>
       </div>`;
       grid.appendChild(div);
+      // Une pastille posée devient elle-même un obstacle pour les groupes de visites suivants.
+      obstacles.push({left:leftPx,width:chosen.d,top:chosen.rowTop});
     });
   });
 }
@@ -3884,8 +4047,10 @@ function renderPrestaDetailAdmin(p){
   const bilanTotalSection=p.inputMode==='garde'?'':renderBilanTotalSection(p,y,m);
   const elecSection=renderElecSection(p,y,m);
   const commentsSection=renderBilanComments(p,y,m);
+  /* Détail du calcul des prestations, tout en bas — cible des liens par circuit du Bilan total. */
+  const commDetailSection=(p.inputMode==='notes')?renderCommissionDetailSection(p,y,m):'';
   const allEmpty=!menageSection&&!gardeSection&&!commSection&&!travauxSection&&!remboursementSection&&!dominiqueSection&&!bilanTotalSection&&!elecSection;
-  return`<div style="margin-top:16px">${nav}${bilanTotalSection}${commentsSection}${menageSection}${commSection}${travauxSection}${remboursementSection}${elecSection}${gardeSection}${dominiqueSection}${allEmpty?`<div class="empty">Aucun suivi financier spécifique pour ${p.name}.</div>`:''}</div>`;
+  return`<div style="margin-top:16px">${nav}${bilanTotalSection}${commentsSection}${menageSection}${commSection}${travauxSection}${remboursementSection}${elecSection}${gardeSection}${dominiqueSection}${commDetailSection}${allEmpty?`<div class="empty">Aucun suivi financier spécifique pour ${p.name}.</div>`:''}</div>`;
 }function setClientsSortBy(v){S.clientsSortBy=v;render();}
 function updClientTel(rid,val){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
@@ -5751,7 +5916,8 @@ function renderPrestaMonBilan(p){
   ${renderCommissionSection(p,y,m)}
   ${renderTravauxSection(p,y,m)}
   ${renderRemboursementSection(p,y,m)}
-  ${renderElecSection(p,y,m)}`;
+  ${renderElecSection(p,y,m)}
+  ${renderCommissionDetailSection(p,y,m)}`;
 }
 /* renderPrestaMonBilanFlat a été remplacé par le rendu unifié renderPrestaMonBilan (voir
    renderPrestaCalendrierSeul ci-dessous) : Pascaline utilise désormais exactement la même
