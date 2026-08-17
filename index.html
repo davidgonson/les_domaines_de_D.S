@@ -1451,17 +1451,40 @@ function computeReglementMois(p,y,m){
   return{key,factures,totalFacture,totalDu,
     reste:Math.round((totalDu-totalFacture)*100)/100};
 }
+/* Saisie de la facture du mois, directement dans le Bilan total : un seul champ, un montant.
+   David : « il n'y a pas besoin de marquer autre chose — dont facture, un montant, comme ça ça
+   fait le calcul automatiquement ». On conserve le modèle D.factures (plusieurs lignes possibles
+   pour les données déjà saisies et la restauration Excel), mais l'écran n'en expose qu'une. */
+function setFactureMois(pid,y,m,val){
+  const key=monthKeyOf(y,m);
+  const montant=Math.round((parseFloat(val)||0)*100)/100;
+  if(!D.factures)D.factures=[];
+  const existing=D.factures.filter(f=>f.pid===pid&&f.monthKey===key);
+  const p=gPre(pid);
+  if(montant<=0){
+    existing.forEach(f=>markDeleted('facture',f.id));
+    D.factures=D.factures.filter(f=>!(f.pid===pid&&f.monthKey===key));
+  }else if(existing.length===1){
+    existing[0].montant=montant;
+  }else{
+    existing.forEach(f=>markDeleted('facture',f.id));
+    D.factures=D.factures.filter(f=>!(f.pid===pid&&f.monthKey===key));
+    D.factures.push({id:gid(),pid,monthKey:key,destinataire:'',montant,note:'',createdAt:Date.now()});
+  }
+  logActivity('remboursement',(p.domaines||[])[0]||null,`Facture du mois — ${p.name} : ${money(montant)} (${key})`,[pid],true);
+  saveD();render();
+}
 function addFacture(pid,y,m){
   const key=monthKeyOf(y,m);
   const dest=((document.getElementById('fact-dest-'+pid)||{}).value||'').trim();
   const montant=parseFloat((document.getElementById('fact-montant-'+pid)||{}).value)||0;
   const note=((document.getElementById('fact-note-'+pid)||{}).value||'').trim();
-  if(!dest||!montant){alert('Indiquez à qui la facture est adressée et son montant.');return;}
+  if(!montant)return;
   if(!D.factures)D.factures=[];
   D.factures.push({id:gid(),pid,monthKey:key,destinataire:dest,montant:Math.round(montant*100)/100,
     note,createdAt:Date.now()});
   const p=gPre(pid);
-  logActivity('remboursement',(p.domaines||[])[0]||null,`Facture déclarée — ${p.name} : ${dest} ${money(montant)} (${key})`,[pid],true);
+  logActivity('remboursement',(p.domaines||[])[0]||null,`Facture déclarée — ${p.name} : ${money(montant)} (${key})`,[pid],true);
   saveD();showMsg('Facture enregistrée ✓');render();
 }
 function delFacture(id){
@@ -1471,43 +1494,11 @@ function delFacture(id){
   if(f){const p=gPre(f.pid);logActivity('remboursement',(p.domaines||[])[0]||null,`Facture supprimée — ${p.name} : ${f.destinataire||'—'} ${money(f.montant)} (${f.monthKey})`,[f.pid],false);}
   saveD();render();
 }
-function renderReglementSection(p,y,m){
-  if(!(p.inputMode==='notes'||p.flatRate||p.inputMode==='garde'))return'';
-  const V=bilanVoix(p);
-  const R=computeReglementMois(p,y,m);
-  const destOpts=D.domaines.map(d=>`<option value="${d.name}">${d.name}</option>`).join('');
-  const negatif=R.reste<0;
-  return`<div id="bloc-reglement" class="bilan-sec">
-    <div class="sec-hdr"><h2>🧾 Règlement du mois — ${MONTHS_FR[m]} ${y}</h2></div>
-    <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">Sur le total dû ce mois-ci, indiquez la part qui fait l'objet d'une facture — à quel domaine elle est adressée et pour quel montant. Le reste apparaît automatiquement comme restant à régler.</div>
-    <div style="background:#fff;border-radius:8px;padding:4px 12px;margin-bottom:10px">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #DCEBD4;font-size:13px;font-weight:700">
-        <span style="color:#1F5C31">Total dû ce mois</span><strong style="font-size:16px">${money(R.totalDu)}</strong>
-      </div>
-      ${R.factures.map(f=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid #ECF4E7;font-size:12.5px">
-        <span style="min-width:0">dont facture à <strong>${f.destinataire}</strong>${f.note?` <span style="color:#888;font-size:11px">— ${f.note}</span>`:''}</span>
-        <span style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-          <strong>${money(f.montant)}</strong>
-          <button class="btn btn-xs btn-danger" onclick="delFacture('${f.id}')">✕</button>
-        </span>
-      </div>`).join('')}
-      ${R.factures.length>1?`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #DCEBD4;font-size:12px;color:#666">
-        <span>dont facture de prestation (total)</span><strong>${money(R.totalFacture)}</strong>
-      </div>`:'<div style="font-size:11.5px;color:#aaa;font-style:italic;padding:6px 0;border-bottom:1px solid #ECF4E7">Aucune facture déclarée — la totalité reste à régler.</div>'}
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;font-size:13px;font-weight:700">
-        <span style="color:#1F5C31">Reste à régler</span>
-        <strong style="font-size:16px;color:${negatif?'#A32D2D':'#1F7A3D'}">${money(R.reste)}</strong>
-      </div>
-      ${negatif?`<div style="font-size:11px;color:#A32D2D;padding-bottom:8px">⚠️ Le total facturé dépasse ce qui est dû ce mois-ci — vérifiez les montants.</div>`:''}
-    </div>
-    <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;background:#f5f4f1;border-radius:8px;padding:7px">
-      <select id="fact-dest-${p.id}" style="font-size:11.5px;padding:4px 5px;flex:1;min-width:110px">${destOpts}</select>
-      <input type="number" id="fact-montant-${p.id}" step="0.01" placeholder="montant facturé €" style="font-size:11.5px;padding:4px 5px;width:130px">
-      <input type="text" id="fact-note-${p.id}" placeholder="n° facture" style="font-size:11.5px;padding:4px 5px;width:100px">
-      <button class="btn btn-primary btn-sm" onclick="addFacture('${p.id}',${y},${m})" style="flex-shrink:0">+ Ajouter</button>
-    </div>
-  </div>`;
-}
+/* L'encart « Règlement du mois » du bas a été SUPPRIMÉ à la demande de David : total dû,
+   « dont facture » et « reste à régler » sont désormais les trois dernières lignes du Bilan
+   total, en haut de page — c'est là qu'on lit le mois, pas tout en bas. La fonction est
+   conservée, vide, pour ne casser aucun appel existant. */
+function renderReglementSection(p,y,m){return'';}
 function renderRemboursementSection(p,y,m){
   if(p.accessMode!=='domaine')return''; // réservé à Misha/Sacha (accès complet) — pas Pascaline ni les autres
   const isAdmin=S.view==='admin';
@@ -1516,9 +1507,13 @@ function renderRemboursementSection(p,y,m){
   const rows=(D.remboursements||[]).filter(x=>x.pid===p.id&&inMonth(x.date)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   const defaultDom=(p.domaines||[])[0];
   const domOpts=D.domaines.map(d=>`<option value="${d.id}" ${d.id===defaultDom?'selected':''}>${d.name}</option>`).join('');
+  const V=bilanVoix(p);
+  const explication=V.self
+    ?`Ce que vous avez réglé de votre poche pour le compte de David et Svitlana (un tiers payé pour eux, un achat avancé, un envoi…). C'est un remboursement, pas une rémunération : ça s'ajoute à ce qu'on vous doit, mais reste compté à part. David/Svitlana valide chaque ligne.`
+    :`Ce que ${p.name} a réglé de sa poche pour notre compte (un tiers payé pour nous, un achat avancé, un envoi…). C'est un remboursement, pas une rémunération : ça s'ajoute à ce qu'on lui doit, mais reste compté à part. ${isAdmin?'Validez chaque ligne, ou laissez en attente.':''}`;
   return`<div id="bloc-remb" class="bilan-sec">
-    <div class="sec-hdr"><h2>💳 Réglé pour notre compte — ${MONTHS_FR[m]} ${y}</h2></div>
-    <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">Ce que ${p.name} a réglé de sa poche pour notre compte (un tiers payé pour nous, un achat avancé, un envoi…). C'est un remboursement, pas une rémunération : ça s'ajoute à ce qu'on lui doit, mais reste compté à part. ${isAdmin?'Validez chaque ligne, ou laissez en attente.':'David/Svitlana valide chaque ligne.'}</div>
+    <div class="sec-hdr"><h2>💳 ${V.pourNotreCompte} — ${MONTHS_FR[m]} ${y}</h2></div>
+    <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">${explication}</div>
     ${!isAdmin?`<div style="background:#f5f4f1;border-radius:8px;padding:7px;margin-bottom:10px">
       <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:5px">
         <select id="remb-domaine-${p.id}" style="font-size:11.5px;padding:4px 5px;flex:1;min-width:88px">${domOpts}</select>
@@ -1531,7 +1526,7 @@ function renderRemboursementSection(p,y,m){
         <button class="btn btn-primary btn-sm" onclick="addRemboursement('${p.id}')" style="flex-shrink:0">+ Déclarer</button>
       </div>
     </div>`:''}
-    ${rows.length===0?'<div class="empty">Rien de réglé pour notre compte ce mois-ci.</div>':''}
+    ${rows.length===0?`<div class="empty">${V.self?'Rien de réglé pour le compte de David et Svitlana ce mois-ci.':'Rien de réglé pour notre compte ce mois-ci.'}</div>`:''}
     ${rows.map(x=>{const dom=gDom(x.domaine);return`<div style="padding:8px 0;border-bottom:1px solid #e5e3de;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
       <div><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span><span style="font-size:13px">${ds(x.date)} · ${x.beneficiaire||'—'} · ${money(x.montant)}</span>${x.note?`<div style="font-size:11px;color:#888;margin-top:2px">${x.note}</div>`:''}</div>
       <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
@@ -1922,6 +1917,11 @@ function bilanVoix(p){
     aRegler:self?'à vous régler':`à régler à ${p.name}`,
     aReverser:self?'à vous reverser':`à reverser à ${p.name}`,
     garde:self?'vous gardez':`${p.name} garde`,
+    /* « Réglé pour notre compte » se lit depuis le lecteur : dans SA session, c'est lui qui a
+       réglé pour le compte de David et Svitlana. David : « là c'est sa vision à lui, donc il
+       faut que ça soit lui qui lise ce qui lui arrive ». */
+    pourNotreCompte:self?'Réglé pour le compte de David et Svitlana':'Réglé pour notre compte',
+    aRembourser:self?'':'(à rembourser)',
     encaisse:self?'déjà encaissé par vous':`déjà encaissé par ${p.name}`
   };
 }
@@ -2208,6 +2208,28 @@ function bilanLigneRow(label,montant,sign,ancre){
     <strong style="color:${isNeg?'#A32D2D':'#27500A'}">${isNeg?'− ':'+ '}${money(montant)}</strong>
   </div>`;
 }
+/* Les deux lignes qui closent le mois, juste sous le TOTAL DÛ : « dont facture » — un simple
+   montant, saisi ici même — puis « Reste à régler », qui n'est que la soustraction. C'est tout
+   ce qui subsiste de l'ancien encart « Règlement du mois » du bas de page. */
+function renderFactureLines(p,y,m,bt){
+  const R=computeReglementMois(p,y,m);
+  const negatif=R.reste<0;
+  const val=R.totalFacture?R.totalFacture:'';
+  return`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0;border-top:1px solid #F4C6D6;font-size:12.5px">
+      <span style="color:#72243E">dont facture</span>
+      <span style="display:flex;align-items:center;gap:3px;flex-shrink:0">
+        <input type="number" id="fact-mois-${p.id}" step="0.01" value="${val}" placeholder="0"
+          onchange="setFactureMois('${p.id}',${y},${m},this.value)"
+          style="width:82px;text-align:right;font-size:12.5px;padding:3px 5px">
+        <span style="color:#72243E">€</span>
+      </span>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0 4px;font-size:13px;font-weight:700;color:#72243E">
+      <span>Reste à régler</span>
+      <span style="font-size:16px;color:${negatif?'#A32D2D':'#72243E'}">${money(R.reste)}</span>
+    </div>
+    ${negatif?`<div style="font-size:10.5px;color:#A32D2D;text-align:right;padding-bottom:4px">⚠️ La facture dépasse ce qui est dû ce mois-ci.</div>`:''}`;
+}
 function renderBilanTotalSection(p,y,m){
   const isGardeOnly=p.inputMode==='garde';
   const hasMenage=!!(p.forfaitMensuel||p.flatRate);
@@ -2227,11 +2249,12 @@ function renderBilanTotalSection(p,y,m){
         <strong style="color:#B15E00;font-size:11.5px;font-weight:600">index à renseigner</strong>
       </div>`):''}
       ${isGardeOnly?bilanLigneRow('Gardiennage (nuits)',bt.gardeDu,'+','bloc-garde'):''}
-      ${p.accessMode==='domaine'?bilanLigneRow('Réglé pour notre compte (à rembourser)',bt.rembDu,'+','bloc-remb'):''}
+      ${p.accessMode==='domaine'?bilanLigneRow([bilanVoix(p).pourNotreCompte,bilanVoix(p).aRembourser].filter(Boolean).join(' '),bt.rembDu,'+','bloc-remb'):''}
       <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0 4px;margin-top:2px;border-top:1.5px solid #993556;font-size:13px;font-weight:700;color:#72243E">
         <span>TOTAL DÛ CE MOIS</span><span style="font-size:18px">${money(bt.totalDu)}</span>
       </div>
       ${p.accessMode==='domaine'&&bt.rembDu>0?`<div style="font-size:10.5px;color:#888;text-align:right;padding-bottom:4px">dont ${money(bt.totalActivite)} d'activité + ${money(bt.rembDu)} de remboursement</div>`:''}
+      ${renderFactureLines(p,y,m,bt)}
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border-radius:8px;padding:6px 9px;font-size:12px">
       <span>Déjà réglé <strong style="color:#1F7A3D;margin-left:3px">${money(bt.totalRecu)}</strong></span>
@@ -2931,9 +2954,39 @@ function isoWeekNum(date){
 /* Masque tout montant dans un texte destiné à un prestataire qui n'est pas concerné : on garde
    le sens (« Traiteur », « acompte reçu »…) mais le chiffre devient « … ». Misha ne doit jamais
    lire ce que Sasha facture aux Déesses, et réciproquement, même en passant par un libellé. */
+/* Un nombre, espaces de milliers comprises : « 600 », « 1 200 », « 1 000,50 ». L'espace n'est
+   acceptée qu'entre deux chiffres, pour ne jamais avaler le mot qui suit. */
+const NOMBRE_SRC="\\d(?:[\\d.,\u00a0\u202f]|\\s(?=\\d))*";
 function maskMontants(txt){
   if(!txt)return txt;
-  return String(txt).replace(/\d[\d\s.,  ]*\s*€/g,'…').replace(/\s{2,}/g,' ').trim();
+  let out=String(txt);
+  /* 1) Tout nombre suivi d'une unité monétaire : « 600 € », « 600 euros », « 1 200 EUR ». */
+  out=out.replace(new RegExp(NOMBRE_SRC+"\\s*(?:\u20ac|EUR\\b|euros?\\b)","gi"),'\u2026');
+  /* 2) Un nombre annoncé par un mot d'argent, même sans unité : « acompte de 600 versé ».
+        Le mot reste, le chiffre devient « … » — la phrase garde tout son sens. */
+  out=out.replace(new RegExp(
+    "\\b(acomptes?|arrhes|montants?|soldes?|prix|tarifs?|d[\u00e9e]p[\u00f4o]ts?|factures?|commissions?"
+    +"|co[\u00fbu]ts?|devis|r[\u00e9e]gl[\u00e9e]e?s?|pay[\u00e9e]e?s?|vers[\u00e9e]e?s?|encaiss[\u00e9e]e?s?|rembours[\u00e9e]e?s?)"
+    +"(\\s+(?:de\\s+|d'|\u00e0\\s+|pour\\s+|:\\s*)?)"+NOMBRE_SRC,"gi"),
+    (m,mot,lien)=>mot+(lien||' ')+'\u2026');
+  return out.replace(/\\s{2,}/g,' ').trim();
+}
+/* Un commentaire est « entre eux et nous » — ses prix sont alors des consignes qu'il faut
+   garder lisibles (David : « prévoir 250€ de fleurs ») — quand celui qui lit l'a écrit
+   lui-même, ou quand il lui est adressé. Dans tous les autres cas (le commentaire d'un autre
+   prestataire, ou une consigne adressée à quelqu'un d'autre), les montants deviennent « … » :
+   Sasha ne doit pas lire l'acompte annoncé par Misha, et réciproquement. */
+function commentMontantsVisibles(c,r){
+  if(S.view==='admin')return true;
+  const p=S.presta;if(!p)return false;
+  if(p.voitFinance)return true;
+  if(c.auteur==='presta')return c.auteurPid?c.auteurPid===p.id:(c.auteurNom===p.name);
+  const ct=getMenageInfo(r);
+  return !!(ct&&ct.pid===p.id);
+}
+function commentTexte(c,r){
+  const t=c.texte||'';
+  return commentMontantsVisibles(c,r)?t:maskMontants(t);
 }
 function dateFieldHtml(id,extraStyle,onchange){
   return`<span class="date-row" style="display:inline-flex;align-items:center;gap:2px;${extraStyle||''}">
@@ -3491,7 +3544,10 @@ function renderDetailPanel(r){
   const pays=r.paiements||[];const tot=totPay(r);const solde=(r.montant||0)-tot;
   const comms=(readOnly?(r.commentaires||[]).filter(cm=>cm.visible):(r.commentaires||[]));
   const isJ=r.dateArrivee===r.dateDepart;
-  const myLines=(readOnly&&S.presta&&S.presta.inputMode==='notes')?((r.prestaLines||{})[S.presta.id]||[]):[];
+  /* Misha et Sasha ont plus bas un bloc « Prestation de … » entièrement modifiable : réafficher
+     ici les mêmes lignes en lecture seule faisait doublon et allongeait la fiche pour rien. */
+  const _editeSesLignes=!!(S.presta&&(S.presta.id==='p1'||S.presta.id==='p2'));
+  const myLines=(readOnly&&S.presta&&S.presta.inputMode==='notes'&&!_editeSesLignes)?((r.prestaLines||{})[S.presta.id]||[]):[];
   /* Les prestations des AUTRES prestataires sur ce même événement : on montre ce qui est fait
      (« Traiteur »), jamais combien. Sans ça, Sasha lirait les montants de Misha aux Déesses. */
   const autresLines=(readOnly&&S.presta)?Object.entries(r.prestaLines||{})
@@ -3550,7 +3606,7 @@ function renderDetailPanel(r){
       ${pays.map(pa=>`<div style="display:flex;gap:4px;font-size:12px;padding:4px 0;border-bottom:1px solid #e5e3de"><span style="flex:1;color:#555">${fmt(pa.date)}</span><span style="font-weight:500">${money(pa.montant)}</span><span style="color:#555;margin-left:4px">${pa.type||pa.note||''}${pa.comment?' — '+pa.comment:''}</span></div>`).join('')}
       ${pays.length>0?`<div style="font-size:11px;margin-top:5px;display:flex;justify-content:space-between"><span style="color:#444;font-weight:700">Total ${money(r.montant||0)}</span><span style="font-weight:600;color:${solde>0?'#A32D2D':'#27500A'}">Solde ${money(solde)}</span></div>`:''}
     </div>`:''}
-    ${comms.length>0?`<div class="dp-section"><label>Notes (${comms.length})</label>${comms.map(c=>`<div style="font-size:12px;padding:5px 0;border-bottom:1px solid #e5e3de"><div style="color:#666;font-size:10px;margin-bottom:2px">${c.auteurNom}${c.auteur==='presta'?' (prestataire)':''} · ${fmt(c.date)}</div>${c.photoUrl?`<img src="${c.photoUrl}" style="max-width:100%;max-height:200px;border-radius:8px;margin-top:3px;display:block;cursor:pointer" onclick="window.open(this.src,'_blank')">`:''}${c.texte?`<div>${c.texte}</div>`:''}</div>`).join('')}</div>`:''}
+    ${comms.length>0?`<div class="dp-section"><label>Notes (${comms.length})</label>${comms.map(c=>`<div style="font-size:12px;padding:5px 0;border-bottom:1px solid #e5e3de"><div style="color:#666;font-size:10px;margin-bottom:2px">${c.auteurNom}${c.auteur==='presta'?' (prestataire)':''} · ${fmt(c.date)}</div>${c.photoUrl?`<img src="${c.photoUrl}" style="max-width:100%;max-height:200px;border-radius:8px;margin-top:3px;display:block;cursor:pointer" onclick="window.open(this.src,'_blank')">`:''}${c.texte?`<div>${commentTexte(c,r)}</div>`:''}</div>`).join('')}</div>`:''}
     ${(!readOnly)?(()=>{const ct=getMenageInfo(r);if(!ct)return'';return`<div class="dp-section"><label>💬 Commentaire pour ${ct.name}</label>
       <textarea id="dp-admin-com" rows="2" placeholder="Une précision pour ${ct.name}…" style="resize:none;width:100%;box-sizing:border-box;margin-bottom:6px"></textarea>
       <input type="file" id="dp-admin-photo" accept="image/*" style="display:none" onchange="addAdminQuickPhoto('${r.id}',this)">
@@ -4026,15 +4082,20 @@ function prestaVisibleLog(p){
     if(HARD_FIN[it.action])return false;
     return doms.includes(it.domaine);
   }).map(it=>{
-    /* Trois cas où les montants sont conservés tels quels :
+    /* Deux cas où les montants sont conservés tels quels :
        - Yana (voitFinance) : elle a le droit de tout voir ;
-       - ce qui le concerne personnellement : c'est sa propre rémunération ;
-       - les COMMENTAIRES : c'est une conversation entre eux et nous, et un prix y est une
-         consigne, pas une donnée confidentielle (David : « prévoir 250€ de fleurs », il faut
-         le laisser quand on parle entre eux et nous). Le cloisonnement des commentaires se
-         fait en amont, par la règle de visibilité — pas en caviardant le texte.
+       - ce qui le concerne personnellement : sa rémunération, ce qu'il a écrit lui-même, et
+         les consignes qu'on lui adresse (concernsPresta) — « prévoir 250€ de fleurs » écrit
+         par David à Misha reste lisible par Misha : c'est une conversation entre eux et nous.
+       Un COMMENTAIRE qui ne le concerne pas (écrit par l'autre prestataire, ou adressé à
+       l'autre) garde son texte — on ne cache pas l'information — mais plus ses chiffres :
+       Sasha lisait « l'acompte de 600 € a bien été réglé » écrit par Misha aux Déesses.
        Partout ailleurs (montants/arrhes/dépôt d'une réservation) : aucun montant, jamais. */
-    if(p.voitFinance||it.action==='commentaire'||(it.concernsPresta||[]).includes(p.id))return it;
+    if(p.voitFinance||(it.concernsPresta||[]).includes(p.id))return it;
+    if(it.action==='commentaire'){
+      const m=maskMontants(it.label);
+      return m===it.label?it:{...it,label:m};
+    }
     const safe=sanitizePrestaLabel(it.labelSafe||it.label,it.action);
     return safe===it.label?it:{...it,label:safe};
   }).sort((a,b)=>b.ts-a.ts);
@@ -4587,9 +4648,8 @@ function renderPrestaDetailAdmin(p){
   const commentsSection=renderBilanComments(p,y,m);
   /* Détail du calcul des prestations, tout en bas — cible des liens par circuit du Bilan total. */
   const commDetailSection='';
-  const reglementSection=renderReglementSection(p,y,m);
   const allEmpty=!menageSection&&!gardeSection&&!commSection&&!travauxSection&&!remboursementSection&&!dominiqueSection&&!bilanTotalSection&&!elecSection;
-  return`<div style="margin-top:16px">${nav}${bilanTotalSection}${commentsSection}${menageSection}${commSection}${travauxSection}${remboursementSection}${elecSection}${gardeSection}${dominiqueSection}${commDetailSection}${reglementSection}${allEmpty?`<div class="empty">Aucun suivi financier spécifique pour ${p.name}.</div>`:''}</div>`;
+  return`<div style="margin-top:16px">${nav}${bilanTotalSection}${commentsSection}${menageSection}${commSection}${travauxSection}${remboursementSection}${elecSection}${gardeSection}${dominiqueSection}${commDetailSection}${allEmpty?`<div class="empty">Aucun suivi financier spécifique pour ${p.name}.</div>`:''}</div>`;
 }function setClientsSortBy(v){S.clientsSortBy=v;render();}
 function updClientTel(rid,val){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
@@ -6645,8 +6705,7 @@ function renderPrestaMonBilan(p){
   ${renderCommissionSection(p,y,m)}
   ${renderTravauxSection(p,y,m)}
   ${renderRemboursementSection(p,y,m)}
-  ${renderElecSection(p,y,m)}
-  ${renderReglementSection(p,y,m)}`;
+  ${renderElecSection(p,y,m)}`;
 }
 /* renderPrestaMonBilanFlat a été remplacé par le rendu unifié renderPrestaMonBilan (voir
    renderPrestaCalendrierSeul ci-dessous) : Pascaline utilise désormais exactement la même
@@ -6773,7 +6832,7 @@ function renderPresta(){
       </div>
       ${others.length?`<div style="font-size:12px;color:#666;margin-bottom:10px">👥 Autres prestataires sur cet événement : ${others.join(', ')}</div>`:''}
       ${(()=>{const lines=(r.prestaLines&&r.prestaLines[p.id])||[];const tot=lines.reduce((a,l)=>a+(l.montant||0),0);return tot?`<div style="font-size:13px;color:#27500A;font-weight:600;margin-bottom:10px">💶 Votre montant pour cet événement : ${money(tot)}${lines.length>1?' ('+lines.length+' prestations)':''}</div>`:'';})()}
-      ${comms.length>0?comms.map(c=>`<div class="note-box">${c.texte}</div>`).join(''):'<div style="font-size:12px;color:#aaa;font-style:italic">Aucune instruction spécifique pour l\'instant.</div>'}
+      ${comms.length>0?comms.map(c=>`<div class="note-box">${commentTexte(c,r)}</div>`).join(''):'<div style="font-size:12px;color:#aaa;font-style:italic">Aucune instruction spécifique pour l\'instant.</div>'}
       <div style="margin-top:12px;border-top:1px solid #e5e3de;padding-top:10px">
         <div style="font-size:12px;color:#666;margin-bottom:7px">Envoyer une note ou une question :</div>
         <div style="display:flex;gap:8px"><input type="text" id="pnote-${r.id}" placeholder="Votre message…" style="flex:1"><button class="btn btn-sm btn-primary" onclick="addPrestaComment('${r.id}')">Envoyer</button></div>
@@ -7287,7 +7346,7 @@ function addPrestaComment(rid){
   const r=D.reservations.find(x=>x.id===rid);if(!r||!S.presta)return;
   const el=document.getElementById('dp-presta-com');const txt=(el&&el.value||'').trim();if(!txt)return;
   if(!r.commentaires)r.commentaires=[];
-  r.commentaires.push({id:gid(),auteur:'presta',auteurNom:S.presta.name,date:new Date().toISOString().slice(0,10),texte:txt,visible:true});
+  r.commentaires.push({id:gid(),auteur:'presta',auteurNom:S.presta.name,auteurPid:S.presta.id,date:new Date().toISOString().slice(0,10),texte:txt,visible:true});
   // Étiqueté à son auteur : il retrouve ainsi son propre commentaire dans « Dernières
   // modifications » même s'il l'a écrit sur le domaine de l'autre (où il intervient comme
   // prestataire), sans pour autant lui ouvrir la vie générale de ce domaine.
