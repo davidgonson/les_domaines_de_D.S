@@ -370,6 +370,7 @@ async function pushRemoteD(d,_retry){
       const remote=await fetchRemoteD();
       if(remote){
         D=mergeRemoteSnapshot(remote);
+        reinitEmpreintes();
         try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}
         if(!S.modal)render();
         if(!_retry)pushRemoteD(D,true);
@@ -795,10 +796,72 @@ const TRAVAUX_RATE=12; // € de l'heure pour les travaux hors réservation (Mis
    récente du serveur, on y superpose nos propres créations/modifications locales, et on
    respecte nos propres suppressions (via l'ensemble "deletedIds") — sans jamais perdre ce
    qu'une autre personne aurait créé ou modifié de son côté entre-temps. */
+/* === QUI A LA VERSION LA PLUS RÉCENTE ? ===
+   Jusqu'ici, à la fusion, la copie LOCALE l'emportait toujours sur celle du serveur pour les
+   champs simples (montant, dates, heures, statut, téléphone…). L'intention était de protéger une
+   saisie en cours ; la conséquence était bien pire : une correction faite sur un appareil
+   n'arrivait JAMAIS sur l'autre. David corrigeait un montant de 3 100 € en 3 126 €, il le voyait
+   chez lui, et l'appareil de Svitlana — qui n'avait pas touché à cette réservation — remettait
+   obstinément sa vieille valeur, jusqu'à la réécrire sur le serveur.
+   La règle est donc maintenant : pour les champs simples, c'est la modification la PLUS RÉCENTE
+   qui gagne. Les commentaires, paiements et prestations, eux, continuent d'être fusionnés
+   élément par élément (jamais un côté qui écrase l'autre).
+   Pour savoir laquelle est la plus récente sans dépendre du bon vouloir de chaque fonction de
+   l'application, on ne compte pas sur un horodatage posé à la main : à chaque enregistrement, on
+   compare l'empreinte des champs simples avec celle du précédent enregistrement, et on date
+   automatiquement ce qui a réellement changé. Aucune saisie ne peut donc être oubliée. */
+const CHAMPS_HORS_EMPREINTE=['updatedAt','lastChange','lastChangeBy','fieldsUpdatedAt'];
+const NESTED_RESA=['commentaires','paiements','prestaLines'];
+const LISTES_SUIVIES=[['reservations',NESTED_RESA],['visites',null],['travauxSchedule',null],
+  ['remboursements',null],['factures',null],['gardeSchedule',null],['dominiqueSchedule',null],
+  ['bilanComments',null],['messages',null]];
+function empreinteItem(x,nested){
+  const o={};
+  Object.keys(x).sort().forEach(k=>{
+    if(CHAMPS_HORS_EMPREINTE.indexOf(k)>=0)return;
+    if(nested&&nested.indexOf(k)>=0)return;
+    o[k]=x[k];
+  });
+  try{return JSON.stringify(o);}catch(e){return String(Math.random());}
+}
+let _empreintes={};
+/* Appelé à CHAQUE enregistrement, avant l'écriture : date ce qui vient d'être modifié ici. */
+function tamponnerModifsLocales(){
+  const now=Date.now();
+  LISTES_SUIVIES.forEach(function(paire){
+    const cle=paire[0],nested=paire[1];
+    const suivi=_empreintes[cle]||(_empreintes[cle]={});
+    (D[cle]||[]).forEach(function(x){
+      if(!x||!x.id)return;
+      const e=empreinteItem(x,nested);
+      const avant=suivi[x.id];
+      if(avant!==undefined&&avant!==e)x.fieldsUpdatedAt=now;
+      else if(avant===undefined&&!x.fieldsUpdatedAt)x.fieldsUpdatedAt=x.updatedAt||x.createdAt||0;
+      suivi[x.id]=e;
+    });
+  });
+}
+/* Appelé après CHAQUE fusion : ce qui vient du serveur n'est pas une modification faite ici,
+   il ne faut donc surtout pas le dater comme telle. */
+function reinitEmpreintes(){
+  _empreintes={};
+  LISTES_SUIVIES.forEach(function(paire){
+    const cle=paire[0],nested=paire[1];
+    const suivi=_empreintes[cle]={};
+    (D[cle]||[]).forEach(function(x){if(x&&x.id)suivi[x.id]=empreinteItem(x,nested);});
+  });
+}
+/* À égalité (aucune des deux versions n'a été modifiée depuis, ou données anciennes sans
+   horodatage), on garde la version locale : c'est le comportement historique, qui protège une
+   saisie faite hors ligne et pas encore partie. */
+function plusRecent(rem,loc){
+  const rT=(rem&&rem.fieldsUpdatedAt)||0,lT=(loc&&loc.fieldsUpdatedAt)||0;
+  return rT>lT?rem:loc;
+}
 function mergeById(remoteArr,localArr,deletedIds){
   const map={};
   (remoteArr||[]).forEach(x=>{if(x&&x.id)map[x.id]=x;});
-  (localArr||[]).forEach(x=>{if(x&&x.id)map[x.id]=x;}); // nos changements locaux gagnent pour ce qu'on a touché
+  (localArr||[]).forEach(x=>{if(x&&x.id)map[x.id]=map[x.id]?plusRecent(map[x.id],x):x;});
   deletedIds.forEach(id=>{delete map[id];}); // nos suppressions restent définitives
   return Object.values(map);
 }
@@ -833,7 +896,8 @@ function mergeResaArr(remoteArr,localArr,deletedIds,deletedCommentIds,deletedPai
   Object.keys(lMap).forEach(id=>{
     const loc=lMap[id],rem=rMap[id];
     if(rem){
-      const merged=Object.assign({},loc);
+      /* Champs simples : la version la plus récemment modifiée, d'où qu'elle vienne. */
+      const merged=Object.assign({},plusRecent(rem,loc));
       merged.commentaires=mergeNestedArr(rem.commentaires,loc.commentaires,deletedCommentIds);
       merged.paiements=mergeNestedArr(rem.paiements,loc.paiements,deletedPaiementIds);
       merged.prestaLines=mergePrestaLinesMap(rem.prestaLines,loc.prestaLines,deletedPrestaLineIds);
@@ -943,12 +1007,14 @@ async function saveD(){
         téléphone redémarre ou si le réseau ne revient que dans deux heures, la saisie est gardée
         et repartira toute seule. 2) On marque « en attente » tant que le serveur n'a pas
         confirmé. 3) On tente l'envoi. */
+  tamponnerModifsLocales();
   try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}
   markSyncPending();
   try{
     const remote=await fetchRemoteD();
     if(remote){
       D=mergeRemoteSnapshot(remote);
+      reinitEmpreintes();
       try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}
       if(!S.modal)render(); // on ne coupe jamais une saisie en cours dans un formulaire ouvert
     }
@@ -5770,9 +5836,15 @@ function canonResaForCompare(r){
 }
 /* Comparaison « le contenu est-il le même ? » — indépendante de l'ordre des clés. */
 function sameContent(a,b){
+  /* Les champs de service (horodatage de dernière modification, auteur…) ne font pas partie du
+     contenu : une sauvegarde Excel ne les transporte pas, ils ne doivent donc jamais faire
+     croire qu'un élément « diffère du fichier ». */
   const norm=v=>JSON.stringify(v,(k,val)=>{
     if(val&&typeof val==='object'&&!Array.isArray(val)){
-      return Object.keys(val).sort().reduce((o,k2)=>{if(val[k2]!==undefined&&val[k2]!==null&&val[k2]!=='')o[k2]=val[k2];return o;},{});
+      return Object.keys(val).sort().reduce((o,k2)=>{
+        if(CHAMPS_HORS_EMPREINTE.indexOf(k2)>=0)return o;
+        if(val[k2]!==undefined&&val[k2]!==null&&val[k2]!=='')o[k2]=val[k2];
+        return o;},{});
     }
     return val;
   });
@@ -8041,6 +8113,7 @@ async function initApp(){
        fermeture de l'app n'avait pas fini de se synchroniser, on ne veut surtout pas la perdre
        en écrasant D avec la version serveur au démarrage. */
     D=mergeRemoteSnapshot(remote);
+    reinitEmpreintes();
   }
   runMigrations();
   saveD();
@@ -8071,6 +8144,7 @@ async function syncCycle(){
   const serveurIncomplet=(mergedStr!==JSON.stringify(fresh)); // on a des choses qu'il n'a pas
   if(mergedStr!==JSON.stringify(D)){
     D=merged;
+    reinitEmpreintes();
     try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}
     /* On met toujours les données à jour en arrière-plan (pour ne jamais avoir besoin de
        "réinitialiser" l'appli pour voir un commentaire arrivé entre-temps), mais on ne
