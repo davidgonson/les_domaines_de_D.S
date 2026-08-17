@@ -1177,11 +1177,11 @@ function gardeRate(duree){return duree==='longue'?110:75;}
 /* === Prestations avec commission : modes de règlement ===
    ds           : nous (Les Domaines de DS) avons été payés par le client, par un vrai circuit
                   bancaire/structure (carte, virement…) — de vrais frais bancaires s'appliquent.
-   cash_ds      : payé en cash directement à nous — l'argent est chez nous, mais sans les frais
+   cash_ds      : encaissé par nous via Svitlana — l'argent est chez nous, mais sans les frais
                   bancaires réels du circuit DS (pas de 15% de frais de structure ici).
    structure    : le prestataire a facturé lui-même via sa structure (Ozarko, Misha uniquement) —
                   l'argent est déjà chez lui.
-   cash_presta  : payé en cash directement au prestataire — l'argent est déjà chez lui.
+   cash_presta  : réglé en direct entre le prestataire et le client — l'argent est déjà chez lui.
    La commission (10% par défaut, modifiable ligne par ligne via l.commission) s'applique dans
    tous les cas, cash inclus. Ce qui détermine le calcul, ce n'est donc pas "cash ou pas cash"
    mais QUI DÉTIENT L'ARGENT :
@@ -1198,9 +1198,11 @@ function gardeRate(duree){return duree==='longue'?110:75;}
    commission dessus (l.notrePart, distinct du montant de sa propre prestation sur la même ligne). */
 function viaOptions(pid){
   const name=(gPre(pid)||{}).name||'';
-  if(pid==='p1')return[['ds','Via DS (nous sommes payés)'],['structure',`Via Ozarko (${name} payé)`],['cash_presta',`Cash ${name}`],['cash_ds','Cash nous']];
-  if(pid==='p2')return[['ds','Via DS (nous sommes payés)'],['cash_presta',`Cash ${name}`],['cash_ds','Cash nous']];
-  return[['ds','Via DS (nous sommes payés)'],['cash_presta','Cash au prestataire'],['cash_ds','Cash à nous (DS)']];
+  /* Plus aucune notion d'« espèces » ni de « cash » dans l'application : on nomme le circuit,
+     pas le moyen de paiement — c'est moins ambigu et ça ne laisse rien traîner d'équivoque. */
+  if(pid==='p1')return[['ds','Via DS'],['structure',`Via Ozarko (${name})`],['cash_presta',`Réglé en direct (${name})`],['cash_ds','Via Svitlana']];
+  if(pid==='p2')return[['ds','Via DS'],['cash_presta',`Réglé en direct (${name})`],['cash_ds','Via Svitlana']];
+  return[['ds','Via DS'],['cash_presta','Réglé en direct'],['cash_ds','Via Svitlana']];
 }
 function viaOf(l){return l.via||(l.paidDirect?'cash_presta':'ds');}
 function viaLabel(pid,via){const opt=viaOptions(pid).find(o=>o[0]===via);return opt?opt[1]:'Via DS (nous sommes payés)';}
@@ -1227,7 +1229,7 @@ function ligneCalc(l,pid){
       :`${money(montant)} − ${Math.round(tauxCommission*100)}% commission = ${money(duToPresta)} net pour ${gPre(pid).name}`;
   } else {
     duANous=commission;
-    detail=`Réglé directement (${via==='structure'?'sa structure':'cash'}) — ${gPre(pid).name} nous doit ${money(commission)} de commission (${Math.round(tauxCommission*100)}%)`;
+    detail=`Réglé directement (${via==='structure'?'sa structure':'en direct'}) — ${gPre(pid).name} nous doit ${money(commission)} de commission (${Math.round(tauxCommission*100)}%)`;
   }
   let notrePartDue=0;
   if(pid==='p1'&&via==='structure'&&l.notrePart){
@@ -1400,24 +1402,24 @@ function renderTravauxSection(p,y,m){
   const defaultDom=(p.domaines||[])[0];
   const domOpts=D.domaines.map(d=>`<option value="${d.id}" ${d.id===defaultDom?'selected':''}>${d.name}</option>`).join('');
   return`<div id="bloc-travaux" class="bilan-sec">
-    <div class="sec-hdr"><h2>🔧 Travaux &amp; ménages ponctuels — ${MONTHS_FR[m]} ${y}</h2></div>
-    <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">${TRAVAUX_RATE}€/h ou au forfait, et les ménages ponctuels (trimestriel, annuel) — sans commission. ${isAdmin?'Validez chaque ligne.':'David/Svitlana valide.'}</div>
-    ${!isAdmin?`<div style="background:#f5f4f1;border-radius:8px;padding:7px;margin-bottom:10px">
-      <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:5px">
-        <select id="trav-domaine-${p.id}" style="font-size:11.5px;padding:4px 5px;flex:1;min-width:88px">${domOpts}</select>
-        <input type="date" id="trav-date-${p.id}" style="font-size:11.5px;padding:4px 5px;width:132px">
-        <select id="trav-type-${p.id}" style="font-size:11.5px;padding:4px 5px" onchange="var f=this.value==='menage';document.getElementById('trav-mode-${p.id}').style.display=f?'none':'';document.getElementById('trav-heures-${p.id}').style.display=f?'none':'';document.getElementById('trav-forfait-${p.id}').style.display=f?'':'none';"><option value="travaux">🔧 Travaux</option><option value="menage">🧹 Ménage ponctuel</option></select>
-        <select id="trav-mode-${p.id}" style="font-size:11.5px;padding:4px 5px" onchange="var h=this.value==='heure';document.getElementById('trav-heures-${p.id}').style.display=h?'':'none';document.getElementById('trav-forfait-${p.id}').style.display=h?'none':'';"><option value="heure">À l'heure</option><option value="forfait">Au forfait</option></select>
-        <input type="number" id="trav-heures-${p.id}" step="0.5" placeholder="heures" style="font-size:11.5px;padding:4px 5px;width:70px">
-        <input type="number" id="trav-forfait-${p.id}" step="0.01" placeholder="montant €" style="font-size:11.5px;padding:4px 5px;width:88px;display:none">
+    <div class="sec-hdr"><h2>🔧 Travaux, activités &amp; ménages ponctuels — ${MONTHS_FR[m]} ${y}</h2></div>
+    <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">${TRAVAUX_RATE}€/h pour les travaux, au forfait pour les activités et ménages ponctuels — sans commission. ${isAdmin?'Validez chaque ligne.':'David/Svitlana valide.'}</div>
+    ${!isAdmin?`<div style="background:#f5f4f1;border-radius:8px;padding:6px;margin-bottom:8px;font-size:11px">
+      <div style="display:grid;grid-template-columns:1fr 1.25fr 1.15fr 0.95fr;gap:4px;align-items:center;margin-bottom:4px">
+        <select id="trav-domaine-${p.id}" style="min-width:0;width:100%">${domOpts}</select>
+        ${dateFieldHtml(`trav-date-${p.id}`,'min-width:0;width:100%')}
+        <select id="trav-type-${p.id}" style="min-width:0;width:100%" onchange="var h=travauxTypeAlHeure(this.value);document.getElementById('trav-mode-${p.id}').style.display=h?'':'none';if(!h)document.getElementById('trav-mode-${p.id}').value='forfait';var f=document.getElementById('trav-mode-${p.id}').value==='forfait'||!h;document.getElementById('trav-heures-${p.id}').style.display=f?'none':'';document.getElementById('trav-forfait-${p.id}').style.display=f?'':'none';">${TRAVAUX_TYPES.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>
+        <select id="trav-mode-${p.id}" style="min-width:0;width:100%" onchange="var h=this.value==='heure';document.getElementById('trav-heures-${p.id}').style.display=h?'':'none';document.getElementById('trav-forfait-${p.id}').style.display=h?'none':'';"><option value="heure">À l'heure</option><option value="forfait">Au forfait</option></select>
       </div>
-      <div style="display:flex;gap:5px;align-items:center">
-        <input type="text" id="trav-note-${p.id}" placeholder="Ce qui a été fait (ex : changement des fenêtres)" style="flex:1;min-width:0;font-size:11.5px;padding:4px 5px">
-        <button class="btn btn-primary btn-sm" onclick="addTravaux('${p.id}')" style="flex-shrink:0">+ Déclarer</button>
+      <div style="display:flex;gap:4px;align-items:center">
+        <input type="number" id="trav-heures-${p.id}" step="0.5" placeholder="heures" style="width:66px;flex-shrink:0">
+        <input type="number" id="trav-forfait-${p.id}" step="0.01" placeholder="montant €" style="width:88px;flex-shrink:0;display:none">
+        <input type="text" id="trav-note-${p.id}" placeholder="Ce qui a été fait" style="flex:1;min-width:0">
+        <button class="btn btn-primary btn-sm" onclick="addTravaux('${p.id}')" style="flex-shrink:0">+</button>
       </div>
     </div>`:''}
-    ${rows.length===0?'<div class="empty">Aucun travaux ni ménage ponctuel déclaré ce mois-ci.</div>':''}
-    ${rows.map(x=>{const dom=gDom(x.domaine);const detail=x.mode==='forfait'?`${money(x.montant)} (forfait)`:`${x.heures}h · ${money(x.montant)}`;const typeIcon=x.type==='menage'?'🧹 Ménage ponctuel':'🔧 Travaux';return`<div style="padding:8px 0;border-bottom:1px solid #e5e3de;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+    ${rows.length===0?'<div class="empty">Rien de déclaré ce mois-ci.</div>':''}
+    ${rows.map(x=>{const dom=gDom(x.domaine);const detail=x.mode==='forfait'?`${money(x.montant)} (forfait)`:`${x.heures}h · ${money(x.montant)}`;const typeIcon=travauxTypeLabel(x.type||'travaux');return`<div style="padding:8px 0;border-bottom:1px solid #e5e3de;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
       <div><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span><span style="font-size:11px;color:#8B4A1F;font-weight:600;margin-right:4px">${typeIcon}</span><span style="font-size:13px">${ds(x.date)} · ${detail}</span>${x.note?`<div style="font-size:11px;color:#888;margin-top:2px">${x.note}</div>`:''}</div>
       <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
         ${valideBadge(x.status==='validé',`toggleTravauxValide('${x.id}')`)}
@@ -1432,11 +1434,12 @@ function renderTravauxSection(p,y,m){
    remboursement. Ce montant s'ajoute à ce qu'on lui doit ce mois-ci, mais reste toujours isolé —
    jamais mélangé — de ce qu'il touche grâce à son activité (forfait/ménage/prestations/travaux/
    électricité/gardiennage), avec une vue mensuelle ET annuelle des deux montants côte à côte. */
-/* === Règlement du mois : facture + espèces ===
-   Une fois le total du mois arrêté (« on te doit 2 888 € »), une partie peut être facturée par le
-   prestataire à l'un des domaines, et le reste est réglé en espèces. On saisit donc une ou
-   plusieurs factures (destinataire + montant), et le solde en espèces se déduit tout seul :
-        total dû 2 888 €  −  facture 600 €  =  600 € facturés + 2 288 € en espèces.
+/* === Règlement du mois : facture + solde ===
+   Une fois le total du mois arrêté (« on te doit 2 888 € »), une partie peut faire l'objet d'une
+   facture adressée à l'un des domaines ; le reste demeure simplement à régler. On saisit donc une
+   ou plusieurs factures (destinataire + montant), et le solde se déduit tout seul :
+        total dû 2 888 €  −  facture 600 €  =  600 € facturés + 2 288 € à régler.
+   Aucune notion d'espèces nulle part : on parle de ce qui est facturé et de ce qui reste à régler.
    Saisissable des deux côtés (eux comme nous), comme le reste du bilan. */
 function computeReglementMois(p,y,m){
   const key=monthKeyOf(y,m);
@@ -1446,7 +1449,7 @@ function computeReglementMois(p,y,m){
   const totalFacture=Math.round(factures.reduce((a,f)=>a+(f.montant||0),0)*100)/100;
   const totalDu=bt.totalDu;
   return{key,factures,totalFacture,totalDu,
-    especes:Math.round((totalDu-totalFacture)*100)/100};
+    reste:Math.round((totalDu-totalFacture)*100)/100};
 }
 function addFacture(pid,y,m){
   const key=monthKeyOf(y,m);
@@ -1473,27 +1476,27 @@ function renderReglementSection(p,y,m){
   const V=bilanVoix(p);
   const R=computeReglementMois(p,y,m);
   const destOpts=D.domaines.map(d=>`<option value="${d.name}">${d.name}</option>`).join('');
-  const negatif=R.especes<0;
+  const negatif=R.reste<0;
   return`<div id="bloc-reglement" class="bilan-sec">
     <div class="sec-hdr"><h2>🧾 Règlement du mois — ${MONTHS_FR[m]} ${y}</h2></div>
-    <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">Sur le total dû ce mois-ci, indiquez la part qui fait l'objet d'une facture — à quel domaine elle est adressée et pour quel montant. Le reste est automatiquement compté comme réglé en espèces.</div>
+    <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">Sur le total dû ce mois-ci, indiquez la part qui fait l'objet d'une facture — à quel domaine elle est adressée et pour quel montant. Le reste apparaît automatiquement comme restant à régler.</div>
     <div style="background:#fff;border-radius:8px;padding:4px 12px;margin-bottom:10px">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #DCEBD4;font-size:13px;font-weight:700">
         <span style="color:#1F5C31">Total dû ce mois</span><strong style="font-size:16px">${money(R.totalDu)}</strong>
       </div>
       ${R.factures.map(f=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid #ECF4E7;font-size:12.5px">
-        <span style="min-width:0">📄 Facture à <strong>${f.destinataire}</strong>${f.note?` <span style="color:#888;font-size:11px">— ${f.note}</span>`:''}</span>
+        <span style="min-width:0">dont facture à <strong>${f.destinataire}</strong>${f.note?` <span style="color:#888;font-size:11px">— ${f.note}</span>`:''}</span>
         <span style="display:flex;align-items:center;gap:6px;flex-shrink:0">
           <strong>${money(f.montant)}</strong>
           <button class="btn btn-xs btn-danger" onclick="delFacture('${f.id}')">✕</button>
         </span>
       </div>`).join('')}
-      ${R.factures.length?`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #DCEBD4;font-size:12px;color:#666">
-        <span>Total facturé</span><strong>${money(R.totalFacture)}</strong>
-      </div>`:'<div style="font-size:11.5px;color:#aaa;font-style:italic;padding:6px 0;border-bottom:1px solid #ECF4E7">Aucune facture déclarée — la totalité est comptée en espèces.</div>'}
+      ${R.factures.length>1?`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #DCEBD4;font-size:12px;color:#666">
+        <span>dont facture de prestation (total)</span><strong>${money(R.totalFacture)}</strong>
+      </div>`:'<div style="font-size:11.5px;color:#aaa;font-style:italic;padding:6px 0;border-bottom:1px solid #ECF4E7">Aucune facture déclarée — la totalité reste à régler.</div>'}
       <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;font-size:13px;font-weight:700">
-        <span style="color:#1F5C31">💶 Reste réglé en espèces</span>
-        <strong style="font-size:16px;color:${negatif?'#A32D2D':'#1F7A3D'}">${money(R.especes)}</strong>
+        <span style="color:#1F5C31">Reste à régler</span>
+        <strong style="font-size:16px;color:${negatif?'#A32D2D':'#1F7A3D'}">${money(R.reste)}</strong>
       </div>
       ${negatif?`<div style="font-size:11px;color:#A32D2D;padding-bottom:8px">⚠️ Le total facturé dépasse ce qui est dû ce mois-ci — vérifiez les montants.</div>`:''}
     </div>
@@ -1514,12 +1517,12 @@ function renderRemboursementSection(p,y,m){
   const defaultDom=(p.domaines||[])[0];
   const domOpts=D.domaines.map(d=>`<option value="${d.id}" ${d.id===defaultDom?'selected':''}>${d.name}</option>`).join('');
   return`<div id="bloc-remb" class="bilan-sec">
-    <div class="sec-hdr"><h2>💳 Paiement fait / divers — ${MONTHS_FR[m]} ${y}</h2></div>
-    <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">Toute dépense que ${p.name} fait de sa poche pour notre compte — régler quelqu'un pour nous, acheter/avancer quelque chose (boissons, envoi postal, petit matériel…) — c'est un remboursement, pas une rémunération : ça s'ajoute à ce qu'on lui doit, mais reste toujours compté à part. ${isAdmin?'Validez chaque ligne, ou laissez en attente.':'David/Svitlana valide chaque ligne.'}</div>
+    <div class="sec-hdr"><h2>💳 Réglé pour notre compte — ${MONTHS_FR[m]} ${y}</h2></div>
+    <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">Ce que ${p.name} a réglé de sa poche pour notre compte (un tiers payé pour nous, un achat avancé, un envoi…). C'est un remboursement, pas une rémunération : ça s'ajoute à ce qu'on lui doit, mais reste compté à part. ${isAdmin?'Validez chaque ligne, ou laissez en attente.':'David/Svitlana valide chaque ligne.'}</div>
     ${!isAdmin?`<div style="background:#f5f4f1;border-radius:8px;padding:7px;margin-bottom:10px">
       <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:5px">
         <select id="remb-domaine-${p.id}" style="font-size:11.5px;padding:4px 5px;flex:1;min-width:88px">${domOpts}</select>
-        <input type="date" id="remb-date-${p.id}" style="font-size:11.5px;padding:4px 5px;width:132px">
+        ${dateFieldHtml(`remb-date-${p.id}`,'width:140px;flex-shrink:0')}
         <input type="number" id="remb-montant-${p.id}" step="0.01" placeholder="montant €" style="font-size:11.5px;padding:4px 5px;width:92px">
       </div>
       <div style="display:flex;gap:5px;align-items:center">
@@ -1528,7 +1531,7 @@ function renderRemboursementSection(p,y,m){
         <button class="btn btn-primary btn-sm" onclick="addRemboursement('${p.id}')" style="flex-shrink:0">+ Déclarer</button>
       </div>
     </div>`:''}
-    ${rows.length===0?'<div class="empty">Aucune dépense pour nous déclarée ce mois-ci.</div>':''}
+    ${rows.length===0?'<div class="empty">Rien de réglé pour notre compte ce mois-ci.</div>':''}
     ${rows.map(x=>{const dom=gDom(x.domaine);return`<div style="padding:8px 0;border-bottom:1px solid #e5e3de;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
       <div><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span><span style="font-size:13px">${ds(x.date)} · ${x.beneficiaire||'—'} · ${money(x.montant)}</span>${x.note?`<div style="font-size:11px;color:#888;margin-top:2px">${x.note}</div>`:''}</div>
       <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
@@ -1864,24 +1867,24 @@ function computeCommissionBreakdown(p,y,m){
 }
 /* Libellés des 4 circuits de règlement — repris tels que David/Misha/Sacha les nomment eux-mêmes
    (Ozarko = la structure de Misha) pour que la présentation "parle" sans jargon interne. */
-const COMMISSION_VIA_LABEL={ds:'Via DS — nous sommes payés',cash_ds:'Cash nous',structure:'Via Ozarko — lui est payé',cash_presta:'Cash à lui'};
+const COMMISSION_VIA_LABEL={ds:'Via DS — nous sommes payés',cash_ds:'Via Svitlana — nous sommes payés',structure:'Via Ozarko — lui est payé',cash_presta:'Réglé en direct'};
 /* Nom court du circuit, pour les lignes du Bilan total (une ligne par circuit). */
-const COMMISSION_VIA_SHORT={ds:'Prestations via DS',cash_ds:'Prestations réglées en cash à nous',structure:'Prestations via Ozarko',cash_presta:'Prestations réglées en cash à lui'};
+const COMMISSION_VIA_SHORT={ds:'Prestations via DS',cash_ds:'Prestations via Svitlana',structure:'Prestations via Ozarko',cash_presta:'Prestations réglées en direct'};
 /* Une phrase, en français très simple, qui dit qui a l'argent et ce qui se passe ensuite.
    Deux versions rédigées séparément plutôt qu'un bricolage de remplacements de mots : celle qu'on
    lit côté David/Svitlana (on parle DU prestataire) et celle que le prestataire lit sur sa propre
    session (on s'adresse À lui). Même contenu, deux formulations correctes. */
 const COMMISSION_VIA_EXPLAIN_ADMIN={
   ds:"Encaissé par nous — 15% de frais de structure, puis la commission sur le reste ; le solde lui est versé.",
-  cash_ds:"Encaissé par nous en espèces — pas de frais de structure, seulement la commission ; le reste lui est versé.",
+  cash_ds:"Encaissé par nous via Svitlana — pas de frais de structure, seulement la commission ; le reste lui est versé.",
   structure:"Réglé directement à sa structure (Ozarko) — rien à lui verser, seule la commission reste à percevoir.",
-  cash_presta:"Réglé directement en espèces — rien à lui verser, seule la commission reste à percevoir."
+  cash_presta:"Réglé directement entre lui et le client — rien à lui verser, seule la commission reste à percevoir."
 };
 const COMMISSION_VIA_EXPLAIN_SELF={
   ds:"Encaissé par nous — 15% de frais de structure, puis la commission sur le reste ; le solde vous est versé.",
-  cash_ds:"Encaissé par nous en espèces — pas de frais de structure, seulement la commission ; le reste vous est versé.",
+  cash_ds:"Encaissé par nous via Svitlana — pas de frais de structure, seulement la commission ; le reste vous est versé.",
   structure:"Réglé directement à votre structure (Ozarko) — rien à vous verser, seule la commission reste à percevoir.",
-  cash_presta:"Réglé directement en espèces — rien à vous verser, seule la commission reste à percevoir."
+  cash_presta:"Réglé directement entre vous et le client — rien à vous verser, seule la commission reste à percevoir."
 };
 /* Conservé pour compatibilité : la version « admin » reste la référence par défaut. */
 const COMMISSION_VIA_EXPLAIN=COMMISSION_VIA_EXPLAIN_ADMIN;
@@ -2224,7 +2227,7 @@ function renderBilanTotalSection(p,y,m){
         <strong style="color:#B15E00;font-size:11.5px;font-weight:600">index à renseigner</strong>
       </div>`):''}
       ${isGardeOnly?bilanLigneRow('Gardiennage (nuits)',bt.gardeDu,'+','bloc-garde'):''}
-      ${p.accessMode==='domaine'?bilanLigneRow('Paiement fait pour nous (remboursement)',bt.rembDu,'+','bloc-remb'):''}
+      ${p.accessMode==='domaine'?bilanLigneRow('Réglé pour notre compte (à rembourser)',bt.rembDu,'+','bloc-remb'):''}
       <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0 4px;margin-top:2px;border-top:1.5px solid #993556;font-size:13px;font-weight:700;color:#72243E">
         <span>TOTAL DÛ CE MOIS</span><span style="font-size:18px">${money(bt.totalDu)}</span>
       </div>
@@ -2923,6 +2926,33 @@ function isoWeekNum(date){
 }
 /* Taille de la pastille de visite — partagée par le placement des bandes et par le placement des
    pastilles, pour que les deux réservent exactement la même largeur. */
+/* Champ date compact avec son petit calendrier : partout où l'on saisit une date, on doit voir
+   tout de suite de quoi il s'agit ET pouvoir la choisir, pas seulement la taper. */
+/* Masque tout montant dans un texte destiné à un prestataire qui n'est pas concerné : on garde
+   le sens (« Traiteur », « acompte reçu »…) mais le chiffre devient « … ». Misha ne doit jamais
+   lire ce que Sasha facture aux Déesses, et réciproquement, même en passant par un libellé. */
+function maskMontants(txt){
+  if(!txt)return txt;
+  return String(txt).replace(/\d[\d\s.,  ]*\s*€/g,'…').replace(/\s{2,}/g,' ').trim();
+}
+function dateFieldHtml(id,extraStyle,onchange){
+  return`<span class="date-row" style="display:inline-flex;align-items:center;gap:2px;${extraStyle||''}">
+    <input type="date" id="${id}"${onchange?` onchange="${onchange}"`:''} style="font-size:11.5px;padding:4px 5px;flex:1;min-width:0">
+    <button type="button" class="date-btn" onclick="var _d=document.getElementById('${id}');if(_d&&_d.showPicker)_d.showPicker();else if(_d)_d.focus();" title="Choisir une date" style="flex-shrink:0">📅</button>
+  </span>`;
+}
+/* Types de lignes « Travaux, activités & ménages ponctuels ». Seuls les travaux se comptent à
+   l'heure ; une activité ou un ménage ponctuel se saisit toujours à un montant convenu. */
+const TRAVAUX_TYPES=[
+  ['travaux','🔧 Travaux'],
+  ['menage','🧹 Ménage ponctuel'],
+  ['paintball','🎯 Paintball'],
+  ['nordique','♨️ Bain nordique'],
+  ['seminaire','📊 Séminaire'],
+  ['activite','✨ Autre activité']
+];
+function travauxTypeLabel(t){const o=TRAVAUX_TYPES.find(x=>x[0]===t);return o?o[1]:'🔧 Travaux';}
+function travauxTypeAlHeure(t){return t==='travaux';}   // tout le reste est au forfait
 function visiteMarkerGeom(){
   const isMobile=window.innerWidth<=640;
   const bs=window.__bandSizing||{offset:isMobile?21:22,pitch:isMobile?20:19,bandH:isMobile?17:16};
@@ -3462,6 +3492,11 @@ function renderDetailPanel(r){
   const comms=(readOnly?(r.commentaires||[]).filter(cm=>cm.visible):(r.commentaires||[]));
   const isJ=r.dateArrivee===r.dateDepart;
   const myLines=(readOnly&&S.presta&&S.presta.inputMode==='notes')?((r.prestaLines||{})[S.presta.id]||[]):[];
+  /* Les prestations des AUTRES prestataires sur ce même événement : on montre ce qui est fait
+     (« Traiteur »), jamais combien. Sans ça, Sasha lirait les montants de Misha aux Déesses. */
+  const autresLines=(readOnly&&S.presta)?Object.entries(r.prestaLines||{})
+    .filter(([pid])=>pid!==S.presta.id)
+    .flatMap(([pid,lines])=>(lines||[]).map(l=>({who:(gPre(pid)||{}).name||'—',l}))):[];
   return`<div class="detail-panel">
     ${r.createdAt?`<div style="font-size:9.5px;color:#aaa;margin-bottom:4px">Créée le ${new Date(r.createdAt).toLocaleDateString('fr-FR')} à ${new Date(r.createdAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>`:''}
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;gap:8px">
@@ -3496,6 +3531,13 @@ function renderDetailPanel(r){
         ${x.note?`<div style="margin-top:2px;color:#888">${x.note}</div>`:''}
       </div>`;
     }).join('')}</div>`:''}
+    ${autresLines.length?`<div class="dp-section"><label>🍽 Autres prestations sur cet événement</label>
+      ${autresLines.map(({who,l})=>`<div style="background:#f5f4f1;border-radius:8px;padding:6px 8px;margin-bottom:4px;font-size:12.5px">
+        <strong>${maskMontants(l.label||'Prestation')}</strong> <span style="color:#888">· ${who}</span>
+        ${l.notes?`<div style="font-size:11px;color:#888;margin-top:2px">${maskMontants(l.notes)}</div>`:''}
+      </div>`).join('')}
+      <div style="font-size:10px;color:#aaa">Les montants des autres prestataires ne sont pas affichés.</div>
+    </div>`:''}
     ${myLines.length?`<div class="dp-section"><label>🍽 Ma prestation</label>
       ${myLines.map(l=>`<div style="background:#f5f4f1;border-radius:8px;padding:8px;margin-bottom:6px">
         <input type="text" id="dppl-label-${l.id}" value="${l.label||''}" placeholder="Intitulé" onchange="updPrestaLine('${r.id}','${S.presta.id}','${l.id}','label',this.value)" style="width:100%;font-size:13px;font-weight:500;padding:4px 5px;margin-bottom:4px;box-sizing:border-box">
@@ -7608,10 +7650,11 @@ function addTravaux(pid){
   const domaine=(document.getElementById('trav-domaine-'+pid)||{}).value;
   const date=(document.getElementById('trav-date-'+pid)||{}).value;
   const type=(document.getElementById('trav-type-'+pid)||{}).value||'travaux';
-  const mode=type==='menage'?'forfait':((document.getElementById('trav-mode-'+pid)||{}).value||'heure');
+  // Seuls les travaux peuvent être comptés à l'heure ; activités et ménages sont au forfait.
+  const mode=!travauxTypeAlHeure(type)?'forfait':((document.getElementById('trav-mode-'+pid)||{}).value||'heure');
   const note=((document.getElementById('trav-note-'+pid)||{}).value||'').trim();
   const p=D.prestataires.find(x=>x.id===pid);
-  const typeLabel=type==='menage'?'Ménage ponctuel':'Travaux';
+  const typeLabel=travauxTypeLabel(type).replace(/^[^ ]+ /,'');
   if(!D.travauxSchedule)D.travauxSchedule=[];
   if(mode==='forfait'){
     const montant=parseFloat((document.getElementById('trav-forfait-'+pid)||{}).value)||0;
@@ -7645,7 +7688,7 @@ function addRemboursement(pid){
   D.remboursements.push({id:gid(),pid,domaine,date,montant:Math.round(montant*100)/100,beneficiaire,note,status:'en_attente',createdAt:Date.now()});
   const p=D.prestataires.find(x=>x.id===pid);
   logActivity('remboursement',domaine,`Dépense pour nous — ${p?p.name:''} : ${beneficiaire||'—'} ${money(montant)}${note?' ('+note+')':''}`,[pid],true);
-  saveD();showMsg('Paiement déclaré, en attente de validation ✓');render();
+  saveD();showMsg('Enregistré, en attente de validation ✓');render();
 }
 function delRemboursement(id){
   const x=(D.remboursements||[]).find(x=>x.id===id);
