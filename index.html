@@ -807,6 +807,11 @@ function mergeById(remoteArr,localArr,deletedIds){
    personne (ex. Misha) ne soit jamais silencieusement effacé par la sauvegarde d'une autre
    personne (ex. David) qui travaillait sur une version de la réservation pas encore à jour. */
 function mergeNestedArr(remoteArr,localArr,deletedIds){
+  /* Filet : un paiement, un commentaire ou une prestation sans identifiant était purement et
+     simplement effacé par la fusion — silencieusement, alors que sa trace restait dans
+     « Dernières modifications ». On lui en attribue un au lieu de le perdre. */
+  const stamp=arr=>{(arr||[]).forEach(x=>{if(x&&!x.id)x.id=gid();});return arr;};
+  stamp(remoteArr);stamp(localArr);
   const rMap={};(remoteArr||[]).forEach(x=>{if(x&&x.id)rMap[x.id]=x;});
   const lMap={};(localArr||[]).forEach(x=>{if(x&&x.id)lMap[x.id]=x;});
   const map=Object.assign({},rMap,lMap); // la version locale gagne si l'élément a été modifié des deux côtés
@@ -960,9 +965,14 @@ function logActivity(action,domaine,label,concernsPresta,forAdmin,rid,labelSafe)
      prestaVisibleLog. David : « ni sur les montants (réservations, acomptes, paiements,
      arrhes etc.) » — ex. une réservation modifiée où seul le montant a changé ne doit jamais
      révéler ce montant à Misha/Sasha via « Dernières modifications ». */
-  D.activityLog.push({id:gid(),ts:Date.now(),authorId:S.admin?S.admin.id:null,authorName:S.admin?S.admin.name:(S.presta?S.presta.name:'Système'),domaine,action,label,labelSafe:labelSafe||null,concernsPresta:concernsPresta||[],forAdmin:!!forAdmin,rid:rid||null});
+  const _entree={id:gid(),ts:Date.now(),authorId:S.admin?S.admin.id:null,authorName:S.admin?S.admin.name:(S.presta?S.presta.name:'Système'),domaine,action,label,labelSafe:labelSafe||null,concernsPresta:concernsPresta||[],forAdmin:!!forAdmin,rid:rid||null};
+  D.activityLog.push(_entree);
   if(D.activityLog.length>400)D.activityLog=D.activityLog.slice(-400);
   triggerPushNotification(action,label,concernsPresta);
+  /* Renvoyé pour que l'appelant puisse y joindre le détail exact de ce qui a été saisi
+     (ex. .pay={date,montant,type}) : c'est ce qui permet à « Contrôle & réparation » de
+     comparer le journal aux données sans avoir à relire un libellé écrit pour l'œil humain. */
+  return _entree;
 }
 /* Envoie une vraie notification push (via la fonction Supabase "send-push") aux personnes
    concernées, en respectant les mêmes règles de confidentialité que la bannière interne :
@@ -4776,6 +4786,7 @@ function renderExport(){
     </div>
     <button class="btn btn-primary" style="padding:10px 18px;font-size:13px" onclick="exportSauvegardeComplete()">🗄️ Télécharger la sauvegarde complète</button>
   </div>
+  ${renderControleSection()}
   ${renderRestoreSection()}`;
 }
 function buildContractSections(r){
@@ -7218,6 +7229,144 @@ function updPayRow(rid,pid,el,field){
   if(_payRowRenderTimer)clearTimeout(_payRowRenderTimer);
   _payRowRenderTimer=setTimeout(function(){_payRowRenderTimer=null;S.modal={type:'editResa',id:rid};render();},80);
 }
+/* Vrai « même paiement » : même jour, même montant, même type. Sert à ne jamais enregistrer
+   deux fois la même ligne — la saisie déclenche un « change » par champ quitté (date, montant,
+   type, commentaire), donc la même ligne passait ici plusieurs fois de suite. */
+function memePaiement(p,d,a,ty){
+  return p.date===d&&Math.abs((p.montant||0)-a)<0.01&&(p.type||'Autre')===ty;
+}
+/* === CONTRÔLE & RÉPARATION ===
+   Chaque saisie laisse DEUX traces indépendantes : la donnée elle-même (le paiement posé sur la
+   réservation) et une ligne de journal (« Dernières modifications »). Tant que les deux
+   concordent, tout va bien. Si le journal dit « Paiement ajouté : Acompte 4 500 € » mais que la
+   réservation n'a plus ce paiement, c'est qu'une saisie s'est perdue en chemin — et c'est
+   exactement ce qu'on veut voir tout de suite, et pouvoir remettre en place.
+   Le journal sert ici de deuxième exemplaire : il est plafonné à 400 lignes, donc ce contrôle
+   couvre tout ce qui est récent, ce qui est le moment où une perte se répare encore. */
+const MOIS_COURT=['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
+function parseDateCourte(txt,ts){
+  const m=String(txt||'').trim().match(/^(\d{1,2})\s+(\S+)/);
+  if(!m)return null;
+  const mi=MOIS_COURT.indexOf(m[2].toLowerCase());
+  if(mi<0)return null;
+  const jour=parseInt(m[1]);
+  const ref=new Date(ts||Date.now());
+  /* Le libellé ne porte pas l'année (« 15 aoû ») : on retient celle qui tombe au plus près du
+     moment où la ligne a été écrite. */
+  let best=null,ecartMin=Infinity;
+  [ref.getFullYear()-1,ref.getFullYear(),ref.getFullYear()+1].forEach(y=>{
+    const ecart=Math.abs(new Date(y,mi,jour)-ref);
+    if(ecart<ecartMin){ecartMin=ecart;best=y+'-'+String(mi+1).padStart(2,'0')+'-'+String(jour).padStart(2,'0');}
+  });
+  return best;
+}
+function nombreDepuisTexte(t){
+  const v=String(t==null?'':t).replace(/[^\d,.]/g,'').replace(/\.(?=\d{3}\b)/g,'').replace(',','.');
+  return parseFloat(v)||0;
+}
+/* Lit une ligne de journal « Paiement ajouté … » et en ressort le détail exact. Les lignes
+   écrites depuis cette version portent le détail en clair (.pay) ; pour l'historique, on relit
+   le libellé. */
+function paiementDuJournal(it){
+  if(it.pay&&it.pay.montant)return{date:it.pay.date||'',montant:it.pay.montant,type:it.pay.type||'Autre'};
+  const m=String(it.label||'').match(/^Paiement ajouté\s*:\s*([^\d]+?)\s+([\d\s.,  ]+)\s*€\s+le\s+(.+)$/);
+  if(!m)return null;
+  const montant=nombreDepuisTexte(m[2]);
+  if(!montant)return null;
+  return{date:parseDateCourte(m[3],it.ts)||'',montant,type:(m[1]||'Autre').trim()};
+}
+function auditDonnees(){
+  const manquants=[],doublons=[];
+  const log=(D.activityLog||[]);
+  log.forEach(it=>{
+    if(it.action!=='paiement'||!it.rid)return;
+    if(!/^Paiement ajouté/.test(it.label||''))return;
+    const info=paiementDuJournal(it);if(!info)return;
+    const r=D.reservations.find(x=>x.id===it.rid);if(!r)return;
+    /* Supprimé volontairement ensuite ? Alors son absence est normale. */
+    const supprimeApres=log.some(o=>o.action==='paiement'&&o.rid===it.rid&&(o.ts||0)>(it.ts||0)
+      &&/^Paiement supprimé/.test(o.label||'')
+      &&Math.abs(nombreDepuisTexte(((o.label||'').match(/([\d\s.,  ]+)\s*€/)||[])[1])-info.montant)<0.01);
+    if(supprimeApres)return;
+    const present=(r.paiements||[]).some(p=>Math.abs((p.montant||0)-info.montant)<0.01
+      &&(!info.date||!p.date||p.date===info.date));
+    if(present)return;
+    if(manquants.some(x=>x.rid===it.rid&&Math.abs(x.montant-info.montant)<0.01&&x.date===info.date))return;
+    manquants.push({ts:it.ts,rid:it.rid,client:(displayClientName(r)||r.client||'—'),
+      domaine:r.domaine,date:info.date,montant:info.montant,type:info.type});
+  });
+  (D.reservations||[]).forEach(r=>{
+    const vus={};
+    (r.paiements||[]).forEach(p=>{
+      const k=(p.date||'')+'__'+Math.round((p.montant||0)*100)+'__'+(p.type||'');
+      if(vus[k])doublons.push({rid:r.id,id:p.id,client:(displayClientName(r)||r.client||'—'),
+        date:p.date,montant:p.montant,type:p.type});
+      else vus[k]=p.id;
+    });
+  });
+  return{manquants,doublons};
+}
+function reparerDonnees(){
+  const a=auditDonnees();
+  if(!a.manquants.length&&!a.doublons.length){showMsg('Tout est cohérent — rien à réparer ✓');return;}
+  const txt=[];
+  if(a.manquants.length)txt.push(a.manquants.length+' paiement(s) à remettre en place');
+  if(a.doublons.length)txt.push(a.doublons.length+' doublon(s) à retirer');
+  if(!confirm('Réparer maintenant ?\n\n'+txt.join('\n')))return;
+  a.manquants.forEach(x=>{
+    const r=D.reservations.find(y=>y.id===x.rid);if(!r)return;
+    if(!r.paiements)r.paiements=[];
+    r.paiements.push({id:gid(),date:x.date||'',montant:x.montant,type:x.type||'Autre',
+      comment:'Remis en place par le contrôle'});
+  });
+  a.doublons.forEach(x=>{
+    const r=D.reservations.find(y=>y.id===x.rid);if(!r)return;
+    r.paiements=(r.paiements||[]).filter(p=>p.id!==x.id);
+    markDeleted('paiement',x.id);
+  });
+  saveD();
+  showMsg('Réparé : '+txt.join(' · ')+' ✓');
+  render();
+}
+/* Filet immédiat après une saisie de paiement : on relit la donnée telle qu'elle est réellement
+   enregistrée. Si elle n'y est pas (cas qu'on ne devrait jamais voir, mais on ne veut plus
+   jamais dépendre du « ça devrait marcher »), on la repose et on le dit. */
+function verifierPaiementEnregistre(rid,d,a,ty){
+  setTimeout(function(){
+    const r=D.reservations.find(x=>x.id===rid);if(!r)return;
+    if((r.paiements||[]).some(p=>memePaiement(p,d,a,ty)))return;
+    if(!r.paiements)r.paiements=[];
+    r.paiements.push({id:gid(),date:d,montant:a,type:ty,comment:''});
+    saveD();
+    showMsg('Paiement rétabli automatiquement ✓');
+    if(!S.modal)render();
+  },4000);
+}
+function renderControleSection(){
+  const a=auditDonnees();
+  const ok=!a.manquants.length&&!a.doublons.length;
+  const lignes=a.manquants.map(x=>`<div style="font-size:12.5px;padding:5px 0;border-bottom:1px solid #F0E2C8">
+      <strong>${money(x.montant)}</strong> · ${x.type} · ${x.date?fmt(x.date):'date inconnue'}
+      <span style="color:#666">— ${x.client}, ${gDom(x.domaine).name}</span>
+    </div>`).join('')
+    +a.doublons.map(x=>`<div style="font-size:12.5px;padding:5px 0;border-bottom:1px solid #F0E2C8">
+      Doublon : <strong>${money(x.montant)}</strong> · ${x.type} · ${x.date?fmt(x.date):''}
+      <span style="color:#666">— ${x.client}</span>
+    </div>`).join('');
+  return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
+    <div class="sec-hdr"><h2>🔎 Contrôle des saisies</h2></div>
+    <div style="font-size:13px;color:#555;margin:10px 0 14px;line-height:1.5">
+      Chaque paiement laisse deux traces : le paiement lui-même sur la réservation, et sa ligne dans « Dernières modifications ». Ce contrôle compare les deux. S'il manque un paiement quelque part, il apparaît ici et se remet en place en un clic.
+    </div>
+    ${ok?`<div style="background:#EAF4E3;border-radius:8px;padding:10px 12px;font-size:13px;color:#27500A">✓ Tout concorde — aucun paiement manquant, aucun doublon.</div>`
+        :`<div style="background:#FDF4E3;border:1px solid #E9CE93;border-radius:8px;padding:10px 12px;margin-bottom:10px">
+      <div style="font-weight:700;font-size:13px;color:#7A5800;margin-bottom:6px">${a.manquants.length?a.manquants.length+' paiement(s) manquant(s)':''}${a.manquants.length&&a.doublons.length?' · ':''}${a.doublons.length?a.doublons.length+' doublon(s)':''}</div>
+      ${lignes}
+    </div>
+    <button class="btn btn-primary" style="padding:10px 18px;font-size:13px" onclick="reparerDonnees()">🔧 Tout remettre en place</button>`}
+    <div style="margin-top:12px"><button class="btn btn-sm" onclick="render()">Relancer le contrôle</button></div>
+  </div>`;
+}
 function maybeAddPayRow(rid,rowN){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
   const d=(document.getElementById('pay-new-date-'+rowN)||{}).value;
@@ -7226,10 +7375,19 @@ function maybeAddPayRow(rid,rowN){
   const cm=((document.getElementById('pay-new-comment-'+rowN)||{}).value||'').trim();
   if(!d||!a)return;
   if(!r.paiements)r.paiements=[];
+  /* Déjà enregistrée ? On met simplement à jour son commentaire, on ne recrée pas de ligne.
+     Sans ça, saisir « 4 500 € » puis passer au champ suivant enregistrait 4 500 € deux fois. */
+  const dejaLa=r.paiements.find(p=>memePaiement(p,d,a,ty));
+  if(dejaLa){
+    if(cm&&dejaLa.comment!==cm){dejaLa.comment=cm;saveD();}
+    return;
+  }
   r.paiements.push({id:gid(),date:d,montant:a,type:ty,comment:cm});
   stampChange(r,'Paiement ajouté · '+ty+' '+money(a)+' le '+ds(d)+(cm?' ('+cm+')':''));
-  logActivity('paiement',r.domaine,'Paiement ajouté : '+ty+' '+money(a)+' le '+ds(d),[],false,rid);
+  const _lg=logActivity('paiement',r.domaine,'Paiement ajouté : '+ty+' '+money(a)+' le '+ds(d),[],false,rid);
+  if(_lg)_lg.pay={date:d,montant:a,type:ty};
   saveD();
+  verifierPaiementEnregistre(rid,d,a,ty);
   if(_payRowRenderTimer)clearTimeout(_payRowRenderTimer);
   _payRowRenderTimer=setTimeout(function(){_payRowRenderTimer=null;S.modal={type:'editResa',id:rid};render();},80);
 }
@@ -7241,8 +7399,9 @@ function addPay(rid){
   if(!r.paiements)r.paiements=[];
   r.paiements.push({id:gid(),date:d,montant:a,type:ty,comment:cm});
   stampChange(r,`Paiement ajouté · ${ty} ${money(a)} le ${ds(d)}${cm?' ('+cm+')':''}`);
-  logActivity('paiement',r.domaine,'Paiement ajouté : '+ty+' '+money(a)+' le '+ds(d),[],false,rid);
-  saveD();S.modal={type:'editResa',id:rid};render();
+  const _lg=logActivity('paiement',r.domaine,'Paiement ajouté : '+ty+' '+money(a)+' le '+ds(d),[],false,rid);
+  if(_lg)_lg.pay={date:d,montant:a,type:ty};
+  saveD();verifierPaiementEnregistre(rid,d,a,ty);S.modal={type:'editResa',id:rid};render();
 }
 function delPay(rid,pid){
   if(!rid)return;const r=D.reservations.find(x=>x.id===rid);if(!r)return;
@@ -7550,17 +7709,22 @@ function saveResaCore(id){
   const _newR=D.reservations.find(x=>x.id===newId);
   const _paysAdded=[];
   if(_newR){
-    for(let _rn=0;_rn<20;_rn++){
+    /* On balaie TOUTES les lignes de saisie, sans jamais s'arrêter en route. L'ancienne version
+       faisait « break » dès qu'une ligne manquait : or, sur une réservation qui a déjà des
+       paiements, les lignes vides ne commencent pas à 0 mais à 1, 2, 3… — la boucle s'arrêtait
+       donc immédiatement et un paiement tapé sans avoir quitté le champ n'était jamais
+       enregistré. C'est une perte de saisie pure et simple. */
+    for(let _rn=0;_rn<40;_rn++){
       const _dEl=document.getElementById('pay-new-date-'+_rn);
-      if(!_dEl)break;
+      if(!_dEl)continue;
       const _aEl=document.getElementById('pay-new-amt-'+_rn);
       const _d=_dEl.value,_a=parseFloat(_aEl?_aEl.value:'')||0;
       if(_d&&_a){
         const _ty=(document.getElementById('pay-new-type-'+_rn)||{}).value||'Autre';
         const _cm=((document.getElementById('pay-new-comment-'+_rn)||{}).value||'').trim();
         if(!_newR.paiements)_newR.paiements=[];
-        const _dup=(_newR.paiements||[]).some(p=>p.date===_d&&Math.abs(p.montant-_a)<0.01&&p.type===_ty);
-        if(!_dup){_newR.paiements.push({id:gid(),date:_d,montant:_a,type:_ty,comment:_cm});_paysAdded.push(_ty+' '+money(_a)+' le '+ds(_d));}
+        const _dup=(_newR.paiements||[]).some(p=>memePaiement(p,_d,_a,_ty));
+        if(!_dup){_newR.paiements.push({id:gid(),date:_d,montant:_a,type:_ty,comment:_cm});_paysAdded.push({desc:_ty+' '+money(_a)+' le '+ds(_d),date:_d,montant:_a,type:_ty});}
       }
     }
   }
@@ -7572,7 +7736,7 @@ function saveResaCore(id){
   } else {
     if(changeLog.full&&changeLog.full!=='Enregistrement (aucun changement détecté)')logActivity('modifiée',domaine,changeLog.full,[],false,id,changeLog.safe);
   }
-  _paysAdded.forEach(function(desc){logActivity('paiement',domaine,'Paiement ajouté : '+desc,[],false,newId);});
+  _paysAdded.forEach(function(x){const _lg=logActivity('paiement',domaine,'Paiement ajouté : '+x.desc,[],false,newId);if(_lg)_lg.pay={date:x.date,montant:x.montant,type:x.type};});
   Object.keys(prestaGarde).forEach(pid=>{
     const normalize=(pg)=>{
       if(!pg)return null;
