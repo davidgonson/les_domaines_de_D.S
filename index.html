@@ -1853,6 +1853,16 @@ function computeBilanTotal(p,y,m){
     });
   }
   gardeDu=Math.round(gardeDu*100)/100;gardeRecu=Math.round(gardeRecu*100)/100;
+  /* Jardinage (Dominique) — ses journées planifiées (dominiqueSchedule), au même titre que le
+     gardiennage de Sébastien/Mathilde : comptées dans son dû du mois et dans son bilan annuel. */
+  let jardDu=0,jardRecu=0,jardLignes=0;
+  if(p.name==='Dominique'){
+    (D.dominiqueSchedule||[]).filter(x=>inMonthDate(x.date)).forEach(x=>{
+      jardDu+=x.montant||0;jardLignes++;
+      if(x.paid)jardRecu+=x.montant||0;
+    });
+  }
+  jardDu=Math.round(jardDu*100)/100;jardRecu=Math.round(jardRecu*100)/100;
   const elec=p.electricite?computeElecCost(p.id,y,m):null;
   const elecCost=elec?elec.cost:0;
   const elecConso=elec?elec.conso:null; // null = aucun index saisi (pas confondre avec une conso à 0)
@@ -1870,12 +1880,12 @@ function computeBilanTotal(p,y,m){
     if(x.status!=='validé')rembEnAttente++;
   });
   rembDu=Math.round(rembDu*100)/100;
-  const totalActivite=Math.round((forfaitDu+menageDu+compDu+travDu-elecCost+gardeDu)*100)/100;
+  const totalActivite=Math.round((forfaitDu+menageDu+compDu+travDu-elecCost+gardeDu+jardDu)*100)/100;
   const totalDu=Math.round((totalActivite+rembDu)*100)/100;
-  const totalRecu=forfaitRecu+menageRecu+gardeRecu;
+  const totalRecu=forfaitRecu+menageRecu+gardeRecu+jardRecu;
   const totalReste=Math.round((totalDu-totalRecu)*100)/100;
   const enAttente=menageEnAttente+compEnAttente+elecEnAttente+travEnAttente+gardeEnAttente+rembEnAttente;
-  return{key,forfaitDu,forfaitRecu,menageDu,menageRecu,menageEnAttente,compDu,compLignes,compEnAttente,travDu,travLignes,travEnAttente,gardeDu,gardeRecu,gardeLignes,gardeEnAttente,elecCost,elecConso,elecEnAttente,rembDu,rembLignes,rembEnAttente,totalActivite,totalDu,totalRecu,totalReste,enAttente};
+  return{key,forfaitDu,forfaitRecu,menageDu,menageRecu,menageEnAttente,compDu,compLignes,compEnAttente,travDu,travLignes,travEnAttente,gardeDu,gardeRecu,gardeLignes,gardeEnAttente,jardDu,jardRecu,jardLignes,elecCost,elecConso,elecEnAttente,rembDu,rembLignes,rembEnAttente,totalActivite,totalDu,totalRecu,totalReste,enAttente};
 }
 /* Vue annuelle : additionne totalActivite et rembDu sur les 12 mois de l'année y, pour isoler —
    comme demandé — ce que le prestataire a touché grâce à son activité vs. ce qu'on lui doit en
@@ -4370,16 +4380,16 @@ function paidForYear(r,y){
    prestations ont rapporté, ce que les travaux ont rapporté. Plus, à part, ce qu'on lui a
    remboursé — qui n'est pas de l'activité et ne doit jamais être confondu avec elle. */
 function computeAnnuelParPoste(p,y){
-  let menage=0,prestations=0,travaux=0,forfait=0,gardiennage=0,elec=0,remb=0;
+  let menage=0,prestations=0,travaux=0,forfait=0,gardiennage=0,jardinage=0,elec=0,remb=0;
   for(let mi=0;mi<12;mi++){
     const bt=computeBilanTotal(p,y,mi);
     menage+=bt.menageDu;prestations+=bt.compDu;travaux+=bt.travDu;
-    forfait+=bt.forfaitDu;gardiennage+=bt.gardeDu;elec+=bt.elecCost;remb+=bt.rembDu;
+    forfait+=bt.forfaitDu;gardiennage+=bt.gardeDu;jardinage+=bt.jardDu||0;elec+=bt.elecCost;remb+=bt.rembDu;
   }
   const r2=v=>Math.round(v*100)/100;
-  const activite=r2(menage+prestations+travaux+forfait+gardiennage-elec);
+  const activite=r2(menage+prestations+travaux+forfait+gardiennage+jardinage-elec);
   return{menage:r2(menage),prestations:r2(prestations),travaux:r2(travaux),forfait:r2(forfait),
-    gardiennage:r2(gardiennage),elec:r2(elec),remb:r2(remb),activite};
+    gardiennage:r2(gardiennage),jardinage:r2(jardinage),elec:r2(elec),remb:r2(remb),activite};
 }
 function renderBilanAnnuelPresta(p,y){
   if(S.view!=='admin')return'';          // jamais visible côté prestataire
@@ -4395,6 +4405,7 @@ function renderBilanAnnuelPresta(p,y){
       ${p.accessMode==='domaine'?ligne('🔧 Travaux &amp; ménages ponctuels',A.travaux,'#8B4A1F'):''}
       ${p.forfaitMensuel?ligne('🛡 Forfait gardiennage fixe',A.forfait,'#534AB7'):''}
       ${p.inputMode==='garde'?ligne('🛡 Gardiennage (nuits)',A.gardiennage,'#534AB7'):''}
+      ${p.name==='Dominique'?ligne('🌱 Jardinage (journées)',A.jardinage,'#3F6212'):''}
       ${p.electricite&&A.elec?ligne('⚡ Électricité (à sa charge)',-A.elec,'#A32D2D'):''}
       <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0 4px;border-top:2px solid #5B5952;font-size:14px;font-weight:700">
         <span>Total activité ${y}</span><span style="font-size:17px">${money(A.activite)}</span>
@@ -4407,7 +4418,8 @@ function renderBilanAnnuelPresta(p,y){
   </div>`;
 }
 function renderBilan(){
-  const bilanPrestas=D.prestataires.filter(p=>p.forfaitMensuel||p.inputMode==='notes'||p.flatRate||p.inputMode==='garde');
+  // Dominique (jardinage) apparaît au même titre que les autres prestataires suivis financièrement.
+  const bilanPrestas=D.prestataires.filter(p=>p.forfaitMensuel||p.inputMode==='notes'||p.flatRate||p.inputMode==='garde'||p.name==='Dominique');
   const subTab=S.bilanSubTab||'general';
   const tabsHtml=`<div class="tabs" style="margin-bottom:10px">
     <button class="tab${subTab==='general'?' active':''}" onclick="setBilanSubTab('general')"><span class="tab-ic">📊</span><span class="tab-lbl">Général</span></button>
@@ -4520,6 +4532,18 @@ function renderBilanGeneral(){
     if(x.paid)gardeByP[x.pid].paid+=amt;
   });
   const gardeRows=Object.entries(gardeByP);
+  /* Jardinage Dominique (sans commission) — ses journées planifiées sur la période, détaillées
+     par domaine, au même titre que le gardiennage ci-dessus. */
+  const jardByDom={};
+  (D.dominiqueSchedule||[]).forEach(x=>{
+    const inP=viewMode==='year'?x.date.startsWith(y+'-'):x.date.startsWith(`${y}-${String(m+1).padStart(2,'0')}`);
+    if(!inP)return;
+    if(!jardByDom[x.domaine])jardByDom[x.domaine]={total:0,paid:0,count:0};
+    jardByDom[x.domaine].total+=x.montant||0;jardByDom[x.domaine].count++;
+    if(x.paid)jardByDom[x.domaine].paid+=x.montant||0;
+  });
+  const jardRows=D.domaines.filter(d=>jardByDom[d.id]).map(d=>({d,...jardByDom[d.id]}));
+  const jardTotal=jardRows.reduce((a,x)=>a+x.total,0),jardPaid=jardRows.reduce((a,x)=>a+x.paid,0),jardCount=jardRows.reduce((a,x)=>a+x.count,0);
   /* Électricité (Misha) — déduite de son dû dans son propre bilan, mais absente de cette vue
      d'ensemble jusqu'ici : on l'ajoute pour que "ce que nous voyons de lui" montre bien tout. */
   const elecRows=D.prestataires.filter(p=>p.electricite).map(p=>{
@@ -4595,6 +4619,13 @@ function renderBilanGeneral(){
     ${gardeRows.length===0?'<div class="empty">Aucun gardiennage sur cette période.</div>':''}
     ${gardeRows.length>0?`<table class="list-tbl"><thead><tr><th>Prestataire</th><th>Nb nuits</th><th>Total dû</th><th>Payé</th><th>Reste à payer</th></tr></thead>
     <tbody>${gardeRows.map(([pid,v])=>`<tr><td>${v.name}</td><td style="text-align:center">${v.count}</td><td style="font-weight:500">${money(v.total)}</td><td style="color:#27500A">${money(v.paid)}</td><td style="font-weight:600;color:${v.total-v.paid>0?'#A32D2D':'#27500A'}">${money(v.total-v.paid)}</td></tr>`).join('')}</tbody></table>`:''}
+  </div>
+  <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
+    <div class="sec-hdr"><h2>🌱 Jardinage Dominique — sans commission, suivi à part</h2></div>
+    ${jardRows.length===0?'<div class="empty">Aucune journée de jardinage sur cette période.</div>':''}
+    ${jardRows.length>0?`<table class="list-tbl"><thead><tr><th>Domaine</th><th>Nb journées</th><th>Total dû</th><th>Payé</th><th>Reste à payer</th></tr></thead>
+    <tbody>${jardRows.map(({d,total,paid,count})=>`<tr><td><span class="pill ${PILL[d.color||0]}">${d.name}</span></td><td style="text-align:center">${count}</td><td style="font-weight:500">${money(total)}</td><td style="color:#27500A">${money(paid)}</td><td style="font-weight:600;color:${total-paid>0?'#A32D2D':'#27500A'}">${money(total-paid)}</td></tr>`).join('')}
+    ${jardRows.length>1?`<tr style="background:#f0eee8"><td style="font-weight:700;color:#000">Total</td><td style="text-align:center;font-weight:700;color:#000">${jardCount}</td><td style="font-weight:700;color:#000">${money(jardTotal)}</td><td style="font-weight:700;color:#000">${money(jardPaid)}</td><td style="font-weight:700;color:#000">${money(jardTotal-jardPaid)}</td></tr>`:''}</tbody></table>`:''}
   </div>
   <div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
     <div class="sec-hdr"><h2>⚡ Électricité — déduite du dû, suivie à part</h2></div>
