@@ -270,6 +270,7 @@ let _lastRemoteUpdatedAt=null;
    croissant. L'état est visible à l'écran (pastille dans le bandeau du haut) pour ne jamais avoir
    à se demander si c'est bien parti. */
 let _syncPending=false;      // il reste des modifications non confirmées côté serveur
+try{if(localStorage.getItem(SK+'_pending')==='1')_syncPending=true;}catch(e){} // survit à une fermeture avant confirmation
 let _syncLastOk=null;        // horodatage du dernier envoi confirmé
 let _pushRetryDelay=3000;    // délai avant relance, doublé à chaque échec (plafonné)
 let _pushTimer=null;
@@ -8445,7 +8446,7 @@ async function initApp(){
   runMigrations();
   saveD();
   if(!checkToken())render();else render();
-  setInterval(syncCycle,3000);
+  setInterval(syncCycle,10000); // battement 10 s (validé par David) — la vérification est désormais quasi gratuite
   /* Filets de rattrapage supplémentaires : dès que le réseau revient, ou dès qu'on rouvre
      l'application (retour sur l'onglet, sortie de veille du téléphone), on relance tout de suite
      un cycle complet au lieu d'attendre le prochain battement. C'est exactement le scénario de
@@ -8464,6 +8465,24 @@ async function initApp(){
    n'avait pas, par chance, modifié quelque chose de son côté. Si personne d'autre ne touchait à
    rien, la saisie restait indéfiniment sur l'appareil, invisible pour tous les autres. */
 async function syncCycle(){
+  /* === Économie de bande passante (quota Supabase) ===
+     Avant, chaque battement re-téléchargeait TOUTES les données, sur chaque appareil, même
+     quand rien n'avait bougé — d'où un « Egress » à 170 % du quota gratuit. Désormais on fait
+     d'abord une vérification ultra-légère (quelques octets) : on ne lit que la date de
+     dernière modification côté serveur. Si elle n'a pas changé depuis notre dernière lecture
+     ET que nous n'avons rien en attente d'envoi, il n'y a strictement rien à faire — on
+     s'arrête là. Le cycle complet (téléchargement + fusion + envoi) ne se déclenche que
+     lorsqu'il y a réellement du nouveau, d'un côté ou de l'autre. Au moindre doute (erreur,
+     réponse inattendue), on refait le cycle complet — la fiabilité passe avant l'économie. */
+  try{
+    if(!_syncPending&&_lastRemoteUpdatedAt){
+      const r=await fetch(`${SUPA_URL}/rest/v1/app_state?id=eq.1&select=updated_at`,{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});
+      if(r.ok){
+        const j=await r.json();
+        if(j&&j[0]&&j[0].updated_at&&j[0].updated_at===_lastRemoteUpdatedAt)return true; // rien de neuf nulle part
+      }
+    }
+  }catch(e){/* doute → cycle complet ci-dessous */}
   const fresh=await fetchRemoteD();
   if(!fresh)return false;                       // pas de réseau : on retentera au prochain battement
   const merged=mergeRemoteSnapshot(fresh);
