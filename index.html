@@ -396,7 +396,11 @@ const SIGNATURE_GONSON='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAABWCA
 const PILL=['p0','p1','p2','p3','p4'];
 const MONTHS_FR=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 const PRESTA_CATS=['Animation','Traiteur','Décoration','Logistique','Autre'];
-const EVENT_TYPES=['Mariage','Anniversaire','Séminaire','Famille / Amis','EVJF / EVG','Airbnb','Abritel','Booking','GDC','Home Exchange','Déjeuner / Dîner','Gratuit','Autre'];
+const EVENT_TYPES=['Mariage','Anniversaire','Séminaire','Famille / Amis','EVJF / EVG','Airbnb','Abritel','Booking','GDC','Home Exchange','Déjeuner / Dîner','Perso','Gratuit','Autre'];
+/* Types « gratuits » : aucun montant de location, d'arrhes ni de dépôt.
+   'Perso' = séjour pour nous (David/Svitlana) — spécificité : le ménage reste prévu,
+   mais son montant est saisi à la main à CHAQUE fois, jamais pré-rempli. */
+const FREE_EVT=v=>v==='Gratuit'||v==='Perso';
 const DOMINIQUE_RATES={d1:120,d2:150,d3:120};
 const LEG_BG=['#F4C0D1','#F5D98B','#C0DD97','#CECBF6','#B5D4F4'];
 const BAND_FULL=['b0f','b1f','b2f','b3f','b4f'];
@@ -1247,7 +1251,16 @@ function getMenageInfo(r){
   else if(r.domaine==='d2'){const n=r.nbPersonnes||r.nbSoiree||0;info={pid:'p2',name:'Sasha',montant:isRepasSeul?100:(n>=40?500:400)};}
   else if(r.domaine==='d3')info={pid:'p3',name:'Pascaline',montant:250};
   if(!info)return null;
-  if(r.menageMontant!==undefined&&r.menageMontant!==null&&r.menageMontant!=='')info.montant=parseFloat(r.menageMontant);
+  const _mmSaisi=(r.menageMontant!==undefined&&r.menageMontant!==null&&r.menageMontant!=='');
+  if(r.typeEvenement==='Perso'){
+    /* Séjour perso : le ménage est prévu (même personne que d'habitude), mais AUCUN forfait
+       pré-rempli — le montant est saisi à la main à chaque fois. Tant qu'il ne l'est pas,
+       montant 0 + drapeau aSaisir pour que l'interface le rappelle. */
+    info.montant=_mmSaisi?parseFloat(r.menageMontant):0;
+    info.aSaisir=!_mmSaisi;
+    return info;
+  }
+  if(_mmSaisi)info.montant=parseFloat(r.menageMontant);
   return info;
 }
 function gardeRate(duree){return duree==='longue'?110:75;}
@@ -2459,7 +2472,7 @@ function buildBands(y,m){
         if(maxNb===1){mainParts.push('<span style="color:#FF2200;font-weight:900;letter-spacing:.3px">⚠ 1</span> pers.');}
         else{mainParts.push(maxNb+' pers.');}
       }
-      if(r.typeEvenement&&!HIDE_EVENT_TYPE&&!PLATFORM_TYPES.includes(r.typeEvenement))mainParts.push(r.typeEvenement);
+      if(r.typeEvenement&&!HIDE_EVENT_TYPE&&!PLATFORM_TYPES.includes(r.typeEvenement)&&!(r.typeEvenement==='Perso'&&(r.client||'')==='Perso'))mainParts.push(r.typeEvenement);
       const mainLine=mainParts.join(' · ');
       const _personName=r.typeClient==='entreprise'?(r.societe||r.client||''):([r.prenom1,r.nom1].filter(Boolean).join(' ')||r.client||'');
       const _calName=PLATFORM_TYPES.includes(r.typeEvenement)?(r.typeEvenement+(_personName?' '+_personName:'')):_personName;
@@ -2713,6 +2726,7 @@ function checkContactFields_OLD_UNUSED(){
 }
 function hasIncompleteContact(r){
   if(r._isVisite)return false;
+  if(r.typeEvenement==='Perso')return false; // séjour perso : c'est nous, pas de contact à relancer
   if(r.typeClient==='entreprise'){
     // Entreprise : raison sociale + adresse postale indispensables
     return !r.societe||!r.adresse;
@@ -2796,6 +2810,7 @@ function refreshDefaultArrhes(){
   if(!arrhesEl||arrhesEl.dataset.userEdited==='1')return;
   const domaine=(document.getElementById('m-domaine')||{}).value||'';
   const typeEvenement=(document.getElementById('m-evt')||{}).value||'';
+  if(FREE_EVT(typeEvenement)){arrhesEl.value='0';return;}
   const dateArrivee=(document.getElementById('m-arr-date')||{}).value||'';
   const dateDepart=(document.getElementById('m-dep-date')||{}).value||'';
   const montant=parseFloat((document.getElementById('m-montant')||{}).value)||0;
@@ -2807,6 +2822,8 @@ function computeDefaultDepot(domaine){
 function refreshDefaultDepot(){
   const depotEl=document.getElementById('m-depot');
   if(!depotEl||depotEl.dataset.userEdited==='1')return;
+  const typeEvenement=(document.getElementById('m-evt')||{}).value||'';
+  if(FREE_EVT(typeEvenement)){depotEl.value='0';return;}
   const domaine=(document.getElementById('m-domaine')||{}).value||'';
   depotEl.value=computeDefaultDepot(domaine);
 }
@@ -2834,10 +2851,20 @@ function onEvtTypeChange(val){
   }
   const montantEl=document.getElementById('m-montant');
   if(montantEl){
-    if(val==='Gratuit'){montantEl.value='0';montantEl.readOnly=true;montantEl.style.background='#f0eee8';montantEl.style.color='#888';}
+    if(FREE_EVT(val)){montantEl.value='0';montantEl.readOnly=true;montantEl.style.background='#f0eee8';montantEl.style.color='#888';}
     else{montantEl.readOnly=false;montantEl.style.background='';montantEl.style.color='';}
     refreshSoldeDisplay();
   }
+  /* Gratuit / Perso : arrhes et dépôt à 0 et verrouillés — on ne demande rien pour un séjour
+     gratuit. En repassant sur un type payant, les valeurs par défaut reviennent. */
+  ['m-arrhes','m-depot'].forEach(fid=>{
+    const el=document.getElementById(fid);if(!el)return;
+    if(FREE_EVT(val)){el.value='0';el.readOnly=true;el.style.background='#f0eee8';el.style.color='#888';}
+    else{el.readOnly=false;el.style.background='';el.style.color='';if(el.dataset.userEdited!=='1'){if(fid==='m-arrhes')refreshDefaultArrhes();else refreshDefaultDepot();}}
+  });
+  /* Séjour perso : champ « montant ménage » à saisir à la main — visible uniquement pour Perso. */
+  const persoWrap=document.getElementById('perso-menage-wrap');
+  if(persoWrap)persoWrap.style.display=(val==='Perso')?'block':'none';
   // Avec досьє : décoché par défaut, l'utilisateur coche manuellement si besoin
   const depWrap=document.getElementById('dep-date-wrap');
   const arrDateEl=document.getElementById('m-arr-date'),depDateEl=document.getElementById('m-dep-date');
@@ -2922,11 +2949,25 @@ function refreshAllGardNights(){
     wrap.innerHTML=gardNightsHtmlFor(pid,nights,state);
   });
 }
+/* Connexion mémorisée sur l'appareil : une fois connecté (par code PIN ou par lien personnel),
+   on reste connecté aux ouvertures suivantes — indispensable depuis l'icône de l'écran
+   d'accueil (iPhone/Android), qui perd les paramètres du lien personnel. Se déconnecter
+   efface la session mémorisée. */
+function _saveSession(kind,token){try{localStorage.setItem('ds_session',JSON.stringify({kind,token}));}catch(e){}}
+function _initAdmin(ad){S.view='admin';S.admin=ad;const now=new Date();S.calYear=now.getFullYear();S.calMonth=now.getMonth();S.bilanYear=now.getFullYear();S.bilanMonth=now.getMonth();S.listeYear=now.getFullYear();S.listeMonth=now.getMonth();S.visiteYear=now.getFullYear();S.visiteMonth=now.getMonth();S.adminPrestaYear=now.getFullYear();S.adminPrestaMonth=now.getMonth();}
+function _initPresta(pr){S.view='presta';S.presta=pr;const now=new Date();S.calYear=now.getFullYear();S.calMonth=now.getMonth();S.listeYear=now.getFullYear();S.listeMonth=now.getMonth();S.visiteYear=now.getFullYear();S.visiteMonth=now.getMonth();S.prestaBilanYear=now.getFullYear();S.prestaBilanMonth=now.getMonth();}
 function checkToken(){
   const p=new URLSearchParams(window.location.search),t=p.get('t')||window.location.hash.replace('#','');
   const at=p.get('admin');
-  if(at){const ad=D.admins.find(x=>x.token===at);if(ad){S.view='admin';S.admin=ad;const now=new Date();S.calYear=now.getFullYear();S.calMonth=now.getMonth();S.bilanYear=now.getFullYear();S.bilanMonth=now.getMonth();S.listeYear=now.getFullYear();S.listeMonth=now.getMonth();S.visiteYear=now.getFullYear();S.visiteMonth=now.getMonth();S.adminPrestaYear=now.getFullYear();S.adminPrestaMonth=now.getMonth();return true;}}
-  if(t){const pr=D.prestataires.find(x=>x.token===t);if(pr){S.view='presta';S.presta=pr;const now=new Date();S.calYear=now.getFullYear();S.calMonth=now.getMonth();S.listeYear=now.getFullYear();S.listeMonth=now.getMonth();S.visiteYear=now.getFullYear();S.visiteMonth=now.getMonth();S.prestaBilanYear=now.getFullYear();S.prestaBilanMonth=now.getMonth();return true;}}return false;
+  if(at){const ad=D.admins.find(x=>x.token===at);if(ad){_initAdmin(ad);_saveSession('admin',at);return true;}}
+  if(t){const pr=D.prestataires.find(x=>x.token===t);if(pr){_initPresta(pr);_saveSession('presta',t);return true;}}
+  // Pas de lien dans l'URL : on reprend la session mémorisée sur cet appareil, s'il y en a une.
+  try{
+    const saved=JSON.parse(localStorage.getItem('ds_session')||'null');
+    if(saved&&saved.kind==='admin'){const ad=D.admins.find(x=>x.token===saved.token);if(ad){_initAdmin(ad);return true;}}
+    if(saved&&saved.kind==='presta'){const pr=D.prestataires.find(x=>x.token===saved.token);if(pr){_initPresta(pr);return true;}}
+  }catch(e){}
+  return false;
 }
 
 let CAL_DOMAIN_FILTER=null;
@@ -3477,7 +3518,7 @@ function renderLogin(){
 function doLogin(){
   const pin=document.getElementById('pin-in').value;
   const a=D.admins.find(x=>x.pin===pin);
-  if(a){S.view='admin';S.admin=a;const now=new Date();S.calYear=now.getFullYear();S.calMonth=now.getMonth();S.bilanYear=now.getFullYear();S.bilanMonth=now.getMonth();S.listeYear=now.getFullYear();S.listeMonth=now.getMonth();S.visiteYear=now.getFullYear();S.visiteMonth=now.getMonth();S.adminPrestaYear=now.getFullYear();S.adminPrestaMonth=now.getMonth();render();}
+  if(a){_initAdmin(a);_saveSession('admin',a.token);render();}
   else{const el=document.getElementById('pin-in');el.value='';el.style.borderColor='#E24B4A';el.placeholder='Code incorrect';}
 }
 
@@ -6589,7 +6630,7 @@ function renderModalContent(){
         <div class="field"><label>Statut</label><select id="m-status" style="padding:3.5px 7px">${sO}</select></div>
       </div>
       <div id="nb-fields-wrap">${nbFieldsHtml(defDomaine,r)}</div>
-      <div style="font-size:11px;color:#888">* Le nombre de couchages est obligatoire (sauf Gratuit ou Déjeuner / Dîner)</div>
+      <div style="font-size:11px;color:#888">* Le nombre de couchages est obligatoire (sauf Perso, Gratuit ou Déjeuner / Dîner)</div>
     </div>
     <div class="form-section">
       <div class="form-section-title">📅 Dates et horaires</div>
@@ -6610,15 +6651,22 @@ function renderModalContent(){
       <div class="field" style="margin-bottom:8px">
         <label style="color:#111;font-weight:700;font-size:12.5px">Montant de la réservation (€) *</label>
         <div style="display:flex;align-items:center;gap:8px">
-          <input type="number" id="m-montant" value="${r.typeEvenement==='Gratuit'?'0':(r.montant||'')}" placeholder="0" style="flex:1;font-weight:700;font-size:15px!important;padding:10px 12px!important;border-color:#8a8678;border-width:2px${r.typeEvenement==='Gratuit'?';background:#f0eee8;color:#888':''}" ${r.typeEvenement==='Gratuit'?'readonly':''} oninput="refreshSoldeDisplay();refreshDefaultArrhes()">
+          <input type="number" id="m-montant" value="${FREE_EVT(r.typeEvenement)?'0':(r.montant||'')}" placeholder="0" style="flex:1;font-weight:700;font-size:15px!important;padding:10px 12px!important;border-color:#8a8678;border-width:2px${FREE_EVT(r.typeEvenement)?';background:#f0eee8;color:#888':''}" ${FREE_EVT(r.typeEvenement)?'readonly':''} oninput="refreshSoldeDisplay();refreshDefaultArrhes()">
           <span style="color:#555;font-size:15px;font-weight:700">€</span>
+        </div>
+      </div>
+      <div id="perso-menage-wrap" style="display:${r.typeEvenement==='Perso'?'block':'none'};margin-bottom:10px">
+        <div class="field">
+          <label style="color:#B15E00;font-weight:700">🧹 Montant du ménage (€) — à saisir *</label>
+          <input type="number" id="m-menage-perso" value="${(r.typeEvenement==='Perso'&&r.menageMontant!==undefined&&r.menageMontant!==null&&r.menageMontant!=='')?r.menageMontant:''}" placeholder="À remplir à chaque fois" style="border-color:#B15E00;border-width:2px;font-weight:700">
+          <div style="font-size:10px;color:#9a958c;margin-top:3px;line-height:1.35">Séjour perso : gratuit pour la location, mais le ménage est bien prévu — son montant n'est jamais pré-rempli.</div>
         </div>
       </div>
       <label style="display:flex;align-items:center;gap:5px;cursor:pointer;width:fit-content;font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.02em;border:1px solid #d5d3ce;border-radius:6px;padding:4px 8px;background:#fff;margin-bottom:10px"><input type="checkbox" id="m-avec-contrat" ${r.avecContrat===true?'checked':''} style="width:auto;margin:0"> 📄 Avec досьє</label>
       <div class="field" style="margin-bottom:10px"><label style="display:flex;align-items:center;gap:6px;white-space:nowrap">Note interne <span style="background:#ECE9E2;color:#666;font-size:9.5px;font-weight:600;padding:2px 6px;border-radius:4px;text-transform:none;letter-spacing:0">🔒 admin</span></label><input type="text" id="m-noteI" value="${r.noteInterne||''}" placeholder="Note rapide…"></div>
       <div class="g2" style="margin-bottom:${type==='editResa'?'12px':'0'}">
-        <div class="field"><label>Arrhes prévues (€)</label><input type="number" id="m-arrhes" style="padding:3.5px 7px;font-size:12px" value="${r.arrhes||computeDefaultArrhes(defDomaine,r.typeEvenement||'',iA,iD,r.montant||0)}" placeholder="Ex : 1500" data-user-edited="${r.arrhes?'1':'0'}" oninput="this.dataset.userEdited='1';this.dataset.touched='1'"></div>
-        <div class="field"><label>Dépôt de garantie (€)</label><input type="number" id="m-depot" style="padding:3.5px 7px;font-size:12px" value="${r.depotGarantie||computeDefaultDepot(defDomaine)}" placeholder="Ex : 3000" data-user-edited="${r.depotGarantie?'1':'0'}" oninput="this.dataset.userEdited='1';this.dataset.touched='1'"></div>
+        <div class="field"><label>Arrhes prévues (€)</label><input type="number" id="m-arrhes" style="padding:3.5px 7px;font-size:12px${FREE_EVT(r.typeEvenement)?';background:#f0eee8;color:#888':''}" ${FREE_EVT(r.typeEvenement)?'readonly':''} value="${FREE_EVT(r.typeEvenement)?(r.arrhes||0):(r.arrhes||computeDefaultArrhes(defDomaine,r.typeEvenement||'',iA,iD,r.montant||0))}" placeholder="Ex : 1500" data-user-edited="${r.arrhes?'1':'0'}" oninput="this.dataset.userEdited='1';this.dataset.touched='1'"></div>
+        <div class="field"><label>Dépôt de garantie (€)</label><input type="number" id="m-depot" style="padding:3.5px 7px;font-size:12px${FREE_EVT(r.typeEvenement)?';background:#f0eee8;color:#888':''}" ${FREE_EVT(r.typeEvenement)?'readonly':''} value="${FREE_EVT(r.typeEvenement)?(r.depotGarantie||0):(r.depotGarantie||computeDefaultDepot(defDomaine))}" placeholder="Ex : 3000" data-user-edited="${r.depotGarantie?'1':'0'}" oninput="this.dataset.userEdited='1';this.dataset.touched='1'"></div>
       </div>
       ${(()=>{
         const existingRows=pays.map(p=>({date:p.date,montant:p.montant,type:p.type,comment:p.comment,id:p.id}));
@@ -6675,10 +6723,10 @@ function renderModalContent(){
     </div>
     `}
     <hr style="border:none;border-top:1px solid #e5e3de;margin:14px 0">
-    ${(()=>{if(!id)return'';const mi=getMenageInfo(r);if(!mi)return'';return`<div class="field" style="margin-bottom:12px"><label>🧹 Forfait ménage (${mi.name})</label>
-      <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#f5f4f1;border-radius:8px;flex-wrap:wrap">
+    ${(()=>{if(!id)return'';const mi=getMenageInfo(r);if(!mi)return'';return`<div class="field" style="margin-bottom:12px"><label>🧹 ${mi.aSaisir?`Ménage (${mi.name}) — <span style="color:#B15E00">montant à saisir</span>`:`Forfait ménage (${mi.name})`}</label>
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#f5f4f1;border-radius:8px;flex-wrap:wrap${mi.aSaisir?';border:1.5px solid #B15E00':''}">
         <input type="text" id="modmenage-comment-${id}" value="${r.menageComment||''}" placeholder="Note (ex. seulement la longère)" onchange="updMenageComment('${id}',this.value)" style="flex:1;min-width:120px;font-size:12px;padding:4px 6px;color:#888">
-        <span style="display:flex;align-items:center;gap:2px;flex-shrink:0"><input type="number" id="modmenage-montant-${id}" value="${mi.montant}" onchange="updMenageMontant('${id}',this.value)" style="width:65px;font-weight:600;font-size:13px;padding:4px 6px"><span style="font-size:12px;font-weight:600;color:#666">€</span></span>
+        <span style="display:flex;align-items:center;gap:2px;flex-shrink:0"><input type="number" id="modmenage-montant-${id}" value="${mi.aSaisir?'':mi.montant}" placeholder="${mi.aSaisir?'à saisir':''}" onchange="updMenageMontant('${id}',this.value)" style="width:65px;font-weight:600;font-size:13px;padding:4px 6px${mi.aSaisir?';border-color:#B15E00;border-width:2px':''}"><span style="font-size:12px;font-weight:600;color:#666">€</span></span>
         <span class="pill" style="background:${r.menagePaid?'#E8F3E0':'#FCEBEB'};color:${r.menagePaid?'#27500A':'#791F1F'};cursor:pointer" onclick="toggleMenagePaid('${id}')">${r.menagePaid?'✓ Payé':'✗ Non payé'}</span>
       </div></div>`;})()}
     <div class="field" style="margin-bottom:12px"><label>Prestataires — cochez puis détaillez</label>
@@ -7428,7 +7476,7 @@ function closeM(){S.modal=null;render();}
 function closePanel(){S.selResa=null;render();}
 function showMsg(m){S.msg=m;render();setTimeout(()=>{S.msg=null;render();},3000);}
 function setTab(t){S.tab=t;S.calAnim=(t==='calendrier');S.msg=null;S.selResa=null;S.searchQuery=null;render();}
-function logout(){S.view='login';S.admin=null;S.presta=null;S.msg=null;S.selResa=null;S.searchQuery=null;render();}
+function logout(){try{localStorage.removeItem('ds_session');}catch(e){}S.view='login';S.admin=null;S.presta=null;S.msg=null;S.selResa=null;S.searchQuery=null;render();}
 function calNav(d){S.calMonth+=d;if(S.calMonth>11){S.calMonth=0;S.calYear++;}if(S.calMonth<0){S.calMonth=11;S.calYear--;}S.selResa=null;render();}
 function selectResa(rid,e){if(e)e.stopPropagation();S.selResa=rid;render();}
 function openNewResaOnDate(date){openM('newResa',null,{prefDate:date});}
@@ -7810,7 +7858,7 @@ function saveResaCore(id){
   let tel2=((document.getElementById('m-tel2')||{}).value||'').trim();
   const email2=((document.getElementById('m-email2')||{}).value||'').trim();
   const societe=capWords((document.getElementById('m-societe')||{}).value||'').trim();
-  const client=[prenom1,nom1].filter(Boolean).join(' ')+((prenom2||nom2)?(' et '+[prenom2,nom2].filter(Boolean).join(' ')):'');
+  let client=[prenom1,nom1].filter(Boolean).join(' ')+((prenom2||nom2)?(' et '+[prenom2,nom2].filter(Boolean).join(' ')):'');
   const typeEvenement=(document.getElementById('m-evt')||{}).value||'',noteInterne=document.getElementById('m-noteI').value,caviste=(document.getElementById('m-caviste')||{}).value||'',montant=parseFloat(document.getElementById('m-montant').value)||0,arrhes=parseFloat((document.getElementById('m-arrhes')||{}).value)||0,depotGarantie=parseFloat((document.getElementById('m-depot')||{}).value)||0;
   const avecContratEl=document.getElementById('m-avec-contrat');
   const avecContrat=avecContratEl?avecContratEl.checked:true;
@@ -7873,8 +7921,10 @@ function saveResaCore(id){
   if(typeClient==='entreprise'){
     if(!societe)missing.push('la raison sociale de la société');
   } else {
-    if(!nom1)missing.push('le nom du client');
+    // Séjour perso : pas besoin de nom — c'est pour nous ; la fiche s'appellera « Perso ».
+    if(!nom1&&typeEvenement!=='Perso')missing.push('le nom du client');
   }
+  if(typeEvenement==='Perso'&&!client)client='Perso';
   if(missing.length){alert('Champs obligatoires manquants : '+missing.join(', ')+'.');return null;}
   if(!heureArrivee)heureArrivee='16:00';
   if(!heureDepart)heureDepart='11:00';
@@ -7955,6 +8005,23 @@ function saveResaCore(id){
   /* Récupère les lignes de paiement saisies mais non encore enregistrées (nouvelles réservations
      ou lignes non encore auto-sauvegardées via maybeAddPayRow). */
   const _newR=D.reservations.find(x=>x.id===newId);
+  /* Séjour perso : le montant du ménage saisi dans le formulaire (jamais pré-rempli) est
+     enregistré comme montant ménage de la réservation — même mécanique que l'encart ménage. */
+  if(_newR&&typeEvenement==='Perso'){
+    const _pmEl=document.getElementById('m-menage-perso');
+    if(_pmEl){
+      const _v=(_pmEl.value||'').trim();
+      if(_v!==''){
+        const _nv=parseFloat(_v)||0;
+        const _prev=(_newR.menageMontant===undefined||_newR.menageMontant===null)?'':String(_newR.menageMontant);
+        if(_prev!==String(_nv)){
+          _newR.menageMontant=_nv;
+          const _mi=getMenageInfo(_newR);
+          logActivity('prestation',domaine,`Montant ménage saisi : ${money(_nv)} — ${displayClientName(_newR)||'Perso'} (${fmt(dateArrivee)})`,_mi?[_mi.pid]:[],false,newId);
+        }
+      }
+    }
+  }
   const _paysAdded=[];
   if(_newR){
     /* On balaie TOUTES les lignes de saisie, sans jamais s'arrêter en route. L'ancienne version
@@ -8507,21 +8574,51 @@ async function enablePushNotifications(){
   try{
     const perm=await Notification.requestPermission();
     if(perm!=='granted'){alert('Notifications refusées. Tu peux les réactiver dans les réglages de ton téléphone (Réglages > Notifications).');return;}
+    const ownerId=S.admin?S.admin.id:(S.presta?S.presta.id:null);
+    if(!ownerId){alert("Connecte-toi d'abord (code ou lien personnel), puis réappuie sur 🔔 — les notifications sont liées à ton compte.");return;}
     const reg=await navigator.serviceWorker.ready;
     let sub=await reg.pushManager.getSubscription();
+    /* Si un ancien abonnement existe avec une AUTRE clé (ancienne configuration), on le jette
+       et on se réabonne proprement avec la clé actuelle — sinon l'envoi échouerait. */
+    if(sub){
+      try{
+        const cur=sub.options&&sub.options.applicationServerKey?btoa(String.fromCharCode(...new Uint8Array(sub.options.applicationServerKey))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''):null;
+        if(cur&&cur!==VAPID_PUBLIC_KEY){await sub.unsubscribe();sub=null;}
+      }catch(e){}
+    }
     if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(VAPID_PUBLIC_KEY)});
+    const j=sub.toJSON();
+    const res=await fetch(`${SUPA_URL}/rest/v1/push_subscriptions`,{
+      method:'POST',
+      headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify({owner_id:ownerId,endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth})
+    });
+    if(!res.ok){
+      const txt=await res.text().catch(()=>'');
+      alert("L'abonnement n'a pas pu être enregistré (erreur "+res.status+"). Vérifie que la table push_subscriptions est bien créée dans Supabase. "+txt.slice(0,120));
+      return;
+    }
+    showMsg('Notifications activées ✓');render();
+  }catch(e){
+    alert("Impossible d'activer les notifications pour l'instant : "+e.message);
+  }
+}
+/* Ré-enregistrement silencieux à chaque ouverture : si ce navigateur est déjà abonné aux
+   notifications, on renvoie l'abonnement au serveur (au cas où il aurait été activé avant
+   d'être connecté, ou perdu côté serveur). Aucune demande de permission ici. */
+async function resyncPushSubscription(){
+  try{
     const ownerId=S.admin?S.admin.id:(S.presta?S.presta.id:null);
-    if(!ownerId)return;
+    if(!ownerId||!('serviceWorker' in navigator))return;
+    const reg=await navigator.serviceWorker.getRegistration();if(!reg)return;
+    const sub=await reg.pushManager.getSubscription();if(!sub)return;
     const j=sub.toJSON();
     await fetch(`${SUPA_URL}/rest/v1/push_subscriptions`,{
       method:'POST',
       headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},
       body:JSON.stringify({owner_id:ownerId,endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth})
-    });
-    showMsg('Notifications activées ✓');render();
-  }catch(e){
-    alert("Impossible d'activer les notifications pour l'instant : "+e.message);
-  }
+    }).catch(()=>{});
+  }catch(e){}
 }
 async function checkPushEnabled(){
   try{
@@ -8533,7 +8630,7 @@ async function checkPushEnabled(){
   }catch(e){return false;}
 }
 registerServiceWorker();
-initApp();
+initApp().then(()=>{setTimeout(resyncPushSubscription,2500);});
 </script>
 </body>
 </html>
