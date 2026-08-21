@@ -1058,7 +1058,7 @@ function triggerPushNotification(action,label,concernsPresta){
     fetch(`${SUPA_URL}/functions/v1/send-push`,{
       method:'POST',
       headers:{'Content-Type':'application/json',apikey:SUPA_KEY},
-      body:JSON.stringify({title:'Les Domaines de DS',body:label,url:'/',tag:'ds-update',recipientIds,excludeSubscriberId:selfId})
+      body:JSON.stringify({title:'Les Domaines de DS',body:label,url:'./',tag:'ds-update',recipientIds,excludeSubscriberId:selfId})
     }).catch(()=>{}); // si la fonction n'est pas encore déployée, on n'interrompt jamais l'app pour autant
   }catch(e){}
 }
@@ -8629,6 +8629,11 @@ async function checkPushEnabled(){
     return!!sub;
   }catch(e){return false;}
 }
+/* Pastille rouge sur l'icône : posée par le service worker à chaque notification, effacée
+   dès qu'on ouvre (ou revient sur) l'application. */
+function clearAppBadge(){try{if(navigator.clearAppBadge)navigator.clearAppBadge().catch(()=>{});}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)clearAppBadge();});
+clearAppBadge();
 registerServiceWorker();
 initApp().then(()=>{setTimeout(resyncPushSubscription,2500);});
 </script>
