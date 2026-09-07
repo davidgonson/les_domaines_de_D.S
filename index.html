@@ -254,6 +254,10 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 <body>
 <div class="app" id="root"></div>
 <script>
+/* Numéro de version, affiché en haut de l'écran. Sert à répondre en une seconde à la seule
+   question qui compte quand « ça marche chez moi mais pas chez elle » : les deux téléphones
+   font-ils bien tourner la MÊME version ? */
+const APP_VERSION='2026-09-07-c';
 const SK='domnoрm_prod_v1';
 const SUPA_URL='https://hdtltrnabrgibkcvubzd.supabase.co';
 const SUPA_KEY='sb_publishable_zvpg0YOHegxqXJxbEKhSbQ_3oLwbrr1';
@@ -317,6 +321,36 @@ function renderSyncBadge(){
     ?`<span id="sync-badge" title="Des modifications ne sont pas encore parties. Elles sont enregistrées sur cet appareil et repartiront automatiquement dès que la connexion reviendra." style="display:inline-flex;align-items:center;gap:3px;background:#FFF3D6;color:#7A5800;border:1px solid #E8C97A;border-radius:20px;padding:2px 8px;font-size:10.5px;font-weight:700;white-space:nowrap;flex-shrink:0">⏳ à envoyer</span>`
     :`<span id="sync-badge" title="Tout est enregistré et transmis${_syncLastOk?' — dernier envoi à '+new Date(_syncLastOk).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):''}." style="display:inline-flex;align-items:center;gap:3px;background:#EAF3DE;color:#27500A;border:1px solid #BEDCA4;border-radius:20px;padding:2px 8px;font-size:10.5px;font-weight:700;white-space:nowrap;flex-shrink:0">✓ à jour</span>`;
 }
+/* === « Mon écran tourne-t-il sur la version à jour ? » ===
+   Sur ordinateur comme sur téléphone, le navigateur garde longtemps l'ancienne page en mémoire :
+   on publie une correction, et l'écran continue d'exécuter l'ancien programme — sans que rien ne
+   le signale. C'est invisible et ça fait perdre des heures.
+   Chaque appareil inscrit donc sa version dans les données partagées. Dès qu'un appareil voit
+   qu'une version plus récente circule, il le dit franchement et propose un rechargement qui
+   contourne le cache. */
+function suivreVersion(){
+  if(!D)return;
+  if(!D.derniereVersionVue||APP_VERSION>D.derniereVersionVue)D.derniereVersionVue=APP_VERSION;
+}
+function versionPlusRecenteEnLigne(){
+  const v=(D&&D.derniereVersionVue)||'';
+  return v>APP_VERSION?v:null;
+}
+function rechargerSansCache(){
+  const base=location.href.split('?')[0].split('#')[0];
+  location.replace(base+'?v='+Date.now());
+}
+function renderVersionObsoleteBanner(){
+  const v=versionPlusRecenteEnLigne();
+  if(!v)return'';
+  return`<div class="alert" style="background:#B15E00;color:#fff;font-weight:600;margin-bottom:10px;font-size:12.5px;padding:8px 11px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <span style="flex:1;min-width:0">⚠️ Cet écran utilise encore la version <strong>v${APP_VERSION}</strong>, alors que la <strong>v${v}</strong> est déjà en ligne. Tant que vous ne rechargez pas, les corrections récentes ne s'appliquent pas ici.</span>
+    <button class="btn btn-sm" style="background:#fff;color:#B15E00;border-color:#fff;font-weight:700;flex-shrink:0" onclick="rechargerSansCache()">Recharger maintenant</button>
+  </div>`;
+}
+function renderVersionBadge(){
+  return`<span title="Version de l'application installée sur cet appareil. Les deux téléphones doivent afficher le même numéro." style="display:inline-flex;align-items:center;background:#F0EFEA;color:#8a8678;border-radius:20px;padding:2px 7px;font-size:9.5px;font-weight:600;white-space:nowrap;flex-shrink:0">v${APP_VERSION}</span>`;
+}
 function renderSyncBadgeInPlace(){
   const el=document.getElementById('sync-badge');
   if(el)el.outerHTML=renderSyncBadge();
@@ -374,7 +408,7 @@ async function pushRemoteD(d,_retry){
         D=mergeRemoteSnapshot(remote);
         reinitEmpreintes();
         try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}
-        if(!S.modal)render();
+        renderArrierePlan();
         if(!_retry)pushRemoteD(D,true);
         else{markSyncPending();schedulePushRetry();} // 2e conflit d'affilée : on retentera plus tard
       }
@@ -436,65 +470,123 @@ const CONTRACT_DATA={
     parkingMax:40,
     piscinePeriode:'toute l\u2019année',
     reglement:[
-      {h:'Usage général',p:[
-        'Le Locataire s\u2019engage à jouir de la location de manière paisible et à en faire un usage conforme à la destination des lieux, à savoir une location de vacances et de réception privée. Le contrat de location est établi pour une capacité maximale conforme à celle prévue au contrat. Cette capacité ne pourra en aucun cas être dépassée, tant pour les hébergements que pour l\u2019utilisation des espaces communs et événements.',
-        'Le jour du départ, l\u2019ensemble des lieux devra être rangé, les cuisines entièrement nettoyées, la vaisselle lavée et rangée, et les sacs poubelles fermés puis déposés dans les bacs prévus à cet effet. La libération complète des lieux devra intervenir au plus tard à l\u2019heure indiquée au contrat, sauf accord contraire expressément convenu.',
-        'Il est strictement interdit de fumer à l\u2019intérieur de l\u2019ensemble des bâtiments. Les mégots ne devront en aucun cas être jetés au sol ou dans les espaces extérieurs de la propriété.',
-        'Lors de toute sortie des gîtes ou bâtiments, même temporaire, le Locataire est tenu de fermer systématiquement les lieux à clé à l\u2019aide des clés fournies. En cas de non-respect de cette obligation, le Locataire assumera l\u2019entière responsabilité de tout vol, dégradation ou dommage survenu.',
-        'Des extincteurs sont mis à disposition dans les bâtiments, ainsi qu\u2019une trousse de premiers secours située dans les cuisines. L\u2019utilisation de bougies, chandelles, lanternes à flamme, torches, braseros mobiles, fumigènes ou de toute source de flamme nue est strictement interdite à l\u2019intérieur des bâtiments ainsi qu\u2019à proximité immédiate des constructions, végétaux et espaces de réception, sauf autorisation écrite préalable du Propriétaire.'
+      {h:"1. USAGE GÉNÉRAL",p:[
+        "§ 1.1 Destination des lieux et comportement",
+        "Le Locataire s’engage à jouir de la location de manière paisible, conformément à sa destination : vacances et réception privée. La capacité maximale prévue au contrat ne pourra en aucun cas être dépassée, tant pour les hébergements que pour les espaces communs et événements.",
+        "§ 1.2 Départ et restitution des lieux",
+        "Le jour du départ, l’ensemble des lieux devra être rangé, les cuisines entièrement nettoyées, la vaisselle lavée et rangée, et les sacs poubelles fermés puis déposés dans les bacs prévus à cet effet. La libération complète des lieux devra intervenir au plus tard à l’heure indiquée au contrat, sauf accord contraire expressément convenu.",
+        "§ 1.3 Tabac",
+        "Il est strictement interdit de fumer à l’intérieur de l’ensemble des bâtiments. Les mégots ne devront en aucun cas être jetés au sol ou dans les espaces extérieurs de la propriété.",
+        "§ 1.4 Fermeture et sécurité des bâtiments",
+        "Lors de toute sortie des gîtes ou bâtiments, même temporaire, le Locataire est tenu de fermer systématiquement les lieux à clé à l’aide des clés fournies. En cas de non-respect de cette obligation, le Locataire assumera l’entière responsabilité de tout vol, dégradation ou dommage survenu.",
+        "Le Domaine étant loué en exclusivité à un seul groupe pour la durée du séjour, la sécurité des biens et affaires personnelles relève de la responsabilité du Locataire et de ses invités.",
+        "§ 1.5 Sécurité incendie et premiers secours",
+        "Des extincteurs sont mis à disposition dans les bâtiments, ainsi qu’une **trousse de premiers secours située à l’entrée de la salle**. L’utilisation de bougies, chandelles, lanternes à flamme, torches, braseros mobiles, fumigènes ou de toute source de flamme nue est strictement interdite à l’intérieur des bâtiments ainsi qu’à proximité immédiate des constructions, végétaux et espaces de réception, sauf autorisation écrite préalable du Propriétaire.",
+        "**Toute utilisation abusive du système de sécurité incendie, à tout moment du séjour, pourra entraîner une pénalité forfaitaire de 100 €.**"
       ]},
-      {h:'Nettoyage',p:[
-        'La propriété devra être rendue propre et rangée. Un état des lieux sera effectué en fin de séjour. En cas de non-respect de ces consignes, des frais de nettoyage supplémentaires pourront être appliqués.',
-        'Sont inclus dans la prestation : le nettoyage des sols, salles de bain et WC ; le lavage et le repassage du linge de maison, les lits préparés à l\u2019arrivée.',
-        'Le Locataire devra notamment : nettoyer les appareils électroménagers ainsi que le barbecue ; laver et ranger la vaisselle ; remettre en place les meubles et équipements déplacés ; fermer les sacs poubelles et les déposer dans les bacs prévus à cet effet.'
+      {h:"2. PARKING",p:[
+        "Les véhicules doivent être stationnés exclusivement sur le parking principal. La capacité maximale du parking est limitée à **40 véhicules**. La dépose de bagages et de courses est possible devant les bâtiments à l’arrivée ; merci de limiter le bruit en arrivant et en repartant."
       ]},
-      {h:'Wi-Fi / Accès internet',p:[
-        'Un accès Internet Wi-Fi est mis gracieusement à disposition dans le Manoir et la Salle. Le Propriétaire ne saurait être tenu responsable en cas de dysfonctionnement, interruption ou perturbation du service. Toute utilisation illicite, contraire à l\u2019ordre public, aux bonnes mœurs ou portant atteinte aux droits des tiers est strictement interdite.'
+      {h:"3. BRUIT ET TRANQUILLITÉ DU VOISINAGE",p:[
+        "§ 3.1 Respect du voisinage",
+        "Le respect du repos et de la tranquillité du voisinage constitue une obligation essentielle du présent règlement. Aucune fête, musique, animation, cri ou nuisance sonore n’est autorisé à l’extérieur des bâtiments ni dans les hébergements. **Le niveau sonore ne devra pas dépasser 60 dB à l’extérieur (tente, terrasse), à tout moment.**",
+        "**Après 22h, toute activité devra se tenir exclusivement à l’intérieur de la salle de réception, portes et fenêtres fermées, et un agent de surveillance sera présent sur site pour faire maintenir le calme.**",
+        "§ 3.2 Feux d’artifice et dispositifs interdits",
+        "L’utilisation de feux d’artifice, pétards, lanternes volantes, fumigènes ou de tout dispositif pyrotechnique est strictement interdite sur l’ensemble de la propriété, y compris lorsqu’ils sont apportés par des invités ou prestataires.",
+        "§ 3.3 Pouvoir d’intervention",
+        "En cas de nuisance sonore, de plainte du voisinage ou de non-respect des présentes règles, le Gardien du Domaine, tout agent mandaté ou les Propriétaires pourront intervenir à tout moment afin de faire cesser les troubles constatés. Le Locataire s’engage à se conformer immédiatement aux demandes formulées.",
+        "§ 3.4 Pénalités et interruption de la location",
+        "En cas de non-respect des présentes règles, et notamment si la fête dégénère ou si les consignes relatives au bruit et à la quiétude du voisinage ne sont pas respectées, le Gardien du Domaine ou tout agent de surveillance mandaté par les propriétaires est expressément autorisé à intervenir.",
+        "À compter de la 3ᵉ intervention du Gardien ou d’un agent mandaté, une **pénalité forfaitaire de 300 € par intervention supplémentaire** pourra être appliquée et retenue sur le dépôt de garantie, ainsi que tout frais exceptionnel ou conséquence financière directement liée aux nuisances causées.",
+        "**Toute utilisation abusive du système de sécurité incendie, à tout moment du séjour, pourra également entraîner une pénalité forfaitaire de 100 €.**",
+        "!!En cas de manquement répété, les Propriétaires pourront faire interrompre immédiatement la fête ou la location, sans remboursement, conformément au contrat et à la réglementation applicable.!!"
       ]},
-      {h:'La piscine',p:[
-        'La piscine est chauffée toute l\u2019année (24/28°). Les horaires d\u2019accès (9h/22h) sont donnés à titre indicatif et peuvent être modifiés ou suspendus à la discrétion du Gardien pour des raisons de sécurité, de maintenance ou de comportement inapproprié. Il est interdit de courir, sauter, crier, manger, fumer ou consommer des boissons dans l\u2019espace piscine.',
-        'Les enfants doivent être accompagnés en permanence par un adulte responsable. Les brassards sont obligatoires pour les enfants de moins de 7 ans.'
+      {h:"4. CAUTION ET RESPONSABILITÉ",p:[
+        "**Le règlement intégral du séjour doit être effectif — réception du virement sur notre compte — avant l’arrivée du Locataire sur le Domaine.**",
+        "§ 4.1 Dépôt de garantie",
+        "Une caution d’un montant de **3 000 €** est demandée à l’arrivée (chèque ou virement instantané). **La remise des clés est conditionnée à son dépôt effectif.**",
+        "§ 4.2 Signalement des dommages",
+        "Tout sinistre, dommage, fuite, panne ou dégradation devra être signalé immédiatement au Propriétaire ou au Gardien.",
+        "§ 4.3 Restitution de la caution",
+        "Après état des lieux de sortie et constat du bon état intérieur et extérieur de la propriété, la caution sera restituée, déduction faite des éventuels frais de remise en état.",
+        "§ 4.4 Retenues possibles",
+        "Les retenues sur caution pourront notamment concerner : mobilier et décoration, équipements électroménagers et audiovisuels, équipements sportifs, installations sanitaires, espaces verts et équipements extérieurs, piscine et équipements associés, frais de nettoyage ou d’intervention, pénalités liées au bruit.",
+        "Les montants retenus sur le matériel seront calculés sur la base de la valeur de remplacement ou du coût réel de remise en état.",
+        "§ 4.5 Responsabilité financière",
+        "Le Locataire demeure financièrement responsable des dégradations, incidents ou nuisances causés par lui-même, ses invités ou prestataires, y compris au-delà du montant du dépôt de garantie."
       ]},
-      {h:'Terrasses, jardins et espaces extérieurs',p:[
-        'Les équipements sportifs peuvent être utilisés de 9h à 22h. Les terrasses, salons de jardin et espaces de réception extérieurs sont accessibles de 9h à 23h. Les espaces extérieurs devront être laissés propres après utilisation.',
-        'La tente et la terrasse principale située devant la salle de réception ne sont pas autorisées pour les animations bruyantes ou la diffusion musicale. Cet espace, ainsi que le parking, doivent rester calmes et silencieux, particulièrement à partir de 22h.',
-        'Les attractions pour enfants sont à utiliser uniquement pour les enfants de 7 à 13 ans sous l\u2019entière responsabilité des parents.'
+      {h:"5. RESPONSABILITÉ ÉCOLOGIQUE",p:[
+        "§ 5.1 Tri des déchets",
+        "Des poubelles de tri sélectif sont mises à disposition. Merci de respecter les consignes de tri.",
+        "§ 5.2 Consommation d’eau et d’énergie",
+        "L’eau et l’énergie doivent être utilisées de manière raisonnable. Merci d’éteindre les lumières et équipements inutilisés.",
+        "§ 5.3 WC et fosse septique",
+        "La propriété étant équipée d’une fosse septique, seul le **papier toilette** doit être jeté dans les WC. Toute obstruction des réseaux pourra entraîner des **frais forfaitaires de 350 €**."
       ]},
-      {h:'La salle de réception et la tente de réception',p:[
-        'La salle constitue le seul espace autorisé pour les festivités et animations. Toute fête devra impérativement se dérouler à l\u2019intérieur de la salle, portes et fenêtres fermées. Le niveau sonore de la salle ne devra pas dépasser 90 dB dans la salle.',
-        'La tente et la terrasse sont utilisables pour les cocktails de 11h à 22h dans une ambiance calme. Musique légère d\u2019ambiance tolérée. Pas de cris/chants. Les convives devront ensuite rejoindre la salle de réception.',
-        'Aucun équipement audio extérieur n\u2019est autorisé sur les lieux (enceintes amplifiées, Bluetooth, connectées type Alexa/Google Home), sauf accord préalable du Propriétaire. Un point préalable avec le DJ ou le prestataire technique est obligatoire.',
-        'Toute fête, musique ou animation est strictement interdite dans les chambres et hébergements.',
-        'Les offices traiteur devront être intégralement nettoyés après utilisation et rendus dans leur état initial.'
+      {h:"6. SALLE DE RÉCEPTION ET TENTE DE RÉCEPTION",p:[
+        "§ 6.1 Utilisation et niveau sonore",
+        "La salle constitue le seul espace autorisé pour les festivités et animations. Toute fête devra impérativement se dérouler à l’intérieur de la salle, portes et fenêtres fermées. **Le niveau sonore de la salle ne devra pas dépasser 90 dB.** Une mesure du niveau sonore est visible à tout moment.",
+        "La tente et la terrasse sont utilisables pour les cocktails de 11h à **22h** dans une ambiance calme. Musique légère d’ambiance tolérée. Pas de cris/chants. **Le niveau sonore ne devra pas dépasser 60 dB à l’extérieur (tente, terrasse), à tout moment de la journée.** Votre programme de soirée devra être organisé pour une fin effective d’utilisation de la tente et de la terrasse à **22h maximum**.",
+        "§ 6.2 Matériel audio et DJ",
+        "Les équipements audiovisuels sont mis à disposition pour une utilisation raisonnable et respectueuse du matériel. Aucun équipement audio extérieur n’est autorisé sur les lieux, notamment les enceintes amplifiées, enceintes Bluetooth, enceintes connectées de type Alexa, Google Home ou équivalent, sauf accord préalable du Propriétaire.",
+        "Un point préalable avec le DJ ou le prestataire technique est obligatoire.",
+        "§ 6.3 Hébergements et chambres",
+        "Toute fête, musique ou animation est strictement interdite dans les chambres et hébergements.",
+        "§ 6.4 Office traiteur",
+        "Les offices traiteur devront être intégralement nettoyés après utilisation et rendus dans leur état initial."
       ]},
-      {h:'Bruit et tranquillité du voisinage',p:[
-        'Aucune fête, musique, animation, cri ou nuisance sonore n\u2019est autorisé à l\u2019extérieur des bâtiments ni dans les hébergements. À partir de 22h, toute activité devra se tenir exclusivement à l\u2019intérieur de la salle de réception, portes et fenêtres fermées, et le calme doit être quasiment absolu sur l\u2019ensemble de la propriété. Un agent de surveillance sera présent sur site lors de votre événement à partir de 22h pour faire maintenir le calme.',
-        'L\u2019utilisation de feux d\u2019artifice, pétards, lanternes volantes, fumigènes ou de tout dispositif pyrotechnique est strictement interdite sur l\u2019ensemble de la propriété.',
-        'En cas de nuisance sonore ou de non-respect des présentes règles, le Gardien du Domaine ou tout agent mandaté pourront intervenir à tout moment afin de faire cesser les troubles constatés.',
-        'À compter de la 3ᵉ intervention du Gardien ou d\u2019un agent mandaté, une pénalité forfaitaire de 300 € par intervention supplémentaire pourra être appliquée et retenue sur le dépôt de garantie. En cas de manquement répété, les Propriétaires pourront faire interrompre immédiatement la fête ou la location, sans remboursement.'
+      {h:"7. TERRASSES, JARDINS ET ESPACES EXTÉRIEURS",p:[
+        "§ 7.1 Horaires et rangement",
+        "Les équipements sportifs peuvent être utilisés de 9h à 22h. Les terrasses, salons de jardin et espaces de réception extérieurs sont accessibles de 9h à **22h**.",
+        "Les espaces extérieurs devront être laissés propres après utilisation. Le mobilier, les jeux et équipements devront être rangés.",
+        "§ 7.2 Espaces extérieurs sensibles",
+        "La tente et la terrasse principale située devant la salle de réception ne sont pas autorisées pour les animations bruyantes ou la diffusion musicale. Cet espace, ainsi que le parking, doivent rester calmes et silencieux, particulièrement après **22h**.",
+        "§ 7.3 Enfants et équipements",
+        "Les attractions pour enfants sont à utiliser uniquement pour les enfants de 7 à 13 ans sous l’entière responsabilité des parents."
       ]},
-      {h:'Caution et responsabilité',p:[
-        'Une caution d\u2019un montant de 3 000 € est demandée à l\u2019arrivée (chèque ou virement instantané). La remise des clés est conditionnée à son dépôt effectif.',
-        'Tout sinistre, dommage, fuite, panne ou dégradation devra être signalé immédiatement au Propriétaire ou au Gardien. Après état des lieux de sortie, la caution sera restituée, déduction faite des éventuels frais de remise en état.',
-        'Les retenues sur caution pourront notamment concerner : mobilier et décoration, équipements électroménagers et audiovisuels, équipements sportifs, installations sanitaires, espaces verts et équipements extérieurs, piscine et équipements associés, frais de nettoyage ou d\u2019intervention, pénalités liées au bruit.',
-        'Le Locataire demeure financièrement responsable des dégradations, incidents ou nuisances causés par lui-même, ses invités ou prestataires, y compris au-delà du montant du dépôt de garantie.'
+      {h:"8. NETTOYAGE",p:[
+        "§ 8.1 État attendu à la restitution",
+        "La propriété devra être rendue propre et rangée. Un état des lieux sera effectué en fin de séjour. En cas de non-respect de ces consignes, des frais de nettoyage supplémentaires pourront être appliqués.",
+        "Le matériel et les produits d’entretien sont mis à disposition des occupants. Des lave-vaisselle, machine à laver ainsi que les produits nécessaires sont également disponibles.",
+        "§ 8.2 Prestations incluses",
+        "Sont inclus dans la prestation :",
+        "• **le nettoyage des sols, salles de bain et WC**,",
+        "• **le lavage et le repassage du linge de maison, les lits préparés à l’arrivée**.",
+        "§ 8.3 Obligations du Locataire",
+        "Le Locataire devra notamment :",
+        "• **nettoyer les appareils électroménagers ainsi que le barbecue**,",
+        "• **laver et ranger la vaisselle**,",
+        "• **remettre en place les meubles et équipements déplacés**,",
+        "• **fermer les sacs poubelles et les déposer dans les bacs prévus à cet effet**."
       ]},
-      {h:'Responsabilité écologique',p:[
-        'Des poubelles de tri sélectif sont mises à disposition. L\u2019eau et l\u2019énergie doivent être utilisées de manière raisonnable.',
-        'La propriété étant équipée d\u2019une fosse septique, seul le papier hygiénique doit être jeté dans les WC. Toute obstruction des réseaux pourra entraîner des frais forfaitaires de 350 €.'
+      {h:"9. LA PISCINE",p:[
+        "§ 9.1 Période, horaires et règle d’utilisation",
+        "La piscine est chauffée toute l’année (24/28°). Les horaires d’accès (9h/22h) sont donnés à titre indicatif et peuvent être modifiés ou suspendus à la discrétion du Gardien pour des raisons de sécurité, de maintenance ou de comportement inapproprié.",
+        "Il est interdit de courir, sauter, crier, manger, fumer ou consommer des boissons dans l’espace piscine.",
+        "§ 9.2 Enfants et surveillance",
+        "**Les enfants doivent être accompagnés en permanence par un adulte responsable.** Les brassards sont obligatoires pour les enfants de moins de 7 ans. **La porte d’accès à la piscine doit rester fermée à tout moment, afin de protéger les plus jeunes.** Le dispositif de sécurité en place ne remplace en aucun cas la vigilance constante des adultes."
       ]},
-      {h:'Parking',p:[
-        'Les véhicules doivent être stationnés exclusivement sur le parking principal. La capacité maximale du parking est limitée à 40 véhicules.'
+      {h:"10. WI-FI / ACCÈS INTERNET",p:[
+        "Un accès Internet Wi-Fi est mis gracieusement à disposition dans le Manoir, le Pressoir et la Salle de réception (codes affichés au rez-de-chaussée). Le Propriétaire ne saurait être tenu responsable en cas de dysfonctionnement, interruption ou perturbation du service.",
+        "Le Locataire s’engage à utiliser la connexion Internet de manière responsable et conforme à la législation en vigueur. Toute utilisation illicite, contraire à l’ordre public, aux bonnes mœurs ou portant atteinte aux droits des tiers est strictement interdite."
       ]},
-      {h:'Contacts pendant le séjour',p:[
-        'Le Gardien du Domaine : Misha – 07 53 16 21 03',
-        'Les Propriétaires restent joignables si nécessaire : David – 06 20 14 33 22, Svitlana – 06 30 86 85 69'
+      {h:"11. ANIMAUX",p:[
+        "Les animaux de compagnie sont bienvenus sous réserve d’accord préalable du Propriétaire ; des frais supplémentaires pourront être appliqués."
       ]},
-      {h:'Signature et acceptation',p:[
-        'Les clés et accès au Domaine seront remis après le check-in et la signature des présentes.\n        Sans signature du règlement intérieur, aucune remise des clés ne sera effectuée.',
-        'La signature du contrat de location vaut reconnaissance de la prise de connaissance et acceptation du présent règlement intérieur ainsi que des conditions générales de location.',
-        'Le non-respect des consignes de sécurité, des engagements contractuels ou du présent règlement pourra entraîner l\u2019interruption immédiate de la location, sans remboursement.',
-        'Le Locataire est responsable des personnes qui l\u2019accompagnent et se porte garant de leur comportement durant tout le séjour.'
+      {h:"12. CONTACTS PENDANT LE SÉJOUR",p:[
+        "Pour toute question ou incident pendant le séjour, le Locataire est invité à contacter prioritairement :",
+        "Le Gardien du Domaine : **Misha — 07 53 16 21 03**",
+        "Les Propriétaires restent joignables si nécessaire : **David — 06 20 14 33 22**, **Svitlana — 06 30 86 85 69**"
+      ]},
+      {h:"13. SIGNATURE ET ACCEPTATION",p:[
+        "§ 13.1 Remise des clés",
+        "**Les clés et accès au Domaine seront remis après le check-in et la signature des présentes.**",
+        "§ 13.2 Acceptation du règlement",
+        "La signature du contrat de location vaut reconnaissance de la prise de connaissance et acceptation du présent règlement intérieur ainsi que des conditions générales de location.",
+        "§ 13.3 Sanctions en cas de non-respect",
+        "!!Le non-respect des consignes de sécurité, des engagements contractuels ou du présent règlement pourra entraîner l’interruption immédiate de la location, sans remboursement.!!",
+        "§ 13.4 Responsabilité des accompagnants",
+        "Le Locataire est responsable des personnes qui l’accompagnent et se porte garant de leur comportement durant tout le séjour."
       ]}
     ]
   },
@@ -522,65 +614,122 @@ const CONTRACT_DATA={
     parkingMax:70,
     piscinePeriode:'de mai à septembre',
     reglement:[
-      {h:'Usage général',p:[
-        'Le Locataire s\u2019engage à jouir de la location de manière paisible et à en faire un usage conforme à la destination des lieux, à savoir une location de vacances et de réception privée. Le contrat de location est établi pour une capacité maximale conforme à celle prévue au contrat.',
-        'Le jour du départ, l\u2019ensemble des lieux devra être rangé, les cuisines entièrement nettoyées, la vaisselle lavée et rangée, et les sacs poubelles fermés puis déposés dans les bacs prévus à cet effet.',
-        'Il est strictement interdit de fumer à l\u2019intérieur de l\u2019ensemble des bâtiments. Les mégots ne devront en aucun cas être jetés au sol ou dans les espaces extérieurs de la propriété.',
-        'Lors de toute sortie des gîtes ou bâtiments, même temporaire, le Locataire est tenu de fermer systématiquement les lieux à clé. En cas de non-respect, le Locataire assumera l\u2019entière responsabilité de tout vol, dégradation ou dommage survenu.',
-        'Des extincteurs sont mis à disposition dans les bâtiments, ainsi qu\u2019une trousse de premiers secours située dans les cuisines. L\u2019utilisation de flammes nues (bougies, lanternes, braseros, fumigènes…) est strictement interdite sauf autorisation écrite préalable.'
+      {h:"1. USAGE GÉNÉRAL",p:[
+        "§ 1.1 Destination des lieux et comportement",
+        "Le Locataire s’engage à jouir de la location de manière paisible, conformément à sa destination : vacances et réception privée. La capacité maximale prévue au contrat ne pourra en aucun cas être dépassée, tant pour les hébergements que pour les espaces communs et événements.",
+        "§ 1.2 Départ et restitution des lieux",
+        "Le jour du départ, l’ensemble des lieux devra être rangé, les cuisines entièrement nettoyées, la vaisselle lavée et rangée, et les sacs poubelles fermés puis déposés dans les bacs prévus à cet effet. La libération complète des lieux devra intervenir au plus tard à l’heure indiquée au contrat, sauf accord contraire expressément convenu.",
+        "§ 1.3 Tabac",
+        "Il est strictement interdit de fumer à l’intérieur de l’ensemble des bâtiments. Les mégots ne devront en aucun cas être jetés au sol ou dans les espaces extérieurs de la propriété.",
+        "§ 1.4 Fermeture et sécurité des bâtiments",
+        "Lors de toute sortie des gîtes ou bâtiments, même temporaire, le Locataire est tenu de fermer systématiquement les lieux à clé à l’aide des clés fournies. En cas de non-respect de cette obligation, le Locataire assumera l’entière responsabilité de tout vol, dégradation ou dommage survenu.",
+        "Le Domaine étant loué en exclusivité à un seul groupe pour la durée du séjour, la sécurité des biens et affaires personnelles relève de la responsabilité du Locataire et de ses invités.",
+        "§ 1.5 Sécurité incendie et premiers secours",
+        "Des extincteurs sont mis à disposition dans les bâtiments, ainsi qu’une **trousse de premiers secours située dans les cuisines**. L’utilisation de bougies, chandelles, lanternes à flamme, torches, braseros mobiles, fumigènes ou de toute source de flamme nue est strictement interdite à l’intérieur des bâtiments ainsi qu’à proximité immédiate des constructions, végétaux et espaces de réception, sauf autorisation écrite préalable du Propriétaire."
       ]},
-      {h:'Nettoyage',p:[
-        'La propriété devra être rendue propre et rangée. Un état des lieux sera effectué en fin de séjour.',
-        'Sont inclus dans la prestation : le nettoyage des sols, salles de bain et WC ; le lavage et le repassage du linge de maison, les lits préparés à l\u2019arrivée.',
-        'Le Locataire devra notamment : nettoyer les appareils électroménagers et le barbecue ; laver et ranger la vaisselle ; remettre en place les meubles déplacés ; fermer les sacs poubelles.'
+      {h:"2. PARKING",p:[
+        "Les véhicules doivent être stationnés exclusivement sur le parking principal. La capacité maximale du parking est limitée à **60 véhicules**. La dépose de bagages et de courses est possible devant les bâtiments à l’arrivée ; merci de limiter le bruit en arrivant et en repartant."
       ]},
-      {h:'Wi-Fi / Accès internet',p:[
-        'Un accès Internet Wi-Fi est mis gracieusement à disposition dans le Manoir et la Salle. Le Propriétaire ne saurait être tenu responsable en cas de dysfonctionnement.'
+      {h:"3. BRUIT ET TRANQUILLITÉ DU VOISINAGE",p:[
+        "§ 3.1 Respect du voisinage",
+        "Le respect du repos et de la tranquillité du voisinage constitue une obligation essentielle du présent règlement. Aucune fête, musique, animation, cri ou nuisance sonore n’est autorisé à l’extérieur des bâtiments ni dans les hébergements, à l’exception de la musique d’ambiance calme tolérée sous la tente de réception (voir section 6). **Le niveau sonore ne devra pas dépasser 60 dB à l’extérieur, à tout moment.**",
+        "La terrasse située entre le parking et le manoir est un endroit **particulièrement calme**.",
+        "**Après 22h, toute activité devra se tenir exclusivement à l’intérieur de la salle de réception, portes et fenêtres fermées, et un agent de surveillance sera présent sur site pour faire maintenir le calme.**",
+        "§ 3.2 Feux d’artifice et dispositifs interdits",
+        "L’utilisation de feux d’artifice, pétards, lanternes volantes, fumigènes ou de tout dispositif pyrotechnique est strictement interdite sur l’ensemble de la propriété, y compris lorsqu’ils sont apportés par des invités ou prestataires.",
+        "§ 3.3 Pouvoir d’intervention",
+        "En cas de nuisance sonore, de plainte du voisinage ou de non-respect des présentes règles, le Gardien du Domaine, tout agent mandaté ou les Propriétaires pourront intervenir à tout moment afin de faire cesser les troubles constatés. Le Locataire s’engage à se conformer immédiatement aux demandes formulées.",
+        "§ 3.4 Pénalités et interruption de la location",
+        "En cas de non-respect des présentes règles, et notamment si la fête dégénère ou si les consignes relatives au bruit et à la quiétude du voisinage ne sont pas respectées, le Gardien du Domaine ou tout agent de surveillance mandaté par les propriétaires est expressément autorisé à intervenir.",
+        "À compter de la 3ᵉ intervention du Gardien ou d’un agent mandaté, une **pénalité forfaitaire de 300 € par intervention supplémentaire** pourra être appliquée et retenue sur le dépôt de garantie, ainsi que tout frais exceptionnel ou conséquence financière directement liée aux nuisances causées.",
+        "!!En cas de manquement répété, les Propriétaires pourront faire interrompre immédiatement la fête ou la location, sans remboursement, conformément au contrat et à la réglementation applicable.!!"
       ]},
-      {h:'La piscine',p:[
-        'La piscine est chauffée de mai à septembre (24/28°). Les horaires d\u2019accès (9h/22h) sont donnés à titre indicatif. Il est interdit de courir, sauter, crier, manger, fumer ou consommer des boissons dans l\u2019espace piscine.',
-        'Les enfants doivent être accompagnés en permanence par un adulte responsable. Les brassards sont obligatoires pour les enfants de moins de 7 ans.'
+      {h:"4. CAUTION ET RESPONSABILITÉ",p:[
+        "**Le règlement intégral du séjour doit être effectif — réception du virement sur notre compte — avant l’arrivée du Locataire sur le Domaine.**",
+        "§ 4.1 Dépôt de garantie",
+        "Une caution d’un montant de **3 000 €** est demandée à l’arrivée (chèque ou virement instantané). **La remise des clés est conditionnée à son dépôt effectif.**",
+        "§ 4.2 Signalement des dommages",
+        "Tout sinistre, dommage, fuite, panne ou dégradation devra être signalé immédiatement au Propriétaire ou au Gardien.",
+        "§ 4.3 Restitution de la caution",
+        "Après état des lieux de sortie et constat du bon état intérieur et extérieur de la propriété, la caution sera restituée, déduction faite des éventuels frais de remise en état.",
+        "§ 4.4 Retenues possibles",
+        "Les retenues sur caution pourront notamment concerner : mobilier et décoration, équipements électroménagers et audiovisuels, équipements sportifs, installations sanitaires, espaces verts et équipements extérieurs, piscine et équipements associés, frais de nettoyage ou d’intervention, pénalités liées au bruit.",
+        "Les montants retenus sur le matériel seront calculés sur la base de la valeur de remplacement ou du coût réel de remise en état.",
+        "§ 4.5 Responsabilité financière",
+        "Le Locataire demeure financièrement responsable des dégradations, incidents ou nuisances causés par lui-même, ses invités ou prestataires, y compris au-delà du montant du dépôt de garantie."
       ]},
-      {h:'Terrasses, jardins et espaces extérieurs',p:[
-        'Les équipements sportifs peuvent être utilisés de 9h à 22h. Les terrasses, salons de jardin et espaces de réception extérieurs sont accessibles de 9h à 23h.',
-        'La terrasse située entre la salle de réception et le bassin/puits n\u2019est pas autorisée pour les cocktails, repas, animations ou diffusion musicale. Cet espace, ainsi que le parking, doivent rester calmes et silencieux à toute heure, particulièrement après 22h.',
-        'Les attractions pour enfants sont à utiliser uniquement pour les enfants de 7 à 13 ans sous l\u2019entière responsabilité des parents.'
+      {h:"5. RESPONSABILITÉ ÉCOLOGIQUE",p:[
+        "§ 5.1 Tri des déchets",
+        "Des poubelles de tri sélectif sont mises à disposition. Merci de respecter les consignes de tri.",
+        "§ 5.2 Consommation d’eau et d’énergie",
+        "L’eau et l’énergie doivent être utilisées de manière raisonnable. Merci d’éteindre les lumières et équipements inutilisés.",
+        "§ 5.3 WC et fosse septique",
+        "La propriété étant équipée d’une fosse septique, seul le **papier toilette** doit être jeté dans les WC. Toute obstruction des réseaux pourra entraîner des **frais forfaitaires de 350 €**."
       ]},
-      {h:'La salle de réception et la tente de réception',p:[
-        'La salle constitue le seul espace autorisé pour les festivités et animations. Toute fête devra impérativement se dérouler à l\u2019intérieur de la salle, portes et fenêtres fermées. Le niveau sonore ne devra pas dépasser 90 dB dans la salle.',
-        'La tente est utilisable pour les repas de 11h à 22h dans une ambiance calme. Musique légère d\u2019ambiance tolérée, pas de cris/chants. Fin effective d\u2019utilisation de la tente à 22h maximum, les convives devant ensuite rejoindre la salle de réception.',
-        'Aucun équipement audio extérieur n\u2019est autorisé (enceintes amplifiées, Bluetooth, connectées), sauf accord préalable. Un point préalable avec le DJ ou le prestataire technique est obligatoire.',
-        'Toute fête, musique ou animation est strictement interdite dans les chambres et hébergements.',
-        'Les offices traiteur devront être intégralement nettoyés après utilisation et rendus dans leur état initial.'
+      {h:"6. SALLE DE RÉCEPTION ET TENTE DE RÉCEPTION",p:[
+        "§ 6.1 Utilisation et niveau sonore",
+        "La salle constitue le seul espace autorisé pour les festivités et animations. Toute fête devra impérativement se dérouler à l’intérieur de la salle, portes et fenêtres fermées. **Le niveau sonore de la salle ne devra pas dépasser 90 dB.** Une mesure du niveau sonore est visible à tout moment.",
+        "**La tente de réception est utilisable jusqu’à 22h pour vos évènements.** Aucune musique n’est autorisée à l’extérieur en dehors de la tente, où une musique d’ambiance calme est tolérée, diffusée du brasero vers le portail noir. Pas de cris/chants. **Le niveau sonore ne devra pas dépasser 60 dB à l’extérieur, à tout moment de la journée. Fin des festivités dans la tente à 22h.**",
+        "§ 6.2 Matériel audio et DJ",
+        "Les équipements audiovisuels sont mis à disposition pour une utilisation raisonnable et respectueuse du matériel. Aucun équipement audio extérieur n’est autorisé sur les lieux, notamment les enceintes amplifiées, enceintes Bluetooth, enceintes connectées de type Alexa, Google Home ou équivalent, sauf accord préalable du Propriétaire.",
+        "Un point préalable avec le DJ ou le prestataire technique est obligatoire.",
+        "§ 6.3 Hébergements et chambres",
+        "Toute fête, musique ou animation est strictement interdite dans les chambres et hébergements.",
+        "§ 6.4 Office traiteur",
+        "Les offices traiteur devront être intégralement nettoyés après utilisation et rendus dans leur état initial."
       ]},
-      {h:'Bruit et tranquillité du voisinage',p:[
-        'Aucune fête, musique, animation, cri ou nuisance sonore n\u2019est autorisé à l\u2019extérieur des bâtiments ni dans les hébergements. À partir de 22h, toute activité devra se tenir exclusivement à l\u2019intérieur de la salle de réception, portes et fenêtres fermées, et le calme doit être quasiment absolu sur l\u2019ensemble de la propriété. Un agent de surveillance sera présent sur site à partir de 22h.',
-        'L\u2019utilisation de feux d\u2019artifice, pétards, lanternes volantes, fumigènes ou de tout dispositif pyrotechnique est strictement interdite sur l\u2019ensemble de la propriété.',
-        'En cas de nuisance sonore ou de non-respect des présentes règles, le Gardien du Domaine ou tout agent mandaté pourront intervenir à tout moment.',
-        'À compter de la 3ᵉ intervention du Gardien ou d\u2019un agent mandaté, une pénalité forfaitaire de 300 € par intervention supplémentaire pourra être appliquée et retenue sur le dépôt de garantie. En cas de manquement répété, la fête ou la location pourra être interrompue immédiatement, sans remboursement.'
+      {h:"7. TERRASSES, JARDINS ET ESPACES EXTÉRIEURS",p:[
+        "§ 7.1 Horaires et rangement",
+        "Les équipements sportifs peuvent être utilisés de 9h à 22h. Les terrasses, salons de jardin et espaces de réception extérieurs sont accessibles de 9h à **22h**.",
+        "Les espaces extérieurs devront être laissés propres après utilisation. Le mobilier, les jeux et équipements devront être rangés.",
+        "§ 7.2 Espaces extérieurs sensibles",
+        "La terrasse située entre la salle de réception et les parkings n’est pas autorisée pour les cocktails, repas, animations ou la diffusion musicale : **cet espace doit rester spécifiquement calme et silencieux à toute heure, et son utilisation est interdite après 22h**.",
+        "§ 7.3 Enfants et équipements",
+        "Les attractions pour enfants sont à utiliser uniquement pour les enfants de 7 à 13 ans sous l’entière responsabilité des parents."
       ]},
-      {h:'Caution et responsabilité',p:[
-        'Une caution d\u2019un montant de 3 000 € est demandée à l\u2019arrivée (chèque ou virement instantané). La remise des clés est conditionnée à son dépôt effectif.',
-        'Tout sinistre, dommage, fuite, panne ou dégradation devra être signalé immédiatement au Propriétaire ou au Gardien. Après état des lieux de sortie, la caution sera restituée, déduction faite des éventuels frais de remise en état.',
-        'Les retenues sur caution pourront notamment concerner : mobilier et décoration, équipements électroménagers et audiovisuels, équipements sportifs, installations sanitaires, espaces verts, piscine, frais de nettoyage ou d\u2019intervention, pénalités liées au bruit.',
-        'Le Locataire demeure financièrement responsable des dégradations, incidents ou nuisances causés par lui-même, ses invités ou prestataires, y compris au-delà du montant du dépôt de garantie.'
+      {h:"8. NETTOYAGE",p:[
+        "§ 8.1 État attendu à la restitution",
+        "La propriété devra être rendue propre et rangée. Un état des lieux sera effectué en fin de séjour. En cas de non-respect de ces consignes, des frais de nettoyage supplémentaires pourront être appliqués.",
+        "Le matériel et les produits d’entretien sont mis à disposition des occupants. Des lave-vaisselle, machine à laver ainsi que les produits nécessaires sont également disponibles.",
+        "§ 8.2 Prestations incluses",
+        "Sont inclus dans la prestation :",
+        "• **le nettoyage des sols, salles de bain et WC**,",
+        "• **le lavage et le repassage du linge de maison, les lits préparés à l’arrivée**.",
+        "§ 8.3 Obligations du Locataire",
+        "Le Locataire devra notamment :",
+        "• **nettoyer les appareils électroménagers ainsi que le barbecue**,",
+        "• **laver et ranger la vaisselle**,",
+        "• **remettre en place les meubles et équipements déplacés**,",
+        "• **fermer les sacs poubelles et les déposer dans les bacs prévus à cet effet**."
       ]},
-      {h:'Responsabilité écologique',p:[
-        'Des poubelles de tri sélectif sont mises à disposition. L\u2019eau et l\u2019énergie doivent être utilisées de manière raisonnable.',
-        'La propriété étant équipée d\u2019une fosse septique, seul le papier hygiénique doit être jeté dans les WC. Toute obstruction des réseaux pourra entraîner des frais forfaitaires de 350 €.'
+      {h:"9. LA PISCINE",p:[
+        "§ 9.1 Période, horaires et règle d’utilisation",
+        "La piscine est chauffée **de mai à septembre** (24/28°). Les horaires d’accès (9h/22h) sont donnés à titre indicatif et peuvent être modifiés ou suspendus à la discrétion du Gardien pour des raisons de sécurité, de maintenance ou de comportement inapproprié.",
+        "Il est interdit de courir, sauter, crier, manger, fumer ou consommer des boissons dans l’espace piscine.",
+        "§ 9.2 Enfants et surveillance",
+        "**Les enfants doivent être accompagnés en permanence par un adulte responsable.** Les brassards sont obligatoires pour les enfants de moins de 7 ans. **La porte d’accès à la piscine doit rester fermée à tout moment, afin de protéger les plus jeunes.** Le dispositif de sécurité en place ne remplace en aucun cas la vigilance constante des adultes."
       ]},
-      {h:'Parking',p:[
-        'Les véhicules doivent être stationnés exclusivement sur le parking principal. La capacité maximale du parking est limitée à 70 véhicules.'
+      {h:"10. WI-FI / ACCÈS INTERNET",p:[
+        "Un accès Internet Wi-Fi est mis gracieusement à disposition sur l’ensemble du site ; la qualité de la connexion peut toutefois varier selon les zones. Le Propriétaire ne saurait être tenu responsable en cas de dysfonctionnement, interruption ou perturbation du service.",
+        "Le Locataire s’engage à utiliser la connexion Internet de manière responsable et conforme à la législation en vigueur. Toute utilisation illicite, contraire à l’ordre public, aux bonnes mœurs ou portant atteinte aux droits des tiers est strictement interdite."
       ]},
-      {h:'Contacts pendant le séjour',p:[
-        'Le Gardien du Domaine : Sasha – 07 60 51 65 41',
-        'Les Propriétaires restent joignables si nécessaire : David – 06 20 14 33 22, Svitlana – 06 30 86 85 69'
+      {h:"11. ANIMAUX",p:[
+        "Les animaux de compagnie sont bienvenus sous réserve d’accord préalable du Propriétaire ; des frais supplémentaires pourront être appliqués."
       ]},
-      {h:'Signature et acceptation',p:[
-        'Les clés et accès au Domaine seront remis après le check-in et la signature des présentes.\n        Sans signature du règlement intérieur, aucune remise des clés ne sera effectuée.',
-        'La signature du contrat de location vaut reconnaissance de la prise de connaissance et acceptation du présent règlement intérieur ainsi que des conditions générales de location.',
-        'Le non-respect des consignes de sécurité, des engagements contractuels ou du présent règlement pourra entraîner l\u2019interruption immédiate de la location, sans remboursement.',
-        'Le Locataire est responsable des personnes qui l\u2019accompagnent et se porte garant de leur comportement durant tout le séjour.'
+      {h:"12. CONTACTS PENDANT LE SÉJOUR",p:[
+        "Pour toute question ou incident pendant le séjour, le Locataire est invité à contacter prioritairement :",
+        "Le Gardien du Domaine : **Sasha — 07 60 51 65 41**",
+        "Les Propriétaires restent joignables si nécessaire : **David — 06 20 14 33 22**, **Svitlana — 06 30 86 85 69**"
+      ]},
+      {h:"13. SIGNATURE ET ACCEPTATION",p:[
+        "§ 13.1 Remise des clés",
+        "**Les clés et accès au Domaine seront remis après le check-in, le dépôt effectif de la caution et la signature des présentes.**",
+        "§ 13.2 Acceptation du règlement",
+        "La signature du contrat de location vaut reconnaissance de la prise de connaissance et acceptation du présent règlement intérieur ainsi que des conditions générales de location.",
+        "§ 13.3 Sanctions en cas de non-respect",
+        "!!Le non-respect des consignes de sécurité, des engagements contractuels ou du présent règlement pourra entraîner l’interruption immédiate de la location, sans remboursement.!!",
+        "§ 13.4 Responsabilité des accompagnants",
+        "Le Locataire est responsable des personnes qui l’accompagnent et se porte garant de leur comportement durant tout le séjour."
       ]}
     ]
   },
@@ -589,6 +738,10 @@ const CONTRACT_DATA={
     email:'ledomaineauxlions@gmail.com',
     siteWeb:'www.ledomaineauxlions.fr',
     adresseSite:'700, Chemin de la Boullaye, 14100 Fauguernon',
+    /* Aux Lions, la caution se règle PAR VIREMENT AVANT L'ARRIVÉE (confirmé par David) : c'est ce
+       que dit le règlement intérieur, et le contrat doit dire exactement la même chose — sinon
+       la contradiction entre le contrat et son annexe affaiblit les deux. */
+    cautionAvantArrivee:true,
     logo:'data:image/png;base64,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',
     couleur:'#8A8A8A',
     couleurClaire:'#F0F0F0',
@@ -614,57 +767,111 @@ const CONTRACT_DATA={
     parkingMax:7,
     piscinePeriode:'d\u2019avril à octobre',
     reglement:[
-      {h:'USAGE GÉNÉRAL',p:[
-        '1. Le Locataire s\u2019engage à jouir de la location de manière paisible et à en faire un usage conforme à la destination des lieux, à savoir une location de vacances et de réception privée. Le contrat de location est établi pour une capacité maximale de 15 personnes conforme à celle prévue au contrat. Cette capacité ne pourra en aucun cas être dépassée.',
-        '2. Le jour du départ, l\u2019ensemble des lieux devra être rangé, les cuisines entièrement nettoyées, la vaisselle lavée et rangée, et les sacs poubelles fermés puis déposés dans les bacs prévus à cet effet.',
-        '3. Il est strictement interdit de fumer à l\u2019intérieur de l\u2019ensemble des bâtiments. Les mégots ne devront en aucun cas être jetés au sol ou dans les espaces extérieurs.',
-        '4. Lors de toute sortie, même temporaire, le Locataire est tenu de fermer systématiquement les lieux à clé. En cas de non-respect, le Locataire assumera l\u2019entière responsabilité de tout vol, dégradation ou dommage survenu.',
-        '5. Des extincteurs sont mis à disposition dans les bâtiments, ainsi qu\u2019une trousse de premiers secours située dans les cuisines. L\u2019utilisation de flammes nues est strictement interdite sauf autorisation écrite préalable.'
+      {h:"1. USAGE GÉNÉRAL",p:[
+        "§ 1.1 Destination des lieux et comportement",
+        "Le Locataire s’engage à jouir de la location de manière paisible, conformément à sa destination : une location de vacances. **Le Domaine aux Lions n’est pas un lieu de fête.** La capacité maximale de **15 personnes**, conforme à celle prévue au contrat, ne pourra en aucun cas être dépassée, tant pour les hébergements que pour les espaces communs.",
+        "§ 1.2 Départ et restitution des lieux",
+        "Le jour du départ, l’ensemble des lieux devra être rangé, les cuisines entièrement nettoyées, la vaisselle lavée et rangée, et les sacs poubelles fermés puis déposés dans les bacs prévus à cet effet. La libération complète des lieux devra intervenir au plus tard à l’heure indiquée au contrat, sauf accord contraire expressément convenu.",
+        "§ 1.3 Tabac",
+        "Il est strictement interdit de fumer à l’intérieur de l’ensemble des bâtiments. Les mégots ne devront en aucun cas être jetés au sol ou dans les espaces extérieurs de la propriété.",
+        "§ 1.4 Fermeture et sécurité des bâtiments",
+        "Lors de toute sortie, même temporaire, le Locataire est tenu de fermer systématiquement les lieux à clé à l’aide des clés fournies. En cas de non-respect de cette obligation, le Locataire assumera l’entière responsabilité de tout vol, dégradation ou dommage survenu.",
+        "La maison étant louée en exclusivité à un seul groupe pour la durée du séjour, la sécurité des biens et affaires personnelles relève de la responsabilité du Locataire et de ses invités.",
+        "§ 1.5 Sécurité incendie et premiers secours",
+        "Des extincteurs sont mis à disposition dans les bâtiments, ainsi qu’une **trousse de premiers secours située dans les cuisines**. L’utilisation de bougies, chandelles, lanternes à flamme, torches, braseros mobiles, fumigènes ou de toute source de flamme nue est strictement interdite à l’intérieur des bâtiments ainsi qu’à proximité immédiate des constructions, végétaux et espaces extérieurs, sauf autorisation écrite préalable du Propriétaire."
       ]},
-      {h:'NETTOYAGE',p:[
-        '1. La propriété devra être rendue propre et rangée. Un état des lieux sera effectué en fin de séjour.',
-        '2. Sont inclus dans la prestation : le nettoyage des sols, salles de bain et WC ; le lavage et le repassage du linge de maison, les lits préparés à l\u2019arrivée.',
-        '3. Le Locataire devra notamment : nettoyer les appareils électroménagers et le barbecue ; laver et ranger la vaisselle ; remettre en place les meubles déplacés ; fermer les sacs poubelles.'
+      {h:"2. BRUIT ET TRANQUILLITÉ DU VOISINAGE",p:[
+        "§ 2.1 Respect du voisinage",
+        "Le respect du repos et de la tranquillité du voisinage constitue une obligation essentielle du présent règlement. Aucune fête, musique, animation, cri ou nuisance sonore n’est autorisé à l’extérieur des bâtiments ni dans les hébergements.",
+        "**À partir de 22h, le bruit à l’extérieur doit être réduit. Après 23h, plus aucune activité à l’extérieur : la soirée se poursuit exclusivement à l’intérieur du gîte, portes et fenêtres fermées.**",
+        "§ 2.2 Feux d’artifice et dispositifs interdits",
+        "L’utilisation de feux d’artifice, pétards, lanternes volantes, fumigènes ou de tout dispositif pyrotechnique est strictement interdite sur l’ensemble de la propriété, y compris lorsqu’ils sont apportés par des invités ou prestataires.",
+        "§ 2.3 Pouvoir d’intervention",
+        "En cas de nuisance sonore, de plainte du voisinage ou de non-respect des présentes règles, tout agent mandaté ou les Propriétaires pourront intervenir à tout moment afin de faire cesser les troubles constatés. Le Locataire s’engage à se conformer immédiatement aux demandes formulées.",
+        "§ 2.4 Pénalités et interruption de la location",
+        "En cas de non-respect des présentes règles, et notamment si les consignes relatives au bruit et à la quiétude du voisinage ne sont pas respectées, tout agent de surveillance mandaté par les propriétaires est expressément autorisé à intervenir.",
+        "À compter de la 2ᵉ intervention d’un agent mandaté ou des Propriétaires, une **pénalité forfaitaire de 300 € par intervention supplémentaire** pourra être appliquée et retenue sur le dépôt de garantie, ainsi que tout frais exceptionnel ou conséquence financière directement liée aux nuisances causées.",
+        "!!En cas de manquement répété, les Propriétaires pourront faire interrompre immédiatement le séjour, sans remboursement, conformément au contrat et à la réglementation applicable.!!"
       ]},
-      {h:'WI-FI / ACCÈS INTERNET',p:[
-        '1. Un accès Internet Wi-Fi est mis gracieusement à disposition. Le Propriétaire ne saurait être tenu responsable en cas de dysfonctionnement.'
+      {h:"3. CAUTION ET RESPONSABILITÉ",p:[
+        "**Le règlement intégral du séjour doit être effectif — réception du virement sur notre compte — avant l’arrivée du Locataire sur le Domaine.**",
+        "§ 3.1 Dépôt de garantie",
+        "Une caution d’un montant de **1 500 €** est demandée **par virement, avant l’arrivée**. La communication du code de la boîte à clés est conditionnée à sa réception effective.",
+        "§ 3.2 État des lieux et signalement des dommages",
+        "**Le Locataire dispose d’une heure après son arrivée pour signaler tout élément cassé, manquant ou ne fonctionnant pas.** Passé ce délai, les lieux sont réputés en bon état et toute dégradation constatée ensuite relève de sa responsabilité.",
+        "Pendant le séjour, tout sinistre, dommage, panne ou dégradation est signalé immédiatement au Propriétaire.",
+        "§ 3.3 Restitution de la caution",
+        "Au départ, le Locataire signale tout élément cassé ou inhabituel. Après vérification du bon état intérieur et extérieur de la propriété, **la caution sera libérée sous 48 à 72 heures**, déduction faite des éventuels frais de remise en état.",
+        "§ 3.4 Retenues possibles",
+        "Les retenues sur caution pourront notamment concerner : mobilier et décoration, équipements électroménagers et audiovisuels, équipements sportifs, installations sanitaires, espaces verts et équipements extérieurs, piscine et équipements associés, frais de nettoyage ou d’intervention, pénalités liées au bruit.",
+        "§ 3.5 Responsabilité financière",
+        "Le Locataire demeure financièrement responsable des dégradations, incidents ou nuisances causés par lui-même, ses invités ou prestataires, y compris au-delà du montant du dépôt de garantie."
       ]},
-      {h:'LA PISCINE',p:[
-        '1. La piscine est chauffée d\u2019avril à octobre (24/28°). Les horaires d\u2019accès (9h/22h) sont donnés à titre indicatif. Il est interdit de courir, sauter, crier, manger, fumer ou consommer des boissons dans l\u2019espace piscine.',
-        '2. Les enfants doivent être accompagnés en permanence par un adulte responsable. Les brassards sont obligatoires pour les enfants de moins de 7 ans.'
+      {h:"4. TERRASSES, JARDINS ET ESPACES EXTÉRIEURS",p:[
+        "§ 4.1 Horaires et rangement",
+        "Les équipements sportifs peuvent être utilisés de 9h à 22h. Les terrasses, salons de jardin et espaces de réception extérieurs sont accessibles de 9h à **23h**.",
+        "Les espaces extérieurs devront être laissés propres après utilisation. Le mobilier, les jeux et équipements devront être rangés.",
+        "§ 4.2 Espaces extérieurs sensibles",
+        "La terrasse située entre le bâtiment et la piscine n’est pas autorisée pour les animations ou la diffusion musicale. Cet espace doit rester calme et silencieux, particulièrement après **23h**.",
+        "§ 4.3 Enfants et équipements",
+        "Les attractions pour enfants sont à utiliser uniquement pour les enfants de 7 à 13 ans sous l’entière responsabilité des parents."
       ]},
-      {h:'TERRASSES, JARDINS ET ESPACES EXTÉRIEURS',p:[
-        '1. Les équipements sportifs peuvent être utilisés de 9h à 22h. Les terrasses, salons de jardin et espaces de réception extérieurs sont accessibles de 9h à 23h.',
-        '2. La terrasse située entre le bâtiment et la piscine n\u2019est pas autorisée pour les animations ou la diffusion musicale. Cet espace doit rester calme et silencieux, particulièrement à partir de 22h.',
-        '3. Les attractions pour enfants sont à utiliser uniquement pour les enfants de 7 à 13 ans sous l\u2019entière responsabilité des parents.'
+      {h:"5. LA PISCINE",p:[
+        "§ 5.1 Période, horaires et règle d’utilisation",
+        "La piscine est chauffée **d’avril à octobre** (24/28°). Les horaires d’accès (9h/22h) sont donnés à titre indicatif et peuvent être modifiés ou suspendus à la discrétion du Propriétaire pour des raisons de sécurité, de maintenance ou de comportement inapproprié.",
+        "Il est interdit de courir, sauter, crier, manger, fumer ou consommer des boissons dans l’espace piscine.",
+        "§ 5.2 Enfants et surveillance",
+        "**Les enfants doivent être accompagnés en permanence par un adulte responsable.** Les brassards sont obligatoires pour les enfants de moins de 7 ans. **La porte et le portillon de sécurité de la piscine doivent rester fermés à tout moment, et les protections de l’abri de piscine doivent être laissées en position en permanence, afin de protéger les plus jeunes.** Le dispositif de sécurité en place ne remplace en aucun cas la vigilance constante des adultes."
       ]},
-      {h:'BRUIT ET TRANQUILLITÉ DU VOISINAGE',p:[
-        '1. Aucune fête, musique, animation, cri ou nuisance sonore n\u2019est autorisé à l\u2019extérieur des bâtiments ni dans les hébergements. À partir de 22h, toute activité devra se tenir exclusivement à l\u2019intérieur du bâtiment, portes et fenêtres fermées.',
-        '2. L\u2019utilisation de feux d\u2019artifice, pétards, lanternes volantes, fumigènes ou de tout dispositif pyrotechnique est strictement interdite sur l\u2019ensemble de la propriété.',
-        '3. En cas de nuisance sonore ou de non-respect des présentes règles, le Gardien du Domaine, tout agent mandaté ou les Propriétaires pourront intervenir à tout moment.',
-        '4. À compter de la 2ᵉ intervention du Gardien ou d\u2019un agent mandaté, une pénalité forfaitaire de 300 € par intervention supplémentaire pourra être appliquée et retenue sur le dépôt de garantie. En cas de manquement répété, la fête ou la location pourra être interrompue immédiatement, sans remboursement.'
+      {h:"6. PARKING",p:[
+        "Les véhicules doivent être stationnés exclusivement sur le parking principal. La capacité maximale du parking est limitée à **7 véhicules**. Merci de limiter le bruit en arrivant et en repartant."
       ]},
-      {h:'CAUTION ET RESPONSABILITÉ',p:[
-        '1. Une caution d\u2019un montant de 1 500 € est demandée à l\u2019arrivée (chèque ou virement instantané). La remise des clés est conditionnée à son dépôt effectif.',
-        '2. Tout sinistre, dommage, fuite, panne ou dégradation devra être signalé immédiatement au Propriétaire ou au Gardien. Après état des lieux de sortie, la caution sera restituée, déduction faite des éventuels frais de remise en état.',
-        '3. Les retenues sur caution pourront notamment concerner : mobilier et décoration, équipements électroménagers et audiovisuels, équipements sportifs, installations sanitaires, espaces verts, piscine, frais de nettoyage ou d\u2019intervention, pénalités liées au bruit.',
-        '4. Le Locataire demeure financièrement responsable des dégradations, incidents ou nuisances causés par lui-même, ses invités ou prestataires, y compris au-delà du montant du dépôt de garantie.'
+      {h:"7. NETTOYAGE",p:[
+        "§ 7.1 État attendu à la restitution",
+        "La propriété devra être rendue propre et rangée. Un état des lieux sera effectué en fin de séjour. En cas de non-respect de ces consignes, des frais de nettoyage supplémentaires pourront être appliqués.",
+        "Le matériel et les produits d’entretien sont mis à disposition des occupants. Des lave-vaisselle, machine à laver ainsi que les produits nécessaires sont également disponibles.",
+        "§ 7.2 Prestations incluses",
+        "Sont inclus dans la prestation :",
+        "• **le nettoyage des sols, salles de bain et WC**,",
+        "• **le lavage et le repassage du linge de maison, les lits préparés à l’arrivée**.",
+        "§ 7.3 Obligations du Locataire",
+        "Le Locataire devra notamment :",
+        "• **nettoyer les appareils électroménagers ainsi que le barbecue**,",
+        "• **laver et ranger les meubles, jouets, jeux et équipements déplacés**,",
+        "• **fermer les sacs poubelles et les déposer dans les bacs prévus à cet effet**."
       ]},
-      {h:'RESPONSABILITÉ ÉCOLOGIQUE',p:[
-        '1. Des poubelles de tri sélectif sont mises à disposition. L\u2019eau et l\u2019énergie doivent être utilisées de manière raisonnable.',
-        '2. La propriété étant équipée d\u2019une fosse septique, seul le papier hygiénique doit être jeté dans les WC. Toute obstruction des réseaux pourra entraîner des frais forfaitaires de 350 €.'
+      {h:"8. WI-FI / ACCÈS INTERNET",p:[
+        "Un accès Internet Wi-Fi est mis gracieusement à disposition. Le Propriétaire ne saurait être tenu responsable en cas de dysfonctionnement, interruption ou perturbation du service.",
+        "Le Locataire s’engage à utiliser la connexion Internet de manière responsable et conforme à la législation en vigueur. Toute utilisation illicite, contraire à l’ordre public, aux bonnes mœurs ou portant atteinte aux droits des tiers est strictement interdite."
       ]},
-      {h:'PARKING',p:[
-        '1. Les véhicules doivent être stationnés exclusivement sur le parking principal. La capacité maximale du parking est limitée à 7 véhicules.'
+      {h:"9. RESPONSABILITÉ ÉCOLOGIQUE",p:[
+        "§ 9.1 Tri des déchets",
+        "Des poubelles de tri sélectif sont mises à disposition. Merci de respecter les consignes de tri.",
+        "§ 9.2 Consommation d’eau et d’énergie",
+        "L’eau et l’énergie doivent être utilisées de manière raisonnable. Merci d’éteindre les lumières et équipements inutilisés.",
+        "§ 9.3 WC et fosse septique",
+        "La propriété étant équipée d’une fosse septique, seul le **papier toilette** doit être jeté dans les WC. Toute obstruction des réseaux pourra entraîner des **frais forfaitaires de 350 €**."
       ]},
-      {h:'CONTACTS PENDANT LE SÉJOUR',p:[
-        '1. Les Propriétaires restent joignables si nécessaire : David – 06 20 14 33 22, Svitlana – 06 30 86 85 69'
+      {h:"10. ANIMAUX",p:[
+        "Les animaux de compagnie sont bienvenus sous réserve d’accord préalable du Propriétaire ; un forfait de **50 €** sera appliqué."
       ]},
-      {h:'SIGNATURE ET ACCEPTATION',p:[
-        '1. Les clés et accès au Domaine seront remis après le check-in et la signature des présentes.\n        Sans signature du règlement intérieur, aucune remise des clés ne sera effectuée.',
-        '2. La signature du contrat de location vaut reconnaissance de la prise de connaissance et acceptation du présent règlement intérieur ainsi que des conditions générales de location.',
-        '3. Le non-respect des consignes de sécurité, des engagements contractuels ou du présent règlement pourra entraîner l\u2019interruption immédiate de la location, sans remboursement.',
-        '4. Le Locataire est responsable des personnes qui l\u2019accompagnent et se porte garant de leur comportement durant tout le séjour.'
+      {h:"11. ARRIVÉE ET REMISE DES CLÉS",p:[
+        "L’arrivée se fait en autonomie : les clés sont mises à disposition dans une **boîte à clés sécurisée située à l’arrière de la maison**.",
+        "**Le code de la boîte à clés est communiqué au Locataire une fois les deux conditions suivantes remplies :**",
+        "• **le présent règlement intérieur signé dès la réservation, avant l’arrivée**,",
+        "• **la caution reçue par virement, avant l’arrivée**."
+      ]},
+      {h:"12. CONTACTS PENDANT LE SÉJOUR",p:[
+        "Pour toute question ou incident, contactez les Propriétaires :",
+        "**David — 06 20 14 33 22**, **Svitlana — 06 30 86 85 69**"
+      ]},
+      {h:"13. SIGNATURE ET ACCEPTATION",p:[
+        "§ 13.1 Acceptation du règlement",
+        "**Le présent règlement intérieur est signé dès la réservation, avant l’arrivée.** Sa signature vaut acceptation du présent règlement intérieur et des conditions générales de location.",
+        "§ 13.2 Sanctions en cas de non-respect",
+        "!!Le non-respect des consignes de sécurité, des engagements contractuels ou du présent règlement pourra entraîner l’interruption immédiate de la location, sans remboursement.!!",
+        "§ 13.3 Responsabilité des accompagnants",
+        "Le Locataire est responsable des personnes qui l’accompagnent et se porte garant de leur comportement durant tout le séjour."
       ]}
     ]
   }
@@ -706,13 +913,15 @@ function runMigrations(){
   if(!D.travauxSchedule)D.travauxSchedule=[];
   if(!D.remboursements)D.remboursements=[];
   if(!D.factures)D.factures=[];
+  if(!D.encaissements)D.encaissements=[];
   if(!D.messages)D.messages=[];
   if(!D.electriciteIndex)D.electriciteIndex={};
   if(!D.forfaitPaid)D.forfaitPaid={};
   if(!D.elecValide)D.elecValide={};
   if(!D.bilanComments)D.bilanComments=[];
   if(!D.deletedIds)D.deletedIds={};
-  ['resa','visite','travaux','garde','dominique','message','comment','paiement','bilanComment','prestaLine','elecIndex','remboursement','facture'].forEach(k=>{if(!D.deletedIds[k])D.deletedIds[k]=[];});
+  if(!D.tombEvents)D.tombEvents={};
+  ['resa','visite','travaux','garde','dominique','message','comment','paiement','bilanComment','prestaLine','elecIndex','remboursement','encaissement','facture'].forEach(k=>{if(!D.deletedIds[k])D.deletedIds[k]=[];});
   // Corrige les anciennes réservations où le domaine du gardiennage enregistré ne correspond
   // plus au domaine réel/actuel de la réservation (ex : la réservation a changé de domaine
   // après coup). Le lieu du gardiennage doit toujours suivre le domaine de la réservation.
@@ -766,6 +975,13 @@ function runMigrations(){
        aussi les données déjà enregistrées. */
     if(p.name==='Misha')p.homeDomaines=['d1'];
     if(p.name==='Sasha')p.homeDomaines=['d2'];
+    /* Mois d'imputation du ménage — voir menageDateRef. Sasha nettoie après le départ, Misha
+       rattache la prestation au séjour. Forcé à chaque démarrage pour que la règle s'applique
+       aussi à tout l'historique déjà enregistré. */
+    if(p.name==='Sasha')p.menageMoisSur='depart';
+    else if(p.menageMoisSur!=='depart')p.menageMoisSur='arrivee';
+    /* Nom de sa structure, pour pouvoir la nommer à l'écran (encaissements via Ozarko). */
+    if(p.name==='Misha'&&!p.structure)p.structure='Ozarko';
     if(p.name==='Pascaline'){p.accessMode='calendrierSeul';if(p.flatRate===undefined)p.flatRate=250;}
     if(p.name==='Yana'){p.accessMode='readonly_nofinance';p.voitFinance=true;}
     if((p.name==='Misha'||p.name==='Sasha')&&p.forfaitMensuel===undefined)p.forfaitMensuel=400;
@@ -819,7 +1035,7 @@ const TRAVAUX_RATE=12; // € de l'heure pour les travaux hors réservation (Mis
 const CHAMPS_HORS_EMPREINTE=['updatedAt','lastChange','lastChangeBy','fieldsUpdatedAt'];
 const NESTED_RESA=['commentaires','paiements','prestaLines'];
 const LISTES_SUIVIES=[['reservations',NESTED_RESA],['visites',null],['travauxSchedule',null],
-  ['remboursements',null],['factures',null],['gardeSchedule',null],['dominiqueSchedule',null],
+  ['remboursements',null],['encaissements',null],['factures',null],['gardeSchedule',null],['dominiqueSchedule',null],
   ['bilanComments',null],['messages',null]];
 function empreinteItem(x,nested){
   const o={};
@@ -842,7 +1058,7 @@ function tamponnerModifsLocales(){
       const e=empreinteItem(x,nested);
       const avant=suivi[x.id];
       if(avant!==undefined&&avant!==e)x.fieldsUpdatedAt=now;
-      else if(avant===undefined&&!x.fieldsUpdatedAt)x.fieldsUpdatedAt=x.updatedAt||x.createdAt||0;
+      else if(avant===undefined&&!x.fieldsUpdatedAt)x.fieldsUpdatedAt=x.updatedAt||x.createdAt||1;
       suivi[x.id]=e;
     });
   });
@@ -861,8 +1077,18 @@ function reinitEmpreintes(){
    horodatage), on garde la version locale : c'est le comportement historique, qui protège une
    saisie faite hors ligne et pas encore partie. */
 function plusRecent(rem,loc){
-  const rT=(rem&&rem.fieldsUpdatedAt)||0,lT=(loc&&loc.fieldsUpdatedAt)||0;
-  return rT>lT?rem:loc;
+  if(!rem)return loc;
+  if(!loc)return rem;
+  const rF=+rem.fieldsUpdatedAt||0,lF=+loc.fieldsUpdatedAt||0;
+  if(rF&&lF)return rF>lF?rem:loc;
+  /* L'un des deux appareils tourne encore sur une version qui ne date pas les champs modifiés
+     (mise à jour pas encore rechargée, page gardée en cache par le navigateur…). On retombe
+     alors sur l'horodatage général de la réservation, que TOUTES les versions entretiennent :
+     sans ça, la version récente ignorerait systématiquement les corrections venues de l'autre
+     téléphone — exactement le symptôme « je change le prix chez Svitlana et ça n'arrive pas ». */
+  const rU=+rem.updatedAt||+rem.createdAt||0,lU=+loc.updatedAt||+loc.createdAt||0;
+  if(rU!==lU)return rU>lU?rem:loc;
+  return loc;
 }
 function mergeById(remoteArr,localArr,deletedIds){
   const map={};
@@ -949,23 +1175,58 @@ function mergeFlatMap(remoteMap,localMap,deletedKeys){
    appareil (ex. David sur son téléphone) de « ressusciter » via le prochain rafraîchissement
    d'un autre appareil (ex. Svitlana, dont la copie locale n'était pas encore au courant de la
    suppression et la repousserait sinon vers le serveur en la reconstruisant). */
+/* Chaque suppression et chaque ré-saisie est DATÉE. C'est indispensable : sans date, une
+   suppression déjà connue du serveur ressuscitait à chaque fusion et re-effaçait aussitôt la
+   valeur qu'on venait de retaper. C'est exactement ce qui se passait avec l'index électricité :
+   Misha saisissait son index, il repartait, et il disparaissait quelques secondes plus tard —
+   effacé par son propre ancien marqueur de suppression, revenu du serveur.
+   Désormais, entre une suppression et une ré-saisie, c'est la plus RÉCENTE des deux qui fait foi. */
+function tombEvent(type,id){
+  if(!D.tombEvents)D.tombEvents={};
+  const k=type+'__'+id;
+  if(!D.tombEvents[k])D.tombEvents[k]={};
+  return D.tombEvents[k];
+}
 function markDeleted(type,id){
   if(!D.deletedIds)D.deletedIds={};
   if(!D.deletedIds[type])D.deletedIds[type]=[];
   if(!D.deletedIds[type].includes(id))D.deletedIds[type].push(id);
+  tombEvent(type,id).d=Date.now();
 }
 /* Annule une suppression : utilisé quand une donnée précédemment supprimée (ex. un index
-   électricité effacé) est ré-saisie — sinon la fusion continuerait à re-supprimer la nouvelle
-   valeur indéfiniment, croyant qu'il s'agit toujours de l'ancienne suppression. */
+   électricité effacé) est ré-saisie. On retire le marqueur ET on date la ré-saisie, pour que
+   la fusion sache que la valeur actuelle est plus récente que la suppression. */
 function unmarkDeleted(type,id){
+  tombEvent(type,id).r=Date.now();
   if(!D.deletedIds||!D.deletedIds[type])return;
   const i=D.deletedIds[type].indexOf(id);
   if(i>=0)D.deletedIds[type].splice(i,1);
 }
-function mergeDeletedIds(remote,local){
+function mergeTombEvents(remote,local){
   const out={};
   const keys=new Set([...Object.keys(remote||{}),...Object.keys(local||{})]);
-  keys.forEach(k=>{out[k]=Array.from(new Set([...((remote&&remote[k])||[]),...((local&&local[k])||[])]));});
+  keys.forEach(k=>{
+    const a=(remote&&remote[k])||{},b=(local&&local[k])||{};
+    const e={};
+    const d=Math.max(a.d||0,b.d||0),r=Math.max(a.r||0,b.r||0);
+    if(d)e.d=d;
+    if(r)e.r=r;
+    out[k]=e;
+  });
+  return out;
+}
+function mergeDeletedIds(remote,local,tombEvents){
+  const out={};
+  const keys=new Set([...Object.keys(remote||{}),...Object.keys(local||{})]);
+  keys.forEach(k=>{
+    const union=Array.from(new Set([...((remote&&remote[k])||[]),...((local&&local[k])||[])]));
+    /* Une ré-saisie postérieure à la suppression annule définitivement celle-ci — même si le
+       serveur, lui, a encore l'ancien marqueur en mémoire. */
+    out[k]=union.filter(id=>{
+      const e=(tombEvents||{})[k+'__'+id];
+      return !(e&&e.r&&e.r>(e.d||0));
+    });
+  });
   return out;
 }
 /* SÉCURITÉ ANTI-DISPARITION — NE JAMAIS remplacer D par un instantané serveur en bloc.
@@ -980,12 +1241,14 @@ function mergeDeletedIds(remote,local){
    confirmées côté serveur sont donc protégées, quelle que soit la fenêtre de temps. */
 function mergeRemoteSnapshot(remote){
   const merged=Object.assign({},remote);
-  merged.deletedIds=mergeDeletedIds(remote.deletedIds,D.deletedIds);
+  merged.tombEvents=mergeTombEvents(remote.tombEvents,D.tombEvents);
+  merged.deletedIds=mergeDeletedIds(remote.deletedIds,D.deletedIds,merged.tombEvents);
   const del=k=>(merged.deletedIds&&merged.deletedIds[k])||[];
   merged.reservations=mergeResaArr(remote.reservations,D.reservations,del('resa'),del('comment'),del('paiement'),del('prestaLine'));
   merged.visites=mergeById(remote.visites,D.visites,del('visite'));
   merged.travauxSchedule=mergeById(remote.travauxSchedule,D.travauxSchedule,del('travaux'));
   merged.remboursements=mergeById(remote.remboursements,D.remboursements,del('remboursement'));
+  merged.encaissements=mergeById(remote.encaissements,D.encaissements,del('encaissement'));
   merged.factures=mergeById(remote.factures,D.factures,del('facture'));
   merged.gardeSchedule=mergeById(remote.gardeSchedule,D.gardeSchedule,del('garde'));
   merged.dominiqueSchedule=mergeById(remote.dominiqueSchedule,D.dominiqueSchedule,del('dominique'));
@@ -1013,6 +1276,7 @@ async function saveD(){
         téléphone redémarre ou si le réseau ne revient que dans deux heures, la saisie est gardée
         et repartira toute seule. 2) On marque « en attente » tant que le serveur n'a pas
         confirmé. 3) On tente l'envoi. */
+  suivreVersion();
   tamponnerModifsLocales();
   try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}
   markSyncPending();
@@ -1022,7 +1286,7 @@ async function saveD(){
       D=mergeRemoteSnapshot(remote);
       reinitEmpreintes();
       try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}
-      if(!S.modal)render(); // on ne coupe jamais une saisie en cours dans un formulaire ouvert
+      renderArrierePlan(); // on ne coupe jamais une saisie en cours
     }
   }catch(e){/* pas de réseau : on garde nos données locales telles quelles, pas grave */}
   pushRemoteD(D);
@@ -1498,7 +1762,7 @@ function renderTravauxSection(p,y,m){
     ${!isAdmin?`<div style="background:#f5f4f1;border-radius:8px;padding:6px;margin-bottom:8px;font-size:11px">
       <div style="display:grid;grid-template-columns:1fr 1.25fr 1.15fr 0.95fr;gap:4px;align-items:center;margin-bottom:4px">
         <select id="trav-domaine-${p.id}" style="min-width:0;width:100%">${domOpts}</select>
-        ${dateFieldHtml(`trav-date-${p.id}`,'min-width:0;width:100%')}
+        ${dateFieldHtml(`trav-date-${p.id}`,'min-width:0;width:100%',null,dateDefautMois(y,m))}
         <select id="trav-type-${p.id}" style="min-width:0;width:100%" onchange="var h=travauxTypeAlHeure(this.value);document.getElementById('trav-mode-${p.id}').style.display=h?'':'none';if(!h)document.getElementById('trav-mode-${p.id}').value='forfait';var f=document.getElementById('trav-mode-${p.id}').value==='forfait'||!h;document.getElementById('trav-heures-${p.id}').style.display=f?'none':'';document.getElementById('trav-forfait-${p.id}').style.display=f?'':'none';">${TRAVAUX_TYPES.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>
         <select id="trav-mode-${p.id}" style="min-width:0;width:100%" onchange="var h=this.value==='heure';document.getElementById('trav-heures-${p.id}').style.display=h?'':'none';document.getElementById('trav-forfait-${p.id}').style.display=h?'none':'';"><option value="heure">À l'heure</option><option value="forfait">Au forfait</option></select>
       </div>
@@ -1590,6 +1854,118 @@ function delFacture(id){
    total, en haut de page — c'est là qu'on lit le mois, pas tout en bas. La fonction est
    conservée, vide, pour ne casser aucun appel existant. */
 function renderReglementSection(p,y,m){return'';}
+/* === Reçu pour notre compte ===
+   Le miroir exact de « Réglé pour notre compte ». Là, c'est l'inverse : le prestataire a
+   ENCAISSÉ de l'argent qui nous revient. C'est donc une avance qu'il détient, et elle vient en
+   DÉDUCTION de ce qu'on lui doit ce mois-ci. Deux circuits, et ils ne valent pas la même chose :
+     · reçu en direct  → il nous doit la totalité : 100 € reçus = 100 € à déduire ;
+     · via sa structure (Ozarko pour Misha) → sa structure prélève 14 % de frais, donc sur
+       100 € encaissés il ne nous en doit que 86 : c'est ce montant-là qu'on déduit.
+   Le taux est le même que celui déjà utilisé pour la part qui nous revient sur une prestation
+   vendue par sa structure — une seule règle dans toute l'application. */
+function encaissementDu(x){
+  const m=x.montant||0;
+  return x.via==='structure'
+    ?Math.round(m*(1-MISHA_STRUCTURE_CHARGE_RATE)*100)/100
+    :Math.round(m*100)/100;
+}
+function encaissementViaLabel(x){
+  return x.via==='structure'?'via sa structure':'reçu en direct';
+}
+function addEncaissement(pid){
+  const domaine=(document.getElementById('enc-domaine-'+pid)||{}).value;
+  const date=(document.getElementById('enc-date-'+pid)||{}).value;
+  const montant=parseFloat((document.getElementById('enc-montant-'+pid)||{}).value)||0;
+  const via=(document.getElementById('enc-via-'+pid)||{}).value||'direct';
+  const provenance=((document.getElementById('enc-prov-'+pid)||{}).value||'').trim();
+  const note=((document.getElementById('enc-note-'+pid)||{}).value||'').trim();
+  const manque=[];
+  if(!domaine)manque.push('le domaine');
+  if(!date)manque.push('la date');
+  if(!montant)manque.push('le montant');
+  if(manque.length){showMsgSansPerdre('Il manque '+manque.join(' et ')+' ⚠️');return;}
+  if(!D.encaissements)D.encaissements=[];
+  D.encaissements.push({id:gid(),pid,domaine,date,montant:Math.round(montant*100)/100,via,
+    provenance,note,status:'en_attente',createdAt:Date.now()});
+  const p=gPre(pid);
+  logActivity('remboursement',domaine,`Encaissé pour nous — ${p.name} : ${provenance||'—'} ${money(montant)} (${via==='structure'?'via sa structure':'en direct'})`,[pid],true);
+  saveD();showMsg('Enregistré, en attente de validation ✓');render();
+}
+function delEncaissement(id){
+  const x=(D.encaissements||[]).find(y=>y.id===id);
+  D.encaissements=(D.encaissements||[]).filter(y=>y.id!==id);
+  markDeleted('encaissement',id);
+  if(x){const p=gPre(x.pid);logActivity('remboursement',x.domaine,`Encaissement supprimé — ${p.name} (${fmt(x.date)}, ${money(x.montant)})`,[x.pid],false);}
+  saveD();render();
+}
+function toggleEncaissementValide(id){
+  const x=(D.encaissements||[]).find(y=>y.id===id);if(!x)return;
+  const etait=x.status==='validé';
+  x.status=etait?'en_attente':'validé';
+  if(!etait){x.validatedBy=S.admin?S.admin.name:'';x.validatedAt=Date.now();}
+  const p=gPre(x.pid);
+  logActivity('remboursement',x.domaine,`Encaissement ${etait?'validation annulée':'validé'} — ${p.name} (${fmt(x.date)}, ${money(x.montant)})`,[x.pid],false);
+  saveD();render();
+}
+function updEncaissementVia(id,via){
+  const x=(D.encaissements||[]).find(y=>y.id===id);if(!x)return;
+  x.via=via;saveD();render();
+}
+function renderEncaissementSection(p,y,m){
+  if(p.accessMode!=='domaine')return'';
+  const isAdmin=S.view==='admin';
+  const V=bilanVoix(p);
+  const monthKey=`${y}-${String(m+1).padStart(2,'0')}`;
+  const rows=(D.encaissements||[]).filter(x=>x.pid===p.id&&(x.date||'').startsWith(monthKey))
+    .sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const total=Math.round(rows.reduce((a,x)=>a+encaissementDu(x),0)*100)/100;
+  const defaultDom=(p.domaines||[])[0];
+  const domOpts=D.domaines.map(d=>`<option value="${d.id}" ${d.id===defaultDom?'selected':''}>${d.name}</option>`).join('');
+  /* David : « soit c'est en cash directement, soit c'est via leur structure ». Les deux circuits
+     sont donc proposés à Misha comme à Sacha. On nomme la structure quand on la connaît
+     (Ozarko pour Misha) ; sinon on dit simplement « sa structure ». */
+  const aUneStructure=p.accessMode==='domaine';
+  const nomStructure=p.structure||(V.self?'votre structure':'sa structure');
+  const viaOpts=(sel)=>`<option value="direct" ${sel==='direct'?'selected':''}>Reçu en direct</option>`
+    +(aUneStructure?`<option value="structure" ${sel==='structure'?'selected':''}>Via ${nomStructure} (14% de frais)</option>`:'');
+  const titre=V.self?'Reçu pour le compte de David et Svitlana':'Reçu pour notre compte';
+  const explication=V.self
+    ?`De l'argent qui nous revient et que vous avez encaissé (un client qui vous règle directement, une recette perçue pour nous…). Ce n'est pas une rémunération : ça vient en <strong>déduction</strong> de ce qu'on vous doit ce mois-ci.${aUneStructure?` Encaissé via ${nomStructure}, elle retient 14 % de frais : sur 100 € reçus, 86 € nous reviennent.`:''} David/Svitlana valide chaque ligne.`
+    :`De l'argent qui nous revient et que ${p.name} a encaissé. Ce n'est pas une rémunération : ça vient en <strong>déduction</strong> de ce qu'on lui doit ce mois-ci.${aUneStructure?` Encaissé via ${nomStructure}, elle retient 14 % de frais : sur 100 € reçus, 86 € nous reviennent.`:''} ${isAdmin?'Validez chaque ligne, ou laissez en attente.':''}`;
+  return`<div id="bloc-enc" class="bilan-sec">
+    <div class="sec-hdr"><h2>💰 ${titre} — ${MONTHS_FR[m]} ${y}</h2></div>
+    <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">${explication}</div>
+    ${!isAdmin?`<div style="background:#f5f4f1;border-radius:8px;padding:7px;margin-bottom:10px">
+      <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:5px">
+        <select id="enc-domaine-${p.id}" style="font-size:11.5px;padding:4px 5px;flex:1;min-width:88px">${domOpts}</select>
+        ${dateFieldHtml(`enc-date-${p.id}`,'width:140px;flex-shrink:0',null,dateDefautMois(y,m))}
+        <input type="number" id="enc-montant-${p.id}" step="0.01" placeholder="montant reçu €" style="font-size:11.5px;padding:4px 5px;width:110px">
+        <select id="enc-via-${p.id}" style="font-size:11.5px;padding:4px 5px;flex:1;min-width:120px">${viaOpts('direct')}</select>
+      </div>
+      <div style="display:flex;gap:5px;align-items:center">
+        <input type="text" id="enc-prov-${p.id}" placeholder="De qui / pour quoi" style="flex:1;min-width:0;font-size:11.5px;padding:4px 5px">
+        <input type="text" id="enc-note-${p.id}" placeholder="Précision" style="flex:1;min-width:0;font-size:11.5px;padding:4px 5px">
+        <button class="btn btn-primary btn-sm" onclick="addEncaissement('${p.id}')" style="flex-shrink:0">+ Déclarer</button>
+      </div>
+    </div>`:''}
+    ${rows.length===0?`<div class="empty">${V.self?'Rien encaissé pour le compte de David et Svitlana ce mois-ci.':'Rien encaissé pour notre compte ce mois-ci.'}</div>`:''}
+    ${rows.map(x=>{const dom=gDom(x.domaine);const du=encaissementDu(x);return`<div style="padding:8px 0;border-bottom:1px solid #e5e3de;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+      <div style="min-width:0">
+        <span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span>
+        <span style="font-size:13px">${ds(x.date)} · ${x.provenance||'—'} · ${money(x.montant)} <span style="color:#888">(${encaissementViaLabel(x)})</span></span>
+        <div style="font-size:11px;color:${x.via==='structure'?'#7A5800':'#888'};margin-top:2px">${x.via==='structure'?`${money(x.montant)} − 14% de frais = <strong>${money(du)}</strong> à déduire de ce qu'on lui doit`:`<strong>${money(du)}</strong> à déduire de ce qu'on lui doit`}${x.note?' · '+x.note:''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        ${(!isAdmin&&aUneStructure&&x.status!=='validé')?`<select onchange="updEncaissementVia('${x.id}',this.value)" style="font-size:10.5px;padding:2px 4px">${viaOpts(x.via||'direct')}</select>`:''}
+        ${valideBadge(x.status==='validé',`toggleEncaissementValide('${x.id}')`)}
+        ${x.status!=='validé'?`<button class="btn btn-xs btn-danger" onclick="delEncaissement('${x.id}')">✕</button>`:''}
+      </div>
+    </div>`;}).join('')}
+    ${rows.length?`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 2px;font-size:13px;font-weight:700;border-top:1.5px solid #e5e3de;margin-top:4px">
+      <span>Total à déduire ce mois</span><span style="color:#A32D2D">− ${money(total)}</span>
+    </div>`:''}
+  </div>`;
+}
 function renderRemboursementSection(p,y,m){
   if(p.accessMode!=='domaine')return''; // réservé à Misha/Sacha (accès complet) — pas Pascaline ni les autres
   const isAdmin=S.view==='admin';
@@ -1608,7 +1984,7 @@ function renderRemboursementSection(p,y,m){
     ${!isAdmin?`<div style="background:#f5f4f1;border-radius:8px;padding:7px;margin-bottom:10px">
       <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:5px">
         <select id="remb-domaine-${p.id}" style="font-size:11.5px;padding:4px 5px;flex:1;min-width:88px">${domOpts}</select>
-        ${dateFieldHtml(`remb-date-${p.id}`,'width:140px;flex-shrink:0')}
+        ${dateFieldHtml(`remb-date-${p.id}`,'width:140px;flex-shrink:0',null,dateDefautMois(y,m))}
         <input type="number" id="remb-montant-${p.id}" step="0.01" placeholder="montant €" style="font-size:11.5px;padding:4px 5px;width:92px">
       </div>
       <div style="display:flex;gap:5px;align-items:center">
@@ -1708,14 +2084,33 @@ function renderBilanComments(p,y,m){
     </div>
   </div>`;
 }
+/* === Sur quel mois tombe un ménage ? ===
+   Ça dépend du prestataire, et c'est voulu : Sasha fait le ménage APRÈS le départ des clients,
+   donc une réservation du 31 juillet au 3 août lui est comptée sur août. Misha, lui, rattache
+   la prestation au séjour : la même réservation reste sur juillet.
+   La règle s'applique au calcul, donc elle vaut rétroactivement sur tout l'historique — aucune
+   donnée à reprendre à la main. */
+function menageDateRef(r){
+  const mi=getMenageInfo(r);
+  const arr=r.dateArrivee||r.dateDepart||r.date;
+  if(!mi)return arr;
+  const pre=gPre(mi.pid);
+  return(pre&&pre.menageMoisSur==='depart')?(r.dateDepart||arr):arr;
+}
+function menageDansMois(r,y,m){
+  const d=menageDateRef(r);
+  if(!d)return false;
+  const[ry,rm]=d.split('-').map(Number);
+  return ry===y&&rm===(m+1);
+}
 function renderMenageSection(p,y,m){
   const isAdmin=S.view==='admin';
-  const inMenageMonth=r=>{const d=r.dateArrivee||r.dateDepart||r.date;if(!d)return false;const[ry,rm]=d.split('-').map(Number);return ry===y&&rm===(m+1);};
-  const menageEvs=D.reservations.filter(r=>r.status!=='annulé'&&inMenageMonth(r)).map(r=>({r,mi:getMenageInfo(r)})).filter(x=>x.mi&&x.mi.pid===p.id);
+  const menageEvs=D.reservations.filter(r=>r.status!=='annulé'&&menageDansMois(r,y,m)).map(r=>({r,mi:getMenageInfo(r)})).filter(x=>x.mi&&x.mi.pid===p.id);
   const menageTotal=menageEvs.reduce((a,x)=>a+x.mi.montant,0);
   const menagePaid=menageEvs.filter(x=>x.r.menagePaid).reduce((a,x)=>a+x.mi.montant,0);
   return`<div id="bloc-menage" class="bilan-sec">
     <div class="sec-hdr"><h2>🧹 Forfait ménage — sans commission — ${MONTHS_FR[m]} ${y}</h2></div>
+    <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">${p.menageMoisSur==='depart'?`Un ménage est compté sur le mois du <strong>départ</strong> des clients : une réservation du 31 juillet au 3 août compte pour août.`:`Un ménage est compté sur le mois de l'<strong>arrivée</strong> des clients : une réservation du 31 juillet au 3 août compte pour juillet.`}</div>
     <div class="g3" style="margin-bottom:10px">
       <div class="metric"><span class="lbl">Total dû</span><span class="val">${money(menageTotal)}</span></div>
       <div class="metric"><span class="lbl">Reçu</span><span class="val" style="color:#27500A">${money(menagePaid)}</span></div>
@@ -1724,7 +2119,7 @@ function renderMenageSection(p,y,m){
     ${menageEvs.length===0?'<div class="empty">Aucun forfait ménage ce mois-ci.</div>':''}
     ${menageEvs.map(({r,mi},mIdx)=>{const dom=gDom(r.domaine);return`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:6px 8px;margin:0 -8px;border-bottom:1px solid #e5e3de;font-size:12.5px;background:${mIdx%2===1?'#f7f6f3':'transparent'}">
       <span class="pill ${PILL[dom.color||0]}" style="flex-shrink:0">${dom.name}</span>
-      <span style="white-space:nowrap">${ds(r.dateArrivee)}</span>
+      <span style="white-space:nowrap">${(r.dateDepart&&r.dateDepart!==r.dateArrivee)?ds(r.dateArrivee)+' → '+ds(r.dateDepart):ds(r.dateArrivee)}</span>
       <span style="color:#888">(${displayClientName(r)||'—'})</span>
       <input type="text" id="menage-comment-${r.id}" value="${(r.menageComment||'').replace(/"/g,'&quot;')}" placeholder="Note" onchange="updMenageComment('${r.id}',this.value)" style="flex:1;min-width:60px;font-size:11px;padding:3px 5px;color:#888;border:none;background:transparent">
       <span style="display:flex;align-items:center;gap:2px;flex-shrink:0"><input type="number" id="menage-montant-${r.id}" value="${mi.montant}" onchange="updMenageMontant('${r.id}',this.value)" style="width:55px;font-weight:600;font-size:12px;padding:3px 5px"><span style="font-size:11px;font-weight:600;color:#666">€</span></span>
@@ -1798,6 +2193,19 @@ function renderElecSection(p,y,m){
   const key=monthKeyOf(y,m);
   const valide=isElecValide(p.id,key);
   const prevLabel=MONTHS_FR[(m+11)%12];
+  const nextLabel=MONTHS_FR[(m+1)%12];
+  /* Sans les DEUX index, il n'y a pas de consommation possible — et rien n'était dit à l'écran :
+     on saisissait un index, il ne se passait rien, et on croyait que ça ne marchait pas. */
+  let explication='';
+  if(ec.curIdx===null){
+    explication=`<div style="font-size:11.5px;color:#7A5800;background:#FDF4E3;border-radius:8px;padding:7px 10px;margin-top:8px">Saisissez l'index relevé au compteur à la fin de ${MONTHS_FR[m]}. Il servira aussi de point de départ pour ${nextLabel}.</div>`;
+  }else if(ec.prevIdx===null){
+    explication=`<div style="font-size:11.5px;color:#7A5800;background:#FDF4E3;border-radius:8px;padding:7px 10px;margin-top:8px">Index de fin ${MONTHS_FR[m]} bien enregistré (${ec.curIdx} kWh). Il manque celui de fin ${prevLabel} pour pouvoir calculer la consommation du mois — saisissez-le dans la case de gauche.</div>`;
+  }else if(ec.curIdx<ec.prevIdx){
+    explication=`<div style="font-size:11.5px;color:#791F1F;background:#FCEBEB;border-radius:8px;padding:7px 10px;margin-top:8px">L'index de fin ${MONTHS_FR[m]} (${ec.curIdx}) est inférieur à celui de fin ${prevLabel} (${ec.prevIdx}) : un compteur ne recule pas, il y a une erreur de saisie quelque part.</div>`;
+  }else{
+    explication=`<div style="font-size:11px;color:#9a958c;margin-top:8px">${ec.curIdx} − ${ec.prevIdx} = ${ec.conso} kWh × ${ELEC_RATE.toFixed(2)} € = ${money(ec.cost)}. L'index de fin ${MONTHS_FR[m]} servira de point de départ pour ${nextLabel}.</div>`;
+  }
   return`<div id="bloc-elec" class="bilan-sec">
     <div class="sec-hdr"><h2>⚡ Électricité — ${MONTHS_FR[m]} ${y}</h2>${ec.conso!==null?valideBadge(valide,`toggleElecValide('${p.id}','${key}')`):''}</div>
     <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">Index de compteur en kWh, en fin de mois. La conso du mois est déduite automatiquement de l'index du mois précédent.</div>
@@ -1820,6 +2228,7 @@ function renderElecSection(p,y,m){
       <div class="metric"><span class="lbl">Tarif</span><span class="val">${ELEC_RATE.toFixed(2)}€/kWh</span></div>
       <div class="metric"><span class="lbl">Montant dû par ${p.name}</span><span class="val" style="color:#A32D2D">${ec.conso!==null?money(ec.cost):'—'}</span></div>
     </div>
+    ${explication}
   </div>`;
 }
 /* Bilan total consolidé du mois pour Misha/Sasha : ce qu'on leur doit (forfait fixe +
@@ -1831,8 +2240,7 @@ function computeBilanTotal(p,y,m){
   const inMonthDate=dateStr=>!!dateStr&&dateStr.startsWith(monthKey);
   const forfaitDu=p.forfaitMensuel||0;
   const forfaitRecu=isForfaitPaid(p.id,key)?forfaitDu:0;
-  const inMonthArr=r=>{const d=r.dateArrivee||r.dateDepart||r.date;if(!d)return false;const[ry,rm]=d.split('-').map(Number);return ry===y&&rm===(m+1);};
-  const menageEvs=D.reservations.filter(r=>r.status!=='annulé'&&inMonthArr(r)).map(r=>({r,mi:getMenageInfo(r)})).filter(x=>x.mi&&x.mi.pid===p.id);
+  const menageEvs=D.reservations.filter(r=>r.status!=='annulé'&&menageDansMois(r,y,m)).map(r=>({r,mi:getMenageInfo(r)})).filter(x=>x.mi&&x.mi.pid===p.id);
   const menageDu=menageEvs.reduce((a,x)=>a+x.mi.montant,0);
   const menageRecu=menageEvs.filter(x=>x.r.menagePaid).reduce((a,x)=>a+x.mi.montant,0);
   const menageEnAttente=menageEvs.filter(x=>!x.r.menageValide).length;
@@ -1895,12 +2303,21 @@ function computeBilanTotal(p,y,m){
     if(x.status!=='validé')rembEnAttente++;
   });
   rembDu=Math.round(rembDu*100)/100;
+  /* Encaissements pour notre compte : de l'argent qui nous revient et qu'il détient. Ce n'est ni
+     de l'activité, ni un remboursement : ça se SOUSTRAIT de ce qu'on lui doit. Reçu via sa
+     structure, on ne récupère que 86 % (14 % de frais lui restent) — voir encaissementDu. */
+  let encDu=0,encLignes=0,encEnAttente=0;
+  (D.encaissements||[]).filter(x=>x.pid===p.id&&inMonthDate(x.date)).forEach(x=>{
+    encDu+=encaissementDu(x);encLignes++;
+    if(x.status!=='validé')encEnAttente++;
+  });
+  encDu=Math.round(encDu*100)/100;
   const totalActivite=Math.round((forfaitDu+menageDu+compDu+travDu-elecCost+gardeDu+jardDu)*100)/100;
-  const totalDu=Math.round((totalActivite+rembDu)*100)/100;
+  const totalDu=Math.round((totalActivite+rembDu-encDu)*100)/100;
   const totalRecu=forfaitRecu+menageRecu+gardeRecu+jardRecu;
   const totalReste=Math.round((totalDu-totalRecu)*100)/100;
-  const enAttente=menageEnAttente+compEnAttente+elecEnAttente+travEnAttente+gardeEnAttente+rembEnAttente;
-  return{key,forfaitDu,forfaitRecu,menageDu,menageRecu,menageEnAttente,compDu,compLignes,compEnAttente,travDu,travLignes,travEnAttente,gardeDu,gardeRecu,gardeLignes,gardeEnAttente,jardDu,jardRecu,jardLignes,elecCost,elecConso,elecEnAttente,rembDu,rembLignes,rembEnAttente,totalActivite,totalDu,totalRecu,totalReste,enAttente};
+  const enAttente=menageEnAttente+compEnAttente+elecEnAttente+travEnAttente+gardeEnAttente+rembEnAttente+encEnAttente;
+  return{key,forfaitDu,forfaitRecu,menageDu,menageRecu,menageEnAttente,compDu,compLignes,compEnAttente,travDu,travLignes,travEnAttente,gardeDu,gardeRecu,gardeLignes,gardeEnAttente,jardDu,jardRecu,jardLignes,elecCost,elecConso,elecEnAttente,rembDu,rembLignes,rembEnAttente,encDu,encLignes,encEnAttente,totalActivite,totalDu,totalRecu,totalReste,enAttente};
 }
 /* Vue annuelle : additionne totalActivite et rembDu sur les 12 mois de l'année y, pour isoler —
    comme demandé — ce que le prestataire a touché grâce à son activité vs. ce qu'on lui doit en
@@ -2022,6 +2439,7 @@ function bilanVoix(p){
        réglé pour le compte de David et Svitlana. David : « là c'est sa vision à lui, donc il
        faut que ça soit lui qui lise ce qui lui arrive ». */
     pourNotreCompte:self?'Réglé pour le compte de David et Svitlana':'Réglé pour notre compte',
+    recuNotreCompte:self?'Reçu pour le compte de David et Svitlana':'Reçu pour notre compte',
     aRembourser:self?'':'(à rembourser)',
     encaisse:self?'déjà encaissé par vous':`déjà encaissé par ${p.name}`
   };
@@ -2351,6 +2769,7 @@ function renderBilanTotalSection(p,y,m){
       </div>`):''}
       ${isGardeOnly?bilanLigneRow('Gardiennage (nuits)',bt.gardeDu,'+','bloc-garde'):''}
       ${p.accessMode==='domaine'?bilanLigneRow([bilanVoix(p).pourNotreCompte,bilanVoix(p).aRembourser].filter(Boolean).join(' '),bt.rembDu,'+','bloc-remb'):''}
+      ${(p.accessMode==='domaine'&&bt.encDu)?bilanLigneRow(bilanVoix(p).recuNotreCompte,bt.encDu,'-','bloc-enc'):''}
       <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0 4px;margin-top:2px;border-top:1.5px solid #993556;font-size:13px;font-weight:700;color:#72243E">
         <span>TOTAL DÛ CE MOIS</span><span style="font-size:18px">${money(bt.totalDu)}</span>
       </div>
@@ -2974,7 +3393,57 @@ function checkToken(){
 let CAL_DOMAIN_FILTER=null;
 let STRIP_BAND_INFO=false;
 let HIDE_EVENT_TYPE=false;
-function render(){const r=document.getElementById('root');CAL_DOMAIN_FILTER=(S.view==='presta'&&S.presta&&(S.presta.accessMode==='calendrierSeul'||S.presta.accessMode==='occupation'))?(S.presta.domaines||null):null;STRIP_BAND_INFO=(S.view==='presta'&&S.presta&&S.presta.accessMode==='occupation');HIDE_EVENT_TYPE=(S.view==='presta'&&S.presta&&S.presta.accessMode==='calendrierSeul');
+/* === NE JAMAIS EFFACER UNE SAISIE EN COURS ===
+   Cause réelle du « Misha et Sacha ne peuvent pas remplir les travaux ni les payés pour notre
+   compte », et de « l'index électricité que je remplis disparaît » :
+   la synchronisation de fond remplace tout le contenu de la page (render()) dès que le serveur a
+   changé — c'est-à-dire dès que quelqu'un d'autre touche à quoi que ce soit. Les formulaires
+   d'ajout sont alors régénérés VIDES, et la personne qui était en train de les remplir voit ses
+   champs s'effacer sous ses doigts ; si elle appuie ensuite sur « + », il n'y a plus rien à
+   enregistrer et il ne se passe rien. Le garde-fou existant ne protégeait que les fenêtres
+   modales, pas les formulaires posés directement dans la page — donc pas ceux-là.
+   Deux protections, dans cet ordre :
+     1. si un champ est en cours de saisie, on ne rafraîchit pas l'écran du tout (les données,
+        elles, sont bien à jour en mémoire ; l'écran suivra au prochain battement) ;
+     2. sinon, on remet en place ce qui avait été tapé dans les champs déjà touchés mais pas
+        encore validés.
+   Un rafraîchissement déclenché par la personne elle-même (elle a appuyé sur un bouton, changé
+   d'onglet…) repart au contraire d'une page propre. */
+let _champsTouches=new Set();
+function _noterChampTouche(e){
+  const t=e&&e.target;
+  if(t&&t.id&&(t.tagName==='INPUT'||t.tagName==='SELECT'||t.tagName==='TEXTAREA'))_champsTouches.add(t.id);
+}
+document.addEventListener('input',_noterChampTouche,true);
+document.addEventListener('change',_noterChampTouche,true);
+function saisieEnCours(){
+  const a=document.activeElement,r=document.getElementById('root');
+  return !!(a&&r&&r.contains(a)&&(a.tagName==='INPUT'||a.tagName==='SELECT'||a.tagName==='TEXTAREA'));
+}
+/* Redessine l'écran SANS faire perdre ce qui est en train d'être tapé. */
+function rendreEnGardantLaSaisie(){
+  const avant={};
+  _champsTouches.forEach(id=>{const el=document.getElementById(id);if(el)avant[id]=el.value;});
+  render(true);
+  Object.keys(avant).forEach(id=>{
+    const el=document.getElementById(id);
+    if(el&&el.value!==avant[id])el.value=avant[id];
+  });
+}
+/* Rafraîchissement venu de la synchronisation, jamais d'un geste de la personne. */
+function renderArrierePlan(){
+  if(S.modal)return false;        // une fenêtre est ouverte : on n'y touche pas
+  if(saisieEnCours())return false; // quelqu'un est en train de taper : on ne le coupe pas
+  rendreEnGardantLaSaisie();
+  return true;
+}
+/* Message d'alerte SANS effacer le formulaire en cours : quand on dit à quelqu'un « il manque la
+   date », il doit retrouver tout le reste de sa saisie intact, sinon le message est une punition. */
+function showMsgSansPerdre(m){
+  S.msg=m;rendreEnGardantLaSaisie();
+  setTimeout(()=>{S.msg=null;rendreEnGardantLaSaisie();},3500);
+}
+function render(_fond){const r=document.getElementById('root');CAL_DOMAIN_FILTER=(S.view==='presta'&&S.presta&&(S.presta.accessMode==='calendrierSeul'||S.presta.accessMode==='occupation'))?(S.presta.domaines||null):null;STRIP_BAND_INFO=(S.view==='presta'&&S.presta&&S.presta.accessMode==='occupation');HIDE_EVENT_TYPE=(S.view==='presta'&&S.presta&&S.presta.accessMode==='calendrierSeul');
   /* Préserve le focus d'un champ texte/nombre en cours de saisie à travers le re-rendu complet
      du DOM (générique par id, pas juste "search-input" — sert aussi bien au champ de recherche
      du planning qu'à n'importe quel futur champ identifié). Et surtout : préserve la position de
@@ -3003,6 +3472,9 @@ function render(){const r=document.getElementById('root');CAL_DOMAIN_FILTER=(S.v
   }
   adjustCalGridHeight();injectBands();injectVisiteMarkers();
   if(S.modal)setTimeout(checkContactFields,0);
+  /* Rendu déclenché par la personne : les formulaires repartent à zéro, on oublie ce qui avait
+     été tapé avant. Rendu de fond : on garde la trace, renderArrierePlan la remettra en place. */
+  if(!_fond)_champsTouches.clear();
 }
 function adjustCalGridHeight(){
   const btnBig=document.querySelector('.cal-plus-btn-big');
@@ -3117,9 +3589,18 @@ function commentTexte(c,r){
   const t=c.texte||'';
   return commentMontantsVisibles(c,r)?t:maskMontants(t);
 }
-function dateFieldHtml(id,extraStyle,onchange){
+/* Date proposée d'office dans les formulaires de déclaration. Le champ partait vide : si on
+   oubliait de la choisir, le bouton « + » ne faisait RIEN, sans un mot d'explication — d'où
+   « Misha et Sacha ne peuvent pas remplir les travaux ni les payés pour notre compte ».
+   On propose donc aujourd'hui quand on est sur le mois en cours, sinon le 1er du mois affiché. */
+function dateDefautMois(y,m){
+  const n=new Date();
+  if(n.getFullYear()===y&&n.getMonth()===m)return n.toISOString().slice(0,10);
+  return`${y}-${String(m+1).padStart(2,'0')}-01`;
+}
+function dateFieldHtml(id,extraStyle,onchange,valeur){
   return`<span class="date-row" style="display:inline-flex;align-items:center;gap:2px;${extraStyle||''}">
-    <input type="date" id="${id}"${onchange?` onchange="${onchange}"`:''} style="font-size:11.5px;padding:4px 5px;flex:1;min-width:0">
+    <input type="date" id="${id}"${valeur?` value="${valeur}"`:''}${onchange?` onchange="${onchange}"`:''} style="font-size:11.5px;padding:4px 5px;flex:1;min-width:0">
     <button type="button" class="date-btn" onclick="var _d=document.getElementById('${id}');if(_d&&_d.showPicker)_d.showPicker();else if(_d)_d.focus();" title="Choisir une date" style="flex-shrink:0">📅</button>
   </span>`;
 }
@@ -3541,7 +4022,7 @@ function renderAdmin(){
   else if(S.tab==='clientsExport')content=renderClientsExport();
   const lastSeen=(D.adminLastSeen||{})[S.admin.id]||0;
   const notifs=(D.activityLog||[]).filter(it=>((it.authorId&&it.authorId!==S.admin.id)||it.forAdmin)&&it.ts>lastSeen).sort((a,b)=>b.ts-a.ts);
-  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge ba" style="flex-shrink:0">Admin — ${S.admin.name}</span><button class="btn btn-sm" onclick="toggleCalSearch()" title="Rechercher une réservation (prénom, nom, société)" style="flex-shrink:0">🔍</button><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone" style="flex-shrink:0">🔔</button>${renderSyncBadge()}<button class="btn btn-sm" onclick="logout()" style="flex-shrink:0;font-size:11px;padding:5px 8px">Déconnexion</button></div>${S.calSearchOpen?renderCalSearchBox():''}${notifBanner}${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}${renderNotifBanner(notifs,'dismissAdminNotifs')}<div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${S.tab===k?'active':''}" onclick="setTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>${content}${S.modal?renderModalWrap():''}`;
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge ba" style="flex-shrink:0">Admin — ${S.admin.name}</span><button class="btn btn-sm" onclick="toggleCalSearch()" title="Rechercher une réservation (prénom, nom, société)" style="flex-shrink:0">🔍</button><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone" style="flex-shrink:0">🔔</button>${renderSyncBadge()}${renderVersionBadge()}<button class="btn btn-sm" onclick="logout()" style="flex-shrink:0;font-size:11px;padding:5px 8px">Déconnexion</button></div>${S.calSearchOpen?renderCalSearchBox():''}${notifBanner}${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}${renderVersionObsoleteBanner()}${renderNotifBanner(notifs,'dismissAdminNotifs')}<div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${S.tab===k?'active':''}" onclick="setTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>${content}${S.modal?renderModalWrap():''}`;
 }
 
 function renderCalendrier(){
@@ -4828,7 +5309,7 @@ function renderPrestaDetailAdmin(p){
   const travauxSection=(p.accessMode==='domaine')?renderTravauxSection(p,y,m):'';
 
   /* === Paiement fait / remboursement (Misha/Sacha uniquement) — rendu partagé avec la page perso === */
-  const remboursementSection=(p.accessMode==='domaine')?renderRemboursementSection(p,y,m):'';
+  const remboursementSection=(p.accessMode==='domaine')?(renderRemboursementSection(p,y,m)+renderEncaissementSection(p,y,m)):'';
 
   /* === Dominique (jardinage) === */
   let dominiqueSection='';
@@ -4990,6 +5471,7 @@ function renderExport(){
     </div>
     <button class="btn btn-primary" style="padding:10px 18px;font-size:13px" onclick="exportSauvegardeComplete()">🗄️ Télécharger la sauvegarde complète</button>
   </div>
+  ${renderDiagnosticSection()}
   ${renderControleSection()}
   ${renderRestoreSection()}`;
 }
@@ -5063,28 +5545,30 @@ function buildContractSections(r){
     ]},
     {h:'3. PÉRIODE DE LOCATION',p:[
       '3.1. Le Bailleur loue au Preneur le logement saisonnier',
-      `du ${dateLong(r.dateArrivee)} à ${r.heureArrivee||'—'}`,
-      `au ${dateLong(r.dateDepart)} à ${r.heureDepart||'—'}, date et heure auxquelles le Preneur s\u2019engage à avoir libéré entièrement les lieux, y compris le rangement du mobilier, la sortie des déchets et le nettoyage complet des cuisines.`
+      `du **${dateLong(r.dateArrivee)}** à **${r.heureArrivee||'—'}**`,
+      `au **${dateLong(r.dateDepart)}** à **${r.heureDepart||'—'}**, date et heure auxquelles le Preneur s\u2019engage à avoir libéré entièrement les lieux, y compris **le rangement du mobilier, la sortie des déchets et le nettoyage complet des cuisines**.`
     ]},
     {h:'4. TARIF DE LA LOCATION ET CHARGES',p:[
-      `4.1. Les Parties conviennent de fixer le loyer à ${moneyWords(montant)} pour l\u2019intégralité de la période de location.`,
+      `4.1. Les Parties conviennent de fixer le loyer à **${moneyWords(montant)}** pour l\u2019intégralité de la période de location.`,
       '4.2. Ce montant inclut le paiement de toutes les charges locatives pendant toute la durée du séjour.',
-      `Il comprend également : ${inclusTxt}.`,
+      `Il comprend également : **${inclusTxt}**.`,
       ...(cd.taxeSejourInclus?[]:['4.3. La taxe de séjour sera à régler sur place.']),
-      ...(cd.animauxForfait?[`4.4. La présence d\u2019animaux de compagnie donne lieu à une participation forfaitaire pour le ménage de ${money(cd.animauxForfait)}.`]:[])
+      ...(cd.animauxForfait?[`4.4. La présence d\u2019animaux de compagnie donne lieu à une participation forfaitaire pour le ménage de **${money(cd.animauxForfait)}**.`]:[])
     ]},
     {h:'5. RÉSERVATION',p:[
-      `5.1. Pour valider la réservation du logement, le Preneur s\u2019engage à retourner au Bailleur le présent contrat paraphé sur chaque page et dûment signé, accompagné du versement d\u2019arrhes d\u2019un montant de ${moneyWords(arrhes)} par virement sur le compte suivant :`,
+      `5.1. Pour valider la réservation du logement, le Preneur s\u2019engage à retourner au Bailleur le présent contrat paraphé sur chaque page et dûment signé, accompagné du versement d\u2019arrhes d\u2019un montant de **${moneyWords(arrhes)}** par virement sur le compte suivant :`,
       '',
       'Les Domaines de D.S',
       'FR 76 1695 8000 0140 7938 4291 369',
       'BIC : QNTOFRP1XXX'
     ]},
     {h:'6. RÈGLEMENT DU SOLDE DU LOYER',p:[
-      `6.1. Le solde du loyer, soit ${moneyWords(solde)}, devra être réglé par le Preneur au plus tard un mois avant la prise de possession des lieux, par virement sur le compte indiqué ci-dessus.`
+      `6.1. Le solde du loyer, soit **${moneyWords(solde)}**, devra être réglé par le Preneur **au plus tard un mois avant la prise de possession des lieux**, par virement sur le compte indiqué ci-dessus.`
     ]},
     {h:'7. DÉPÔT DE GARANTIE',p:[
-      `7.1. Au plus tard à l\u2019entrée dans les lieux, le Preneur remettra au Bailleur un dépôt de garantie d\u2019un montant de ${moneyWords(depot)}, par chèque à l\u2019ordre du Bailleur, par virement bancaire, ou par chèque de caution.`,
+      cd.cautionAvantArrivee
+        ?`7.1. Le Preneur versera au Bailleur un dépôt de garantie d\u2019un montant de **${moneyWords(depot)}**, **par virement bancaire, avant son arrivée**. La communication du code de la boîte à clés est conditionnée à la réception effective de ce dépôt.`
+        :`7.1. Au plus tard à l\u2019entrée dans les lieux, le Preneur remettra au Bailleur un dépôt de garantie d\u2019un montant de **${moneyWords(depot)}**, par chèque à l\u2019ordre du Bailleur, par virement bancaire, ou par chèque de caution.`,
       '7.2. Ce dépôt de garantie vise à couvrir d\u2019éventuels dommages locatifs, comprenant tous dommages ou dégradations du logement ainsi que les pertes, vols ou détériorations des biens mobiliers garnissant l\u2019hébergement pendant la période de location.',
       '7.3. En l\u2019absence de dommages, le dépôt de garantie sera restitué au Preneur dans un délai maximum de 15 jours suivant son départ. En cas de dommages locatifs, le dépôt sera restitué dans un délai maximal de 2 mois, déduction faite des frais de réparation justifiés par des factures.'
     ]},
@@ -5098,8 +5582,8 @@ function buildContractSections(r){
       '9.4. Le Bailleur pourra contester l\u2019état des lieux de sortie dans un délai courant jusqu\u2019à l\u2019arrivée du locataire suivant, sans excéder 48 heures.'
     ]},
     {h:'10. OBLIGATIONS DU PRENEUR',p:[
-      '10.1. Le Preneur s\u2019engage à faire un usage paisible du logement loué, à l\u2019entretenir et à le restituer en bon état de propreté. Il devra respecter le voisinage ainsi que le règlement intérieur en vigueur.',
-      '10.2. Il s\u2019engage à utiliser de manière normale et raisonnable les équipements de confort (chauffage, climatisation, eau, etc.) ainsi que les appareils mis à sa disposition (électroménager, multimédia, cuisine, etc.). Tous les meubles et équipements sportifs devront être remis en place avant son départ.',
+      '10.1. Le Preneur s\u2019engage à faire un usage paisible du logement loué, à l\u2019entretenir et à **le restituer en bon état de propreté**. Il devra respecter le voisinage ainsi que **le règlement intérieur annexé au présent contrat**.',
+      '10.2. Il s\u2019engage à utiliser de manière normale et raisonnable les équipements de confort (chauffage, climatisation, eau, etc.) ainsi que les appareils mis à sa disposition (électroménager, multimédia, cuisine, etc.). **Tous les meubles et équipements sportifs devront être remis en place avant son départ.**',
       '10.3. Il est strictement interdit au Preneur de reproduire les clés fournies par le Bailleur. Il devra informer ce dernier dans les plus brefs délais de toute panne, dommage, incident ou dysfonctionnement constaté. Le Preneur est responsable de l\u2019utilisation de l\u2019accès internet mis à sa disposition pendant la durée de la location.',
       ...cd.clausesSpecifiques,
       ...(cd.fetesAutorisees?[
@@ -5119,7 +5603,7 @@ function buildContractSections(r){
       '11.5. Toute utilisation non conforme aux consignes données, qu\u2019elles soient verbales, écrites ou affichées sur place, dégage entièrement la responsabilité du Bailleur.'
     ]},
     {h:'12. ANIMAUX DE COMPAGNIE',p:[
-      `12.1. La présence d\u2019animaux de compagnie, tels que chiens et chats, est autorisée dans le Domaine${cd.animauxForfait?`, avec une participation forfaitaire pour le ménage de ${money(cd.animauxForfait)}`:''}, sous réserve des conditions suivantes :`,
+      `12.1. La présence d\u2019animaux de compagnie, tels que chiens et chats, est autorisée dans le Domaine${cd.animauxForfait?`, avec une participation forfaitaire pour le ménage de **${money(cd.animauxForfait)}**`:''}, sous réserve des conditions suivantes :`,
       '12.1.1. Ne pas laisser les animaux monter sur les meubles, notamment canapés, fauteuils et lits.',
       '12.1.2. Ramasser soigneusement tous leurs déchets sur la propriété avant le départ.',
       '12.2. Veuillez noter que le Domaine est situé au cœur de vergers et de prairies non clôturées, où de nombreux chats et autres animaux circulent librement. Vous êtes responsables de la sécurité de vos animaux à tout moment, ainsi que des éventuels dégâts qu\u2019ils pourraient causer.'
@@ -5173,8 +5657,20 @@ function generateContractHtml(r){
   const mainSections=sections.slice(3,-1);
 
   /* Marqueurs d'emphase dans le texte du règlement */
+  /* Balises d'emphase utilisées dans le texte des contrats et des règlements intérieurs :
+       **gras**   → mis en gras (noms, dates, horaires, montants, acomptes, cautions,
+                    prestations incluses, obligations avant le départ…)
+       !!rouge!!  → gras rouge, réservé aux clauses de sanction
+     Le même balisage est compris par la version Word (lineToRuns), pour que les deux
+     documents soient rigoureusement identiques. */
+  function emphases(txt){
+    return String(txt)
+      .replace(/!!([^!]+)!!/g,'<strong style="color:#B22222">$1</strong>')
+      .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+  }
   function styleLine(txt){
     if(!txt)return'';
+    txt=emphases(txt);
     // Passages en gras rouge — formules de sanction / interruption / caution
     txt=txt.replace(/(Sans signature du règlement intérieur[^.]*\.)/gi,'<strong style="color:#B22222;font-size:11pt">$1</strong>');
     txt=txt.replace(/(Le non-respect des consignes[^.]*sans remboursement\.)/gi,'<strong style="color:#B22222">$1</strong>');
@@ -5202,6 +5698,14 @@ function generateContractHtml(r){
     if(s.h)html+=`<h2 class="grad-bg">${s.h}</h2>`;
     s.p.forEach(line=>{
       if(line===''){html+='<div style="height:8px"></div>';return;}
+      if(line.startsWith('§ ')){
+        html+=`<div class="reg-sub" style="color:${cd.couleur||'#7A5800'}">${styleLine(line.slice(2))}</div>`;
+        return;
+      }
+      if(line.startsWith('• ')){
+        html+=`<p class="reg-puce">${styleLine(line.slice(2))}</p>`;
+        return;
+      }
       html+=`<p>${styleLine(styleNum(line,cd.couleur))}</p>`;
     });
     return html;
@@ -5228,6 +5732,14 @@ function generateContractHtml(r){
     }
     s.p.forEach(line=>{
       if(line===''){html+='<div style="height:6px"></div>';return;}
+      if(line.startsWith('§ ')){
+        html+=`<div class="reg-sub" style="color:${cd.couleur||'#7A5800'}">${styleLine(line.slice(2))}</div>`;
+        return;
+      }
+      if(line.startsWith('• ')){
+        html+=`<p class="reg-p reg-puce">${styleLine(line.slice(2))}</p>`;
+        return;
+      }
       html+=`<p class="reg-p">${styleLine(styleNum(line,cd.couleur))}</p>`;
     });
     return html;
@@ -5295,6 +5807,17 @@ function generateContractHtml(r){
       padding:7px 14px;margin:20px 0 10px;border-radius:4px;
     }
     p.reg-p{margin:4px 0 8px;text-align:justify;font-size:10pt;line-height:1.55}
+    .reg-sub{font-weight:700;font-size:10pt;margin:11px 0 3px}
+    .reg-puce{margin:2px 0 2px 16px;text-indent:-11px;font-size:10pt;line-height:1.5}
+    .reg-puce::before{content:'‣ ';font-weight:700}
+    /* Bloc de signature de l'annexe : le règlement intérieur est signé en même temps que le
+       contrat, c'est ce qui le rend opposable. */
+    .annex-sign{margin-top:22px;page-break-inside:avoid}
+    .annex-sign .as-row{display:flex;gap:14px;margin-bottom:10px}
+    .annex-sign .as-box{flex:1;border:1px solid #bbb;border-radius:4px;overflow:hidden}
+    .annex-sign .as-lbl{font-size:8pt;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#fff;padding:4px 8px}
+    .annex-sign .as-fill{height:34px;background:#fbfbfa}
+    .annex-sign .as-fill.grand{height:78px}
 
     /* ── EMPHASES ── */
     strong{font-weight:700}
@@ -5327,11 +5850,24 @@ function generateContractHtml(r){
     ${buildAnnexSections(r).length?`<div class="annex-break">
     <div class="annex-header">
       ${cd.logo?`<img src="${cd.logo}" alt="${cd.nomDomaine}">`:''}
-      <div class="annex-title grad-bg">Règlement intérieur</div>
+      <div class="annex-title grad-bg">Annexe 1 — Règlement intérieur</div>
       <div class="annex-subtitle">${cd.nomDomaine}</div>
+      <div style="margin-top:10px;font-size:9.5pt;color:#333;text-align:justify;border:1px solid #ddd;border-radius:5px;padding:8px 12px;background:#fbfbfa">
+        <strong>Le présent règlement intérieur fait partie intégrante du contrat de location auquel il est annexé.</strong>
+        Il est signé en même temps que celui-ci : sa signature vaut prise de connaissance et acceptation sans réserve
+        de l'ensemble des règles qui suivent, qui sont dès lors opposables au Preneur et à toutes les personnes qu'il accueille.
+      </div>
     </div>`:''}
     ${annexSectionsHtml}
-    <div class="sig-final">Nom, date et signature précédée de la mention « lu et approuvé »</div>
+    <div class="annex-sign">
+      <div style="font-size:9.5pt;font-style:italic;color:#666;text-align:right;margin-bottom:6px">Signature précédée de la mention « lu et approuvé »</div>
+      <div class="as-row">
+        <div class="as-box"><div class="as-lbl grad-bg">Fait à</div><div class="as-fill"></div></div>
+        <div class="as-box"><div class="as-lbl grad-bg">Le</div><div class="as-fill"></div></div>
+      </div>
+      <div class="as-box" style="margin-bottom:10px"><div class="as-lbl grad-bg">Nom du Locataire</div><div class="as-fill"></div></div>
+      <div class="as-box"><div class="as-lbl grad-bg">Signature du Locataire</div><div class="as-fill grand"></div></div>
+    </div>
   </div>
 
   <div class="footer-note">${cd.nomDomaine} &nbsp;·&nbsp; ${cd.siteWeb} &nbsp;·&nbsp; ${cd.email}</div>
@@ -5394,7 +5930,7 @@ async function downloadContractDocx(rid){
   if(!r.contratDate){r.contratDate=dstr(new Date());saveD();}
   if(typeof docx==='undefined'){alert('La librairie Word ne s\u2019est pas chargée (connexion internet nécessaire). Réessaie dans quelques secondes.');return;}
   const{sections,cd,partiesData}=buildContractSections(r);
-  const{Document,Packer,Paragraph,TextRun,AlignmentType,ImageRun,BorderStyle,ShadingType}=docx;
+  const{Document,Packer,Paragraph,TextRun,AlignmentType,ImageRun,BorderStyle,ShadingType,Table,TableRow,TableCell,WidthType}=docx;
   const themeColor=(cd.couleur||'#8B5A4A').replace('#','');
   const themeLight=(cd.couleurClaire||'#F7F0DF').replace('#','');
   const children=[];
@@ -5448,8 +5984,23 @@ async function downloadContractDocx(rid){
       runs.push(new TextRun({text:numMatch[1]+' ',bold:true,color:themeColor,size:22}));
       rest=line.slice(numMatch[0].length);
     }
-    // Tokenise le reste selon les patterns d'emphase
-    let segments=[{text:rest,bold:false,color:'2A2A2A'}];
+    /* Balises explicites, identiques à celles de la version PDF : **gras** et !!gras rouge!!.
+       On les traite en premier, avant les repérages automatiques, pour que les deux documents
+       mettent EXACTEMENT les mêmes passages en valeur. */
+    let segments=[];
+    {
+      const re=/(\*\*[^*]+\*\*|!![^!]+!!)/g;
+      let last=0,m;
+      while((m=re.exec(rest))!==null){
+        if(m.index>last)segments.push({text:rest.slice(last,m.index),bold:false,color:'2A2A2A'});
+        const t=m[0];
+        if(t.startsWith('**'))segments.push({text:t.slice(2,-2),bold:true,color:'1A1A1A'});
+        else segments.push({text:t.slice(2,-2),bold:true,color:RED});
+        last=m.index+t.length;
+      }
+      if(last<rest.length)segments.push({text:rest.slice(last),bold:false,color:'2A2A2A'});
+      if(!segments.length)segments=[{text:rest,bold:false,color:'2A2A2A'}];
+    }
     patterns.forEach(({re,bold,color})=>{
       const newSegs=[];
       segments.forEach(seg=>{
@@ -5489,6 +6040,14 @@ async function downloadContractDocx(rid){
     children:[new TextRun({text:'Le Preneur',bold:true,size:21}),new TextRun({text:'\t'}),new TextRun({text:'David et Svitlana GONSON — Les Domaines de D.S',bold:true,size:21})],
     spacing:{after:700}
   }));
+  /* Signature manuscrite des Propriétaires — elle figurait dans le PDF mais pas du tout dans le
+     Word, quel que soit le domaine. Elle y est désormais, pour les trois domaines. */
+  if(typeof SIGNATURE_GONSON!=='undefined'&&SIGNATURE_GONSON){
+    try{
+      const sigBytes=base64ToUint8Array(SIGNATURE_GONSON);
+      children.push(new Paragraph({alignment:AlignmentType.RIGHT,children:[new ImageRun({data:sigBytes,transformation:{width:130,height:46},type:'png'})],spacing:{after:40}}));
+    }catch(e){}
+  }
   children.push(new Paragraph({
     tabStops:[{type:'right',position:9000}],
     children:[new TextRun({text:'Signature précédée de « lu et approuvé » — Date :',size:19,color:'888888'}),new TextRun({text:'\t'}),new TextRun({text:`Signature — Date : ${dateLong(r.contratDate||dstr(new Date()))}`,size:19,color:'888888'})]
@@ -5503,8 +6062,12 @@ async function downloadContractDocx(rid){
   } else {
     children.push(new Paragraph({pageBreakBefore:true,text:''}));
   }
-  children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'RÈGLEMENT INTÉRIEUR',bold:true,size:30,color:themeColor,allCaps:true})],spacing:{after:50}}));
-  children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:cd.nomDomaine,italics:true,size:20,color:'888888'})],spacing:{after:300},border:{bottom:{style:BorderStyle.THICK,size:8,color:themeColor,space:8}}}));
+  children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'ANNEXE 1 — RÈGLEMENT INTÉRIEUR',bold:true,size:30,color:themeColor,allCaps:true})],spacing:{after:50}}));
+  children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:cd.nomDomaine,italics:true,size:20,color:'888888'})],spacing:{after:200},border:{bottom:{style:BorderStyle.THICK,size:8,color:themeColor,space:8}}}));
+  children.push(new Paragraph({alignment:AlignmentType.JUSTIFIED,spacing:{after:280},children:[
+    new TextRun({text:'Le présent règlement intérieur fait partie intégrante du contrat de location auquel il est annexé.',bold:true,size:19}),
+    new TextRun({text:' Il est signé en même temps que celui-ci : sa signature vaut prise de connaissance et acceptation sans réserve de l\u2019ensemble des règles qui suivent, qui sont dès lors opposables au Preneur et à toutes les personnes qu\u2019il accueille.',size:19})
+  ]}));
 
   buildAnnexSections(r).forEach(s=>{
     if(!s.h&&!s.p.length)return;
@@ -5518,11 +6081,35 @@ async function downloadContractDocx(rid){
       }));
     }
     s.p.forEach(line=>{
-      if(!line)children.push(new Paragraph({text:'',spacing:{after:60}}));
-      else children.push(new Paragraph({children:lineToRuns(line),spacing:{after:55},alignment:AlignmentType.JUSTIFIED}));
+      if(!line){children.push(new Paragraph({text:'',spacing:{after:60}}));return;}
+      if(line.startsWith('§ ')){
+        children.push(new Paragraph({children:[new TextRun({text:line.slice(2),bold:true,size:20,color:themeColor})],spacing:{before:150,after:50}}));
+        return;
+      }
+      if(line.startsWith('• ')){
+        children.push(new Paragraph({children:lineToRuns(line.slice(2)),spacing:{after:40},indent:{left:340,hanging:180},bullet:{level:0}}));
+        return;
+      }
+      children.push(new Paragraph({children:lineToRuns(line),spacing:{after:55},alignment:AlignmentType.JUSTIFIED}));
     });
   });
-  children.push(new Paragraph({children:[new TextRun({text:'Nom, date et signature précédée de la mention « lu et approuvé »',italics:true,size:19,color:'888888'})],spacing:{before:360},border:{top:{style:BorderStyle.DASHED,size:4,color:'CCCCCC',space:6}}}));
+  /* Bloc de signature de l'annexe : c'est la signature du règlement intérieur lui-même qui le
+     rend opposable, en même temps que le contrat. */
+  children.push(new Paragraph({alignment:AlignmentType.RIGHT,children:[new TextRun({text:'Signature précédée de la mention « lu et approuvé »',italics:true,size:19,color:'666666'})],spacing:{before:400,after:120}}));
+  const caseSign=(lbl,haut)=>new Table({
+    width:{size:100,type:WidthType.PERCENTAGE},
+    rows:[
+      new TableRow({children:[new TableCell({shading:{type:ShadingType.SOLID,color:themeColor},children:[new Paragraph({children:[new TextRun({text:lbl.toUpperCase(),bold:true,size:16,color:'FFFFFF'})]})]})]}),
+      new TableRow({height:{value:haut,rule:'atLeast'},children:[new TableCell({children:[new Paragraph({text:''})]})]})
+    ]
+  });
+  children.push(caseSign('Fait à',420));
+  children.push(new Paragraph({text:'',spacing:{after:80}}));
+  children.push(caseSign('Le',420));
+  children.push(new Paragraph({text:'',spacing:{after:80}}));
+  children.push(caseSign('Nom du Locataire',420));
+  children.push(new Paragraph({text:'',spacing:{after:80}}));
+  children.push(caseSign('Signature du Locataire',1100));
 
   const doc=new Document({
     styles:{default:{document:{run:{font:'Georgia',size:21}}}},
@@ -5722,6 +6309,29 @@ function buildFullBackupWorkbook(){
     'Validé par':x.validatedBy||'','Validé le':tsStr(x.validatedAt)
   }));
 
+  /* Remboursements, encaissements et factures manquaient à la sauvegarde complète : une
+     restauration ne les remettait donc pas. Ils y sont désormais, comme tout le reste. */
+  const REMB_H=['ID','ID Prestataire','Prestataire','Domaine','Date','Montant €','Bénéficiaire','Motif','Statut','Validé par','Validé le'];
+  const rembRows=(D.remboursements||[]).map(x=>({
+    'ID':x.id,'ID Prestataire':x.pid,'Prestataire':gPre(x.pid).name,'Domaine':gDom(x.domaine).name,'Date':x.date||'',
+    'Montant €':x.montant||0,'Bénéficiaire':x.beneficiaire||'','Motif':x.note||'','Statut':x.status||'',
+    'Validé par':x.validatedBy||'','Validé le':tsStr(x.validatedAt)
+  }));
+
+  const ENC_H=['ID','ID Prestataire','Prestataire','Domaine','Date','Montant reçu €','Circuit','Provenance','Précision','Statut','Validé par','Validé le'];
+  const encRows=(D.encaissements||[]).map(x=>({
+    'ID':x.id,'ID Prestataire':x.pid,'Prestataire':gPre(x.pid).name,'Domaine':gDom(x.domaine).name,'Date':x.date||'',
+    'Montant reçu €':x.montant||0,'Circuit':x.via==='structure'?'Via sa structure':'Reçu en direct',
+    'Provenance':x.provenance||'','Précision':x.note||'','Statut':x.status||'',
+    'Validé par':x.validatedBy||'','Validé le':tsStr(x.validatedAt)
+  }));
+
+  const FACT_H=['ID','ID Prestataire','Prestataire','Mois','Montant €','Destinataire','Note'];
+  const factRows=(D.factures||[]).map(x=>({
+    'ID':x.id,'ID Prestataire':x.pid,'Prestataire':gPre(x.pid).name,'Mois':x.monthKey||'',
+    'Montant €':x.montant||0,'Destinataire':x.destinataire||'','Note':x.note||''
+  }));
+
   const DOM_H=['ID','Domaine','Date','Montant €','Réglé','Commentaire'];
   const dominiqueRows=(D.dominiqueSchedule||[]).map(x=>({
     'ID':x.id,'Domaine':gDom(x.domaine).name,'Date':x.date||'','Montant €':x.montant||0,'Réglé':x.paid?'Oui':'Non','Commentaire':x.comment||''
@@ -5768,6 +6378,9 @@ function buildFullBackupWorkbook(){
   addSheet('Gardiennage planning',GS_H,gardeSchedRows);
   addSheet('Travaux',TRAV_H,travauxRows);
   addSheet('Jardinage Dominique',DOM_H,dominiqueRows);
+  addSheet('Remboursements',REMB_H,rembRows);
+  addSheet('Encaissements',ENC_H,encRows);
+  addSheet('Factures',FACT_H,factRows);
   addSheet('Commentaires bilan',BC_H,bilanCommentRows);
   addSheet('Finances mensuelles',FIN_H,financeRows);
   addSheet('Repères - Domaines',DOMREF_H,domaineRows);
@@ -5872,6 +6485,30 @@ function parseFullBackupWorkbook(wb){
       montant:numVal(x['Montant €']),note:x['Note']||'',status:x['Statut']||'en_attente',validatedBy:x['Validé par']||''};
   }).filter(Boolean);
 
+  const remboursements=rowsOf('Remboursements').filter(x=>x['ID']).map(x=>{
+    const pid=pidOf(x),domaine=domIdByName(x['Domaine']);
+    if(!pid){skipped++;return null;}
+    return{id:String(x['ID']),pid,domaine:domaine||'',date:normDate(x['Date']),montant:numVal(x['Montant €']),
+      beneficiaire:x['Bénéficiaire']||'',note:x['Motif']||'',status:x['Statut']||'en_attente',
+      validatedBy:x['Validé par']||''};
+  }).filter(Boolean);
+
+  const encaissements=rowsOf('Encaissements').filter(x=>x['ID']).map(x=>{
+    const pid=pidOf(x),domaine=domIdByName(x['Domaine']);
+    if(!pid){skipped++;return null;}
+    return{id:String(x['ID']),pid,domaine:domaine||'',date:normDate(x['Date']),montant:numVal(x['Montant reçu €']),
+      via:(/structure/i.test(String(x['Circuit']||''))?'structure':'direct'),
+      provenance:x['Provenance']||'',note:x['Précision']||'',status:x['Statut']||'en_attente',
+      validatedBy:x['Validé par']||''};
+  }).filter(Boolean);
+
+  const factures=rowsOf('Factures').filter(x=>x['ID']).map(x=>{
+    const pid=pidOf(x);
+    if(!pid){skipped++;return null;}
+    return{id:String(x['ID']),pid,monthKey:String(x['Mois']||''),montant:numVal(x['Montant €']),
+      destinataire:x['Destinataire']||'',note:x['Note']||''};
+  }).filter(Boolean);
+
   const dominiqueSchedule=rowsOf('Jardinage Dominique').filter(x=>x['ID']).map(x=>{
     const domaine=domIdByName(x['Domaine']);
     if(!domaine){skipped++;return null;}
@@ -5896,7 +6533,8 @@ function parseFullBackupWorkbook(wb){
   });
 
   return{reservations,commentaires,paiements,prestaLines,gardeResa,prestasExterieurs,visites,gardeSchedule,
-    travauxSchedule,dominiqueSchedule,bilanComments,electriciteIndex,forfaitPaid,elecValide,skipped};
+    travauxSchedule,dominiqueSchedule,bilanComments,electriciteIndex,forfaitPaid,elecValide,
+    remboursements,encaissements,factures,skipped};
 }
 
 /* === Restauration « remettre à l'identique » ===
@@ -6013,6 +6651,9 @@ function computeIdentiqueExtras(snap){
     resa:Array.from(snapResaIds),
     visite:ids(snap.visites),
     travaux:ids(snap.travauxSchedule),
+    remboursement:ids(snap.remboursements),
+    encaissement:ids(snap.encaissements),
+    facture:ids(snap.factures),
     garde:ids(snap.gardeSchedule),
     dominique:ids(snap.dominiqueSchedule),
     bilanComment:ids(snap.bilanComments),
@@ -6024,6 +6665,9 @@ function computeIdentiqueExtras(snap){
     resaToReplace,resaToRemove,
     visites:listDiff(D.visites,snap.visites),
     travaux:listDiff(D.travauxSchedule,snap.travauxSchedule),
+    remboursements:listDiff(D.remboursements,snap.remboursements),
+    encaissements:listDiff(D.encaissements,snap.encaissements),
+    factures:listDiff(D.factures,snap.factures),
     gardeSched:listDiff(D.gardeSchedule,snap.gardeSchedule),
     dominique:listDiff(D.dominiqueSchedule,snap.dominiqueSchedule),
     bilanComments:listDiff(D.bilanComments,snap.bilanComments),
@@ -6042,6 +6686,7 @@ function computeRestoreDiff(snap,mode){
   const delSet=k=>identique?new Set():new Set((D.deletedIds&&D.deletedIds[k])||[]);
   const dResa=delSet('resa'),dVisite=delSet('visite'),dComment=delSet('comment'),dPaiement=delSet('paiement'),
         dPrestaLine=delSet('prestaLine'),dTravaux=delSet('travaux'),dGarde=delSet('garde'),
+        dRemb=delSet('remboursement'),dEnc=delSet('encaissement'),dFacture=delSet('facture'),
         dDominique=delSet('dominique'),dBilanComment=delSet('bilanComment'),dElecIndex=delSet('elecIndex');
 
   const existingResaById={};D.reservations.forEach(r=>existingResaById[r.id]=r);
@@ -6128,6 +6773,15 @@ function computeRestoreDiff(snap,mode){
   const existingBilanCommentIds=new Set((D.bilanComments||[]).map(x=>x.id));
   const bilanCommentsToAdd=snap.bilanComments.filter(x=>!existingBilanCommentIds.has(x.id)&&!dBilanComment.has(x.id));
 
+  const existingRembIds=new Set((D.remboursements||[]).map(x=>x.id));
+  const remboursementsToAdd=(snap.remboursements||[]).filter(x=>!existingRembIds.has(x.id)&&!dRemb.has(x.id));
+
+  const existingEncIds=new Set((D.encaissements||[]).map(x=>x.id));
+  const encaissementsToAdd=(snap.encaissements||[]).filter(x=>!existingEncIds.has(x.id)&&!dEnc.has(x.id));
+
+  const existingFactIds=new Set((D.factures||[]).map(x=>x.id));
+  const facturesToAdd=(snap.factures||[]).filter(x=>!existingFactIds.has(x.id)&&!dFacture.has(x.id));
+
   const elecIndexToFill={},forfaitPaidToFill={},elecValideToFill={};
   Object.entries(snap.electriciteIndex).forEach(([pid,months])=>{Object.entries(months).forEach(([mk,v])=>{
     if(dElecIndex.has(pid+'__'+mk))return; // supprimé volontairement : une sauvegarde plus ancienne ne le ressuscite pas
@@ -6152,19 +6806,25 @@ function computeRestoreDiff(snap,mode){
     gardiennagePlanning:gardeScheduleToAdd.length,
     jardinageDominique:dominiqueToAdd.length,
     commentairesBilan:bilanCommentsToAdd.length,
+    remboursements:remboursementsToAdd.length,
+    encaissements:encaissementsToAdd.length,
+    facturesRestaurees:facturesToAdd.length,
     financesMensuelles:Object.keys(elecIndexToFill).length+Object.keys(forfaitPaidToFill).length+Object.keys(elecValideToFill).length
   };
 
   const extras=identique?computeIdentiqueExtras(snap):null;
   if(extras){
     counts.corriges=extras.resaToReplace.length+extras.visites.toReplace.length+extras.travaux.toReplace.length
-      +extras.gardeSched.toReplace.length+extras.dominique.toReplace.length+extras.bilanComments.toReplace.length;
+      +extras.gardeSched.toReplace.length+extras.dominique.toReplace.length+extras.bilanComments.toReplace.length
+      +extras.remboursements.toReplace.length+extras.encaissements.toReplace.length+extras.factures.toReplace.length;
     counts.supprimes=extras.resaToRemove.length+extras.visites.toRemove.length+extras.travaux.toRemove.length
-      +extras.gardeSched.toRemove.length+extras.dominique.toRemove.length+extras.bilanComments.toRemove.length;
+      +extras.gardeSched.toRemove.length+extras.dominique.toRemove.length+extras.bilanComments.toRemove.length
+      +extras.remboursements.toRemove.length+extras.encaissements.toRemove.length+extras.factures.toRemove.length;
   }
   return{mode:mode||'complete',identique,extras,
     resaToAdd,commentsToAttach,paiementsToAttach,prestaLinesToAttach,gardeNightsToAttach,extToAttach,
     visitesToAdd,travauxToAdd,gardeScheduleToAdd,dominiqueToAdd,bilanCommentsToAdd,
+    remboursementsToAdd,encaissementsToAdd,facturesToAdd,
     elecIndexToFill,forfaitPaidToFill,elecValideToFill,counts,skipped:snap.skipped};
 }
 
@@ -6178,6 +6838,9 @@ function applyRestoreDiff(diff){
   diff.extToAttach.forEach(({resaId,item})=>{const r=D.reservations.find(x=>x.id===resaId);if(r){if(!r.prestasExterieurs)r.prestasExterieurs=[];r.prestasExterieurs.push(item);}});
   diff.visitesToAdd.forEach(v=>D.visites.push(v));
   diff.travauxToAdd.forEach(t=>{if(!D.travauxSchedule)D.travauxSchedule=[];D.travauxSchedule.push(t);});
+  (diff.remboursementsToAdd||[]).forEach(x=>{if(!D.remboursements)D.remboursements=[];D.remboursements.push(x);});
+  (diff.encaissementsToAdd||[]).forEach(x=>{if(!D.encaissements)D.encaissements=[];D.encaissements.push(x);});
+  (diff.facturesToAdd||[]).forEach(x=>{if(!D.factures)D.factures=[];D.factures.push(x);});
   diff.gardeScheduleToAdd.forEach(g=>{if(!D.gardeSchedule)D.gardeSchedule=[];D.gardeSchedule.push(g);});
   diff.dominiqueToAdd.forEach(d=>{if(!D.dominiqueSchedule)D.dominiqueSchedule=[];D.dominiqueSchedule.push(d);});
   diff.bilanCommentsToAdd.forEach(b=>{if(!D.bilanComments)D.bilanComments=[];D.bilanComments.push(b);});
@@ -6205,6 +6868,9 @@ function applyRestoreDiff(diff){
     applyList('gardeSched','garde',()=>D.gardeSchedule,a2=>{D.gardeSchedule=a2;});
     applyList('dominique','dominique',()=>D.dominiqueSchedule,a2=>{D.dominiqueSchedule=a2;});
     applyList('bilanComments','bilanComment',()=>D.bilanComments,a2=>{D.bilanComments=a2;});
+    applyList('remboursements','remboursement',()=>D.remboursements,a2=>{D.remboursements=a2;});
+    applyList('encaissements','encaissement',()=>D.encaissements,a2=>{D.encaissements=a2;});
+    applyList('factures','facture',()=>D.factures,a2=>{D.factures=a2;});
     /* En dernier : on efface les tombstones de TOUT ce que le fichier contient (toutes catégories),
        pour qu'aucun élément restauré ne soit re-supprimé par la synchronisation juste après. */
     Object.entries(E.snapIdsByCat||{}).forEach(([cat,idList])=>untomb(cat,idList));
@@ -6223,6 +6889,9 @@ function applyRestoreDiff(diff){
   if(c.gardiennagePlanning)parts.push(`${c.gardiennagePlanning} gardiennage(s) planifié(s)`);
   if(c.jardinageDominique)parts.push(`${c.jardinageDominique} journée(s) de jardinage`);
   if(c.commentairesBilan)parts.push(`${c.commentairesBilan} commentaire(s) de bilan`);
+  if(c.remboursements)parts.push(`${c.remboursements} remboursement(s)`);
+  if(c.encaissements)parts.push(`${c.encaissements} encaissement(s)`);
+  if(c.facturesRestaurees)parts.push(`${c.facturesRestaurees} facture(s)`);
   if(c.financesMensuelles)parts.push(`${c.financesMensuelles} donnée(s) financière(s) mensuelle(s)`);
   if(c.corriges)parts.push(`${c.corriges} corrigé(s) d'après le fichier`);
   if(c.supprimes)parts.push(`${c.supprimes} supprimé(s) (absent(s) du fichier)`);
@@ -7003,6 +7672,7 @@ function renderPrestaMonBilan(p){
   ${renderCommissionSection(p,y,m)}
   ${renderTravauxSection(p,y,m)}
   ${renderRemboursementSection(p,y,m)}
+  ${renderEncaissementSection(p,y,m)}
   ${renderElecSection(p,y,m)}`;
 }
 /* renderPrestaMonBilanFlat a été remplacé par le rendu unifié renderPrestaMonBilan (voir
@@ -7016,9 +7686,9 @@ function renderPrestaCalendrierSeul(p){
   const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
   const notifs=prestaVisibleLog(p).filter(it=>it.ts>lastSeen);
   const content=tab==='monbilan'?renderPrestaMonBilan(p):tab==='dernieres'?renderDernieresPresta(p):renderCalendrier();
-  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone">🔔</button>${renderSyncBadge()}<button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone">🔔</button>${renderSyncBadge()}${renderVersionBadge()}<button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
-  ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
+  ${renderVersionObsoleteBanner()}${renderNotifBanner(notifs,'dismissPrestaNotifs')}
   <div class="tabs">
     <button class="tab ${tab==='calendrier'?'active':''}" onclick="setPrestaTab('calendrier')"><span class="tab-ic">📅</span><span class="tab-lbl">Planning</span></button>
     <button class="tab ${tab==='monbilan'?'active':''}" onclick="setPrestaTab('monbilan')"><span class="tab-ic">💰</span><span class="tab-lbl">Mon Bilan</span></button>
@@ -7040,9 +7710,9 @@ function renderPrestaReadOnly(p){
   else if(tab==='clientsExport')content=renderClientsExport();
   const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
   const notifs=prestaVisibleLog(p).filter(it=>it.ts>lastSeen);
-  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone">🔔</button>${renderSyncBadge()}<button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone">🔔</button>${renderSyncBadge()}${renderVersionBadge()}<button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
-  ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
+  ${renderVersionObsoleteBanner()}${renderNotifBanner(notifs,'dismissPrestaNotifs')}
   <div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${tab===k?'active':''}" onclick="setPrestaTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>
   ${content}${S.modal?renderModalWrap():''}`;
 }
@@ -7081,9 +7751,9 @@ function renderPrestaFull(p){
   else if(tab==='monbilan')content=renderPrestaMonBilan(p);
   const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
   const notifs=prestaVisibleLog(p).filter(it=>it.ts>lastSeen);
-  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone">🔔</button>${renderSyncBadge()}<button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone">🔔</button>${renderSyncBadge()}${renderVersionBadge()}<button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
-  ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
+  ${renderVersionObsoleteBanner()}${renderNotifBanner(notifs,'dismissPrestaNotifs')}
   <div class="tabs">${tabs.map(([k,ic,l])=>`<button class="tab ${tab===k?'active':''}" onclick="setPrestaTab('${k}')"><span class="tab-ic">${ic}</span><span class="tab-lbl">${l}</span></button>`).join('')}</div>
   ${content}${S.modal?renderModalWrap():''}`;
 }
@@ -7100,7 +7770,7 @@ function renderPresta(){
   myR=myR.sort((a,b)=>(a.dateArrivee||a.date).localeCompare(b.dateArrivee||b.date));
   const future=myR.filter(r=>(r.dateDepart||r.dateArrivee||r.date)>=today);
   const past=myR.filter(r=>(r.dateDepart||r.dateArrivee||r.date)<today);
-  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Mes interventions</h1><span class="badge bp">${p.name}</span>${renderSyncBadge()}</div>
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Mes interventions</h1><span class="badge bp">${p.name}</span>${renderSyncBadge()}${renderVersionBadge()}</div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${future.length===0?`<div class="ev-card"><div class="empty">Aucune intervention à venir pour l'instant.</div></div>`:''}
   ${future.map(r=>{const dom=gDom(r.domaine);
@@ -7151,7 +7821,7 @@ function renderPrestaHoraires(p){
     const notifsD=prestaVisibleLog(p).filter(it=>it.ts>lastSeenD);
     return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Arrivées / départs</h1><span class="badge bp">${p.name}</span></div>
     ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
-    ${renderNotifBanner(notifsD,'dismissPrestaNotifs')}
+    ${renderVersionObsoleteBanner()}${renderNotifBanner(notifsD,'dismissPrestaNotifs')}
     ${horairesTabsBar}
     ${renderDernieresPresta(p)}`;
   }
@@ -7160,7 +7830,7 @@ function renderPrestaHoraires(p){
     const notifs0=prestaVisibleLog(p).filter(it=>it.ts>lastSeen);
     return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Arrivées / départs</h1><span class="badge bp">${p.name}</span></div>
     ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
-    ${renderNotifBanner(notifs0,'dismissPrestaNotifs')}
+    ${renderVersionObsoleteBanner()}${renderNotifBanner(notifs0,'dismissPrestaNotifs')}
     ${horairesTabsBar}
     ${renderPrestaMonBilan(p)}`;
   }
@@ -7173,7 +7843,7 @@ function renderPrestaHoraires(p){
   const notifs=prestaVisibleLog(p).filter(it=>it.ts>lastSeen);
   return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Arrivées / départs</h1><span class="badge bp">${p.name}</span></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
-  ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
+  ${renderVersionObsoleteBanner()}${renderNotifBanner(notifs,'dismissPrestaNotifs')}
   ${horairesTabsBar}
   ${future.length===0?`<div class="ev-card"><div class="empty">Aucune arrivée/départ à venir pour l'instant.</div></div>`:''}
   ${future.map(r=>{const dom=gDom(r.domaine);const isJ=r.dateArrivee===r.dateDepart;
@@ -7226,9 +7896,9 @@ function renderPrestaDominique(p){
       </div>`;}).join('')}
     </div>`;
   } else content=renderCalendrier();
-  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone">🔔</button>${renderSyncBadge()}<button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone">🔔</button>${renderSyncBadge()}${renderVersionBadge()}<button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
-  ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
+  ${renderVersionObsoleteBanner()}${renderNotifBanner(notifs,'dismissPrestaNotifs')}
   <div class="tabs">
     <button class="tab ${tab==='calendrier'?'active':''}" onclick="setPrestaTab('calendrier')"><span class="tab-ic">📅</span><span class="tab-lbl">Planning</span></button>
     <button class="tab ${tab==='planning'?'active':''}" onclick="setPrestaTab('planning')"><span class="tab-ic">🌱</span><span class="tab-lbl">Mon Planning</span></button>
@@ -7327,9 +7997,9 @@ function renderPrestaGardePersonnel(p){
       </div>
     </div>`:''}`;
   }
-  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Mes gardiennages</h1><span class="badge bp">${p.name}</span>${renderSyncBadge()}</div>
+  return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Mes gardiennages</h1><span class="badge bp">${p.name}</span>${renderSyncBadge()}${renderVersionBadge()}</div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
-  ${renderNotifBanner(notifs,'dismissPrestaNotifs')}
+  ${renderVersionObsoleteBanner()}${renderNotifBanner(notifs,'dismissPrestaNotifs')}
   <div class="tabs">
     <button class="tab ${tab==='planning'?'active':''}" onclick="setPrestaTab('planning')"><span class="tab-ic">📅</span><span class="tab-lbl">Planning</span></button>
     <button class="tab ${tab==='liste'?'active':''}" onclick="setPrestaTab('liste')"><span class="tab-ic">📋</span><span class="tab-lbl">Liste</span></button>
@@ -7475,7 +8145,10 @@ function renderBilanMonthDetail(y,m){
 function openM(type,id,extra){if(type==='newResa'||type==='editResa')S.payExtraRows=0;S.modal={type,id,...(extra||{})};render();}
 function closeM(){S.modal=null;render();}
 function closePanel(){S.selResa=null;render();}
-function showMsg(m){S.msg=m;render();setTimeout(()=>{S.msg=null;render();},3000);}
+/* La disparition automatique du message n'est PAS un geste de la personne : elle ne doit jamais
+   effacer un formulaire en cours de remplissage (c'était le cas — on validait une ligne, et trois
+   secondes plus tard la saisie suivante repartait à zéro toute seule). */
+function showMsg(m){S.msg=m;render();setTimeout(()=>{S.msg=null;renderArrierePlan();},3000);}
 function setTab(t){S.tab=t;S.calAnim=(t==='calendrier');S.msg=null;S.selResa=null;S.searchQuery=null;render();}
 function logout(){try{localStorage.removeItem('ds_session');}catch(e){}S.view='login';S.admin=null;S.presta=null;S.msg=null;S.selResa=null;S.searchQuery=null;render();}
 function calNav(d){S.calMonth+=d;if(S.calMonth>11){S.calMonth=0;S.calYear++;}if(S.calMonth<0){S.calMonth=11;S.calYear--;}S.selResa=null;render();}
@@ -7626,8 +8299,102 @@ function verifierPaiementEnregistre(rid,d,a,ty){
     r.paiements.push({id:gid(),date:d,montant:a,type:ty,comment:''});
     saveD();
     showMsg('Paiement rétabli automatiquement ✓');
-    if(!S.modal)render();
+    renderArrierePlan();
   },4000);
+}
+/* === DIAGNOSTIC DE SYNCHRONISATION ===
+   Quand « je modifie chez l'un et ça n'arrive pas chez l'autre », il n'y a que trois endroits
+   possibles : la modification n'est jamais partie de l'appareil A, elle est bien sur le serveur
+   mais l'appareil B la refuse, ou les deux appareils ne font pas tourner la même version.
+   Cet écran répond aux trois d'un coup : il va lire le serveur en direct et affiche, réservation
+   par réservation, ce qu'il y a ICI et ce qu'il y a LÀ-BAS. Plus besoin de deviner. */
+const DIAG_CHAMPS=[['montant','Montant'],['arrhes','Arrhes'],['depotGarantie','Dépôt'],
+  ['dateArrivee','Date d\'arrivée'],['dateDepart','Date de départ'],['heureArrivee','Heure d\'arrivée'],
+  ['heureDepart','Heure de départ'],['status','Statut'],['client','Client'],['tel','Téléphone'],
+  ['nbPersonnes','Couchages'],['nbSoiree','Invités soirée'],['typeEvenement','Type'],
+  ['noteInterne','Note interne']];
+function _vTxt(v){return(v===undefined||v===null||v==='')?'—':String(v);}
+async function lancerDiagnostic(){
+  S.diag={etat:'encours'};render();
+  let remote=null;
+  try{remote=await fetchRemoteD();}catch(e){}
+  if(!remote){S.diag={etat:'injoignable'};render();return;}
+  const parId={};(remote.reservations||[]).forEach(r=>{if(r&&r.id)parId[r.id]=r;});
+  const ecarts=[];
+  (D.reservations||[]).forEach(r=>{
+    const sv=parId[r.id];if(!sv)return;
+    const diffs=DIAG_CHAMPS
+      .filter(function(c){return _vTxt(r[c[0]])!==_vTxt(sv[c[0]]);})
+      .map(function(c){return{libelle:c[1],ici:_vTxt(r[c[0]]),serveur:_vTxt(sv[c[0]])};});
+    if(!diffs.length)return;
+    ecarts.push({id:r.id,client:(displayClientName(r)||r.client||'—'),domaine:r.domaine,
+      date:r.dateArrivee||'',diffs:diffs,
+      tsIci:r.fieldsUpdatedAt||r.updatedAt||0,tsServeur:sv.fieldsUpdatedAt||sv.updatedAt||0});
+  });
+  S.diag={etat:'ok',quand:Date.now(),ecarts:ecarts,
+    nIci:(D.reservations||[]).length,nServeur:(remote.reservations||[]).length,
+    iciSeulement:(D.reservations||[]).filter(function(r){return !parId[r.id];}).length,
+    serveurSeulement:(remote.reservations||[]).filter(function(sv){return !(D.reservations||[]).some(function(r){return r.id===sv.id;});}).length};
+  render();
+}
+/* Reprendre pour de bon la version du serveur sur une réservation précise : on recopie ses
+   champs et on la date au plus récent, pour que cet appareil arrête de défendre sa vieille
+   valeur — et que le reste du parc s'aligne aussi. */
+async function prendreValeurServeur(rid){
+  let remote=null;
+  try{remote=await fetchRemoteD();}catch(e){}
+  if(!remote){alert('Serveur injoignable pour le moment.');return;}
+  const sv=(remote.reservations||[]).find(function(x){return x.id===rid;});
+  const r=D.reservations.find(function(x){return x.id===rid;});
+  if(!sv||!r){alert('Réservation introuvable.');return;}
+  Object.keys(sv).forEach(function(k){
+    if(k==='commentaires'||k==='paiements'||k==='prestaLines')return;
+    r[k]=sv[k];
+  });
+  r.fieldsUpdatedAt=Date.now();r.updatedAt=Date.now();
+  saveD();showMsg('Valeurs du serveur reprises ✓');
+  lancerDiagnostic();
+}
+function renderDiagnosticSection(){
+  const d=S.diag;
+  let corps;
+  if(!d)corps='<div style="font-size:12.5px;color:#888">Appuie sur le bouton : l\'application va lire le serveur en direct et comparer.</div>';
+  else if(d.etat==='encours')corps='<div style="font-size:12.5px;color:#666">Lecture du serveur…</div>';
+  else if(d.etat==='injoignable')corps='<div style="font-size:12.5px;color:#A32D2D">Serveur injoignable — vérifie la connexion, puis relance.</div>';
+  else{
+    const entete=`<div style="font-size:12px;color:#555;margin-bottom:8px;line-height:1.5">
+      Comparé à ${new Date(d.quand).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})} ·
+      <strong>${d.nIci}</strong> réservation(s) ici, <strong>${d.nServeur}</strong> sur le serveur.
+      ${d.iciSeulement?`<br>⚠️ ${d.iciSeulement} présente(s) uniquement ici (pas encore envoyée(s)).`:''}
+      ${d.serveurSeulement?`<br>⚠️ ${d.serveurSeulement} présente(s) uniquement sur le serveur (pas encore reçue(s)).`:''}
+    </div>`;
+    if(!d.ecarts.length){
+      corps=entete+'<div style="background:#EAF4E3;border-radius:8px;padding:10px 12px;font-size:13px;color:#27500A">✓ Cet appareil et le serveur disent exactement la même chose.</div>';
+    }else{
+      corps=entete+d.ecarts.map(function(e){
+        return`<div style="background:#FDF4E3;border:1px solid #E9CE93;border-radius:8px;padding:9px 11px;margin-bottom:8px">
+          <div style="font-weight:700;font-size:13px;color:#7A5800;margin-bottom:4px">${e.client}<span style="font-weight:400;color:#8a7a55"> · ${gDom(e.domaine).name}${e.date?' · '+fmt(e.date):''}</span></div>
+          ${e.diffs.map(function(x){return`<div style="font-size:12.5px;padding:3px 0;border-bottom:1px solid #F0E2C8">
+            ${x.libelle} — <strong>ici : ${x.ici}</strong> · sur le serveur : <strong>${x.serveur}</strong>
+          </div>`;}).join('')}
+          <div style="font-size:10.5px;color:#9a8e6f;margin-top:5px">
+            Dernière modification — ici : ${e.tsIci>1?new Date(e.tsIci).toLocaleString('fr-FR'):'inconnue'} ·
+            sur le serveur : ${e.tsServeur>1?new Date(e.tsServeur).toLocaleString('fr-FR'):'inconnue'}
+          </div>
+          <button class="btn btn-xs btn-primary" style="margin-top:6px" onclick="prendreValeurServeur('${e.id}')">Prendre la valeur du serveur</button>
+        </div>`;
+      }).join('');
+    }
+  }
+  return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
+    <div class="sec-hdr"><h2>🩺 Diagnostic de synchronisation</h2></div>
+    <div style="font-size:12.5px;color:#555;margin:10px 0 12px;line-height:1.5">
+      Version installée sur cet appareil : <strong>v${APP_VERSION}</strong>.
+      Les deux téléphones doivent afficher le même numéro — sinon, celui qui est en retard garde une page en cache et il faut la recharger.
+    </div>
+    <button class="btn btn-primary" style="padding:9px 16px;font-size:13px;margin-bottom:12px" onclick="lancerDiagnostic()">🔄 Comparer avec le serveur</button>
+    ${corps}
+  </div>`;
 }
 function renderControleSection(){
   const a=auditDonnees();
@@ -8279,14 +9046,19 @@ function addTravaux(pid){
   const p=D.prestataires.find(x=>x.id===pid);
   const typeLabel=travauxTypeLabel(type).replace(/^[^ ]+ /,'');
   if(!D.travauxSchedule)D.travauxSchedule=[];
+  const manque=[];
+  if(!domaine)manque.push('le domaine');
+  if(!date)manque.push('la date');
   if(mode==='forfait'){
     const montant=parseFloat((document.getElementById('trav-forfait-'+pid)||{}).value)||0;
-    if(!domaine||!date||!montant)return;
+    if(!montant)manque.push('le montant');
+    if(manque.length){showMsgSansPerdre('Il manque '+manque.join(' et ')+' ⚠️');return;}
     D.travauxSchedule.push({id:gid(),pid,domaine,date,type,mode:'forfait',heures:null,montant:Math.round(montant*100)/100,note,status:'en_attente',createdAt:Date.now()});
     logActivity('créée',domaine,`${typeLabel} déclaré (forfait) — ${p?p.name:''} (${fmt(date)}, ${money(montant)})`,[pid],true);
   } else {
     const heures=parseFloat((document.getElementById('trav-heures-'+pid)||{}).value)||0;
-    if(!domaine||!date||!heures)return;
+    if(!heures)manque.push('le nombre d\'heures');
+    if(manque.length){showMsgSansPerdre('Il manque '+manque.join(' et ')+' ⚠️');return;}
     D.travauxSchedule.push({id:gid(),pid,domaine,date,type,mode:'heure',heures,montant:Math.round(heures*TRAVAUX_RATE*100)/100,note,status:'en_attente',createdAt:Date.now()});
     logActivity('créée',domaine,`${typeLabel} déclaré — ${p?p.name:''} (${fmt(date)}, ${heures}h)`,[pid],true);
   }
@@ -8306,7 +9078,13 @@ function addRemboursement(pid){
   const montant=parseFloat((document.getElementById('remb-montant-'+pid)||{}).value)||0;
   const beneficiaire=((document.getElementById('remb-benef-'+pid)||{}).value||'').trim();
   const note=((document.getElementById('remb-note-'+pid)||{}).value||'').trim();
-  if(!domaine||!date||!montant)return;
+  /* Un bouton qui ne fait rien et ne dit rien, c'est un bouton cassé du point de vue de celui
+     qui appuie dessus. On nomme précisément ce qui manque. */
+  const manque=[];
+  if(!domaine)manque.push('le domaine');
+  if(!date)manque.push('la date');
+  if(!montant)manque.push('le montant');
+  if(manque.length){showMsgSansPerdre('Il manque '+manque.join(' et ')+' ⚠️');return;}
   if(!D.remboursements)D.remboursements=[];
   D.remboursements.push({id:gid(),pid,domaine,date,montant:Math.round(montant*100)/100,beneficiaire,note,status:'en_attente',createdAt:Date.now()});
   const p=D.prestataires.find(x=>x.id===pid);
@@ -8465,6 +9243,7 @@ async function initApp(){
    n'avait pas, par chance, modifié quelque chose de son côté. Si personne d'autre ne touchait à
    rien, la saisie restait indéfiniment sur l'appareil, invisible pour tous les autres. */
 async function syncCycle(){
+  suivreVersion();
   /* === Économie de bande passante (quota Supabase) ===
      Avant, chaque battement re-téléchargeait TOUTES les données, sur chaque appareil, même
      quand rien n'avait bougé — d'où un « Egress » à 170 % du quota gratuit. Désormais on fait
@@ -8496,7 +9275,7 @@ async function syncCycle(){
        "réinitialiser" l'appli pour voir un commentaire arrivé entre-temps), mais on ne
        rafraîchit l'écran que si aucun formulaire n'est ouvert, pour ne jamais couper une
        saisie en cours. */
-    if(!S.modal)render();
+    renderArrierePlan();
   }
   if(serveurIncomplet){markSyncPending();pushRemoteD(D);}
   else markSynced();
