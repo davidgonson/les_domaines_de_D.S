@@ -309,7 +309,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 /* Numéro de version, affiché en haut de l'écran. Sert à répondre en une seconde à la seule
    question qui compte quand « ça marche chez moi mais pas chez elle » : les deux téléphones
    font-ils bien tourner la MÊME version ? */
-const APP_VERSION='2026-09-07-f';
+const APP_VERSION='2026-09-07-g';
 const SK='domnoрm_prod_v1';
 const SUPA_URL='https://hdtltrnabrgibkcvubzd.supabase.co';
 const SUPA_KEY='sb_publishable_zvpg0YOHegxqXJxbEKhSbQ_3oLwbrr1';
@@ -2193,7 +2193,12 @@ function menageDateRef(r){
   const arr=r.dateArrivee||r.dateDepart||r.date;
   if(!mi)return arr;
   const pre=gPre(mi.pid);
-  return(pre&&pre.menageMoisSur==='depart')?(r.dateDepart||arr):arr;
+  if(!pre||pre.menageMoisSur!=='depart')return arr;
+  /* Date de sortie : on accepte les anciennes écritures du champ, et on refuse une date de
+     départ antérieure à l'arrivée (donnée abîmée) — sinon un séjour à cheval sur deux mois
+     retombait silencieusement sur le mois d'arrivée. */
+  const dep=r.dateDepart||r.dateFin||r.date||arr;
+  return(dep&&arr&&dep<arr)?arr:(dep||arr);
 }
 function menageDansMois(r,y,m){
   const d=menageDateRef(r);
@@ -2208,6 +2213,24 @@ function renderMenageSection(p,y,m){
   const menagePaid=menageEvs.filter(x=>x.r.menagePaid).reduce((a,x)=>a+x.mi.montant,0);
   const surDepart=p.menageMoisSur==='depart';
   const T='#1E7A6E';
+  /* Un séjour qui chevauche deux mois n'apparaît que sur UN des deux. Pour qu'on ne se demande
+     jamais « où est passé ce ménage ? », on liste discrètement en bas les séjours qui touchent
+     le mois affiché mais qui sont comptés ailleurs, en disant où. */
+  const debutMois=`${y}-${String(m+1).padStart(2,'0')}-01`;
+  const finMois=`${y}-${String(m+1).padStart(2,'0')}-31`;
+  const voisines=D.reservations.filter(r=>{
+    if(r.status==='annulé')return false;
+    if(menageDansMois(r,y,m))return false;
+    const a=r.dateArrivee||r.date,d2=r.dateDepart||a;
+    if(!a||!d2)return false;
+    if(d2<debutMois||a>finMois)return false;          // ne touche pas le mois affiché
+    const mi=getMenageInfo(r);
+    return !!(mi&&mi.pid===p.id);
+  }).map(r=>{
+    const ref=menageDateRef(r)||'';
+    const mm=parseInt((ref.split('-')[1]||'0'),10)-1;
+    return{r,mi:getMenageInfo(r),moisRef:(MONTHS_FR[mm]||'—')+' '+(ref.split('-')[0]||'')};
+  }).sort((a,b)=>(a.r.dateArrivee||'').localeCompare(b.r.dateArrivee||''));
   return`<div id="bloc-menage" class="bilan-sec" style="border-left:3px solid ${T}">
     ${secBandeau('🧹','Forfait ménage',MONTHS_FR[m],y,menageTotal,T)}
     <div class="sec-regle">Sans commission. Un ménage est compté sur le mois ${surDepart?`du <strong>départ</strong> des clients — une réservation du 31 juillet au 2 août compte pour <strong>août</strong>`:`de l'<strong>arrivée</strong> des clients — une réservation du 31 juillet au 2 août compte pour <strong>juillet</strong>`}.</div>
@@ -2228,6 +2251,13 @@ function renderMenageSection(p,y,m){
         actions:`${isAdmin?regleToggle(!!r.menagePaid,`toggleMenagePaid('${r.id}')`):''}${valideBadge(!!r.menageValide,`toggleMenageValide('${r.id}')`)}`
       })+`<div style="margin:-4px 0 6px 0"><input type="text" id="menage-comment-${r.id}" value="${(r.menageComment||'').replace(/"/g,'&quot;')}" placeholder="Ajouter une note…" onchange="updMenageComment('${r.id}',this.value)" style="width:100%;font-size:11.5px;padding:4px 7px;color:#7a756d;border:1px solid #f0eee9;background:#fbfaf7;border-radius:6px;box-sizing:border-box"></div>`;}).join('')}
     ${menageEvs.length?ligneTotal('Total ménage',menageTotal,T):''}
+    ${voisines.length?`<div style="margin-top:10px;padding-top:8px;border-top:1px dashed #e2ded7">
+      <div style="font-size:10.5px;color:#9a958c;margin-bottom:5px">Séjours à cheval sur ${MONTHS_FR[m]}, comptés sur un autre mois :</div>
+      ${voisines.map(({r,mi,moisRef})=>`<div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:#9a958c;padding:3px 0">
+        <span style="flex:1;min-width:0">${ds(r.dateArrivee)} → ${ds(r.dateDepart)} · ${displayClientName(r)||'—'}</span>
+        <span style="flex-shrink:0">compté sur <strong>${moisRef}</strong> · ${money(mi.montant)}</span>
+      </div>`).join('')}
+    </div>`:''}
   </div>`;
 }
 /* === Forfait gardiennage fixe mensuel (Misha & Sasha) — 400€/mois, dû quel que soit le
@@ -3803,6 +3833,35 @@ function injectBands(){
   const gridRect=grid.getBoundingClientRect();
   const dayFrac=h=>Math.max(0,Math.min(1,(h-7)/15));
   const visReserve=buildVisiteReserve(S.calYear,S.calMonth);
+  /* === Où se loge la pastille de visite ? ===
+     Règle de David : elle ne doit JAMAIS chevaucher quoi que ce soit. Le jour où une réservation
+     part le matin et où une autre arrive l'après-midi, la pastille se met DANS LE TROU entre les
+     deux — quitte à décaler un peu les bandes, qui doivent malgré tout rester dans le bon jour.
+     On calcule donc d'abord, case par case et ligne par ligne, la fin de la bande qui s'y termine ;
+     la zone réservée se place juste derrière, et la bande qui démarre dans la même case est
+     repoussée derrière la zone (place laissée à son étiquette d'heure). */
+  const finDansCase={};
+  bands.forEach(b=>{
+    if(b.shapeClass!=='band-end'&&b.shapeClass!=='band-startend')return;
+    const k=(b.row*7+b.colStart+b.spanCols-1)+'_'+b.slot;
+    const f=dayFrac(b.visD);
+    if(finDansCase[k]===undefined||f>finDansCase[k])finDansCase[k]=f;
+  });
+  const zoneVis={};
+  Object.keys(visReserve).forEach(k=>{
+    const idx=parseInt(k.split('_')[0],10);
+    const c=cells[idx];if(!c)return;
+    const cr=c.getBoundingClientRect();
+    const cellL=cr.left-gridRect.left,cellW=cr.width;
+    const need=visiteReserveWidth(visReserve[k]);
+    const apres=(finDansCase[k]!==undefined)?(cellL+finDansCase[k]*cellW+3):(cellL+1);
+    /* Si la bande qui se termine laisse trop peu de place, on la raccourcit : la zone se pose
+       au tout début de la case et la bande s'arrête juste avant. */
+    let x=apres;
+    if(x+need>cellL+cellW-2)x=cellL+1;
+    zoneVis[k]={x,w:need,cellL,cellW,cellR:cellL+cellW};
+  });
+  window.__zoneVis=zoneVis;
   const placed=[];
   bands.forEach(b=>{
     const startIdx=b.row*7+b.colStart,endIdx=b.row*7+b.colStart+b.spanCols-1;
@@ -3844,21 +3903,27 @@ function injectBands(){
          juste derrière sa fin (fin de journée) ;
        - visites en PLEIN MILIEU du séjour : la bande ne bouge pas, la pastille se posera
          par-dessus en fin de case (voir injectVisiteMarkers) — jamais de coupure. */
+    const _LARG_HEURE=13;   // place laissée à l'étiquette « 16h » posée juste avant la bande
+    let _placeSerree=false; // vrai quand il a fallu sacrifier l'étiquette d'heure pour tenir dans le jour
     if(b.shapeClass==='band-start'||b.shapeClass==='band-startend'){
-      const _nA=visReserve[startIdx+'_'+b.slot]||0;
-      if(_nA){
-        const _need=visiteReserveWidth(_nA);
-        const _cellL=sRect.left-gridRect.left;
-        const _minLeft=_cellL+1+_need+2;
+      const _z=zoneVis[startIdx+'_'+b.slot];
+      if(_z){
+        const _cellR=(sRect.left+sRect.width)-gridRect.left;
+        /* On repousse le départ de la bande derrière la zone réservée à la pastille. Contrainte
+           absolue : la bande doit rester DANS SON JOUR. Si la case est trop étroite pour loger
+           en plus l'étiquette d'heure, c'est l'étiquette qui saute — jamais la règle du jour. */
+        const _apresZone=_z.x+_z.w+3;
+        let _minLeft=_apresZone+_LARG_HEURE;
+        if(_minLeft+10>_cellR){_minLeft=_apresZone;_placeSerree=true;}
         if(leftPx<_minLeft){const _shift=Math.min(_minLeft-leftPx,widthPx-6);if(_shift>0){leftPx+=_shift;widthPx-=_shift;}}
+        if(leftPx>_cellR-8)leftPx=Math.max(_apresZone,_cellR-8);
       }
     }
     if(b.shapeClass==='band-end'||b.shapeClass==='band-startend'){
-      const _nD=visReserve[endIdx+'_'+b.slot]||0;
-      if(_nD){
-        const _need=visiteReserveWidth(_nD);
-        const _cellR=(eRect.left+eRect.width)-gridRect.left;
-        const _maxRight=_cellR-1-_need-2;
+      const _z=zoneVis[endIdx+'_'+b.slot];
+      if(_z){
+        /* La bande qui se termine ne doit pas mordre sur la zone : on l'arrête juste avant. */
+        const _maxRight=_z.x-3;
         if(leftPx+widthPx>_maxRight)widthPx=Math.max(6,_maxRight-leftPx);
       }
     }
@@ -3880,7 +3945,7 @@ function injectBands(){
     const _showDepLbl=!b.isMeal&&(b.shapeClass==='band-end'||b.shapeClass==='band-startend')&&!!timeDepF0;
     let _renderLeft=leftPx,_renderWidth=widthPx;
     const _minBandW=26;
-    let _applyArr=_showArrLbl,_applyDep=_showDepLbl,_applyP=_showP;
+    let _applyArr=_showArrLbl&&!_placeSerree,_applyDep=_showDepLbl,_applyP=_showP&&!_placeSerree;
     let _applyLeftCol=_applyArr||_applyP;
     if(_applyLeftCol||_applyDep){
       const _shrink=(_applyLeftCol?_hourMargin:0)+(_applyDep?_hourMargin:0);
@@ -4084,30 +4149,32 @@ function injectVisiteMarkers(){
     const cellCenter=cellLeft+cRect.width/2;
     const cellTop=cRect.top-gridRect.top;
     const n=list.length;
-    /* Emplacement : toujours sur la ligne du domaine de la visite, jamais sur une autre ligne.
-       La bande de réservation, elle, reste toujours ENTIÈRE (injectBands ne la découpe plus) :
-       c'est la pastille qui se place AUTOUR d'elle —
-       - jour sans réservation : en début de case (comme avant) ;
-       - jour de DÉPART d'une réservation : juste après la fin de la bande (fin de journée),
-         injectBands a déjà raccourci la bande pour lui laisser la place ;
-       - jour d'ARRIVÉE : juste devant le début de la bande (début de journée) ;
-       - plein milieu d'un séjour (la bande occupe toute la case) : par-dessus la bande, en fin
-         de case — la bande ne se coupe jamais, et la pastille (bord blanc + ombre) reste lisible. */
+    /* Emplacement : toujours sur la ligne du domaine de la visite, et JAMAIS à cheval sur
+       quoi que ce soit (règle de David). injectBands a réservé la place en amont — entre la fin
+       de la réservation qui part et le début de celle qui arrive — et a décalé les bandes en
+       conséquence. On se pose donc exactement dans cette zone.
+       Il ne reste qu'un cas sans solution : un séjour qui occupe toute la journée, sans trou.
+       On cherche alors le plus grand intervalle libre de la ligne ; s'il n'y en a aucun, on se
+       pose en fin de case, par-dessus — la bande, elle, ne se coupe jamais. */
     const need=n*markerD+(n-1)*gap;
     const rowTop=cellTop+_offV+slot*_pitchV;
-    const rowObst=obstacles.filter(o=>Math.abs(o.top-rowTop)<5&&o.left<cellRight-1&&o.left+o.width>cellLeft+1);
     const chosen={rowTop,startX:cellLeft+1,d:markerD,g:gap,moved:false,overlay:false};
-    if(rowObst.length){
-      const spans=freeSpans(rowTop,cellLeft,cellRight).filter(s=>s[1]-s[0]>=need);
-      if(spans.length){
-        /* On prend l'intervalle libre le plus à DROITE (fin de journée) qui a la place. */
-        const sp=spans[spans.length-1];
-        const hasBandBefore=sp[0]>cellLeft+2;   // un obstacle (bande/heure) juste avant l'intervalle
-        chosen.startX=hasBandBefore?sp[0]+1:Math.max(cellLeft+1,sp[1]-need);
-      } else {
-        /* Aucun espace libre (séjour qui occupe toute la case) : par-dessus, en fin de case. */
-        chosen.startX=Math.max(cellLeft+1,cellRight-1-need);
-        chosen.overlay=true;
+    const zone=(window.__zoneVis||{})[cellInfo.ci+'_'+slot];
+    if(zone&&zone.w>=need-1){
+      chosen.startX=zone.x;
+    } else {
+      const rowObst=obstacles.filter(o=>Math.abs(o.top-rowTop)<5&&o.left<cellRight-1&&o.left+o.width>cellLeft+1);
+      if(rowObst.length){
+        const spans=freeSpans(rowTop,cellLeft,cellRight).filter(s=>s[1]-s[0]>=need);
+        if(spans.length){
+          /* Le plus GRAND intervalle libre : c'est celui qui laisse le plus d'air autour. */
+          let sp=spans[0];
+          spans.forEach(x=>{if(x[1]-x[0]>sp[1]-sp[0])sp=x;});
+          chosen.startX=Math.max(cellLeft+1,Math.min(sp[0]+1,sp[1]-need));
+        } else {
+          chosen.startX=Math.max(cellLeft+1,cellRight-1-need);
+          chosen.overlay=true;
+        }
       }
     }
     // Sécurité : si la case est vraiment trop étroite, on réduit la pastille plutôt que de déborder.
