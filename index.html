@@ -309,7 +309,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 /* Numéro de version, affiché en haut de l'écran. Sert à répondre en une seconde à la seule
    question qui compte quand « ça marche chez moi mais pas chez elle » : les deux téléphones
    font-ils bien tourner la MÊME version ? */
-const APP_VERSION='2026-09-07-g';
+const APP_VERSION='2026-09-07-h';
 const SK='domnoрm_prod_v1';
 const SUPA_URL='https://hdtltrnabrgibkcvubzd.supabase.co';
 const SUPA_KEY='sb_publishable_zvpg0YOHegxqXJxbEKhSbQ_3oLwbrr1';
@@ -1049,7 +1049,10 @@ function runMigrations(){
        réglage retombait sur « arrivée » à chaque démarrage, silencieusement. On l'accroche
        maintenant à l'identifiant de la fiche, qui ne bouge jamais — et on respecte un choix fait
        à la main dans la fiche du prestataire. */
-    if(!p.menageMoisManuel)p.menageMoisSur=estSacha(p)?'depart':'arrivee';
+    /* Sacha : le ménage tombe TOUJOURS le jour de sortie. C'est une règle métier, pas un
+       réglage — on la force à chaque démarrage, quoi qu'il y ait dans les données. */
+    if(estSacha(p))p.menageMoisSur='depart';
+    else if(!p.menageMoisManuel)p.menageMoisSur='arrivee';
     else if(p.menageMoisSur!=='depart'&&p.menageMoisSur!=='arrivee')p.menageMoisSur='arrivee';
     /* Nom de sa structure, pour pouvoir la nommer à l'écran (encaissements via Ozarko). */
     if(estMisha(p)&&!p.structure)p.structure='Ozarko';
@@ -2188,6 +2191,26 @@ function renderBilanComments(p,y,m){
    la prestation au séjour : la même réservation reste sur juillet.
    La règle s'applique au calcul, donc elle vaut rétroactivement sur tout l'historique — aucune
    donnée à reprendre à la main. */
+/* === Sur quel jour tombe le ménage d'un séjour ? ===
+   La règle appartient au PRESTATAIRE : Sacha nettoie après le départ (le ménage tombe donc le
+   jour de SORTIE), Misha le rattache au séjour (jour d'arrivée).
+   On prend le prestataire en paramètre au lieu d'aller le rechercher : partout où l'écran
+   affiche « compté sur le mois du départ », c'est exactement le même objet qui sert au calcul.
+   Plus aucun moyen que la phrase affichée et le calcul divergent. */
+function menageJour(r,p){
+  const arr=r.dateArrivee||r.date||r.dateDepart;
+  const dep=r.dateDepart||r.dateFin||arr;
+  if(!p||p.menageMoisSur!=='depart')return arr;
+  if(!dep)return arr;
+  return(arr&&dep<arr)?arr:dep;      // date de sortie incohérente : on retombe sur l'arrivée
+}
+function menageDansMoisPour(r,p,y,m){
+  const d=menageJour(r,p);
+  if(!d)return false;
+  const[ry,rm]=String(d).split('-').map(Number);
+  return ry===y&&rm===(m+1);
+}
+/* Variante sans prestataire sous la main (récap admin, liste imprimable) : on va le chercher. */
 function menageDateRef(r){
   const mi=getMenageInfo(r);
   const arr=r.dateArrivee||r.dateDepart||r.date;
@@ -2208,7 +2231,7 @@ function menageDansMois(r,y,m){
 }
 function renderMenageSection(p,y,m){
   const isAdmin=S.view==='admin';
-  const menageEvs=D.reservations.filter(r=>r.status!=='annulé'&&menageDansMois(r,y,m)).map(r=>({r,mi:getMenageInfo(r)})).filter(x=>x.mi&&x.mi.pid===p.id);
+  const menageEvs=D.reservations.filter(r=>r.status!=='annulé'&&menageDansMoisPour(r,p,y,m)).map(r=>({r,mi:getMenageInfo(r)})).filter(x=>x.mi&&x.mi.pid===p.id);
   const menageTotal=menageEvs.reduce((a,x)=>a+x.mi.montant,0);
   const menagePaid=menageEvs.filter(x=>x.r.menagePaid).reduce((a,x)=>a+x.mi.montant,0);
   const surDepart=p.menageMoisSur==='depart';
@@ -2220,16 +2243,24 @@ function renderMenageSection(p,y,m){
   const finMois=`${y}-${String(m+1).padStart(2,'0')}-31`;
   const voisines=D.reservations.filter(r=>{
     if(r.status==='annulé')return false;
-    if(menageDansMois(r,y,m))return false;
+    if(menageDansMoisPour(r,p,y,m))return false;
     const a=r.dateArrivee||r.date,d2=r.dateDepart||a;
     if(!a||!d2)return false;
     if(d2<debutMois||a>finMois)return false;          // ne touche pas le mois affiché
     const mi=getMenageInfo(r);
     return !!(mi&&mi.pid===p.id);
   }).map(r=>{
-    const ref=menageDateRef(r)||'';
+    const ref=menageJour(r,p)||'';
     const mm=parseInt((ref.split('-')[1]||'0'),10)-1;
-    return{r,mi:getMenageInfo(r),moisRef:(MONTHS_FR[mm]||'—')+' '+(ref.split('-')[0]||'')};
+    const mi=getMenageInfo(r);
+    /* Si une ligne atterrit ici alors qu'elle devrait être dans le mois affiché, c'est que la
+       donnée elle-même cloche. On montre donc les valeurs BRUTES telles qu'elles sont
+       enregistrées : arrivée, départ, date retenue pour le ménage, et à qui il est rattaché.
+       Une capture d'écran suffit alors à savoir où est le problème. */
+    return{r,mi,ref,
+      moisRef:(MONTHS_FR[mm]||'—')+' '+(ref.split('-')[0]||''),
+      brut:`arr ${r.dateArrivee||'—'} · dép ${r.dateDepart||'—'} · retenu ${ref||'—'} · ${mi?mi.pid:'—'}`,
+      louche:(r.dateDepart&&r.dateArrivee&&r.dateDepart<r.dateArrivee)||!r.dateDepart};
   }).sort((a,b)=>(a.r.dateArrivee||'').localeCompare(b.r.dateArrivee||''));
   return`<div id="bloc-menage" class="bilan-sec" style="border-left:3px solid ${T}">
     ${secBandeau('🧹','Forfait ménage',MONTHS_FR[m],y,menageTotal,T)}
@@ -2242,7 +2273,7 @@ function renderMenageSection(p,y,m){
     ${menageEvs.length===0?'<div class="empty">Aucun forfait ménage ce mois-ci.</div>':''}
     ${menageEvs.map(({r,mi})=>{const dom=gDom(r.domaine);
       const sejour=(r.dateDepart&&r.dateDepart!==r.dateArrivee)?ds(r.dateArrivee)+' → '+ds(r.dateDepart):ds(r.dateArrivee);
-      const jourCompte=surDepart?(r.dateDepart||r.dateArrivee):r.dateArrivee;
+      const jourCompte=menageJour(r,p);
       return ligneMontant({
         date:ds(jourCompte),
         titre:`<span class="pill ${PILL[dom.color||0]}" style="margin-right:5px">${dom.name}</span>${displayClientName(r)||'—'}`,
@@ -2252,10 +2283,13 @@ function renderMenageSection(p,y,m){
       })+`<div style="margin:-4px 0 6px 0"><input type="text" id="menage-comment-${r.id}" value="${(r.menageComment||'').replace(/"/g,'&quot;')}" placeholder="Ajouter une note…" onchange="updMenageComment('${r.id}',this.value)" style="width:100%;font-size:11.5px;padding:4px 7px;color:#7a756d;border:1px solid #f0eee9;background:#fbfaf7;border-radius:6px;box-sizing:border-box"></div>`;}).join('')}
     ${menageEvs.length?ligneTotal('Total ménage',menageTotal,T):''}
     ${voisines.length?`<div style="margin-top:10px;padding-top:8px;border-top:1px dashed #e2ded7">
-      <div style="font-size:10.5px;color:#9a958c;margin-bottom:5px">Séjours à cheval sur ${MONTHS_FR[m]}, comptés sur un autre mois :</div>
-      ${voisines.map(({r,mi,moisRef})=>`<div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:#9a958c;padding:3px 0">
-        <span style="flex:1;min-width:0">${ds(r.dateArrivee)} → ${ds(r.dateDepart)} · ${displayClientName(r)||'—'}</span>
-        <span style="flex-shrink:0">compté sur <strong>${moisRef}</strong> · ${money(mi.montant)}</span>
+      <div style="font-size:10.5px;color:#9a958c;margin-bottom:5px">Pour information — séjours à cheval sur ${MONTHS_FR[m]} qui ne sont PAS comptés ici (ils sont facturés sur l'autre mois) :</div>
+      ${voisines.map(({r,mi,moisRef,brut,louche})=>`<div style="font-size:11.5px;color:#9a958c;padding:4px 0;border-bottom:1px solid #f4f2ee">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="flex:1;min-width:0">${ds(r.dateArrivee)} → ${ds(r.dateDepart)} · ${displayClientName(r)||'—'}</span>
+          <span style="flex-shrink:0">→ compté sur <strong>${moisRef}</strong> · ${money(mi.montant)}</span>
+        </div>
+        <div style="font-size:10px;color:${louche?'#A32D2D':'#bdb8ae'};margin-top:1px;font-family:ui-monospace,Menlo,monospace">${louche?'⚠️ dates incohérentes — ':''}${brut}</div>
       </div>`).join('')}
     </div>`:''}
   </div>`;
@@ -2373,7 +2407,7 @@ function computeBilanTotal(p,y,m){
   const inMonthDate=dateStr=>!!dateStr&&dateStr.startsWith(monthKey);
   const forfaitDu=p.forfaitMensuel||0;
   const forfaitRecu=isForfaitPaid(p.id,key)?forfaitDu:0;
-  const menageEvs=D.reservations.filter(r=>r.status!=='annulé'&&menageDansMois(r,y,m)).map(r=>({r,mi:getMenageInfo(r)})).filter(x=>x.mi&&x.mi.pid===p.id);
+  const menageEvs=D.reservations.filter(r=>r.status!=='annulé'&&menageDansMoisPour(r,p,y,m)).map(r=>({r,mi:getMenageInfo(r)})).filter(x=>x.mi&&x.mi.pid===p.id);
   const menageDu=menageEvs.reduce((a,x)=>a+x.mi.montant,0);
   const menageRecu=menageEvs.filter(x=>x.r.menagePaid).reduce((a,x)=>a+x.mi.montant,0);
   const menageEnAttente=menageEvs.filter(x=>!x.r.menageValide).length;
