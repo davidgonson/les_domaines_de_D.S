@@ -163,6 +163,8 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .recap .r-n{display:flex;align-items:center;gap:7px;min-width:0}
 .recap .r-ic{width:22px;height:22px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
 .recap .r-v{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;flex-shrink:0}
+.recap .r-zero{opacity:.55}
+.recap .r-zero .r-v{color:#9a958c;font-weight:600}
 .recap .r-plus{color:#1F7A3D}
 .recap .r-moins{color:#A32D2D}
 .recap .r-tot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0 6px;margin-top:3px;border-top:2px solid #993556;font-weight:700;color:#72243E}
@@ -307,7 +309,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 /* Numéro de version, affiché en haut de l'écran. Sert à répondre en une seconde à la seule
    question qui compte quand « ça marche chez moi mais pas chez elle » : les deux téléphones
    font-ils bien tourner la MÊME version ? */
-const APP_VERSION='2026-09-07-e';
+const APP_VERSION='2026-09-07-f';
 const SK='domnoрm_prod_v1';
 const SUPA_URL='https://hdtltrnabrgibkcvubzd.supabase.co';
 const SUPA_KEY='sb_publishable_zvpg0YOHegxqXJxbEKhSbQ_3oLwbrr1';
@@ -519,6 +521,11 @@ const CONTRACT_DATA={
     seuilPenalite:3,
     parkingMax:40,
     piscinePeriode:'toute l\u2019année',
+    /* Mise en page de l'annexe, reprise telle quelle du règlement intérieur d'origine :
+       UNE feuille A4 paysage recto-verso, trois colonnes par page. Les nombres sont les
+       indices des sections ci-dessous, regroupés par colonne puis par page. */
+    entete:{texte:'1 Chemin Wicart · 14100 Saint-Désir',align:'right'},
+    reglementPages:[[[0,1],[2],[3,4]],[[5,6],[7,8,9],[10,11,12]]],
     reglement:[
       {h:"1. USAGE GÉNÉRAL",p:[
         "§ 1.1 Destination des lieux et comportement",
@@ -663,6 +670,8 @@ const CONTRACT_DATA={
     seuilPenalite:3,
     parkingMax:70,
     piscinePeriode:'de mai à septembre',
+    entete:{texte:'429 chemin du Rogavel, 27500 Toutainville<br><span style="font-size:6.6pt">(accès via le portail blanc du 200 chemin du Manoir)</span>',align:'left'},
+    reglementPages:[[[0,1],[2],[3,4]],[[5,6],[7,8,9],[10,11,12]]],
     reglement:[
       {h:"1. USAGE GÉNÉRAL",p:[
         "§ 1.1 Destination des lieux et comportement",
@@ -816,6 +825,8 @@ const CONTRACT_DATA={
     seuilPenalite:2,
     parkingMax:7,
     piscinePeriode:'d\u2019avril à octobre',
+    entete:{texte:'<span style="letter-spacing:1.5px">ADRESSE</span><br>1 chemin de la Boullaye<br>14100 Fauguernon',align:'right'},
+    reglementPages:[[[0],[1],[2]],[[3,4,5],[6,7,8],[9,10,11,12]]],
     reglement:[
       {h:"1. USAGE GÉNÉRAL",p:[
         "§ 1.1 Destination des lieux et comportement",
@@ -953,6 +964,12 @@ const DEF={
 };
 
 let D=loadD();
+/* Identifier Misha et Sacha sans dépendre de l'orthographe exacte de leur nom : l'identifiant
+   de la fiche (p1 / p2) est la seule chose qui ne change jamais. Les variantes d'écriture
+   (Sacha / Sasha, Micha / Misha) sont acceptées en secours, pour une fiche recréée à la main. */
+const _sansAccent=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+function estMisha(p){return !!p&&(p.id==='p1'||/^mi[cs]ha$/.test(_sansAccent(p.name)));}
+function estSacha(p){return !!p&&(p.id==='p2'||/^sa[cs]ha$/.test(_sansAccent(p.name)));}
 function runMigrations(){
   if(!D.visites)D.visites=[];
   if(!D.activityLog)D.activityLog=[];
@@ -1010,11 +1027,11 @@ function runMigrations(){
     if(p.role==='Sécurité soirées')p.role='Sécurité';
     if(p.role==='Gardien & Traiteur')p.role='Gardien & Traiteur ou Service';
     if(p.role==='Gardien & Décoration')p.role='Gardien & Décoration ou Service';
-    if(p.name==='Misha'||p.name==='Sasha')p.autoAssign=false;
+    if(estMisha(p)||estSacha(p))p.autoAssign=false;
     // Misha et Sasha se remplacent l'un l'autre selon les besoins : chacun peut donc TRAVAILLER
     // sur le domaine de l'autre (être coché comme prestataire, déclarer des travaux…).
-    if(p.name==='Misha'&&!(p.domaines||[]).includes('d2'))p.domaines=[...(p.domaines||['d1']),'d2'];
-    if(p.name==='Sasha'&&!(p.domaines||[]).includes('d1'))p.domaines=[...(p.domaines||['d2']),'d1'];
+    if(estMisha(p)&&!(p.domaines||[]).includes('d2'))p.domaines=[...(p.domaines||['d1']),'d2'];
+    if(estSacha(p)&&!(p.domaines||[]).includes('d1'))p.domaines=[...(p.domaines||['d2']),'d1'];
     /* …mais « travailler sur un domaine » et « suivre la vie d'un domaine » sont deux choses
        différentes. homeDomaines = le(s) domaine(s) dont on suit l'actualité générale
        (réservations, visites, commentaires) dans « Dernières modifications ». David : « Misha
@@ -1023,19 +1040,23 @@ function runMigrations(){
        l'autre (quand ils y sont prestataires) reste évidemment visible — c'est la règle « mine »
        de prestaVisibleLog, indépendante de homeDomaines. Forcé à chaque démarrage : corrige
        aussi les données déjà enregistrées. */
-    if(p.name==='Misha')p.homeDomaines=['d1'];
-    if(p.name==='Sasha')p.homeDomaines=['d2'];
-    /* Mois d'imputation du ménage — voir menageDateRef. Sasha nettoie après le départ, Misha
-       rattache la prestation au séjour. Forcé à chaque démarrage pour que la règle s'applique
-       aussi à tout l'historique déjà enregistré. */
-    if(p.name==='Sasha')p.menageMoisSur='depart';
-    else if(p.menageMoisSur!=='depart')p.menageMoisSur='arrivee';
+    if(estMisha(p))p.homeDomaines=['d1'];
+    if(estSacha(p))p.homeDomaines=['d2'];
+    /* Mois d'imputation du ménage — voir menageDateRef. Sacha nettoie APRÈS le départ, Misha
+       rattache la prestation au séjour.
+       La règle était accrochée à l'orthographe exacte du nom ('Sasha') : dès que la fiche est
+       renommée (Sacha, Sasha, une majuscule qui change…), elle ne s'appliquait plus et le
+       réglage retombait sur « arrivée » à chaque démarrage, silencieusement. On l'accroche
+       maintenant à l'identifiant de la fiche, qui ne bouge jamais — et on respecte un choix fait
+       à la main dans la fiche du prestataire. */
+    if(!p.menageMoisManuel)p.menageMoisSur=estSacha(p)?'depart':'arrivee';
+    else if(p.menageMoisSur!=='depart'&&p.menageMoisSur!=='arrivee')p.menageMoisSur='arrivee';
     /* Nom de sa structure, pour pouvoir la nommer à l'écran (encaissements via Ozarko). */
-    if(p.name==='Misha'&&!p.structure)p.structure='Ozarko';
+    if(estMisha(p)&&!p.structure)p.structure='Ozarko';
     if(p.name==='Pascaline'){p.accessMode='calendrierSeul';if(p.flatRate===undefined)p.flatRate=250;}
     if(p.name==='Yana'){p.accessMode='readonly_nofinance';p.voitFinance=true;}
-    if((p.name==='Misha'||p.name==='Sasha')&&p.forfaitMensuel===undefined)p.forfaitMensuel=400;
-    if(p.name==='Misha'&&p.electricite===undefined)p.electricite=true;
+    if((estMisha(p)||estSacha(p))&&p.forfaitMensuel===undefined)p.forfaitMensuel=400;
+    if(estMisha(p)&&p.electricite===undefined)p.electricite=true;
   });
   (D.reservations||[]).forEach(r=>{
     if(r.typeEvenement==='Famille / Cousinade'||r.typeEvenement==='Séjour amis'||r.typeEvenement==='Famille / Ami')r.typeEvenement='Famille / Amis';
@@ -2836,12 +2857,17 @@ function ligneTotal(label,montant,teinte){
    augmente ce qu'on lui doit, « − » ce qui le diminue. */
 function bilanLigneRow(label,montant,sign,ancre,ic,teinte){
   const isNeg=sign==='-';
+  /* Une ligne à zéro reste AFFICHÉE (demande de David : « il faut qu'on voie bien qu'il y a zéro
+     en face »). Elle est simplement mise en sourdine, pour que l'œil aille d'abord sur ce qui
+     porte un montant — mais on sait au premier coup d'œil que le poste a été pris en compte,
+     et dans quel sens il joue. */
+  const nul=!montant;
   const lien=ancre
     ?`<a href="#${ancre}" onclick="event.preventDefault();var e=document.getElementById('${ancre}');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})">${label}</a>`
     :label;
-  return`<div class="r-l">
+  return`<div class="r-l${nul?' r-zero':''}">
     <span class="r-n">${ic?`<span class="r-ic" style="background:${teinte||'#F1EFEA'}">${ic}</span>`:''}<span>${lien}</span></span>
-    <span class="r-v ${isNeg?'r-moins':'r-plus'}">${isNeg?'−':'+'} ${money(montant)}</span>
+    <span class="r-v ${nul?'':(isNeg?'r-moins':'r-plus')}">${isNeg?'−':'+'} ${money(montant||0)}</span>
   </div>`;
 }
 /* Les deux lignes qui closent le mois, juste sous le TOTAL DÛ : « dont facture » — un simple
@@ -2886,7 +2912,7 @@ function renderBilanTotalSection(p,y,m){
       </div>`):''}
       ${isGardeOnly?bilanLigneRow('Gardiennage (nuits)',bt.gardeDu,'+','bloc-garde','🛡','#DDE7F6'):''}
       ${p.accessMode==='domaine'?bilanLigneRow([bilanVoix(p).pourNotreCompte,bilanVoix(p).aRembourser].filter(Boolean).join(' '),bt.rembDu,'+','bloc-remb','💳','#E4E1F7'):''}
-      ${(p.accessMode==='domaine'&&bt.encDu)?bilanLigneRow(bilanVoix(p).recuNotreCompte,bt.encDu,'-','bloc-enc','💰','#F7DCDC'):''}
+      ${p.accessMode==='domaine'?bilanLigneRow(bilanVoix(p).recuNotreCompte,bt.encDu,'-','bloc-enc','💰','#F7DCDC'):''}
       <div class="r-tot">
         <span>TOTAL DÛ — ${MONTHS_FR[m]}</span><span class="v">${money(bt.totalDu)}</span>
       </div>
@@ -5861,26 +5887,52 @@ function generateContractHtml(r){
     </div>
   </div>`;
 
-  /* CSS Règlement intérieur — tous les titres en bandeau coloré */
-  const annexSectionsHtml=buildAnnexSections(r).map((s,si)=>{
-    let html='';
-    if(s.h){
-      html+=`<div class="reg-section-header grad-bg">${s.h.toUpperCase()}</div>`;
-    }
-    s.p.forEach(line=>{
-      if(line===''){html+='<div style="height:6px"></div>';return;}
-      if(line.startsWith('§ ')){
-        html+=`<div class="reg-sub" style="color:${cd.couleur||'#7A5800'}">${styleLine(line.slice(2))}</div>`;
-        return;
-      }
-      if(line.startsWith('• ')){
-        html+=`<p class="reg-p reg-puce">${styleLine(line.slice(2))}</p>`;
-        return;
-      }
-      html+=`<p class="reg-p">${styleLine(styleNum(line,cd.couleur))}</p>`;
+  /* === ANNEXE : le règlement intérieur À L'IDENTIQUE de l'original ===
+     David : « une seule A4 recto-verso, en paysage, un copier-coller du fichier que je t'ai
+     donné ». On ne reflow donc pas le texte dans la mise en page du contrat : on redessine
+     exactement la feuille d'origine — deux pages paysage, trois colonnes chacune, en-tête avec
+     le logo au centre et l'adresse sur le côté, titres de section soulignés, sous-articles
+     numérotés en gras. Le découpage par page et par colonne vient de cd.reglementPages. */
+  const secs=buildAnnexSections(r);
+  const teinte=cd.couleur||'#7A5800';
+  function sectionA4(sec){
+    let html=`<div class="ri-sec"><div class="ri-h">${sec.h}</div>`;
+    sec.p.forEach(line=>{
+      if(line==='')return;
+      if(line.startsWith('§ ')){html+=`<div class="ri-sub">${styleLine(line.slice(2))}</div>`;return;}
+      if(line.startsWith('• ')){html+=`<p class="ri-p ri-li">${styleLine(line.slice(2))}</p>`;return;}
+      html+=`<p class="ri-p">${styleLine(line)}</p>`;
     });
-    return html;
-  }).join('');
+    return html+'</div>';
+  }
+  const blocSignature=`<div class="ri-sign">
+      <div class="ri-sign-t">Signature précédée de la mention « lu et approuvé »</div>
+      <div class="ri-sign-r">
+        <div class="ri-box"><div class="ri-box-l">Fait à</div><div class="ri-box-f"></div></div>
+        <div class="ri-box"><div class="ri-box-l">Le</div><div class="ri-box-f"></div></div>
+      </div>
+      <div class="ri-box"><div class="ri-box-l">Nom du Locataire</div><div class="ri-box-f"></div></div>
+      <div class="ri-box"><div class="ri-box-l">Signature</div><div class="ri-box-f grand"></div></div>
+    </div>`;
+  const pagesDef=cd.reglementPages||[[secs.map((_,i)=>i)]];
+  const annexeA4=secs.length?pagesDef.map((page,pi)=>{
+    const derniere=pi===pagesDef.length-1;
+    const cols=page.map((col,ci)=>{
+      const dedans=col.map(i=>secs[i]?sectionA4(secs[i]):'').join('');
+      const finale=(derniere&&ci===page.length-1)?blocSignature:'';
+      return`<div class="ri-col">${dedans}${finale}</div>`;
+    }).join('');
+    return`<div class="a4-paysage">
+      <div class="ri-cadre">
+        <div class="ri-entete">
+          <div class="ri-adr ${cd.entete&&cd.entete.align==='left'?'g':'d'}">${cd.entete?cd.entete.texte:''}</div>
+          ${cd.logo?`<img class="ri-logo" src="${cd.logo}" alt="">`:''}
+          <div class="ri-titre">2 - Règlement intérieur ${cd.nomDomaine.replace(/^Le /,'du ').replace(/^La /,'de la ')}</div>
+        </div>
+        <div class="ri-cols">${cols}</div>
+      </div>
+    </div>`;
+  }).join(''):'';
 
   return`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">
   <title>${contractFileName(r,cd,'pdf').replace(/\.pdf$/,'')}</title>
@@ -5930,6 +5982,40 @@ function generateContractHtml(r){
     .footer-note{text-align:center;font-size:9pt;color:#bbb;margin-top:44px;border-top:1px solid #eee;padding-top:10px;letter-spacing:.3px}
 
     /* ── SAUT DE PAGE + EN-TÊTE ANNEXE ── */
+    /* ══ ANNEXE : reproduction fidèle du règlement intérieur d'origine ══
+       Une A4 PAYSAGE recto-verso (297 × 210 mm), trois colonnes par page, cadre fin doré,
+       fond crème. Ces feuilles sont sorties telles quelles dans le PDF, en pages paysage. */
+    .annex-avis{margin-top:22px;font-size:9pt;color:#333;text-align:justify;border:1px solid #ddd;border-radius:5px;padding:9px 12px;background:#fbfbfa;line-height:1.5}
+    .zone-annexe{margin:0;padding:0}
+    .a4-paysage{width:297mm;height:210mm;box-sizing:border-box;padding:5mm;background:#fff;
+      page-break-before:always;break-before:page;overflow:hidden;position:relative}
+    .ri-cadre{width:100%;height:100%;box-sizing:border-box;border:1.1pt solid ${teinte};
+      background:#FFFDF8;padding:5mm 6mm;display:flex;flex-direction:column;overflow:hidden}
+    .ri-entete{position:relative;text-align:center;flex-shrink:0;margin-bottom:3.2mm}
+    .ri-logo{height:13mm;object-fit:contain;display:block;margin:0 auto 1.4mm}
+    .ri-adr{position:absolute;top:0;font-size:6.9pt;color:#6b5a3a;line-height:1.35;max-width:62mm}
+    .ri-adr.d{right:0;text-align:right}
+    .ri-adr.g{left:0;text-align:left;font-style:italic}
+    .ri-titre{font-size:12.5pt;font-weight:bold;color:#2A2A2A;letter-spacing:.2px}
+    .ri-cols{display:flex;gap:5.5mm;flex:1;min-height:0;align-items:stretch}
+    .ri-col{flex:1;min-width:0;display:flex;flex-direction:column}
+    .ri-sec{margin-bottom:1.9mm;break-inside:avoid}
+    .ri-h{font-size:8.2pt;font-weight:bold;color:${teinte};letter-spacing:.3px;
+      border-bottom:.9pt solid ${teinte};padding-bottom:.8mm;margin-bottom:1.3mm;text-transform:uppercase}
+    .ri-sub{font-size:7pt;font-weight:bold;color:${teinte};margin:1.2mm 0 .6mm}
+    .ri-p{font-size:6.7pt;line-height:1.33;text-align:justify;margin:0 0 .8mm;color:#252525}
+    .ri-li{margin-left:3.4mm;text-indent:-2.4mm}
+    .ri-li::before{content:'‣ ';font-weight:bold;color:${teinte}}
+    .ri-p strong{font-weight:bold}
+    .ri-sign{margin-top:auto;padding-top:1.5mm}
+    .ri-sign-t{font-size:6.7pt;font-style:italic;color:#6b665e;text-align:center;margin-bottom:1.2mm}
+    .ri-sign-r{display:flex;gap:2mm}
+    .ri-sign-r .ri-box{flex:1}
+    .ri-box{border:.7pt solid #b9ab8d;border-radius:1mm;overflow:hidden;margin-bottom:1.6mm}
+    .ri-box-l{font-size:6.2pt;font-weight:bold;letter-spacing:.4px;text-transform:uppercase;
+      color:#fff;background:${teinte};padding:.7mm 1.6mm}
+    .ri-box-f{height:6mm;background:#fff}
+    .ri-box-f.grand{height:12mm}
     .annex-break{page-break-before:always;padding-top:4px}
     .annex-header{text-align:center;padding-bottom:16px;margin:0 0 24px}
     .annex-header img{height:80px;object-fit:contain;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto}
@@ -5961,6 +6047,7 @@ function generateContractHtml(r){
     .sig-final{margin-top:28px;font-size:9.5pt;color:#666;font-style:italic;border-top:1px dashed #ccc;padding-top:14px}
   </style></head><body>
 
+  <div class="zone-contrat">
   <div class="contract-header">
     ${cd.logo?`<img src="${cd.logo}" alt="${cd.nomDomaine}">`:''}
     <div class="contract-title grad-bg">Contrat de location de vacances</div>
@@ -5984,31 +6071,18 @@ function generateContractHtml(r){
     </div>
   </div>
 
-    ${buildAnnexSections(r).length?`<div class="annex-break">
-    <div class="annex-header">
-      ${cd.logo?`<img src="${cd.logo}" alt="${cd.nomDomaine}">`:''}
-      <div class="annex-title grad-bg">Annexe 1 — Règlement intérieur</div>
-      <div class="annex-subtitle">${cd.nomDomaine}</div>
-      <div style="margin-top:10px;font-size:9.5pt;color:#333;text-align:justify;border:1px solid #ddd;border-radius:5px;padding:8px 12px;background:#fbfbfa">
-        <strong>Le présent règlement intérieur fait partie intégrante du contrat de location auquel il est annexé.</strong>
-        Il est signé en même temps que celui-ci : sa signature vaut prise de connaissance et acceptation sans réserve
-        de l'ensemble des règles qui suivent, qui sont dès lors opposables au Preneur et à toutes les personnes qu'il accueille.
-      </div>
+    ${secs.length?`<div class="annex-avis">
+      <strong>Annexe 1 — Règlement intérieur ${cd.nomDomaine}.</strong>
+      Le présent règlement intérieur, reproduit en annexe sur une feuille A4 recto-verso, fait partie intégrante du présent contrat.
+      Il est signé en même temps que celui-ci : sa signature vaut prise de connaissance et acceptation sans réserve de l'ensemble des règles
+      qui y figurent, qui sont dès lors opposables au Preneur et à toutes les personnes qu'il accueille.
     </div>`:''}
-    ${annexSectionsHtml}
-    <div class="annex-sign">
-      <div style="font-size:9.5pt;font-style:italic;color:#666;text-align:right;margin-bottom:6px">Signature précédée de la mention « lu et approuvé »</div>
-      <div class="as-row">
-        <div class="as-box"><div class="as-lbl grad-bg">Fait à</div><div class="as-fill"></div></div>
-        <div class="as-box"><div class="as-lbl grad-bg">Le</div><div class="as-fill"></div></div>
-      </div>
-      <div class="as-box" style="margin-bottom:10px"><div class="as-lbl grad-bg">Nom du Locataire</div><div class="as-fill"></div></div>
-      <div class="as-box"><div class="as-lbl grad-bg">Signature du Locataire</div><div class="as-fill grand"></div></div>
-    </div>
-  </div>
 
   <div class="footer-note">${cd.nomDomaine} &nbsp;·&nbsp; ${cd.siteWeb} &nbsp;·&nbsp; ${cd.email}</div>
   <div style="position:fixed;bottom:7mm;right:8mm;opacity:0.65;z-index:99"><svg width="42" height="26" viewBox="0 0 42 26" xmlns="http://www.w3.org/2000/svg"><path d="M3 4 L3 22 L8 22 Q15 22 15 13 Q15 4 8 4 Z" fill="none" stroke="#222" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M38 8 Q35 4 30 4 Q23 4 23 13 Q23 22 30 22 Q36 22 38 18 L38 13 L32 13" fill="none" stroke="#222" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 25 Q10 22 21 24 Q32 26 41 23" fill="none" stroke="#222" stroke-width="0.9" stroke-linecap="round"/></svg></div>
+  </div><!-- /zone-contrat -->
+  <div class="zone-annexe">${annexeA4}</div>
+
   </body></html>`;
 }
 
@@ -6027,23 +6101,42 @@ function downloadContractPdf(rid){
   S.modal={type:'contractViewer'};
   render();
 }
+/* Le contrat est en A4 PORTRAIT, l'annexe (le règlement intérieur) est une A4 PAYSAGE
+   recto-verso reproduite telle quelle. Un même PDF peut mélanger les deux orientations : on
+   fabrique d'abord les pages portrait du contrat, puis on ajoute une page paysage par feuille
+   d'annexe, l'image de la feuille occupant la page entière — donc à l'identique de l'original,
+   sans reflow ni recadrage. */
 function _savePdfFromHtml(html,fileName){
-  if(typeof html2pdf!=='undefined'){
-    const div=document.createElement('div');
-    div.style.cssText='position:fixed;left:-9999px;top:0;width:210mm;background:#fff;';
-    div.innerHTML=html;
-    document.body.appendChild(div);
-    html2pdf().set({
-      margin:[12,10,12,10],
-      filename:fileName,
-      image:{type:'jpeg',quality:.95},
-      html2canvas:{scale:2,useCORS:true,letterRendering:true},
-      jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}
-    }).from(div).save().finally(()=>document.body.removeChild(div));
-  } else {
-    // Fallback : télécharger comme fichier HTML consultable
-    _downloadAsHtml(html,fileName.replace(/\.pdf$/,'.html'));
+  if(typeof html2pdf==='undefined'){
+    _downloadAsHtml(html,fileName.replace(/\.pdf$/,'.html'));   // pas de moteur PDF : version HTML
+    return;
   }
+  const hote=document.createElement('div');
+  hote.style.cssText='position:fixed;left:-9999px;top:0;background:#fff;';
+  hote.innerHTML=html;
+  document.body.appendChild(hote);
+  const contrat=hote.querySelector('.zone-contrat')||hote;
+  contrat.style.width='210mm';
+  const feuilles=Array.from(hote.querySelectorAll('.a4-paysage'));
+  const zoneAnnexe=hote.querySelector('.zone-annexe');
+  if(zoneAnnexe)zoneAnnexe.style.display='none';   // l'annexe ne passe pas dans le flux portrait
+  const nettoyer=()=>{try{document.body.removeChild(hote);}catch(e){}};
+  html2pdf().set({
+    margin:[12,10,12,10],
+    filename:fileName,
+    image:{type:'jpeg',quality:.95},
+    html2canvas:{scale:2,useCORS:true,letterRendering:true},
+    jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}
+  }).from(contrat).toPdf().get('pdf').then(async pdf=>{
+    if(zoneAnnexe)zoneAnnexe.style.display='';
+    for(const feuille of feuilles){
+      const canvas=await html2pdf().set({html2canvas:{scale:2,useCORS:true,letterRendering:true}})
+        .from(feuille).toCanvas().get('canvas');
+      pdf.addPage([297,210],'landscape');
+      pdf.addImage(canvas.toDataURL('image/jpeg',0.95),'JPEG',0,0,297,210);
+    }
+    pdf.save(fileName);
+  }).then(nettoyer,e=>{nettoyer();console.warn('PDF',e);});
 }
 function _downloadAsHtml(html,fileName){
   const blob=new Blob([html],{type:'text/html;charset=utf-8'});
@@ -6098,7 +6191,10 @@ async function downloadContractDocx(rid){
   children.push(new Paragraph({text:'',spacing:{after:240},border:{bottom:{style:BorderStyle.SINGLE,size:4,color:'CCCCCC',space:6}}}));
 
   /* Helper: rend une ligne avec passages critiques en gras/rouge */
-  function lineToRuns(line){
+  /* `taille` (demi-points Word) permet de composer l'annexe en petit corps, comme sur la
+     feuille paysage d'origine, sans changer le corps du contrat. */
+  function lineToRuns(line,taille){
+    const T=taille||21;
     const RED='B22222';
     const patterns=[
       {re:/(Sans signature du règlement intérieur[^.]*\.)/gi,bold:true,color:RED},
@@ -6118,7 +6214,7 @@ async function downloadContractDocx(rid){
     const numMatch=line.match(/^(\d+(?:\.\d+)*\.)\s/);
     let rest=line;
     if(numMatch){
-      runs.push(new TextRun({text:numMatch[1]+' ',bold:true,color:themeColor,size:22}));
+      runs.push(new TextRun({text:numMatch[1]+' ',bold:true,color:themeColor,size:T+1}));
       rest=line.slice(numMatch[0].length);
     }
     /* Balises explicites, identiques à celles de la version PDF : **gras** et !!gras rouge!!.
@@ -6152,7 +6248,7 @@ async function downloadContractDocx(rid){
       });
       segments=newSegs;
     });
-    segments.forEach(s=>runs.push(new TextRun({text:s.text,bold:s.bold,color:s.color,size:21})));
+    segments.forEach(s=>runs.push(new TextRun({text:s.text,bold:s.bold,color:s.color,size:T})));
     return runs;
   }
 
@@ -6190,67 +6286,70 @@ async function downloadContractDocx(rid){
     children:[new TextRun({text:'Signature précédée de « lu et approuvé » — Date :',size:19,color:'888888'}),new TextRun({text:'\t'}),new TextRun({text:`Signature — Date : ${dateLong(r.contratDate||dstr(new Date()))}`,size:19,color:'888888'})]
   }));
 
-  /* ══ ANNEXE RÈGLEMENT INTÉRIEUR ══ */
+  /* ══ ANNEXE : LE RÈGLEMENT INTÉRIEUR, À L'IDENTIQUE DE L'ORIGINAL ══
+     Comme dans le PDF : une A4 PAYSAGE recto-verso, sur trois colonnes. C'est une SECTION Word
+     à part, avec sa propre orientation et son propre nombre de colonnes — le contrat, lui, reste
+     en portrait. */
+  const annexe=[];
   if(cd.logo){
     try{
       const imgBytes2=base64ToUint8Array(cd.logo);
-      children.push(new Paragraph({alignment:AlignmentType.CENTER,pageBreakBefore:true,children:[new ImageRun({data:imgBytes2,transformation:{width:85,height:85},type:'png'})],spacing:{after:120}}));
-    }catch(e){children.push(new Paragraph({pageBreakBefore:true,text:''}));}
-  } else {
-    children.push(new Paragraph({pageBreakBefore:true,text:''}));
+      annexe.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new ImageRun({data:imgBytes2,transformation:{width:52,height:52},type:'png'})],spacing:{after:60}}));
+    }catch(e){}
   }
-  children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'ANNEXE 1 — RÈGLEMENT INTÉRIEUR',bold:true,size:30,color:themeColor,allCaps:true})],spacing:{after:50}}));
-  children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:cd.nomDomaine,italics:true,size:20,color:'888888'})],spacing:{after:200},border:{bottom:{style:BorderStyle.THICK,size:8,color:themeColor,space:8}}}));
-  children.push(new Paragraph({alignment:AlignmentType.JUSTIFIED,spacing:{after:280},children:[
-    new TextRun({text:'Le présent règlement intérieur fait partie intégrante du contrat de location auquel il est annexé.',bold:true,size:19}),
-    new TextRun({text:' Il est signé en même temps que celui-ci : sa signature vaut prise de connaissance et acceptation sans réserve de l\u2019ensemble des règles qui suivent, qui sont dès lors opposables au Preneur et à toutes les personnes qu\u2019il accueille.',size:19})
-  ]}));
+  annexe.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:180},
+    children:[new TextRun({text:`2 - Règlement intérieur ${cd.nomDomaine.replace(/^Le /,'du ').replace(/^La /,'de la ')}`,bold:true,size:22})]}));
 
-  buildAnnexSections(r).forEach(s=>{
-    if(!s.h&&!s.p.length)return;
-    if(s.h){
-      /* Tous les titres en bandeau couleur domaine, texte blanc */
-      children.push(new Paragraph({
-        children:[new TextRun({text:s.h.toUpperCase(),bold:true,size:20,color:'FFFFFF',characterSpacing:60})],
-        spacing:{before:260,after:100},
-        shading:{type:ShadingType.SOLID,color:themeColor},
-        indent:{left:160,right:160}
+  buildAnnexSections(r).forEach(sec=>{
+    if(!sec.h&&!sec.p.length)return;
+    if(sec.h){
+      annexe.push(new Paragraph({
+        children:[new TextRun({text:sec.h.toUpperCase(),bold:true,size:16,color:themeColor,characterSpacing:20})],
+        spacing:{before:150,after:60},
+        border:{bottom:{style:BorderStyle.SINGLE,size:6,color:themeColor,space:2}}
       }));
     }
-    s.p.forEach(line=>{
-      if(!line){children.push(new Paragraph({text:'',spacing:{after:60}}));return;}
+    sec.p.forEach(line=>{
+      if(!line)return;
       if(line.startsWith('§ ')){
-        children.push(new Paragraph({children:[new TextRun({text:line.slice(2),bold:true,size:20,color:themeColor})],spacing:{before:150,after:50}}));
+        annexe.push(new Paragraph({children:[new TextRun({text:line.slice(2),bold:true,size:13,color:themeColor})],spacing:{before:90,after:30}}));
         return;
       }
       if(line.startsWith('• ')){
-        children.push(new Paragraph({children:lineToRuns(line.slice(2)),spacing:{after:40},indent:{left:340,hanging:180},bullet:{level:0}}));
+        annexe.push(new Paragraph({children:lineToRuns(line.slice(2),12),spacing:{after:25},indent:{left:220,hanging:120},bullet:{level:0}}));
         return;
       }
-      children.push(new Paragraph({children:lineToRuns(line),spacing:{after:55},alignment:AlignmentType.JUSTIFIED}));
+      annexe.push(new Paragraph({children:lineToRuns(line,12),spacing:{after:40},alignment:AlignmentType.JUSTIFIED}));
     });
   });
-  /* Bloc de signature de l'annexe : c'est la signature du règlement intérieur lui-même qui le
-     rend opposable, en même temps que le contrat. */
-  children.push(new Paragraph({alignment:AlignmentType.RIGHT,children:[new TextRun({text:'Signature précédée de la mention « lu et approuvé »',italics:true,size:19,color:'666666'})],spacing:{before:400,after:120}}));
+  /* Bloc de signature : c'est la signature du règlement lui-même qui le rend opposable. */
+  annexe.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new TextRun({text:'Signature précédée de la mention « lu et approuvé »',italics:true,size:12,color:'666666'})],spacing:{before:200,after:80}}));
   const caseSign=(lbl,haut)=>new Table({
     width:{size:100,type:WidthType.PERCENTAGE},
     rows:[
-      new TableRow({children:[new TableCell({shading:{type:ShadingType.SOLID,color:themeColor},children:[new Paragraph({children:[new TextRun({text:lbl.toUpperCase(),bold:true,size:16,color:'FFFFFF'})]})]})]}),
+      new TableRow({children:[new TableCell({shading:{type:ShadingType.SOLID,color:themeColor},children:[new Paragraph({children:[new TextRun({text:lbl.toUpperCase(),bold:true,size:11,color:'FFFFFF'})]})]})]}),
       new TableRow({height:{value:haut,rule:'atLeast'},children:[new TableCell({children:[new Paragraph({text:''})]})]})
     ]
   });
-  children.push(caseSign('Fait à',420));
-  children.push(new Paragraph({text:'',spacing:{after:80}}));
-  children.push(caseSign('Le',420));
-  children.push(new Paragraph({text:'',spacing:{after:80}}));
-  children.push(caseSign('Nom du Locataire',420));
-  children.push(new Paragraph({text:'',spacing:{after:80}}));
-  children.push(caseSign('Signature du Locataire',1100));
+  annexe.push(caseSign('Fait à',260));
+  annexe.push(new Paragraph({text:'',spacing:{after:50}}));
+  annexe.push(caseSign('Le',260));
+  annexe.push(new Paragraph({text:'',spacing:{after:50}}));
+  annexe.push(caseSign('Nom du Locataire',260));
+  annexe.push(new Paragraph({text:'',spacing:{after:50}}));
+  annexe.push(caseSign('Signature du Locataire',620));
 
   const doc=new Document({
     styles:{default:{document:{run:{font:'Georgia',size:21}}}},
-    sections:[{properties:{page:{size:{width:11906,height:16838},margin:{top:1080,right:1080,bottom:1080,left:1080}}},children}]
+    sections:[
+      /* Le contrat : A4 portrait. */
+      {properties:{page:{size:{width:11906,height:16838},margin:{top:1080,right:1080,bottom:1080,left:1080}}},children},
+      /* L'annexe : A4 PAYSAGE, trois colonnes — la feuille d'origine, telle quelle. */
+      {properties:{
+        page:{size:{width:16838,height:11906,orientation:'landscape'},margin:{top:560,right:620,bottom:560,left:620}},
+        column:{count:3,space:340,separate:false}
+      },children:annexe}
+    ]
   });
   const blob=await Packer.toBlob(doc);
   const url=URL.createObjectURL(blob);
@@ -7359,7 +7458,7 @@ function renderModalContent(){
       let encart='';
       if(p.inputMode==='notes'){
         const lines=(r.prestaLines||{})[p.id]||[];
-        const intitulePlaceholder=p.name==='Misha'?'Traiteur, …':p.name==='Sasha'?'Décoration, …':'Intitulé…';
+        const intitulePlaceholder=estMisha(p)?'Traiteur, …':estSacha(p)?'Décoration, …':'Intitulé…';
         const linesHtml=lines.map((l,li)=>`<div style="padding:8px 0;${li>0?'border-top:1px solid #ddd9d0;margin-top:6px':''}">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
             <input type="text" id="modpl-label-${l.id}" value="${l.label||''}" placeholder="${intitulePlaceholder}" onchange="updPrestaLine('${id||''}','${p.id}','${l.id}','label',this.value)" style="flex:1;font-size:13px;font-weight:500;padding:5px 6px;box-sizing:border-box">
@@ -7780,6 +7879,13 @@ function renderModalContent(){
       </select>
     </div>
     <div class="field" style="margin-bottom:14px"><label>Domaines (pour l'accès complet ou l'occupation)</label><div style="padding:4px 0">${dC}</div></div>
+    <div class="field" style="margin-bottom:14px"><label>Mois sur lequel compter le ménage</label>
+      <select id="m-pmenage">
+        <option value="arrivee" ${(p.menageMoisSur||'arrivee')!=='depart'?'selected':''}>Mois de l'ARRIVÉE des clients — 31 juillet → 2 août compte pour juillet</option>
+        <option value="depart" ${p.menageMoisSur==='depart'?'selected':''}>Mois du DÉPART des clients — 31 juillet → 2 août compte pour août</option>
+      </select>
+      <div style="font-size:11px;color:#8a857c;margin-top:4px">Pour une réservation à cheval sur deux mois. Ce choix est conservé même si la fiche est renommée.</div>
+    </div>
     <div class="modal-actions"><button class="btn" onclick="closeM()">Annuler</button><button class="btn btn-primary" onclick="savePresta('${id||''}')">Enregistrer</button></div>`;
   }
   if(type==='newDomaine'||type==='editDomaine'){
@@ -9045,8 +9151,11 @@ function savePresta(id){
   const cbs=document.querySelectorAll('#root input[type=checkbox]');const domaines=Array.from(cbs).filter(c=>c.checked).map(c=>c.value);
   if(!name){alert('Le nom est obligatoire.');return;}
   if(!isValidPhone(tel)){alert("Numéro de téléphone invalide. En France : 10 chiffres commençant par 0 (ex. 06 12 34 56 78). À l'étranger : commencez par + ou 00 suivi de l'indicatif.");return;}
-  if(id){const p=D.prestataires.find(x=>x.id===id);Object.assign(p,{name,role,tel,email,domaines,accessMode});}
-  else D.prestataires.push({id:gid(),name,role,tel,email,domaines,accessMode,token:'tok_'+name.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'')+'_'+Math.random().toString(36).slice(2,7)});
+  /* Mois d'imputation du ménage : dès qu'il est choisi ici, il est marqué « manuel » et le
+     démarrage ne le réécrit plus (voir runMigrations). */
+  const menageMoisSur=((document.getElementById('m-pmenage')||{}).value==='depart')?'depart':'arrivee';
+  if(id){const p=D.prestataires.find(x=>x.id===id);Object.assign(p,{name,role,tel,email,domaines,accessMode,menageMoisSur,menageMoisManuel:true});}
+  else D.prestataires.push({id:gid(),name,role,tel,email,domaines,accessMode,menageMoisSur,menageMoisManuel:true,token:'tok_'+name.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'')+'_'+Math.random().toString(36).slice(2,7)});
   saveD();S.modal=null;showMsg('Prestataire enregistré ✓');
 }
 function delPresta(id){if(!confirm('Supprimer ce prestataire ?'))return;D.prestataires=D.prestataires.filter(x=>x.id!==id);D.reservations.forEach(r=>{r.prestataires=(r.prestataires||[]).filter(p=>p!==id);});saveD();render();}
