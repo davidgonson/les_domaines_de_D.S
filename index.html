@@ -307,7 +307,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 /* Numéro de version, affiché en haut de l'écran. Sert à répondre en une seconde à la seule
    question qui compte quand « ça marche chez moi mais pas chez elle » : les deux téléphones
    font-ils bien tourner la MÊME version ? */
-const APP_VERSION='2026-09-07-d';
+const APP_VERSION='2026-09-07-e';
 const SK='domnoрm_prod_v1';
 const SUPA_URL='https://hdtltrnabrgibkcvubzd.supabase.co';
 const SUPA_KEY='sb_publishable_zvpg0YOHegxqXJxbEKhSbQ_3oLwbrr1';
@@ -2405,13 +2405,16 @@ function computeBilanTotal(p,y,m){
    comme demandé — ce que le prestataire a touché grâce à son activité vs. ce qu'on lui doit en
    simples remboursements, sur l'année entière (et pas seulement mois par mois). */
 function computeAnnualActiviteVsRemb(p,y){
-  let totalActivite=0,totalRemb=0;
+  let totalActivite=0,totalRemb=0,totalEnc=0;
   for(let mi=0;mi<12;mi++){
     const bt=computeBilanTotal(p,y,mi);
     totalActivite+=bt.totalActivite;
     totalRemb+=bt.rembDu;
+    totalEnc+=bt.encDu||0;              // « reçu pour notre compte » : il manquait ici aussi
   }
-  return{totalActivite:Math.round(totalActivite*100)/100,totalRemb:Math.round(totalRemb*100)/100};
+  const r2=v=>Math.round(v*100)/100;
+  return{totalActivite:r2(totalActivite),totalRemb:r2(totalRemb),totalEnc:r2(totalEnc),
+         totalDu:r2(totalActivite+totalRemb-totalEnc)};
 }
 /* Détail des sous-totaux "Prestations avec commission" pour le Bilan total : une petite ligne
    par réservation (date, nom du client, montant de la prestation pour ce prestataire), puis en
@@ -5024,16 +5027,18 @@ function paidForYear(r,y){
    prestations ont rapporté, ce que les travaux ont rapporté. Plus, à part, ce qu'on lui a
    remboursé — qui n'est pas de l'activité et ne doit jamais être confondu avec elle. */
 function computeAnnuelParPoste(p,y){
-  let menage=0,prestations=0,travaux=0,forfait=0,gardiennage=0,jardinage=0,elec=0,remb=0;
+  let menage=0,prestations=0,travaux=0,forfait=0,gardiennage=0,jardinage=0,elec=0,remb=0,enc=0;
   for(let mi=0;mi<12;mi++){
     const bt=computeBilanTotal(p,y,mi);
     menage+=bt.menageDu;prestations+=bt.compDu;travaux+=bt.travDu;
-    forfait+=bt.forfaitDu;gardiennage+=bt.gardeDu;jardinage+=bt.jardDu||0;elec+=bt.elecCost;remb+=bt.rembDu;
+    forfait+=bt.forfaitDu;gardiennage+=bt.gardeDu;jardinage+=bt.jardDu||0;elec+=bt.elecCost;
+    remb+=bt.rembDu;enc+=bt.encDu||0;   // « reçu pour notre compte » : il manquait ici
   }
   const r2=v=>Math.round(v*100)/100;
   const activite=r2(menage+prestations+travaux+forfait+gardiennage+jardinage-elec);
   return{menage:r2(menage),prestations:r2(prestations),travaux:r2(travaux),forfait:r2(forfait),
-    gardiennage:r2(gardiennage),jardinage:r2(jardinage),elec:r2(elec),remb:r2(remb),activite};
+    gardiennage:r2(gardiennage),jardinage:r2(jardinage),elec:r2(elec),remb:r2(remb),enc:r2(enc),
+    activite,totalDu:r2(activite+remb-enc)};
 }
 function renderBilanAnnuelPresta(p,y){
   if(S.view!=='admin')return'';          // jamais visible côté prestataire
@@ -5056,8 +5061,16 @@ function renderBilanAnnuelPresta(p,y){
       </div>
     </div>
     ${A.remb?`<div style="margin-top:10px;background:#E6F1FB;border-radius:8px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between">
-      <span style="font-size:12px;color:#0C447C">💳 Remboursé en plus (dépenses avancées pour nous) — ce n'est pas de l'activité</span>
-      <strong style="color:#0C447C;white-space:nowrap;margin-left:8px">${money(A.remb)}</strong>
+      <span style="font-size:12px;color:#0C447C">💳 Réglé pour notre compte (dépenses avancées) — ce n'est pas de l'activité</span>
+      <strong style="color:#0C447C;white-space:nowrap;margin-left:8px">+ ${money(A.remb)}</strong>
+    </div>`:''}
+    ${A.enc?`<div style="margin-top:7px;background:#FBEAEA;border-radius:8px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:12px;color:#8C3A3A">💰 Reçu pour notre compte (encaissé pour nous) — vient en déduction</span>
+      <strong style="color:#8C3A3A;white-space:nowrap;margin-left:8px">− ${money(A.enc)}</strong>
+    </div>`:''}
+    ${(A.remb||A.enc)?`<div style="margin-top:9px;display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:8px;padding:9px 12px;border:1.5px solid #5B5952">
+      <span style="font-size:13px;font-weight:700">Total dû ${y}</span>
+      <strong style="font-size:17px;font-variant-numeric:tabular-nums">${money(A.totalDu)}</strong>
     </div>`:''}
   </div>`;
 }
@@ -5081,7 +5094,11 @@ function renderBilanGeneral(){
   const y=S.bilanYear,m=S.bilanMonth;
   const inPeriod=r=>{const d=r.dateArrivee||r.date;if(!d)return false;const[ry,rm]=d.split('-').map(Number);return viewMode==='year'?ry===y:(ry===y&&rm===(m+1));};
   const todayStr0=dstr(new Date());
-  const inMenagePeriod=r=>{const dEnd=r.dateDepart||r.dateArrivee||r.date;if(!dEnd)return false;if(dEnd>todayStr0)return false;const d=r.dateArrivee||r.dateDepart||r.date;if(!d)return false;const[ry,rm]=d.split('-').map(Number);return viewMode==='year'?ry===y:(ry===y&&rm===(m+1));};
+  /* Le mois d'imputation du ménage dépend du prestataire (Sacha : mois du DÉPART ; Misha :
+     mois de l'ARRIVÉE) — voir menageDateRef. Ce récapitulatif utilisait encore la date d'arrivée
+     pour tout le monde, donc une réservation du 31/07 au 02/08 restait comptée sur juillet pour
+     Sacha ici, alors qu'elle passait bien sur août dans son bilan. */
+  const inMenagePeriod=r=>{const dEnd=r.dateDepart||r.dateArrivee||r.date;if(!dEnd)return false;if(dEnd>todayStr0)return false;const d=menageDateRef(r);if(!d)return false;const[ry,rm]=d.split('-').map(Number);return viewMode==='year'?ry===y:(ry===y&&rm===(m+1));};
   const evs=D.reservations.filter(r=>r.status!=='annulé'&&inPeriod(r)&&r.prestaLines&&Object.values(r.prestaLines).some(l=>l.length>0));
   const byP={};let totalGeneral=0;
   evs.forEach(r=>Object.entries(r.prestaLines).forEach(([pid,lines])=>{
@@ -7279,8 +7296,8 @@ function openPrestaPrintList(pid){
     (D.gardeSchedule||[]).filter(x=>x.pid===p.id&&inMonth(x.date)).forEach(x=>rows.push({date:x.date,label:x.duree==='longue'?'Longue (22h-4h)':'Courte (22h-2h)',montant:gardeRate(x.duree)}));
   } else {
     D.reservations.filter(r=>r.status!=='annulé').forEach(r=>{
-      const d=r.dateArrivee||r.dateDepart||r.date;if(!inMonth(d))return;
       const mi=getMenageInfo(r);if(!mi||mi.pid!==p.id)return;
+      const d=menageDateRef(r);if(!d||!inMonth(d))return;   // mois d'imputation propre au prestataire
       rows.push({date:d,label:displayClientName(r)||'—',montant:mi.montant});
     });
   }
