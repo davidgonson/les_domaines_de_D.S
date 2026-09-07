@@ -117,14 +117,64 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
    seul bandeau anthracite pour TOUTES les sections. Ce sont les icônes et les intitulés qui
    distinguent les sujets, plus une mosaïque de couleurs. Seul le « Bilan total » garde l'accent
    bordeaux de la maison : une seule couleur forte par page, c'est elle qu'on doit voir. */
-.bilan-sec{background:#fff;border:1px solid #e2ded7;border-radius:10px;padding:.55rem .75rem;margin-bottom:9px;scroll-margin-top:12px}
-.bilan-sec .sec-hdr{color:#fff}
+/* ════════ PARTIE FINANCIÈRE — mise en forme ════════
+   Objectif : qu'on comprenne d'un coup d'œil ce qu'on doit faire (remplir) et ce qu'on doit
+   lire (le décompte). Trois principes tenus partout :
+     · une seule couleur d'accent par section, posée sur le bandeau et le liseré de gauche ;
+     · les montants toujours alignés à droite, en chiffres de même largeur, avec leur signe ;
+     · les zones de saisie sont visuellement séparées des zones de lecture (fond crème + titre
+       « Déclarer »), avec le libellé AU-DESSUS du champ — sur téléphone, un champ sans libellé
+       au-dessus, c'est un champ qu'on remplit de travers. */
+.bilan-sec{background:#fff;border:1px solid #e2ded7;border-radius:12px;padding:0 0 .7rem;margin-bottom:12px;scroll-margin-top:12px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.bilan-sec>*:not(.sec-hdr){margin-left:.8rem;margin-right:.8rem}
+.bilan-sec .sec-hdr{color:#fff;margin:0 0 9px;padding:8px 12px;border-radius:0;gap:10px}
+.bilan-sec .sec-hdr h2{font-size:13px;display:flex;align-items:center;gap:7px;min-width:0}
+.bilan-sec .sec-total{background:rgba(255,255,255,.2);border-radius:20px;padding:3px 11px;font-size:13px;font-weight:700;color:#fff;white-space:nowrap;flex-shrink:0;font-variant-numeric:tabular-nums}
+.bilan-sec .sec-regle{font-size:11px;color:#8a857c;line-height:1.4;margin-bottom:9px}
+.bilan-sec .sec-regle strong{color:#5c574f}
 .bilan-sec .metric{border-width:1px;border-color:#e2ded7;padding:.45rem}
 .bilan-sec .metric .val{font-size:15px;font-weight:600}
-.bilan-sec .empty{padding:.8rem;font-size:12px}
-.bilan-sec .g2,.bilan-sec .g3{gap:5px}
-/* Champs de saisie du bilan : compacts, pour que remplir aille vite. */
-.bilan-sec input,.bilan-sec select{padding:4px 5px;font-size:11.5px}
+.bilan-sec .empty{padding:.9rem;font-size:12px;background:#faf9f7;border-radius:8px;color:#8a857c}
+.bilan-sec .g2,.bilan-sec .g3{gap:6px}
+/* ── Encart de déclaration ── */
+.decl{background:#FBFAF7;border:1px dashed #d6d1c7;border-radius:10px;padding:10px 11px 11px;margin-bottom:11px}
+.decl-t{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8a857c;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.decl-g{display:grid;gap:8px 9px;margin-bottom:9px}
+.decl-c{display:flex;flex-direction:column;gap:3px;min-width:0}
+.decl-c>label{font-size:10.5px;font-weight:600;color:#8a857c;letter-spacing:.02em}
+.bilan-sec .decl input,.bilan-sec .decl select{padding:7px 8px;font-size:13px;border-radius:7px;width:100%;min-width:0;box-sizing:border-box}
+.bilan-sec .decl input[type=date]{padding:6px 8px}
+.decl .date-row{width:100%}
+.decl-go{display:block;width:100%;padding:9px;font-size:13px;font-weight:600;border-radius:8px}
+/* ── Lignes de décompte ── */
+.lg{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid #f0eee9;font-size:12.5px}
+.lg:last-child{border-bottom:none}
+.lg .lg-d{flex-shrink:0;background:#f2f0eb;color:#6b665e;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:600;white-space:nowrap}
+.lg .lg-l{flex:1;min-width:0;line-height:1.35}
+.lg .lg-l small{display:block;color:#9a958c;font-size:10.5px;margin-top:1px}
+.lg .lg-m{flex-shrink:0;font-weight:700;font-variant-numeric:tabular-nums;text-align:right;min-width:74px}
+.lg .lg-a{flex-shrink:0;display:flex;align-items:center;gap:5px}
+.lg-tot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;padding-top:8px;border-top:2px solid #e2ded7;font-size:13px;font-weight:700}
+.lg-tot .v{font-size:16px;font-variant-numeric:tabular-nums}
+/* ── Récapitulatif du haut ── */
+.recap{background:#fff;border-radius:10px;padding:2px 11px;margin-bottom:8px}
+.recap .r-l{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #F4E2E8;font-size:13px}
+.recap .r-l:last-child{border-bottom:none}
+.recap .r-n{display:flex;align-items:center;gap:7px;min-width:0}
+.recap .r-ic{width:22px;height:22px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.recap .r-v{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;flex-shrink:0}
+.recap .r-plus{color:#1F7A3D}
+.recap .r-moins{color:#A32D2D}
+.recap .r-tot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0 6px;margin-top:3px;border-top:2px solid #993556;font-weight:700;color:#72243E}
+.recap .r-tot .v{font-size:21px;font-variant-numeric:tabular-nums}
+.recap a{color:#72243E;text-decoration:none;border-bottom:1px dotted #C89AAC}
+.recap a:hover{border-bottom-style:solid}
+@media(max-width:520px){
+  .bilan-sec .sec-hdr h2{font-size:12px}
+  .recap .r-tot .v{font-size:19px}
+  .lg{flex-wrap:wrap}
+  .lg .lg-l{flex-basis:100%;order:3}
+}
 .empty{text-align:center;padding:2.5rem;color:#666;font-size:13px}
 .note-box{background:#f5f4f1;border-radius:6px;padding:8px 12px;font-size:12px;color:#555;border-left:3px solid #ED93B1;margin-top:6px}
 .ev-card{border:1px solid #e5e3de;border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fff}
@@ -257,7 +307,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 /* Numéro de version, affiché en haut de l'écran. Sert à répondre en une seconde à la seule
    question qui compte quand « ça marche chez moi mais pas chez elle » : les deux téléphones
    font-ils bien tourner la MÊME version ? */
-const APP_VERSION='2026-09-07-c';
+const APP_VERSION='2026-09-07-d';
 const SK='domnoрm_prod_v1';
 const SUPA_URL='https://hdtltrnabrgibkcvubzd.supabase.co';
 const SUPA_KEY='sb_publishable_zvpg0YOHegxqXJxbEKhSbQ_3oLwbrr1';
@@ -1736,8 +1786,8 @@ function renderCommissionSection(p,y,m){
     ${ens.aReverser>0?ligneTot(`Prestations ${V.aRegler}`,ens.aReverser,'#1F7A3D',true):''}
     ${(ens.commission+ens.notrePartDue)>0?ligneTot(ens.sansCommission?'Part qui nous revient':`Commission ${ens.rate}%${ens.notrePartDue?' + part qui nous revient':''}`,Math.round((ens.commission+ens.notrePartDue)*100)/100,'#A32D2D',true):''}
   </div>`;
-  return`<div id="bloc-commission" class="bilan-sec">
-    <div class="sec-hdr"><h2>🧾 Prestations — ${MONTHS_FR[m]} ${y}</h2>${validSummary}</div>
+  return`<div id="bloc-commission" class="bilan-sec" style="border-left:3px solid #7A5800">
+    ${secBandeau('🧾','Prestations',MONTHS_FR[m],y,null,'#7A5800').replace('</div>',validSummary+'</div>')}
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px">
       <button class="btn btn-sm btn-primary" onclick="toggleAddPrestaLine('${p.id}')">${S.addPrestaLineOpen===p.id?'✕ Annuler':'+ Ajouter'}</button>
       <span style="font-size:10px;color:#9a958c;text-align:right">Le mode de règlement pilote le calcul.</span>
@@ -1756,31 +1806,39 @@ function renderTravauxSection(p,y,m){
   const rows=(D.travauxSchedule||[]).filter(x=>x.pid===p.id&&inMonth(x.date)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   const defaultDom=(p.domaines||[])[0];
   const domOpts=D.domaines.map(d=>`<option value="${d.id}" ${d.id===defaultDom?'selected':''}>${d.name}</option>`).join('');
-  return`<div id="bloc-travaux" class="bilan-sec">
-    <div class="sec-hdr"><h2>🔧 Travaux, activités &amp; ménages ponctuels — ${MONTHS_FR[m]} ${y}</h2></div>
-    <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">${TRAVAUX_RATE}€/h pour les travaux, au forfait pour les activités et ménages ponctuels — sans commission. ${isAdmin?'Validez chaque ligne.':'David/Svitlana valide.'}</div>
-    ${!isAdmin?`<div style="background:#f5f4f1;border-radius:8px;padding:6px;margin-bottom:8px;font-size:11px">
-      <div style="display:grid;grid-template-columns:1fr 1.25fr 1.15fr 0.95fr;gap:4px;align-items:center;margin-bottom:4px">
-        <select id="trav-domaine-${p.id}" style="min-width:0;width:100%">${domOpts}</select>
-        ${dateFieldHtml(`trav-date-${p.id}`,'min-width:0;width:100%',null,dateDefautMois(y,m))}
-        <select id="trav-type-${p.id}" style="min-width:0;width:100%" onchange="var h=travauxTypeAlHeure(this.value);document.getElementById('trav-mode-${p.id}').style.display=h?'':'none';if(!h)document.getElementById('trav-mode-${p.id}').value='forfait';var f=document.getElementById('trav-mode-${p.id}').value==='forfait'||!h;document.getElementById('trav-heures-${p.id}').style.display=f?'none':'';document.getElementById('trav-forfait-${p.id}').style.display=f?'':'none';">${TRAVAUX_TYPES.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>
-        <select id="trav-mode-${p.id}" style="min-width:0;width:100%" onchange="var h=this.value==='heure';document.getElementById('trav-heures-${p.id}').style.display=h?'':'none';document.getElementById('trav-forfait-${p.id}').style.display=h?'none':'';"><option value="heure">À l'heure</option><option value="forfait">Au forfait</option></select>
+  const total=rows.reduce((a,x)=>a+(x.montant||0),0);
+  const enAttente=rows.filter(x=>x.status!=='validé').length;
+  const T='#8B5E12';
+  return`<div id="bloc-travaux" class="bilan-sec" style="border-left:3px solid ${T}">
+    ${secBandeau('🔧','Travaux &amp; activités',MONTHS_FR[m],y,total,T)}
+    <div class="sec-regle"><strong>${TRAVAUX_RATE} €/h</strong> pour les travaux · <strong>au forfait</strong> pour les activités et ménages ponctuels — sans commission.
+      ${isAdmin?'Validez chaque ligne.':'David/Svitlana valide.'}${enAttente?` <span style="color:#B15E00;font-weight:600">${enAttente} en attente.</span>`:''}</div>
+    ${!isAdmin?`<div class="decl">
+      <div class="decl-t">➕ Déclarer une intervention</div>
+      <div class="decl-g" style="grid-template-columns:1fr 1fr">
+        ${declChamp('Domaine',`<select id="trav-domaine-${p.id}">${domOpts}</select>`)}
+        ${declChamp('Date',dateFieldHtml(`trav-date-${p.id}`,'width:100%',null,dateDefautMois(y,m)))}
+        ${declChamp('Nature',`<select id="trav-type-${p.id}" onchange="var h=travauxTypeAlHeure(this.value);document.getElementById('trav-mode-${p.id}').style.display=h?'':'none';if(!h)document.getElementById('trav-mode-${p.id}').value='forfait';var f=document.getElementById('trav-mode-${p.id}').value==='forfait'||!h;document.getElementById('trav-heures-${p.id}').parentNode.style.display=f?'none':'';document.getElementById('trav-forfait-${p.id}').parentNode.style.display=f?'':'none';">${TRAVAUX_TYPES.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>`)}
+        ${declChamp('Compté',`<select id="trav-mode-${p.id}" onchange="var h=this.value==='heure';document.getElementById('trav-heures-${p.id}').parentNode.style.display=h?'':'none';document.getElementById('trav-forfait-${p.id}').parentNode.style.display=h?'none':'';"><option value="heure">À l'heure</option><option value="forfait">Au forfait</option></select>`)}
+        ${declChamp('Nombre d\'heures',`<input type="number" id="trav-heures-${p.id}" step="0.5" placeholder="ex. 3">`)}
+        <div class="decl-c" style="display:none"><label>Montant convenu</label><input type="number" id="trav-forfait-${p.id}" step="0.01" placeholder="ex. 150"></div>
       </div>
-      <div style="display:flex;gap:4px;align-items:center">
-        <input type="number" id="trav-heures-${p.id}" step="0.5" placeholder="heures" style="width:66px;flex-shrink:0">
-        <input type="number" id="trav-forfait-${p.id}" step="0.01" placeholder="montant €" style="width:88px;flex-shrink:0;display:none">
-        <input type="text" id="trav-note-${p.id}" placeholder="Ce qui a été fait" style="flex:1;min-width:0">
-        <button class="btn btn-primary btn-sm" onclick="addTravaux('${p.id}')" style="flex-shrink:0">+</button>
+      <div class="decl-g" style="grid-template-columns:1fr">
+        ${declChamp('Ce qui a été fait',`<input type="text" id="trav-note-${p.id}" placeholder="ex. réparation du portail">`)}
       </div>
+      <button class="btn btn-primary decl-go" onclick="addTravaux('${p.id}')">Déclarer</button>
     </div>`:''}
     ${rows.length===0?'<div class="empty">Rien de déclaré ce mois-ci.</div>':''}
-    ${rows.map(x=>{const dom=gDom(x.domaine);const detail=x.mode==='forfait'?`${money(x.montant)} (forfait)`:`${x.heures}h · ${money(x.montant)}`;const typeIcon=travauxTypeLabel(x.type||'travaux');return`<div style="padding:8px 0;border-bottom:1px solid #e5e3de;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-      <div><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span><span style="font-size:11px;color:#8B4A1F;font-weight:600;margin-right:4px">${typeIcon}</span><span style="font-size:13px">${ds(x.date)} · ${detail}</span>${x.note?`<div style="font-size:11px;color:#888;margin-top:2px">${x.note}</div>`:''}</div>
-      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-        ${valideBadge(x.status==='validé',`toggleTravauxValide('${x.id}')`)}
-        ${x.status!=='validé'?`<button class="btn btn-xs btn-danger" onclick="delTravaux('${x.id}')">✕</button>`:''}
-      </div>
-    </div>`;}).join('')}
+    ${rows.map(x=>{const dom=gDom(x.domaine);
+      const detail=x.mode==='forfait'?'forfait':`${x.heures} h × ${TRAVAUX_RATE} €`;
+      return ligneMontant({
+        date:ds(x.date),
+        titre:`<span class="pill ${PILL[dom.color||0]}" style="margin-right:5px">${dom.name}</span>${travauxTypeLabel(x.type||'travaux')}`,
+        sous:[detail,x.note].filter(Boolean).join(' · '),
+        montant:money(x.montant),couleur:T,
+        actions:`${valideBadge(x.status==='validé',`toggleTravauxValide('${x.id}')`)}${x.status!=='validé'?`<button class="btn btn-xs btn-danger" onclick="delTravaux('${x.id}')">✕</button>`:''}`
+      });}).join('')}
+    ${rows.length?ligneTotal('Total travaux &amp; activités',total,T):''}
   </div>`;
 }
 /* === Paiement fait (remboursement) — Misha/Sacha uniquement, comme les travaux : quand le
@@ -1869,6 +1927,23 @@ function encaissementDu(x){
     ?Math.round(m*(1-MISHA_STRUCTURE_CHARGE_RATE)*100)/100
     :Math.round(m*100)/100;
 }
+/* Aperçu vivant sous le formulaire : on tape 100 € via la structure, et on lit tout de suite
+   « il vous restera 14 € de frais, 86 € viendront en déduction ». Le calcul ne se découvre plus
+   après coup. */
+function majApercuEnc(pid){
+  const box=document.getElementById('enc-apercu-'+pid);
+  if(!box)return;
+  const p=gPre(pid);
+  const mt=parseFloat((document.getElementById('enc-montant-'+pid)||{}).value)||0;
+  const via=(document.getElementById('enc-via-'+pid)||{}).value||'direct';
+  if(!mt){box.style.display='none';box.innerHTML='';return;}
+  const du=encaissementDu({montant:mt,via});
+  const nom=p&&p.structure?p.structure:'votre structure';
+  box.style.display='';
+  box.innerHTML=via==='structure'
+    ?`${money(mt)} encaissés via ${nom} → 14 % de frais (${money(Math.round((mt-du)*100)/100)}) vous restent → <strong>${money(du)}</strong> viendront en déduction de ce qu'on vous doit.`
+    :`${money(mt)} reçus en direct → <strong>${money(du)}</strong> viendront en déduction de ce qu'on vous doit.`;
+}
 function encaissementViaLabel(x){
   return x.via==='structure'?'via sa structure':'reçu en direct';
 }
@@ -1932,38 +2007,35 @@ function renderEncaissementSection(p,y,m){
   const explication=V.self
     ?`De l'argent qui nous revient et que vous avez encaissé (un client qui vous règle directement, une recette perçue pour nous…). Ce n'est pas une rémunération : ça vient en <strong>déduction</strong> de ce qu'on vous doit ce mois-ci.${aUneStructure?` Encaissé via ${nomStructure}, elle retient 14 % de frais : sur 100 € reçus, 86 € nous reviennent.`:''} David/Svitlana valide chaque ligne.`
     :`De l'argent qui nous revient et que ${p.name} a encaissé. Ce n'est pas une rémunération : ça vient en <strong>déduction</strong> de ce qu'on lui doit ce mois-ci.${aUneStructure?` Encaissé via ${nomStructure}, elle retient 14 % de frais : sur 100 € reçus, 86 € nous reviennent.`:''} ${isAdmin?'Validez chaque ligne, ou laissez en attente.':''}`;
-  return`<div id="bloc-enc" class="bilan-sec">
-    <div class="sec-hdr"><h2>💰 ${titre} — ${MONTHS_FR[m]} ${y}</h2></div>
-    <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">${explication}</div>
-    ${!isAdmin?`<div style="background:#f5f4f1;border-radius:8px;padding:7px;margin-bottom:10px">
-      <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:5px">
-        <select id="enc-domaine-${p.id}" style="font-size:11.5px;padding:4px 5px;flex:1;min-width:88px">${domOpts}</select>
-        ${dateFieldHtml(`enc-date-${p.id}`,'width:140px;flex-shrink:0',null,dateDefautMois(y,m))}
-        <input type="number" id="enc-montant-${p.id}" step="0.01" placeholder="montant reçu €" style="font-size:11.5px;padding:4px 5px;width:110px">
-        <select id="enc-via-${p.id}" style="font-size:11.5px;padding:4px 5px;flex:1;min-width:120px">${viaOpts('direct')}</select>
+  const enAttente=rows.filter(x=>x.status!=='validé').length;
+  const T='#8C3A3A';
+  return`<div id="bloc-enc" class="bilan-sec" style="border-left:3px solid ${T}">
+    ${secBandeau('💰',titre,MONTHS_FR[m],y,total,T)}
+    <div class="sec-regle">${explication}${enAttente?` <span style="color:#B15E00;font-weight:600">${enAttente} en attente.</span>`:''}</div>
+    ${!isAdmin?`<div class="decl">
+      <div class="decl-t">➕ Déclarer une somme encaissée</div>
+      <div class="decl-g" style="grid-template-columns:1fr 1fr">
+        ${declChamp('Domaine',`<select id="enc-domaine-${p.id}">${domOpts}</select>`)}
+        ${declChamp('Date',dateFieldHtml(`enc-date-${p.id}`,'width:100%',null,dateDefautMois(y,m)))}
+        ${declChamp('Montant reçu (€)',`<input type="number" id="enc-montant-${p.id}" step="0.01" placeholder="ex. 100" oninput="majApercuEnc('${p.id}')">`)}
+        ${declChamp('Comment l\'avez-vous reçu ?',`<select id="enc-via-${p.id}" onchange="majApercuEnc('${p.id}')">${viaOpts('direct')}</select>`)}
       </div>
-      <div style="display:flex;gap:5px;align-items:center">
-        <input type="text" id="enc-prov-${p.id}" placeholder="De qui / pour quoi" style="flex:1;min-width:0;font-size:11.5px;padding:4px 5px">
-        <input type="text" id="enc-note-${p.id}" placeholder="Précision" style="flex:1;min-width:0;font-size:11.5px;padding:4px 5px">
-        <button class="btn btn-primary btn-sm" onclick="addEncaissement('${p.id}')" style="flex-shrink:0">+ Déclarer</button>
+      <div class="decl-g" style="grid-template-columns:1fr 1fr">
+        ${declChamp('De qui / pour quoi',`<input type="text" id="enc-prov-${p.id}" placeholder="ex. acompte Mme Dubosc">`)}
+        ${declChamp('Précision',`<input type="text" id="enc-note-${p.id}" placeholder="facultatif">`)}
       </div>
+      <div id="enc-apercu-${p.id}" style="font-size:11.5px;color:#7A5800;background:#FDF4E3;border-radius:8px;padding:7px 10px;margin-bottom:9px;display:none"></div>
+      <button class="btn btn-primary decl-go" onclick="addEncaissement('${p.id}')">Déclarer</button>
     </div>`:''}
     ${rows.length===0?`<div class="empty">${V.self?'Rien encaissé pour le compte de David et Svitlana ce mois-ci.':'Rien encaissé pour notre compte ce mois-ci.'}</div>`:''}
-    ${rows.map(x=>{const dom=gDom(x.domaine);const du=encaissementDu(x);return`<div style="padding:8px 0;border-bottom:1px solid #e5e3de;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-      <div style="min-width:0">
-        <span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span>
-        <span style="font-size:13px">${ds(x.date)} · ${x.provenance||'—'} · ${money(x.montant)} <span style="color:#888">(${encaissementViaLabel(x)})</span></span>
-        <div style="font-size:11px;color:${x.via==='structure'?'#7A5800':'#888'};margin-top:2px">${x.via==='structure'?`${money(x.montant)} − 14% de frais = <strong>${money(du)}</strong> à déduire de ce qu'on lui doit`:`<strong>${money(du)}</strong> à déduire de ce qu'on lui doit`}${x.note?' · '+x.note:''}</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-        ${(!isAdmin&&aUneStructure&&x.status!=='validé')?`<select onchange="updEncaissementVia('${x.id}',this.value)" style="font-size:10.5px;padding:2px 4px">${viaOpts(x.via||'direct')}</select>`:''}
-        ${valideBadge(x.status==='validé',`toggleEncaissementValide('${x.id}')`)}
-        ${x.status!=='validé'?`<button class="btn btn-xs btn-danger" onclick="delEncaissement('${x.id}')">✕</button>`:''}
-      </div>
-    </div>`;}).join('')}
-    ${rows.length?`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 2px;font-size:13px;font-weight:700;border-top:1.5px solid #e5e3de;margin-top:4px">
-      <span>Total à déduire ce mois</span><span style="color:#A32D2D">− ${money(total)}</span>
-    </div>`:''}
+    ${rows.map(x=>{const dom=gDom(x.domaine);const du=encaissementDu(x);return ligneMontant({
+      date:ds(x.date),
+      titre:`<span class="pill ${PILL[dom.color||0]}" style="margin-right:5px">${dom.name}</span>${x.provenance||'—'}`,
+      sous:`${money(x.montant)} ${encaissementViaLabel(x)}${x.via==='structure'?` → −14 % de frais`:''} → <strong>${money(du)}</strong> à déduire${x.note?' · '+x.note:''}`,
+      montant:'− '+money(du),couleur:T,
+      actions:`${(!isAdmin&&aUneStructure&&x.status!=='validé')?`<select onchange="updEncaissementVia('${x.id}',this.value)" style="font-size:10.5px;padding:3px 5px">${viaOpts(x.via||'direct')}</select>`:''}${valideBadge(x.status==='validé',`toggleEncaissementValide('${x.id}')`)}${x.status!=='validé'?`<button class="btn btn-xs btn-danger" onclick="delEncaissement('${x.id}')">✕</button>`:''}`
+    });}).join('')}
+    ${rows.length?ligneTotal('Total à déduire ce mois',total,T):''}
   </div>`;
 }
 function renderRemboursementSection(p,y,m){
@@ -1978,29 +2050,34 @@ function renderRemboursementSection(p,y,m){
   const explication=V.self
     ?`Ce que vous avez réglé de votre poche pour le compte de David et Svitlana (un tiers payé pour eux, un achat avancé, un envoi…). C'est un remboursement, pas une rémunération : ça s'ajoute à ce qu'on vous doit, mais reste compté à part. David/Svitlana valide chaque ligne.`
     :`Ce que ${p.name} a réglé de sa poche pour notre compte (un tiers payé pour nous, un achat avancé, un envoi…). C'est un remboursement, pas une rémunération : ça s'ajoute à ce qu'on lui doit, mais reste compté à part. ${isAdmin?'Validez chaque ligne, ou laissez en attente.':''}`;
-  return`<div id="bloc-remb" class="bilan-sec">
-    <div class="sec-hdr"><h2>💳 ${V.pourNotreCompte} — ${MONTHS_FR[m]} ${y}</h2></div>
-    <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">${explication}</div>
-    ${!isAdmin?`<div style="background:#f5f4f1;border-radius:8px;padding:7px;margin-bottom:10px">
-      <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:5px">
-        <select id="remb-domaine-${p.id}" style="font-size:11.5px;padding:4px 5px;flex:1;min-width:88px">${domOpts}</select>
-        ${dateFieldHtml(`remb-date-${p.id}`,'width:140px;flex-shrink:0',null,dateDefautMois(y,m))}
-        <input type="number" id="remb-montant-${p.id}" step="0.01" placeholder="montant €" style="font-size:11.5px;padding:4px 5px;width:92px">
+  const total=rows.reduce((a,x)=>a+(x.montant||0),0);
+  const enAttente=rows.filter(x=>x.status!=='validé').length;
+  const T='#4A3F94';
+  return`<div id="bloc-remb" class="bilan-sec" style="border-left:3px solid ${T}">
+    ${secBandeau('💳',V.pourNotreCompte,MONTHS_FR[m],y,total,T)}
+    <div class="sec-regle">${explication}${enAttente?` <span style="color:#B15E00;font-weight:600">${enAttente} en attente.</span>`:''}</div>
+    ${!isAdmin?`<div class="decl">
+      <div class="decl-t">➕ Déclarer une dépense avancée</div>
+      <div class="decl-g" style="grid-template-columns:1fr 1fr">
+        ${declChamp('Domaine',`<select id="remb-domaine-${p.id}">${domOpts}</select>`)}
+        ${declChamp('Date',dateFieldHtml(`remb-date-${p.id}`,'width:100%',null,dateDefautMois(y,m)))}
+        ${declChamp('Montant réglé (€)',`<input type="number" id="remb-montant-${p.id}" step="0.01" placeholder="ex. 120">`)}
+        ${declChamp('Pour qui / quoi',`<input type="text" id="remb-benef-${p.id}" placeholder="ex. La Poste">`)}
       </div>
-      <div style="display:flex;gap:5px;align-items:center">
-        <input type="text" id="remb-benef-${p.id}" placeholder="Pour qui / quoi (ex : La Poste)" style="flex:1;min-width:0;font-size:11.5px;padding:4px 5px">
-        <input type="text" id="remb-note-${p.id}" placeholder="Motif" style="flex:1;min-width:0;font-size:11.5px;padding:4px 5px">
-        <button class="btn btn-primary btn-sm" onclick="addRemboursement('${p.id}')" style="flex-shrink:0">+ Déclarer</button>
+      <div class="decl-g" style="grid-template-columns:1fr">
+        ${declChamp('Motif',`<input type="text" id="remb-note-${p.id}" placeholder="ex. colis pour les Déesses">`)}
       </div>
+      <button class="btn btn-primary decl-go" onclick="addRemboursement('${p.id}')">Déclarer</button>
     </div>`:''}
     ${rows.length===0?`<div class="empty">${V.self?'Rien de réglé pour le compte de David et Svitlana ce mois-ci.':'Rien de réglé pour notre compte ce mois-ci.'}</div>`:''}
-    ${rows.map(x=>{const dom=gDom(x.domaine);return`<div style="padding:8px 0;border-bottom:1px solid #e5e3de;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-      <div><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span><span style="font-size:13px">${ds(x.date)} · ${x.beneficiaire||'—'} · ${money(x.montant)}</span>${x.note?`<div style="font-size:11px;color:#888;margin-top:2px">${x.note}</div>`:''}</div>
-      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-        ${valideBadge(x.status==='validé',`toggleRemboursementValide('${x.id}')`)}
-        ${x.status!=='validé'?`<button class="btn btn-xs btn-danger" onclick="delRemboursement('${x.id}')">✕</button>`:''}
-      </div>
-    </div>`;}).join('')}
+    ${rows.map(x=>{const dom=gDom(x.domaine);return ligneMontant({
+      date:ds(x.date),
+      titre:`<span class="pill ${PILL[dom.color||0]}" style="margin-right:5px">${dom.name}</span>${x.beneficiaire||'—'}`,
+      sous:x.note||'',
+      montant:'+ '+money(x.montant),couleur:T,
+      actions:`${valideBadge(x.status==='validé',`toggleRemboursementValide('${x.id}')`)}${x.status!=='validé'?`<button class="btn btn-xs btn-danger" onclick="delRemboursement('${x.id}')">✕</button>`:''}`
+    });}).join('')}
+    ${rows.length?ligneTotal('Total à '+(V.self?'vous rembourser':'rembourser'),total,T):''}
   </div>`;
 }
 /* === Gardiennage (Mathilde/Sébastien, mais aussi Misha/Sacha via le planning ponctuel) —
@@ -2020,7 +2097,7 @@ function renderGardeSection(p,y,m){
   rows.sort((a,b)=>a.date.localeCompare(b.date));
   const total=rows.reduce((a,x)=>a+gardeRate(x.duree),0),paid=rows.filter(x=>x.paid).reduce((a,x)=>a+gardeRate(x.duree),0);
   const enAttenteCount=rows.filter(x=>!x.valide).length;
-  const header=`<div class="sec-hdr"><h2>🛡 Gardiennage — ${MONTHS_FR[m]} ${y}</h2>${isAdmin?`<span style="display:flex;gap:6px"><button class="btn btn-xs btn-primary" onclick="openM('teamPlanning',null,{pid:'${p.id}'})">📅 Calendrier</button><button class="btn btn-xs" onclick="openM('gardePlanning',null,{pid:'${p.id}'})">💶 Liste</button></span>`:''}</div>
+  const header=`<div class="sec-hdr" style="background:#3C3489"><h2><span>🛡</span><span>Gardiennage</span><span style="opacity:.75;font-weight:400">· ${MONTHS_FR[m]} ${y}</span></h2>${isAdmin?`<span style="display:flex;gap:6px"><button class="btn btn-xs btn-primary" onclick="openM('teamPlanning',null,{pid:'${p.id}'})">📅 Calendrier</button><button class="btn btn-xs" onclick="openM('gardePlanning',null,{pid:'${p.id}'})">💶 Liste</button></span>`:''}</div>
     <div class="g3" style="margin-bottom:14px">
       <div class="metric"><span class="lbl">Total dû ce mois</span><span class="val">${money(total)}</span></div>
       <div class="metric"><span class="lbl">Réglé</span><span class="val" style="color:#27500A">${money(paid)}</span></div>
@@ -2029,7 +2106,7 @@ function renderGardeSection(p,y,m){
   if(isAdmin){
     const body=rows.length===0?'<div class="empty">Aucune nuit de gardiennage ce mois-ci.</div>':`<div style="overflow-x:auto"><table class="list-tbl"><thead><tr><th>Nuit du</th><th>Lieu</th><th>Durée</th><th>Commentaire</th><th>Montant</th><th>Mode</th><th>Validation</th><th>Événement</th><th></th></tr></thead>
       <tbody>${rows.map(x=>{const dom=gDom(x.domaine);const toggleCall=x.source==='resa'?`toggleGardeNightPaid('${x.resaId}','${p.id}','${x.date}')`:`toggleGardeSchedulePaid('${x.schedId}')`;const methodCall=x.source==='resa'?`setGardeNightPayMethod('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeSchedulePayMethod('${x.schedId}',this.value)`;const dureeCall=x.source==='resa'?`setGardeNightDuree('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleDuree('${x.schedId}',this.value)`;const commentCall=x.source==='resa'?`setGardeNightComment('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleComment('${x.schedId}',this.value)`;const delCall=x.source==='resa'?`delGardeNight('${x.resaId}','${p.id}','${x.date}')`:`delGardePlanning('${x.schedId}')`;const valideCall=x.source==='resa'?`toggleGardeNightValide('${x.resaId}','${p.id}','${x.date}')`:`toggleGardeScheduleValide('${x.schedId}')`;return`<tr><td>${dn(x.date)} ${ds(x.date)}</td><td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td><td><select onchange="${dureeCall}" style="font-size:12px"><option value="courte" ${x.duree==='courte'?'selected':''}>Courte (22h-2h)</option><option value="longue" ${x.duree==='longue'?'selected':''}>Longue (22h-4h)</option></select></td><td><input type="text" id="garde-com-${x.source==='resa'?(x.resaId+'_'+p.id+'_'+x.date):x.schedId}" value="${x.comment||''}" placeholder="Commentaire" onchange="${commentCall}" style="font-size:12px;padding:3px 5px;width:130px;color:#888"></td><td>${money(gardeRate(x.duree))}</td><td>${regleToggle(x.paid,toggleCall)}</td><td>${valideBadge(x.valide,valideCall)}</td><td>${x.client}</td><td><button class="btn btn-xs btn-danger" onclick="${delCall}">✕</button></td></tr>`;}).join('')}</tbody></table></div>`;
-    return`<div id="bloc-garde" class="bilan-sec">${header}${enAttenteCount>0?`<div class="alert" style="background:#B15E00;color:#fff;font-weight:700;margin-bottom:10px;font-size:12.5px">⏳ ${enAttenteCount} nuit${enAttenteCount>1?'s':''} en attente de validation.</div>`:''}${body}</div>`;
+    return`<div id="bloc-garde" class="bilan-sec" style="border-left:3px solid #3C3489">${header}${enAttenteCount>0?`<div class="alert" style="background:#B15E00;color:#fff;font-weight:700;margin-bottom:10px;font-size:12.5px">⏳ ${enAttenteCount} nuit${enAttenteCount>1?'s':''} en attente de validation.</div>`:''}${body}</div>`;
   }
   const body=rows.length===0?'<div class="empty">Aucune nuit de gardiennage ce mois-ci.</div>':rows.map((x,xIdx)=>{const dom=gDom(x.domaine);return`<div style="padding:7px 4px;border-bottom:1px solid #f0eee8;font-size:12.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:${xIdx%2===1?'#f7f6f3':'transparent'}">
     <span class="pill ${PILL[dom.color||0]}" style="flex-shrink:0">${dom.name}</span>
@@ -2038,7 +2115,7 @@ function renderGardeSection(p,y,m){
     ${x.comment?`<span style="color:#534AB7;font-style:italic">${x.comment}</span>`:''}
     <span style="margin-left:auto">${valideBadge(x.valide,'')}</span>
   </div>`;}).join('');
-  return`<div id="bloc-garde" class="bilan-sec">${header}${body}</div>`;
+  return`<div id="bloc-garde" class="bilan-sec" style="border-left:3px solid #3C3489">${header}${body}</div>`;
 }
 /* === Section "Forfait ménage" — partagée entre la page perso et la page admin. Le montant
    n'est ajustable que côté admin (comme avant) ; la validation aussi. === */
@@ -2067,7 +2144,7 @@ function renderBilanComments(p,y,m){
   const isAdmin=S.view==='admin';
   const thread=(D.bilanComments||[]).filter(c=>c.pid===p.id&&c.monthKey===key).sort((a,b)=>(a.ts||0)-(b.ts||0));
   const inputId=`bc-input-${p.id}-${key}`;
-  return`<div id="bloc-comments" class="bilan-sec" style="padding:.7rem .9rem">
+  return`<div id="bloc-comments" class="bilan-sec" style="border-left:3px solid #6B665E">
     <div class="sec-hdr" style="padding:5px 10px"><h2 style="font-size:12.5px">💬 Discussion — ${MONTHS_FR[m]} ${y}</h2></div>
     <div style="font-size:10px;color:#999;margin:6px 0 8px">Pas lié à une réservation précise. Visible par ${p.name} et David/Svitlana.</div>
     ${thread.length===0?'<div class="empty" style="font-size:11.5px;padding:8px">Aucun message pour ce mois.</div>':''}
@@ -2108,24 +2185,28 @@ function renderMenageSection(p,y,m){
   const menageEvs=D.reservations.filter(r=>r.status!=='annulé'&&menageDansMois(r,y,m)).map(r=>({r,mi:getMenageInfo(r)})).filter(x=>x.mi&&x.mi.pid===p.id);
   const menageTotal=menageEvs.reduce((a,x)=>a+x.mi.montant,0);
   const menagePaid=menageEvs.filter(x=>x.r.menagePaid).reduce((a,x)=>a+x.mi.montant,0);
-  return`<div id="bloc-menage" class="bilan-sec">
-    <div class="sec-hdr"><h2>🧹 Forfait ménage — sans commission — ${MONTHS_FR[m]} ${y}</h2></div>
-    <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">${p.menageMoisSur==='depart'?`Un ménage est compté sur le mois du <strong>départ</strong> des clients : une réservation du 31 juillet au 3 août compte pour août.`:`Un ménage est compté sur le mois de l'<strong>arrivée</strong> des clients : une réservation du 31 juillet au 3 août compte pour juillet.`}</div>
+  const surDepart=p.menageMoisSur==='depart';
+  const T='#1E7A6E';
+  return`<div id="bloc-menage" class="bilan-sec" style="border-left:3px solid ${T}">
+    ${secBandeau('🧹','Forfait ménage',MONTHS_FR[m],y,menageTotal,T)}
+    <div class="sec-regle">Sans commission. Un ménage est compté sur le mois ${surDepart?`du <strong>départ</strong> des clients — une réservation du 31 juillet au 2 août compte pour <strong>août</strong>`:`de l'<strong>arrivée</strong> des clients — une réservation du 31 juillet au 2 août compte pour <strong>juillet</strong>`}.</div>
     <div class="g3" style="margin-bottom:10px">
       <div class="metric"><span class="lbl">Total dû</span><span class="val">${money(menageTotal)}</span></div>
-      <div class="metric"><span class="lbl">Reçu</span><span class="val" style="color:#27500A">${money(menagePaid)}</span></div>
-      <div class="metric"><span class="lbl">Reste à recevoir</span><span class="val" style="color:#A32D2D">${money(menageTotal-menagePaid)}</span></div>
+      <div class="metric"><span class="lbl">Déjà réglé</span><span class="val" style="color:#1F7A3D">${money(menagePaid)}</span></div>
+      <div class="metric"><span class="lbl">Reste</span><span class="val" style="color:#A32D2D">${money(menageTotal-menagePaid)}</span></div>
     </div>
     ${menageEvs.length===0?'<div class="empty">Aucun forfait ménage ce mois-ci.</div>':''}
-    ${menageEvs.map(({r,mi},mIdx)=>{const dom=gDom(r.domaine);return`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:6px 8px;margin:0 -8px;border-bottom:1px solid #e5e3de;font-size:12.5px;background:${mIdx%2===1?'#f7f6f3':'transparent'}">
-      <span class="pill ${PILL[dom.color||0]}" style="flex-shrink:0">${dom.name}</span>
-      <span style="white-space:nowrap">${(r.dateDepart&&r.dateDepart!==r.dateArrivee)?ds(r.dateArrivee)+' → '+ds(r.dateDepart):ds(r.dateArrivee)}</span>
-      <span style="color:#888">(${displayClientName(r)||'—'})</span>
-      <input type="text" id="menage-comment-${r.id}" value="${(r.menageComment||'').replace(/"/g,'&quot;')}" placeholder="Note" onchange="updMenageComment('${r.id}',this.value)" style="flex:1;min-width:60px;font-size:11px;padding:3px 5px;color:#888;border:none;background:transparent">
-      <span style="display:flex;align-items:center;gap:2px;flex-shrink:0"><input type="number" id="menage-montant-${r.id}" value="${mi.montant}" onchange="updMenageMontant('${r.id}',this.value)" style="width:55px;font-weight:600;font-size:12px;padding:3px 5px"><span style="font-size:11px;font-weight:600;color:#666">€</span></span>
-      ${isAdmin?regleToggle(!!r.menagePaid,`toggleMenagePaid('${r.id}')`):''}
-      ${valideBadge(!!r.menageValide,`toggleMenageValide('${r.id}')`)}
-    </div>`;}).join('')}
+    ${menageEvs.map(({r,mi})=>{const dom=gDom(r.domaine);
+      const sejour=(r.dateDepart&&r.dateDepart!==r.dateArrivee)?ds(r.dateArrivee)+' → '+ds(r.dateDepart):ds(r.dateArrivee);
+      const jourCompte=surDepart?(r.dateDepart||r.dateArrivee):r.dateArrivee;
+      return ligneMontant({
+        date:ds(jourCompte),
+        titre:`<span class="pill ${PILL[dom.color||0]}" style="margin-right:5px">${dom.name}</span>${displayClientName(r)||'—'}`,
+        sous:`séjour ${sejour} — compté sur ${MONTHS_FR[parseInt((jourCompte||'').split('-')[1],10)-1]||'—'} (${surDepart?'départ':'arrivée'})`,
+        montant:`<span style="display:inline-flex;align-items:center;gap:3px"><input type="number" id="menage-montant-${r.id}" value="${mi.montant}" onchange="updMenageMontant('${r.id}',this.value)" style="width:62px;text-align:right;font-weight:700;font-size:12.5px;padding:4px 5px;border-radius:6px">€</span>`,
+        actions:`${isAdmin?regleToggle(!!r.menagePaid,`toggleMenagePaid('${r.id}')`):''}${valideBadge(!!r.menageValide,`toggleMenageValide('${r.id}')`)}`
+      })+`<div style="margin:-4px 0 6px 0"><input type="text" id="menage-comment-${r.id}" value="${(r.menageComment||'').replace(/"/g,'&quot;')}" placeholder="Ajouter une note…" onchange="updMenageComment('${r.id}',this.value)" style="width:100%;font-size:11.5px;padding:4px 7px;color:#7a756d;border:1px solid #f0eee9;background:#fbfaf7;border-radius:6px;box-sizing:border-box"></div>`;}).join('')}
+    ${menageEvs.length?ligneTotal('Total ménage',menageTotal,T):''}
   </div>`;
 }
 /* === Forfait gardiennage fixe mensuel (Misha & Sasha) — 400€/mois, dû quel que soit le
@@ -2206,29 +2287,30 @@ function renderElecSection(p,y,m){
   }else{
     explication=`<div style="font-size:11px;color:#9a958c;margin-top:8px">${ec.curIdx} − ${ec.prevIdx} = ${ec.conso} kWh × ${ELEC_RATE.toFixed(2)} € = ${money(ec.cost)}. L'index de fin ${MONTHS_FR[m]} servira de point de départ pour ${nextLabel}.</div>`;
   }
-  return`<div id="bloc-elec" class="bilan-sec">
-    <div class="sec-hdr"><h2>⚡ Électricité — ${MONTHS_FR[m]} ${y}</h2>${ec.conso!==null?valideBadge(valide,`toggleElecValide('${p.id}','${key}')`):''}</div>
-    <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">Index de compteur en kWh, en fin de mois. La conso du mois est déduite automatiquement de l'index du mois précédent.</div>
-    <div class="g2" style="margin-bottom:10px">
-      <div class="field"><label>Index fin ${prevLabel} (précédent)</label>
-        <div style="display:flex;gap:4px;align-items:center">
-          <input type="number" id="elec-prev-${p.id}-${ec.prevKey}" value="${ec.prevIdx!==null?ec.prevIdx:''}" onchange="updElecIndex('${p.id}','${ec.prevKey}',this.value)" placeholder="kWh" style="flex:1;min-width:0">
-          ${ec.prevIdx!==null?`<button type="button" title="Effacer définitivement cet index" onclick="if(confirm('Effacer définitivement cet index électricité ?'))updElecIndex('${p.id}','${ec.prevKey}','')" style="flex-shrink:0;border:none;background:#FCEBEB;color:#A32D2D;border-radius:6px;width:26px;height:26px;font-size:14px;font-weight:700;cursor:pointer;line-height:1">✕</button>`:''}
-        </div>
+  const T='#A8590F';
+  const V=bilanVoix(p);
+  const effacer=(k)=>`<button type="button" title="Effacer définitivement cet index" onclick="if(confirm('Effacer définitivement cet index électricité ?'))updElecIndex('${p.id}','${k}','')" style="flex-shrink:0;border:none;background:#FCEBEB;color:#A32D2D;border-radius:7px;width:32px;height:32px;font-size:14px;font-weight:700;cursor:pointer;line-height:1">✕</button>`;
+  return`<div id="bloc-elec" class="bilan-sec" style="border-left:3px solid ${T}">
+    ${secBandeau('⚡','Électricité',MONTHS_FR[m],y,ec.conso!==null?ec.cost:null,T)}
+    <div class="sec-regle">Relevé du compteur en kWh, <strong>en fin de mois</strong>. La consommation se calcule toute seule à partir de l'index du mois précédent, et l'index de ce mois sert de départ au mois suivant.</div>
+    ${ec.conso!==null?`<div style="text-align:right;margin-bottom:9px">${valideBadge(valide,`toggleElecValide('${p.id}','${key}')`)}</div>`:''}
+    <div class="decl">
+      <div class="decl-t">🔢 Les deux index du compteur</div>
+      <div class="decl-g" style="grid-template-columns:1fr 1fr">
+        ${declChamp(`Index fin ${prevLabel}`,`<div style="display:flex;gap:5px;align-items:center">
+          <input type="number" id="elec-prev-${p.id}-${ec.prevKey}" value="${ec.prevIdx!==null?ec.prevIdx:''}" onchange="updElecIndex('${p.id}','${ec.prevKey}',this.value)" placeholder="kWh">
+          ${ec.prevIdx!==null?effacer(ec.prevKey):''}</div>`)}
+        ${declChamp(`Index fin ${MONTHS_FR[m]}`,`<div style="display:flex;gap:5px;align-items:center">
+          <input type="number" id="elec-cur-${p.id}-${ec.curKey}" value="${ec.curIdx!==null?ec.curIdx:''}" onchange="updElecIndex('${p.id}','${ec.curKey}',this.value)" placeholder="kWh">
+          ${ec.curIdx!==null?effacer(ec.curKey):''}</div>`)}
       </div>
-      <div class="field"><label>Index fin ${MONTHS_FR[m]}</label>
-        <div style="display:flex;gap:4px;align-items:center">
-          <input type="number" id="elec-cur-${p.id}-${ec.curKey}" value="${ec.curIdx!==null?ec.curIdx:''}" onchange="updElecIndex('${p.id}','${ec.curKey}',this.value)" placeholder="kWh" style="flex:1;min-width:0">
-          ${ec.curIdx!==null?`<button type="button" title="Effacer définitivement cet index" onclick="if(confirm('Effacer définitivement cet index électricité ?'))updElecIndex('${p.id}','${ec.curKey}','')" style="flex-shrink:0;border:none;background:#FCEBEB;color:#A32D2D;border-radius:6px;width:26px;height:26px;font-size:14px;font-weight:700;cursor:pointer;line-height:1">✕</button>`:''}
-        </div>
-      </div>
+      ${explication}
     </div>
     <div class="g3">
       <div class="metric"><span class="lbl">Consommation</span><span class="val">${ec.conso!==null?ec.conso+' kWh':'—'}</span></div>
-      <div class="metric"><span class="lbl">Tarif</span><span class="val">${ELEC_RATE.toFixed(2)}€/kWh</span></div>
-      <div class="metric"><span class="lbl">Montant dû par ${p.name}</span><span class="val" style="color:#A32D2D">${ec.conso!==null?money(ec.cost):'—'}</span></div>
+      <div class="metric"><span class="lbl">Tarif</span><span class="val">${ELEC_RATE.toFixed(2)} €/kWh</span></div>
+      <div class="metric"><span class="lbl">À ${V.self?'votre charge':'la charge de '+p.name}</span><span class="val" style="color:#A32D2D">${ec.conso!==null?money(ec.cost):'—'}</span></div>
     </div>
-    ${explication}
   </div>`;
 }
 /* Bilan total consolidé du mois pour Misha/Sasha : ce qu'on leur doit (forfait fixe +
@@ -2720,11 +2802,43 @@ function renderCommissionDetailSection(p,y,m){
     ${ensembles.map(ensembleHtml).join('')}
   </div>`;
 }
-function bilanLigneRow(label,montant,sign,ancre){
+/* ── Briques communes de la partie financière ──────────────────────────────────────────
+   Une seule façon de dessiner un bandeau de section, un champ de saisie et une ligne de
+   décompte : c'est ce qui fait qu'on s'y retrouve d'un bloc à l'autre sans réapprendre. */
+function secBandeau(ic,titre,mois,an,total,teinte){
+  return`<div class="sec-hdr" style="background:${teinte}">
+    <h2><span>${ic}</span><span style="overflow:hidden;text-overflow:ellipsis">${titre}</span>
+      <span style="opacity:.75;font-weight:400;white-space:nowrap">· ${mois} ${an}</span></h2>
+    ${total!==null&&total!==undefined?`<span class="sec-total">${money(total)}</span>`:''}
+  </div>`;
+}
+function declChamp(label,inner){
+  return`<div class="decl-c"><label>${label}</label>${inner}</div>`;
+}
+/* Une ligne de décompte : la date à gauche (c'est par elle qu'on retrouve une ligne), le
+   libellé au milieu, le montant à droite toujours au même endroit, les boutons tout à droite. */
+function ligneMontant(o){
+  return`<div class="lg">
+    <span class="lg-d">${o.date||''}</span>
+    <span class="lg-l">${o.titre||''}${o.sous?`<small>${o.sous}</small>`:''}</span>
+    <span class="lg-m" style="color:${o.couleur||'#2A2A2A'}">${o.montant}</span>
+    ${o.actions?`<span class="lg-a">${o.actions}</span>`:''}
+  </div>`;
+}
+function ligneTotal(label,montant,teinte){
+  return`<div class="lg-tot"><span>${label}</span><span class="v" style="color:${teinte||'#2A2A2A'}">${money(montant)}</span></div>`;
+}
+/* Une ligne du récapitulatif : pastille colorée + intitulé cliquable (qui descend au bloc
+   correspondant) + montant signé, aligné à droite. Le signe est explicite : « + » ce qui
+   augmente ce qu'on lui doit, « − » ce qui le diminue. */
+function bilanLigneRow(label,montant,sign,ancre,ic,teinte){
   const isNeg=sign==='-';
-  return`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #F4C6D6;font-size:13px">
-    <span>${ancre?`<a href="#${ancre}" onclick="event.preventDefault();document.getElementById('${ancre}').scrollIntoView({behavior:'smooth',block:'start'})" style="color:#72243E;text-decoration:underline">${label}</a>`:label}</span>
-    <strong style="color:${isNeg?'#A32D2D':'#27500A'}">${isNeg?'− ':'+ '}${money(montant)}</strong>
+  const lien=ancre
+    ?`<a href="#${ancre}" onclick="event.preventDefault();var e=document.getElementById('${ancre}');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})">${label}</a>`
+    :label;
+  return`<div class="r-l">
+    <span class="r-n">${ic?`<span class="r-ic" style="background:${teinte||'#F1EFEA'}">${ic}</span>`:''}<span>${lien}</span></span>
+    <span class="r-v ${isNeg?'r-moins':'r-plus'}">${isNeg?'−':'+'} ${money(montant)}</span>
   </div>`;
 }
 /* Les deux lignes qui closent le mois, juste sous le TOTAL DÛ : « dont facture » — un simple
@@ -2734,18 +2848,18 @@ function renderFactureLines(p,y,m,bt){
   const R=computeReglementMois(p,y,m);
   const negatif=R.reste<0;
   const val=R.totalFacture?R.totalFacture:'';
-  return`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0;border-top:1px solid #F4C6D6;font-size:12.5px">
-      <span style="color:#72243E">dont facture</span>
-      <span style="display:flex;align-items:center;gap:3px;flex-shrink:0">
+  return`<div class="r-l" style="border-top:1px solid #F4E2E8;border-bottom:none;padding-top:8px">
+      <span class="r-n"><span class="r-ic" style="background:#EDEBE6">🧾</span><span>dont facturé</span></span>
+      <span style="display:flex;align-items:center;gap:4px;flex-shrink:0">
         <input type="number" id="fact-mois-${p.id}" step="0.01" value="${val}" placeholder="0"
           onchange="setFactureMois('${p.id}',${y},${m},this.value)"
-          style="width:82px;text-align:right;font-size:12.5px;padding:3px 5px">
-        <span style="color:#72243E">€</span>
+          style="width:88px;text-align:right;font-size:13px;padding:5px 7px;border-radius:7px">
+        <span style="color:#72243E;font-weight:600">€</span>
       </span>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0 4px;font-size:13px;font-weight:700;color:#72243E">
-      <span>Reste à régler</span>
-      <span style="font-size:16px;color:${negatif?'#A32D2D':'#72243E'}">${money(R.reste)}</span>
+    <div class="r-l" style="border-bottom:none;font-weight:700;color:#72243E">
+      <span class="r-n">Reste à régler</span>
+      <span class="r-v" style="font-size:16px;color:${negatif?'#A32D2D':'#72243E'}">${money(R.reste)}</span>
     </div>
     ${negatif?`<div style="font-size:10.5px;color:#A32D2D;text-align:right;padding-bottom:4px">⚠️ La facture dépasse ce qui est dû ce mois-ci.</div>`:''}`;
 }
@@ -2758,27 +2872,33 @@ function renderBilanTotalSection(p,y,m){
   return`<div class="bilan-sec" style="background:#FBEAF0;border-color:#D9A8BC;margin-bottom:12px">
     <div class="sec-hdr" style="background:#993556"><h2>💰 Bilan total — ${MONTHS_FR[m]} ${y}</h2></div>
     ${bt.enAttente>0?`<div class="alert" style="background:#B15E00;color:#fff;font-weight:600;margin-bottom:7px;font-size:11.5px;padding:5px 9px">⏳ ${bt.enAttente} élément${bt.enAttente>1?'s':''} ci-dessous en attente de validation — vérifiez le calcul et validez, ou corrigez le montant.</div>`:''}
-    <div style="background:#fff;border-radius:8px;padding:1px 9px;margin-bottom:7px">
-      ${p.forfaitMensuel?bilanLigneRow('Forfait gardiennage fixe',bt.forfaitDu,'+','bloc-forfait'):''}
-      ${hasMenage?bilanLigneRow('Ménage',bt.menageDu,'+','bloc-menage'):''}
+    <div class="recap">
+      ${p.forfaitMensuel?bilanLigneRow('Forfait gardiennage fixe',bt.forfaitDu,'+','bloc-forfait','🛡','#DDE7F6'):''}
+      ${hasMenage?bilanLigneRow('Ménage',bt.menageDu,'+','bloc-menage','🧹','#D8EEEA'):''}
       ${hasCommission?renderCommissionBreakdownRow(p,y,m,bt):''}
-      ${p.accessMode==='domaine'?bilanLigneRow('Travaux hors réservation',bt.travDu,'+','bloc-travaux'):''}
-      ${p.electricite?(bt.elecConso!==null?bilanLigneRow(`Électricité (à charge ${p.name})`,bt.elecCost,'-','bloc-elec'):`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #F4C6D6;font-size:13px">
-        <span><a href="#bloc-elec" onclick="event.preventDefault();document.getElementById('bloc-elec').scrollIntoView({behavior:'smooth',block:'start'})" style="color:#72243E;text-decoration:underline">Électricité (à charge ${p.name})</a></span>
-        <strong style="color:#B15E00;font-size:11.5px;font-weight:600">index à renseigner</strong>
+      ${p.accessMode==='domaine'?bilanLigneRow('Travaux &amp; activités',bt.travDu,'+','bloc-travaux','🔧','#F6E8CC'):''}
+      ${p.electricite?(bt.elecConso!==null?bilanLigneRow(`Électricité — ${bilanVoix(p).self?'à votre charge':'à la charge de '+p.name}`,bt.elecCost,'-','bloc-elec','⚡','#FBE7D2'):`<div class="r-l">
+        <span class="r-n"><span class="r-ic" style="background:#FBE7D2">⚡</span><span><a href="#bloc-elec" onclick="event.preventDefault();var e=document.getElementById('bloc-elec');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})">Électricité</a></span></span>
+        <span class="r-v" style="color:#B15E00;font-size:11.5px">index à renseigner ↓</span>
       </div>`):''}
-      ${isGardeOnly?bilanLigneRow('Gardiennage (nuits)',bt.gardeDu,'+','bloc-garde'):''}
-      ${p.accessMode==='domaine'?bilanLigneRow([bilanVoix(p).pourNotreCompte,bilanVoix(p).aRembourser].filter(Boolean).join(' '),bt.rembDu,'+','bloc-remb'):''}
-      ${(p.accessMode==='domaine'&&bt.encDu)?bilanLigneRow(bilanVoix(p).recuNotreCompte,bt.encDu,'-','bloc-enc'):''}
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0 4px;margin-top:2px;border-top:1.5px solid #993556;font-size:13px;font-weight:700;color:#72243E">
-        <span>TOTAL DÛ CE MOIS</span><span style="font-size:18px">${money(bt.totalDu)}</span>
+      ${isGardeOnly?bilanLigneRow('Gardiennage (nuits)',bt.gardeDu,'+','bloc-garde','🛡','#DDE7F6'):''}
+      ${p.accessMode==='domaine'?bilanLigneRow([bilanVoix(p).pourNotreCompte,bilanVoix(p).aRembourser].filter(Boolean).join(' '),bt.rembDu,'+','bloc-remb','💳','#E4E1F7'):''}
+      ${(p.accessMode==='domaine'&&bt.encDu)?bilanLigneRow(bilanVoix(p).recuNotreCompte,bt.encDu,'-','bloc-enc','💰','#F7DCDC'):''}
+      <div class="r-tot">
+        <span>TOTAL DÛ — ${MONTHS_FR[m]}</span><span class="v">${money(bt.totalDu)}</span>
       </div>
-      ${p.accessMode==='domaine'&&bt.rembDu>0?`<div style="font-size:10.5px;color:#888;text-align:right;padding-bottom:4px">dont ${money(bt.totalActivite)} d'activité + ${money(bt.rembDu)} de remboursement</div>`:''}
+      ${p.accessMode==='domaine'&&(bt.rembDu>0||bt.encDu>0)?`<div style="font-size:10.5px;color:#8a857c;text-align:right;padding-bottom:5px">${money(bt.totalActivite)} d'activité${bt.rembDu>0?` + ${money(bt.rembDu)} avancé pour nous`:''}${bt.encDu>0?` − ${money(bt.encDu)} encaissé pour nous`:''}</div>`:''}
       ${renderFactureLines(p,y,m,bt)}
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border-radius:8px;padding:6px 9px;font-size:12px">
-      <span>Déjà réglé <strong style="color:#1F7A3D;margin-left:3px">${money(bt.totalRecu)}</strong></span>
-      <span>Reste à verser <strong style="color:#B93232;margin-left:3px">${money(bt.totalReste)}</strong></span>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+      <div style="background:#fff;border-radius:9px;padding:7px 10px">
+        <div style="font-size:10px;color:#8a857c;text-transform:uppercase;letter-spacing:.05em">Déjà réglé</div>
+        <div style="font-size:15px;font-weight:700;color:#1F7A3D;font-variant-numeric:tabular-nums">${money(bt.totalRecu)}</div>
+      </div>
+      <div style="background:#fff;border-radius:9px;padding:7px 10px">
+        <div style="font-size:10px;color:#8a857c;text-transform:uppercase;letter-spacing:.05em">Reste à verser</div>
+        <div style="font-size:15px;font-weight:700;color:#B93232;font-variant-numeric:tabular-nums">${money(bt.totalReste)}</div>
+      </div>
     </div>
     ${p.forfaitMensuel?`<div id="bloc-forfait" style="margin-top:7px;display:flex;align-items:center;justify-content:space-between;gap:8px;background:#fff;border-radius:8px;padding:6px 9px;scroll-margin-top:12px">
       <span style="font-size:11.5px;color:#666">Forfait gardiennage fixe — ${money(bt.forfaitDu)}, montant constant</span>
