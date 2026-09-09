@@ -15,7 +15,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a;background:#f5f4f1;font-size:14px;min-height:100vh}
 .app{max-width:920px;margin:0 auto;padding:0.6rem 1rem 1rem}
-.topbar{display:flex;align-items:center;gap:6px;padding:5px 0 7px;border-bottom:1px solid #e5e3de;margin-bottom:7px;flex-wrap:nowrap}
+.topbar{display:flex;align-items:center;gap:6px;padding:5px 0 7px;border-bottom:1px solid #e5e3de;margin-bottom:7px;flex-wrap:wrap}
 .topbar h1{font-size:13px;font-weight:600;flex:1;margin-left:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500}
 .ba{background:#FBEAF0;color:#72243E}.bp{background:#E1F5EE;color:#085041}
@@ -134,6 +134,33 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 /* Le domaine dit une fois pour toutes dans le bandeau, quand toutes les lignes le partagent —
    les lignes gagnent alors la largeur pour écrire le nom du client en entier. */
 .sec-dom{background:rgba(255,255,255,.22);border-radius:20px;padding:0 7px;font-size:10.5px;font-weight:600;color:#fff;white-space:nowrap;flex-shrink:0}
+/* === Le compte courant déroulé mois par mois ===
+   Quatre colonnes fixes — mois, report, mouvement du mois, solde de fin — pour que l'œil puisse
+   descendre la dernière colonne et lire d'un trait ce qu'il faudra sortir en mai. */
+.cc-lgd{display:grid;grid-template-columns:1fr 68px 78px 82px;gap:6px;font-size:9.5px;color:#b0aca4;text-transform:uppercase;letter-spacing:.03em;padding:0 6px 3px;text-align:right}
+.cc-lgd span:first-child{text-align:left}
+.cc-b{border-top:1px solid #f0eee9}
+.cc-b:first-of-type{border-top:none}
+.cc-h{display:grid;grid-template-columns:1fr 68px 78px 82px;gap:6px;align-items:center;padding:5px 6px;cursor:pointer;font-size:11.5px;border-radius:7px}
+.cc-h:hover{background:#faf9f6}
+.cc-m{font-weight:600;color:#3f3b35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cc-m em{font-style:normal;font-weight:400;color:#8a857c;font-size:10.5px}
+.cc-v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cc-fin{font-weight:700;font-size:12.5px}
+.cc-now{background:#F3F7FC;border-radius:8px}
+.cc-now .cc-h{font-size:12px}
+.cc-fut .cc-m{color:#6b665e}
+.cc-d{padding:2px 6px 6px;border-left:2px solid #e6e3dd;margin:0 6px 6px}
+/* Le solde du compte courant sous le nom, dans l'onglet : même place que l'initiale qu'il
+   remplace, mais qui dit quelque chose. */
+.tab-cc{display:block;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.15;margin-top:1px}
+.tab.active .tab-cc{opacity:1}
+@media(max-width:520px){
+  .cc-lgd,.cc-h{grid-template-columns:1fr 58px 66px 72px;gap:4px}
+  .cc-lgd{font-size:9px}
+  .cc-h{font-size:11px;padding:5px 4px}
+  .cc-fin{font-size:12px}
+}
 .bilan-sec .sec-regle{font-size:10px;color:#9a958c;line-height:1.35;margin-bottom:6px}
 .bilan-sec .sec-regle strong{color:#6b665e}
 .bilan-sec .empty{padding:.5rem;font-size:11.5px;background:#faf9f7;border-radius:6px;color:#9a958c;text-align:center}
@@ -323,7 +350,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 /* Numéro de version, affiché en haut de l'écran. Sert à répondre en une seconde à la seule
    question qui compte quand « ça marche chez moi mais pas chez elle » : les deux téléphones
    font-ils bien tourner la MÊME version ? */
-const APP_VERSION='2026-09-09-c';
+const APP_VERSION='2026-09-09-d';
 const SK='domnoрm_prod_v1';
 const SUPA_URL='https://hdtltrnabrgibkcvubzd.supabase.co';
 const SUPA_KEY='sb_publishable_zvpg0YOHegxqXJxbEKhSbQ_3oLwbrr1';
@@ -2343,12 +2370,13 @@ function computeCompteCourant(p){
   }
   const debut=dep&&dep.date?dep.date:null;
   const auj=dstr(new Date());
+  const fin=horizonCompte(p,auj);
   if(debut){
-    /* On balaie du mois de départ jusqu'au mois courant inclus, et on ne retient que les
-       événements POSTÉRIEURS au point de départ : ce jour-là, le solde a été arrêté d'un commun
-       accord, tout ce qui précède est déjà dedans. */
+    /* On balaie du mois de départ jusqu'à l'horizon connu, et on ne retient que les événements
+       POSTÉRIEURS au point de départ : ce jour-là, le solde a été arrêté d'un commun accord,
+       tout ce qui précède est déjà dedans. */
     const[dy,dm]=debut.split('-').map(Number);
-    const[fy,fm]=auj.split('-').map(Number);
+    const[fy,fm]=fin.split('-').map(Number);
     let y=dy,m=dm-1;
     while(y<fy||(y===fy&&m<=fm-1)){
       evenementsCompteMois(p,y,m).forEach(e=>{
@@ -2375,7 +2403,58 @@ function computeCompteCourant(p){
   passees.forEach(l=>{solde=Math.round((solde+l.montant)*100)/100;l.solde=solde;});
   let soldeProjete=solde;
   aVenir.forEach(l=>{soldeProjete=Math.round((soldeProjete+l.montant)*100)/100;l.solde=soldeProjete;});
-  return{dep,lignes:passees,aVenir,solde,soldeProjete,auj};
+  return{dep,lignes:passees,aVenir,solde,soldeProjete,auj,fin,
+         mois:groupeParMois(lignes,auj)};
+}
+/* === Jusqu'où projeter ? ===
+   David veut pouvoir se placer sur mai et voir ce qu'il aura à sortir ce mois-là. On ne s'arrête
+   donc plus au mois en cours : on va jusqu'au dernier mois où l'on connaît quelque chose — une
+   réservation déjà au planning, des travaux programmés, une nuit de gardiennage prévue, un
+   mouvement déjà saisi. Au-delà, il n'y a plus rien à dire, et le forfait mensuel seul ne
+   justifie pas de dérouler l'infini. */
+function horizonCompte(p,auj){
+  let max=auj;
+  const voir=d=>{if(d&&String(d).length>=7&&String(d)>max)max=String(d).slice(0,10);};
+  D.reservations.forEach(r=>{if(r.status==='annulé')return;
+    voir(r.dateDepart);voir(r.dateArrivee);voir(r.date);});
+  (D.travauxSchedule||[]).forEach(x=>{if(x.pid===p.id)voir(x.date);});
+  (D.remboursements||[]).forEach(x=>{if(x.pid===p.id)voir(x.date);});
+  (D.encaissements||[]).forEach(x=>{if(x.pid===p.id)voir(x.date);});
+  (D.gardeSchedule||[]).forEach(x=>{if(x.pid===p.id)voir(x.date);});
+  (D.dominiqueSchedule||[]).forEach(x=>voir(x.date));
+  (D.comptesMouvements||[]).forEach(x=>{if(x.pid===p.id)voir(x.date);});
+  return max;
+}
+/* === Le compte, mois par mois, avec report ===
+   Chaque mois reprend le solde de fin du mois précédent (« report »), y ajoute ses propres
+   lignes, et referme sur un solde qui devient le report du mois suivant. C'est ce chaînage qui
+   permet de se placer sur un mois lointain et de lire directement ce qu'il faudra sortir. */
+function groupeParMois(lignes,auj){
+  const moisAuj=auj.slice(0,7);
+  const parCle={},ordre=[];
+  lignes.forEach(l=>{
+    const cle=(l.date||'').slice(0,7); if(!cle)return;
+    if(!parCle[cle]){parCle[cle]={cle,lignes:[]};ordre.push(cle);}
+    parCle[cle].lignes.push(l);
+  });
+  ordre.sort();
+  let report=0;
+  return ordre.map(cle=>{
+    const b=parCle[cle];
+    const[y,m]=cle.split('-').map(Number);
+    let solde=report,entrees=0,sorties=0;
+    b.lignes.forEach(l=>{
+      solde=Math.round((solde+l.montant)*100)/100;
+      if(l.montant>0)entrees+=l.montant;else sorties+=l.montant;
+    });
+    const bloc={cle,y,m:m-1,label:`${MONTHS_FR[m-1]} ${y}`,
+      report:Math.round(report*100)/100,lignes:b.lignes,
+      entrees:Math.round(entrees*100)/100,sorties:Math.round(sorties*100)/100,
+      solde:Math.round(solde*100)/100,
+      passe:cle<moisAuj,courant:cle===moisAuj,futur:cle>moisAuj};
+    report=solde;
+    return bloc;
+  });
 }
 function setCompteDepart(pid){
   const date=(document.getElementById('cc-dep-date-'+pid)||{}).value;
@@ -2431,7 +2510,7 @@ function soldeCompteVoix(p,C){
 /* Le même solde, en une seule ligne, à poser en haut du récapitulatif : David veut savoir où en
    est l'avance de Misha ou de Sacha sans avoir à faire défiler tout le bilan du mois. */
 function bandeauCompteCourant(p){
-  if(p.accessMode!=='domaine')return'';
+  if(!suiviFinancier(p)||!compteActif(p))return'';
   const{C,phrase,couleur,fond}=soldeCompteVoix(p);
   const dep=C.dep?` · départ ${fmt(C.dep.date)}`:'';
   return`<div style="background:${fond};border-radius:9px;padding:6px 10px;margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
@@ -2443,22 +2522,37 @@ function bandeauCompteCourant(p){
     <span style="font-size:19px;font-weight:700;color:${couleur};font-variant-numeric:tabular-nums;white-space:nowrap">${money(Math.abs(C.solde))}</span>
   </div>`;
 }
+function compteActif(p){
+  if(!p)return false;
+  if(compteDepart(p.id))return true;
+  return (D.comptesMouvements||[]).some(x=>x.pid===p.id);
+}
+/* Qui peut avoir un compte courant : les mêmes que ceux qu'on suit financièrement au bilan.
+   David : « il faut faire ce système pour chaque prestataire ». */
+function suiviFinancier(p){
+  return !!(p&&(p.forfaitMensuel||p.inputMode==='notes'||p.flatRate||p.inputMode==='garde'||p.name==='Dominique'));
+}
 function renderCompteSection(p){
-  if(p.accessMode!=='domaine')return'';
+  if(!suiviFinancier(p))return'';
   const isAdmin=S.view==='admin';
+  const actif=compteActif(p);
+  /* Tant qu'aucun compte n'est ouvert pour cette personne, on n'encombre pas sa fiche avec un
+     tableau vide : côté David/Svitlana, une seule ligne pour le démarrer ; côté prestataire,
+     rien du tout — il n'y a rien à lui montrer. */
+  if(!actif&&!isAdmin)return'';
   const V=bilanVoix(p);
   const C=computeCompteCourant(p);
   const T='#0C447C';
   const {nous,eux,phrase,couleur,fond}=soldeCompteVoix(p,C);
   const modesOpts=COMPTE_MODES.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
   return`<div id="bloc-compte" class="bilan-sec" style="border-left:3px solid ${T}">
-    ${secBandeau('📒','Compte courant',MONTHS_FR[new Date().getMonth()],new Date().getFullYear(),null,T,isAdmin?'cc-'+p.id:null)}
+    ${secBandeau('📒','Compte courant',MONTHS_FR[new Date().getMonth()],new Date().getFullYear(),null,T,(isAdmin&&actif)?'cc-'+p.id:null)}
     <div class="sec-regle">Chaque élément entre au compte <strong>le jour où il a eu lieu</strong> · chaque somme versée le diminue.</div>
-    <div style="background:${fond};border-radius:10px;padding:11px 13px;margin-bottom:11px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    ${actif?`<div style="background:${fond};border-radius:10px;padding:11px 13px;margin-bottom:11px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
       <span style="font-size:13px;font-weight:600;color:${couleur}">${phrase}</span>
       <span style="font-size:22px;font-weight:700;color:${couleur};font-variant-numeric:tabular-nums">${money(Math.abs(C.solde))}</span>
-    </div>
-    ${(!C.dep&&isAdmin)?`<div class="decl">
+    </div>`:''}
+    ${(!C.dep&&isAdmin&&(actif||declOuverte('cc-dep-'+p.id)))?`<div class="decl">
       <div class="decl-g" style="grid-template-columns:1fr 1fr">
         ${declChamp('À la date du',dateFieldHtml(`cc-dep-date-${p.id}`,'width:100%',null,'2026-08-31'))}
         ${declChamp('Montant (€)',`<input type="number" id="cc-dep-montant-${p.id}" step="0.01" placeholder="ex. 1000">`)}
@@ -2487,31 +2581,72 @@ function renderCompteSection(p){
       </div>
       <button class="btn btn-primary decl-go" onclick="addCompteMouvement('${p.id}')">Enregistrer</button>
     </div>`:''}
-    ${C.lignes.length===0?'<div class="empty">Rien encore. Fixez le point de départ pour commencer le compte.</div>':''}
-    ${C.lignes.map(l=>`<div class="lg">
+    ${(!actif&&!declOuverte('cc-dep-'+p.id))?`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:2px 0 4px">
+      <span style="font-size:11.5px;color:#8a857c">Aucun compte ouvert avec ${p.name} pour l'instant.</span>
+      <button class="btn btn-sm" onclick="toggleDecl('cc-dep-${p.id}')">Ouvrir un compte</button>
+    </div>`:''}
+    ${actif&&C.lignes.length===0&&!(C.mois||[]).length?'<div class="empty">Rien encore à ce compte.</div>':''}
+    ${actif?renderCompteMois(p,C,isAdmin,V):''}
+  </div>`;
+}
+/* === Le déroulé mois par mois ===
+   David : « quand je vais sur le mai, je vois tout ce qu'on est censé lui payer ». Chaque mois
+   est donc une ligne autonome — report du mois précédent, ce qui s'ajoute, ce qui se règle,
+   solde de fin — et ce solde de fin est exactement le report du mois suivant. On peut ainsi
+   descendre jusqu'à mai et lire directement la somme à prévoir, sans rien recalculer soi-même.
+   Le détail d'un mois s'ouvre à la demande ; le mois en cours est ouvert d'entrée. */
+function toggleCompteMois(pid,cle){
+  const k=pid+'|'+cle;
+  S.ccMoisOuvert=(S.ccMoisOuvert===k)?null:k;
+  render();
+}
+function renderCompteMois(p,C,isAdmin,V){
+  const mois=C.mois||[];
+  if(!mois.length)return'';
+  const ouvertCle=S.ccMoisOuvert&&S.ccMoisOuvert.indexOf(p.id+'|')===0
+    ? S.ccMoisOuvert.slice(p.id.length+1)
+    : C.auj.slice(0,7);
+  const teinte=v=>v>0.005?'#A32D2D':v<-0.005?'#1F7A3D':'#8a857c';
+  const ligneHtml=(l,grise)=>`<div class="lg"${grise?' style="opacity:.6"':''}>
       <span class="lg-d">${ds(l.date)}</span>
       <span class="lg-l"><span class="lg-t">${l.label}</span>${l.detail?`<small><span class="s-txt">${l.detail}</span></small>`:''}</span>
       <span class="lg-m" style="color:${l.montant>=0?'#A32D2D':'#1F7A3D'}">${l.montant>=0?'+':'−'} ${money(Math.abs(l.montant))}</span>
-      <span class="lg-a" style="min-width:78px;justify-content:flex-end">
-        <span style="font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;color:${l.solde>0.005?'#A32D2D':l.solde<-0.005?'#1F7A3D':'#8a857c'}">${money(l.solde)}</span>
+      <span class="lg-a" style="min-width:76px;justify-content:flex-end">
+        <span style="font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;color:${teinte(l.soldeMois)}">${money(l.soldeMois)}</span>
         ${(isAdmin&&l.type==='mouvement')?`<button class="btn btn-xs btn-danger" onclick="delCompteMouvement('${l.id}')">✕</button>`:''}
       </span>
-    </div>`).join('')}
-    ${C.lignes.length?`<div class="lg-tot"><span>Solde au ${fmt(C.auj)} — ${phrase.toLowerCase()}</span><span class="v" style="color:${couleur}">${money(Math.abs(C.solde))}</span></div>`:''}
-    ${(C.aVenir&&C.aVenir.length)?`<div style="margin-top:9px;padding-top:7px;border-top:1px dashed #e2ded7">
-      <div style="font-size:10.5px;color:#9a958c;margin-bottom:4px">Déjà prévu, <strong>pas encore compté</strong> (ça n'a pas encore eu lieu) :</div>
-      ${C.aVenir.map(l=>`<div class="lg" style="opacity:.6">
-        <span class="lg-d">${ds(l.date)}</span>
-        <span class="lg-l"><span class="lg-t">${l.label}</span>${l.detail?`<small><span class="s-txt">${l.detail}</span></small>`:''}</span>
-        <span class="lg-m" style="color:${l.montant>=0?'#A32D2D':'#1F7A3D'}">${l.montant>=0?'+':'−'} ${money(Math.abs(l.montant))}</span>
-        <span class="lg-a" style="min-width:78px;justify-content:flex-end"><span style="font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;color:#9a958c">${money(l.solde)}</span></span>
-      </div>`).join('')}
-      <div class="lg-tot" style="color:#8a857c;border-top-color:#e2ded7"><span>Solde une fois tout réalisé</span><span class="v" style="color:#8a857c">${money(Math.abs(C.soldeProjete))}</span></div>
-    </div>`:''}
-    ${C.lignes.length?`<div style="font-size:10.5px;color:#9a958c;margin-top:5px">Chaque ligne entre au compte <strong>le jour où elle a eu lieu</strong>. Dans la colonne de droite, le solde après cette ligne : <strong>positif</strong> = on ${V.self?'vous':'lui'} doit encore de l'argent, <strong>négatif</strong> = il reste une avance à consommer.</div>`:''}
+    </div>`;
+  return`<div class="cc-mois">
+    <div class="cc-lgd"><span>Mois</span><span>Report</span><span>Mouvement</span><span>Solde fin</span></div>
+    ${mois.map(b=>{
+      const ouvert=b.cle===ouvertCle;
+      /* Le solde cumulé se recalcule ici à partir du report du mois : sur un mois futur, la
+         colonne de droite doit lire la projection du mois, pas le solde d'aujourd'hui. */
+      let cum=b.report;
+      b.lignes.forEach(l=>{cum=Math.round((cum+l.montant)*100)/100;l.soldeMois=cum;});
+      const net=Math.round((b.solde-b.report)*100)/100;
+      return`<div class="cc-b ${b.courant?'cc-now':b.futur?'cc-fut':''}">
+        <div class="cc-h" onclick="toggleCompteMois('${p.id}','${b.cle}')">
+          <span class="cc-m">${ouvert?'▾':'▸'} ${b.label}${b.courant?' <em>· en cours</em>':''}</span>
+          <span class="cc-v" style="color:#9a958c">${money(b.report)}</span>
+          <span class="cc-v" style="color:${net>=0?'#A32D2D':'#1F7A3D'}">${net>=0?'+':'−'} ${money(Math.abs(net))}</span>
+          <span class="cc-v cc-fin" style="color:${teinte(b.solde)}">${money(b.solde)}</span>
+        </div>
+        ${ouvert?`<div class="cc-d">
+          <div class="lg" style="opacity:.75">
+            <span class="lg-d">report</span>
+            <span class="lg-l"><span class="lg-t">Report du mois précédent</span></span>
+            <span class="lg-m" style="color:#9a958c">—</span>
+            <span class="lg-a" style="min-width:76px;justify-content:flex-end"><span style="font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;color:${teinte(b.report)}">${money(b.report)}</span></span>
+          </div>
+          ${b.lignes.map(l=>ligneHtml(l,b.futur||l.date>C.auj)).join('')}
+          <div class="lg-tot"><span>Solde fin ${b.label}</span><span class="v" style="color:${teinte(b.solde)}">${money(b.solde)}</span></div>
+        </div>`:''}
+      </div>`;}).join('')}
+    <div class="lg-tot" style="margin-top:6px"><span>Solde une fois tout réalisé${C.fin?` (jusqu'à ${fmt(C.fin)})`:''}</span><span class="v" style="color:${teinte(C.soldeProjete)}">${money(C.soldeProjete)}</span></div>
+    <div style="font-size:10.5px;color:#9a958c;margin-top:5px">Le solde de fin d'un mois est le report du mois suivant. <strong>Positif</strong> = on ${V.self?'vous':'lui'} doit de l'argent, <strong>négatif</strong> = il reste une avance à consommer. Les mois à venir sont des prévisions : tout ce qui est déjà au planning y est compté.</div>
   </div>`;
 }
-
 function renderMenageSection(p,y,m){
   const isAdmin=S.view==='admin';
   const menageEvs=D.reservations.filter(r=>r.status!=='annulé'&&menageDansMoisPour(r,p,y,m)).map(r=>({r,mi:getMenageInfo(r)})).filter(x=>x.mi&&x.mi.pid===p.id);
@@ -5514,7 +5649,15 @@ function renderBilan(){
   const subTab=S.bilanSubTab||'general';
   const tabsHtml=`<div class="tabs" style="margin-bottom:10px">
     <button class="tab${subTab==='general'?' active':''}" onclick="setBilanSubTab('general')"><span class="tab-ic">📊</span><span class="tab-lbl">Général</span></button>
-    ${bilanPrestas.map(p=>`<button class="tab${subTab===p.id?' active':''}" onclick="setBilanSubTab('${p.id}')"><span class="tab-ic">${initials(p.name)}</span><span class="tab-lbl">${p.name}</span></button>`).join('')}
+    ${/* Pour Misha et Sacha, l'initiale n'apprenait rien : à sa place, le solde du compte
+          courant à jour, pour qu'on sache où on en est avec eux sans ouvrir l'onglet. */
+      bilanPrestas.map(p=>{
+        const cc=compteActif(p)?computeCompteCourant(p):null;
+        const teinte=cc?(cc.solde>0.005?'#A32D2D':cc.solde<-0.005?'#1F7A3D':'#8a857c'):'';
+        return`<button class="tab${subTab===p.id?' active':''}" onclick="setBilanSubTab('${p.id}')">${
+          cc?`<span class="tab-lbl">${p.name}</span><span class="tab-cc" style="color:${teinte}">${money(cc.solde)}</span>`
+            :`<span class="tab-ic">${initials(p.name)}</span><span class="tab-lbl">${p.name}</span>`}</button>`;
+      }).join('')}
   </div>`;
   if(subTab!=='general'){
     const p=D.prestataires.find(x=>x.id===subTab);
@@ -5880,7 +6023,10 @@ function renderPrestaDetailAdmin(p){
   const travauxSection=(p.accessMode==='domaine')?renderTravauxSection(p,y,m):'';
 
   /* === Paiement fait / remboursement (Misha/Sacha uniquement) — rendu partagé avec la page perso === */
-  const remboursementSection=(p.accessMode==='domaine')?(renderRemboursementSection(p,y,m)+renderEncaissementSection(p,y,m)+renderCompteSection(p)):'';
+  const remboursementSection=(p.accessMode==='domaine')?(renderRemboursementSection(p,y,m)+renderEncaissementSection(p,y,m)):'';
+  /* Le compte courant, lui, vaut pour tout prestataire suivi financièrement — pas seulement
+     ceux qui ont un accès complet aux domaines. */
+  const compteSection=renderCompteSection(p);
 
   /* === Dominique (jardinage) === */
   let dominiqueSection='';
@@ -5914,8 +6060,8 @@ function renderPrestaDetailAdmin(p){
   const commentsSection=renderBilanComments(p,y,m);
   /* Détail du calcul des prestations, tout en bas — cible des liens par circuit du Bilan total. */
   const commDetailSection='';
-  const allEmpty=!menageSection&&!gardeSection&&!commSection&&!travauxSection&&!remboursementSection&&!dominiqueSection&&!bilanTotalSection&&!elecSection;
-  return`<div style="margin-top:16px">${nav}${bilanTotalSection}${commentsSection}${menageSection}${commSection}${travauxSection}${remboursementSection}${elecSection}${gardeSection}${dominiqueSection}${commDetailSection}${allEmpty?`<div class="empty">Aucun suivi financier spécifique pour ${p.name}.</div>`:''}</div>`;
+  const allEmpty=!menageSection&&!gardeSection&&!commSection&&!travauxSection&&!remboursementSection&&!dominiqueSection&&!bilanTotalSection&&!elecSection&&!compteSection;
+  return`<div style="margin-top:16px">${nav}${bilanTotalSection}${commentsSection}${menageSection}${commSection}${travauxSection}${remboursementSection}${compteSection}${elecSection}${gardeSection}${dominiqueSection}${commDetailSection}${allEmpty?`<div class="empty">Aucun suivi financier spécifique pour ${p.name}.</div>`:''}</div>`;
 }function setClientsSortBy(v){S.clientsSortBy=v;render();}
 function updClientTel(rid,val){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
