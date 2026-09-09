@@ -118,66 +118,80 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
    distinguent les sujets, plus une mosaïque de couleurs. Seul le « Bilan total » garde l'accent
    bordeaux de la maison : une seule couleur forte par page, c'est elle qu'on doit voir. */
 /* ════════ PARTIE FINANCIÈRE — mise en forme ════════
-   Objectif : qu'on comprenne d'un coup d'œil ce qu'on doit faire (remplir) et ce qu'on doit
-   lire (le décompte). Trois principes tenus partout :
-     · une seule couleur d'accent par section, posée sur le bandeau et le liseré de gauche ;
-     · les montants toujours alignés à droite, en chiffres de même largeur, avec leur signe ;
-     · les zones de saisie sont visuellement séparées des zones de lecture (fond crème + titre
-       « Déclarer »), avec le libellé AU-DESSUS du champ — sur téléphone, un champ sans libellé
-       au-dessus, c'est un champ qu'on remplit de travers. */
-.bilan-sec{background:#fff;border:1px solid #e2ded7;border-radius:12px;padding:0 0 .7rem;margin-bottom:12px;scroll-margin-top:12px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-.bilan-sec>*:not(.sec-hdr){margin-left:.8rem;margin-right:.8rem}
-.bilan-sec .sec-hdr{color:#fff;margin:0 0 9px;padding:8px 12px;border-radius:0;gap:10px}
-.bilan-sec .sec-hdr h2{font-size:13px;display:flex;align-items:center;gap:7px;min-width:0}
-.bilan-sec .sec-total{background:rgba(255,255,255,.2);border-radius:20px;padding:3px 11px;font-size:13px;font-weight:700;color:#fff;white-space:nowrap;flex-shrink:0;font-variant-numeric:tabular-nums}
-.bilan-sec .sec-regle{font-size:11px;color:#8a857c;line-height:1.4;margin-bottom:9px}
-.bilan-sec .sec-regle strong{color:#5c574f}
-.bilan-sec .metric{border-width:1px;border-color:#e2ded7;padding:.45rem}
-.bilan-sec .metric .val{font-size:15px;font-weight:600}
-.bilan-sec .empty{padding:.9rem;font-size:12px;background:#faf9f7;border-radius:8px;color:#8a857c}
-.bilan-sec .g2,.bilan-sec .g3{gap:6px}
-/* ── Encart de déclaration ── */
-.decl{background:#FBFAF7;border:1px dashed #d6d1c7;border-radius:10px;padding:10px 11px 11px;margin-bottom:11px}
-.decl-t{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8a857c;margin-bottom:8px;display:flex;align-items:center;gap:6px}
-.decl-g{display:grid;gap:8px 9px;margin-bottom:9px}
-.decl-c{display:flex;flex-direction:column;gap:3px;min-width:0}
-.decl-c>label{font-size:10.5px;font-weight:600;color:#8a857c;letter-spacing:.02em}
-.bilan-sec .decl input,.bilan-sec .decl select{padding:7px 8px;font-size:13px;border-radius:7px;width:100%;min-width:0;box-sizing:border-box}
-.bilan-sec .decl input[type=date]{padding:6px 8px}
+   Objectif : TOUT VOIR SANS FAIRE DÉFILER. La lecture prime sur la saisie — les formulaires de
+   déclaration sont donc repliés par défaut derrière un bouton « + Déclarer » dans le bandeau, et
+   ne s'ouvrent que quand on en a besoin. Le reste est resserré : lignes fines, chiffres alignés
+   à droite, une seule couleur d'accent par section.
+   Les données affichées sont rigoureusement les mêmes des deux côtés (nous / eux) — seules les
+   formulations changent de voix, et les boutons de validation restent réservés à l'admin. */
+.bilan-sec{background:#fff;border:1px solid #e2ded7;border-radius:10px;padding:0 0 .4rem;margin-bottom:8px;scroll-margin-top:12px;overflow:hidden}
+.bilan-sec>*:not(.sec-hdr){margin-left:.6rem;margin-right:.6rem}
+.bilan-sec .sec-hdr{color:#fff;margin:0 0 6px;padding:5px 9px;border-radius:0;gap:7px}
+.bilan-sec .sec-hdr h2{font-size:12px;display:flex;align-items:center;gap:5px;min-width:0}
+.bilan-sec .sec-total{background:rgba(255,255,255,.2);border-radius:20px;padding:1px 9px;font-size:12px;font-weight:700;color:#fff;white-space:nowrap;flex-shrink:0;font-variant-numeric:tabular-nums}
+.sec-plus{background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.45);color:#fff;border-radius:6px;padding:1px 8px;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;line-height:1.5}
+.sec-plus:hover{background:rgba(255,255,255,.34)}
+/* Le domaine dit une fois pour toutes dans le bandeau, quand toutes les lignes le partagent —
+   les lignes gagnent alors la largeur pour écrire le nom du client en entier. */
+.sec-dom{background:rgba(255,255,255,.22);border-radius:20px;padding:0 7px;font-size:10.5px;font-weight:600;color:#fff;white-space:nowrap;flex-shrink:0}
+.bilan-sec .sec-regle{font-size:10px;color:#9a958c;line-height:1.35;margin-bottom:6px}
+.bilan-sec .sec-regle strong{color:#6b665e}
+.bilan-sec .empty{padding:.5rem;font-size:11.5px;background:#faf9f7;border-radius:6px;color:#9a958c;text-align:center}
+/* Trois chiffres clés en bandeau, au lieu de trois grosses cartes. */
+.mini3{display:flex;gap:0;background:#faf9f7;border-radius:7px;padding:5px 0;margin-bottom:6px}
+.mini3>div{flex:1;text-align:center;border-right:1px solid #eceae5;padding:0 4px;min-width:0}
+.mini3>div:last-child{border-right:none}
+.mini3 .k{font-size:9.5px;color:#9a958c;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini3 .v{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:1px}
+/* ── Encart de déclaration, replié par défaut ── */
+.decl{background:#FBFAF7;border:1px dashed #d6d1c7;border-radius:8px;padding:7px 8px 8px;margin-bottom:7px}
+.decl-g{display:grid;gap:5px 6px;margin-bottom:6px}
+.decl-c{display:flex;flex-direction:column;gap:1px;min-width:0}
+.decl-c>label{font-size:9.5px;font-weight:600;color:#9a958c}
+.bilan-sec .decl input,.bilan-sec .decl select{padding:4px 6px;font-size:12px;border-radius:5px;width:100%;min-width:0;box-sizing:border-box}
 .decl .date-row{width:100%}
-.decl-go{display:block;width:100%;padding:9px;font-size:13px;font-weight:600;border-radius:8px}
-/* ── Lignes de décompte ── */
-.lg{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid #f0eee9;font-size:12.5px}
+.decl-go{display:block;width:100%;padding:6px;font-size:12.5px;font-weight:600;border-radius:6px}
+/* ── Lignes de décompte : une ligne = une ligne ── */
+.lg{display:flex;align-items:center;gap:7px;padding:3px 0;border-bottom:1px solid #f4f2ee;font-size:12px;min-height:24px}
 .lg:last-child{border-bottom:none}
-.lg .lg-d{flex-shrink:0;background:#f2f0eb;color:#6b665e;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:600;white-space:nowrap}
-.lg .lg-l{flex:1;min-width:0;line-height:1.35}
-.lg .lg-l small{display:block;color:#9a958c;font-size:10.5px;margin-top:1px}
-.lg .lg-m{flex-shrink:0;font-weight:700;font-variant-numeric:tabular-nums;text-align:right;min-width:74px}
-.lg .lg-a{flex-shrink:0;display:flex;align-items:center;gap:5px}
-.lg-tot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;padding-top:8px;border-top:2px solid #e2ded7;font-size:13px;font-weight:700}
-.lg-tot .v{font-size:16px;font-variant-numeric:tabular-nums}
+.lg .lg-d{flex-shrink:0;background:#f2f0eb;color:#6b665e;border-radius:4px;padding:1px 5px;font-size:10px;font-weight:600;white-space:nowrap}
+.lg .lg-l{flex:1;min-width:0;line-height:1.25}
+.lg .lg-l .lg-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.lg .lg-l small{color:#a8a49c;font-size:10px;display:flex;align-items:center;gap:5px;margin-top:1px;min-width:0}
+.lg .lg-l small .s-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lg .lg-l small .s-note{flex:1;min-width:40px;max-width:120px;font-size:10px;padding:0 4px;color:#8a857c;border:1px solid #f0eee9;background:#fbfaf7;border-radius:4px}
+.lg .lg-m{flex-shrink:0;font-weight:700;font-variant-numeric:tabular-nums;text-align:right;min-width:62px}
+.lg .lg-a{flex-shrink:0;display:flex;align-items:center;gap:4px}
+.lg-tot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px;padding-top:4px;border-top:1.5px solid #e2ded7;font-size:12px;font-weight:700}
+.lg-tot .v{font-size:14px;font-variant-numeric:tabular-nums}
 /* ── Récapitulatif du haut ── */
-.recap{background:#fff;border-radius:10px;padding:2px 11px;margin-bottom:8px}
-.recap .r-l{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #F4E2E8;font-size:13px}
+.recap{background:#fff;border-radius:8px;padding:1px 8px;margin-bottom:5px}
+.recap .r-l{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px solid #F7EDF1;font-size:12px;min-height:24px}
 .recap .r-l:last-child{border-bottom:none}
-.recap .r-n{display:flex;align-items:center;gap:7px;min-width:0}
-.recap .r-ic{width:22px;height:22px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.recap .r-n{display:flex;align-items:center;gap:5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.recap .r-ic{width:17px;height:17px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
 .recap .r-v{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;flex-shrink:0}
-.recap .r-zero{opacity:.55}
+.recap .r-zero{opacity:.5}
 .recap .r-zero .r-v{color:#9a958c;font-weight:600}
 .recap .r-plus{color:#1F7A3D}
 .recap .r-moins{color:#A32D2D}
-.recap .r-tot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0 6px;margin-top:3px;border-top:2px solid #993556;font-weight:700;color:#72243E}
-.recap .r-tot .v{font-size:21px;font-variant-numeric:tabular-nums}
+.recap .r-tot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0 2px;margin-top:1px;border-top:1.5px solid #993556;font-weight:700;color:#72243E;font-size:12.5px}
+.recap .r-tot .v{font-size:17px;font-variant-numeric:tabular-nums}
 .recap a{color:#72243E;text-decoration:none;border-bottom:1px dotted #C89AAC}
 .recap a:hover{border-bottom-style:solid}
 @media(max-width:520px){
-  .bilan-sec .sec-hdr h2{font-size:12px}
-  .recap .r-tot .v{font-size:19px}
-  .lg{flex-wrap:wrap}
-  .lg .lg-l{flex-basis:100%;order:3}
+  .bilan-sec .sec-hdr h2{font-size:11.5px}
+  /* Le mois est déjà affiché en gros au-dessus du bilan et le sélecteur est juste là :
+     le répéter dans chaque bandeau ne fait que voler la largeur au titre, qui se met alors
+     à passer sur trois lignes. Sur téléphone, on ne le répète pas. */
+  .sec-mois{display:none}
+  .recap .r-tot .v{font-size:16px}
+  .mini3 .k{font-size:9px}
 }
 .empty{text-align:center;padding:2.5rem;color:#666;font-size:13px}
+/* Dans le bilan, une section sans ligne se contente d'une phrase : sur un mois calme il y en a
+   six d'affilée, et 2,5 rem de vide chacune faisaient défiler pour ne rien lire. */
+.bilan-sec .empty{padding:.7rem;font-size:11.5px;color:#9a958c}
 .note-box{background:#f5f4f1;border-radius:6px;padding:8px 12px;font-size:12px;color:#555;border-left:3px solid #ED93B1;margin-top:6px}
 .ev-card{border:1px solid #e5e3de;border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fff}
 .list-tbl{width:100%;border-collapse:collapse;font-size:13px}
@@ -309,7 +323,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 /* Numéro de version, affiché en haut de l'écran. Sert à répondre en une seconde à la seule
    question qui compte quand « ça marche chez moi mais pas chez elle » : les deux téléphones
    font-ils bien tourner la MÊME version ? */
-const APP_VERSION='2026-09-09-a';
+const APP_VERSION='2026-09-09-c';
 const SK='domnoрm_prod_v1';
 const SUPA_URL='https://hdtltrnabrgibkcvubzd.supabase.co';
 const SUPA_KEY='sb_publishable_zvpg0YOHegxqXJxbEKhSbQ_3oLwbrr1';
@@ -1517,7 +1531,11 @@ function displayTel(tel){
   return tel;
 }
 function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x;}
-function ds(d){if(!d)return'';const[y,m,day]=d.split('-');return`${parseInt(day)} ${['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'][parseInt(m)-1]}`;}
+/* Abréviations affichées partout (« 2 aoû », « 31 juil »). parseDateCourte() relit ces libellés
+   dans le journal : toute modification ici doit rester lisible par MOIS_COURT_LUS plus bas, qui
+   garde aussi les anciennes graphies (« jun », « jul ») déjà écrites dans les journaux. */
+const MOIS_COURT_AFF=['jan','fév','mar','avr','mai','juin','juil','aoû','sep','oct','nov','déc'];
+function ds(d){if(!d)return'';const[y,m,day]=d.split('-');return`${parseInt(day)} ${MOIS_COURT_AFF[parseInt(m)-1]}`;}
 function fmt(d){if(!d)return'';const[y,m,day]=d.split('-');return`${parseInt(day)} ${['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'][parseInt(m)-1]} ${y}`;}
 function dn(d){if(!d)return'';return['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'][new Date(d+'T12:00:00').getDay()];}
 function numberToFrenchWords(n){
@@ -1594,6 +1612,10 @@ function getMenageInfo(r){
   else if(r.domaine==='d2'){const n=r.nbPersonnes||r.nbSoiree||0;info={pid:'p2',name:'Sasha',montant:isRepasSeul?100:(n>=40?500:400)};}
   else if(r.domaine==='d3')info={pid:'p3',name:'Pascaline',montant:250};
   if(!info)return null;
+  /* Le nom affiché doit être celui de la FICHE, pas celui écrit en dur ici : si la fiche
+     s'appelle « Sacha », l'écran ne doit pas afficher « Sasha ». */
+  const _pr=(D.prestataires||[]).find(x=>x.id===info.pid);
+  if(_pr&&_pr.name)info.name=_pr.name;
   const _mmSaisi=(r.menageMontant!==undefined&&r.menageMontant!==null&&r.menageMontant!=='');
   if(r.typeEvenement==='Perso'){
     /* Séjour perso : le ménage est prévu (même personne que d'habitude), mais AUCUN forfait
@@ -1837,12 +1859,11 @@ function renderTravauxSection(p,y,m){
   const total=rows.reduce((a,x)=>a+(x.montant||0),0);
   const enAttente=rows.filter(x=>x.status!=='validé').length;
   const T='#8B5E12';
+  const _du=domaineUnique(rows.map(x=>x.domaine));
   return`<div id="bloc-travaux" class="bilan-sec" style="border-left:3px solid ${T}">
-    ${secBandeau('🔧','Travaux &amp; activités',MONTHS_FR[m],y,total,T)}
-    <div class="sec-regle"><strong>${TRAVAUX_RATE} €/h</strong> pour les travaux · <strong>au forfait</strong> pour les activités et ménages ponctuels — sans commission.
-      ${isAdmin?'Validez chaque ligne.':'David/Svitlana valide.'}${enAttente?` <span style="color:#B15E00;font-weight:600">${enAttente} en attente.</span>`:''}</div>
-    ${!isAdmin?`<div class="decl">
-      <div class="decl-t">➕ Déclarer une intervention</div>
+    ${secBandeau('🔧','Travaux &amp; activités',MONTHS_FR[m],y,total,T,isAdmin?null:'trav-'+p.id,_du)}
+    <div class="sec-regle"><strong>${TRAVAUX_RATE} €/h</strong> pour les travaux, au forfait pour le reste · sans commission${enAttente?` · <span style="color:#B15E00;font-weight:600">${enAttente} en attente</span>`:''}</div>
+    ${(!isAdmin&&declOuverte('trav-'+p.id))?`<div class="decl">
       <div class="decl-g" style="grid-template-columns:1fr 1fr">
         ${declChamp('Domaine',`<select id="trav-domaine-${p.id}">${domOpts}</select>`)}
         ${declChamp('Date',dateFieldHtml(`trav-date-${p.id}`,'width:100%',null,dateDefautMois(y,m)))}
@@ -1857,11 +1878,11 @@ function renderTravauxSection(p,y,m){
       <button class="btn btn-primary decl-go" onclick="addTravaux('${p.id}')">Déclarer</button>
     </div>`:''}
     ${rows.length===0?'<div class="empty">Rien de déclaré ce mois-ci.</div>':''}
-    ${rows.map(x=>{const dom=gDom(x.domaine);
+    ${rows.map(x=>{
       const detail=x.mode==='forfait'?'forfait':`${x.heures} h × ${TRAVAUX_RATE} €`;
       return ligneMontant({
         date:ds(x.date),
-        titre:`<span class="pill ${PILL[dom.color||0]}" style="margin-right:5px">${dom.name}</span>${travauxTypeLabel(x.type||'travaux')}`,
+        titre:`${pastilleDom(x.domaine,_du)}${travauxTypeLabel(x.type||'travaux')}`,
         sous:[detail,x.note].filter(Boolean).join(' · '),
         montant:money(x.montant),couleur:T,
         actions:`${valideBadge(x.status==='validé',`toggleTravauxValide('${x.id}')`)}${x.status!=='validé'?`<button class="btn btn-xs btn-danger" onclick="delTravaux('${x.id}')">✕</button>`:''}`
@@ -2037,11 +2058,11 @@ function renderEncaissementSection(p,y,m){
     :`De l'argent qui nous revient et que ${p.name} a encaissé. Ce n'est pas une rémunération : ça vient en <strong>déduction</strong> de ce qu'on lui doit ce mois-ci.${aUneStructure?` Encaissé via ${nomStructure}, elle retient 14 % de frais : sur 100 € reçus, 86 € nous reviennent.`:''} ${isAdmin?'Validez chaque ligne, ou laissez en attente.':''}`;
   const enAttente=rows.filter(x=>x.status!=='validé').length;
   const T='#8C3A3A';
+  const _du=domaineUnique(rows.map(x=>x.domaine));
   return`<div id="bloc-enc" class="bilan-sec" style="border-left:3px solid ${T}">
-    ${secBandeau('💰',titre,MONTHS_FR[m],y,total,T)}
-    <div class="sec-regle">${explication}${enAttente?` <span style="color:#B15E00;font-weight:600">${enAttente} en attente.</span>`:''}</div>
-    ${!isAdmin?`<div class="decl">
-      <div class="decl-t">➕ Déclarer une somme encaissée</div>
+    ${secBandeau('💰',titre,MONTHS_FR[m],y,total,T,isAdmin?null:'enc-'+p.id,_du)}
+    <div class="sec-regle">De l'argent qui nous revient et qu'${V.self?'vous avez':'il a'} encaissé · vient en <strong>déduction</strong>${aUneStructure?` · via ${nomStructure}, 14 % de frais retenus`:''}${enAttente?` · <span style="color:#B15E00;font-weight:600">${enAttente} en attente</span>`:''}</div>
+    ${(!isAdmin&&declOuverte('enc-'+p.id))?`<div class="decl">
       <div class="decl-g" style="grid-template-columns:1fr 1fr">
         ${declChamp('Domaine',`<select id="enc-domaine-${p.id}">${domOpts}</select>`)}
         ${declChamp('Date',dateFieldHtml(`enc-date-${p.id}`,'width:100%',null,dateDefautMois(y,m)))}
@@ -2056,12 +2077,14 @@ function renderEncaissementSection(p,y,m){
       <button class="btn btn-primary decl-go" onclick="addEncaissement('${p.id}')">Déclarer</button>
     </div>`:''}
     ${rows.length===0?`<div class="empty">${V.self?'Rien encaissé pour le compte de David et Svitlana ce mois-ci.':'Rien encaissé pour notre compte ce mois-ci.'}</div>`:''}
-    ${rows.map(x=>{const dom=gDom(x.domaine);const du=encaissementDu(x);return ligneMontant({
+    ${rows.map(x=>{const du=encaissementDu(x);return ligneMontant({
       date:ds(x.date),
-      titre:`<span class="pill ${PILL[dom.color||0]}" style="margin-right:5px">${dom.name}</span>${x.provenance||'—'}`,
-      sous:`${money(x.montant)} ${encaissementViaLabel(x)}${x.via==='structure'?` → −14 % de frais`:''} → <strong>${money(du)}</strong> à déduire${x.note?' · '+x.note:''}`,
+      titre:`${pastilleDom(x.domaine,_du)}${x.provenance||'—'}`,
+      /* Le choix « comment l'argent a été reçu » décrit la ligne, il n'agit pas dessus : sa place
+         est sur la ligne de détail, pas parmi les boutons — où sa largeur écrasait le nom. */
+      sous:`<span class="s-txt">${money(x.montant)} ${encaissementViaLabel(x)}${x.via==='structure'?` → −14 % de frais`:''} → <strong>${money(du)}</strong> à déduire${x.note?' · '+x.note:''}</span>${(!isAdmin&&aUneStructure&&x.status!=='validé')?`<select class="s-note" onchange="updEncaissementVia('${x.id}',this.value)" style="max-width:none;min-width:96px;flex:0 1 auto">${viaOpts(x.via||'direct')}</select>`:''}`,
       montant:'− '+money(du),couleur:T,
-      actions:`${(!isAdmin&&aUneStructure&&x.status!=='validé')?`<select onchange="updEncaissementVia('${x.id}',this.value)" style="font-size:10.5px;padding:3px 5px">${viaOpts(x.via||'direct')}</select>`:''}${valideBadge(x.status==='validé',`toggleEncaissementValide('${x.id}')`)}${x.status!=='validé'?`<button class="btn btn-xs btn-danger" onclick="delEncaissement('${x.id}')">✕</button>`:''}`
+      actions:`${valideBadge(x.status==='validé',`toggleEncaissementValide('${x.id}')`)}${x.status!=='validé'?`<button class="btn btn-xs btn-danger" onclick="delEncaissement('${x.id}')">✕</button>`:''}`
     });}).join('')}
     ${rows.length?ligneTotal('Total à déduire ce mois',total,T):''}
   </div>`;
@@ -2081,11 +2104,11 @@ function renderRemboursementSection(p,y,m){
   const total=rows.reduce((a,x)=>a+(x.montant||0),0);
   const enAttente=rows.filter(x=>x.status!=='validé').length;
   const T='#4A3F94';
+  const _du=domaineUnique(rows.map(x=>x.domaine));
   return`<div id="bloc-remb" class="bilan-sec" style="border-left:3px solid ${T}">
-    ${secBandeau('💳',V.pourNotreCompte,MONTHS_FR[m],y,total,T)}
-    <div class="sec-regle">${explication}${enAttente?` <span style="color:#B15E00;font-weight:600">${enAttente} en attente.</span>`:''}</div>
-    ${!isAdmin?`<div class="decl">
-      <div class="decl-t">➕ Déclarer une dépense avancée</div>
+    ${secBandeau('💳',V.pourNotreCompte,MONTHS_FR[m],y,total,T,isAdmin?null:'remb-'+p.id,_du)}
+    <div class="sec-regle">Ce qu'${V.self?'vous avez':'il a'} réglé de sa poche pour notre compte · s'ajoute à ce qu'on ${V.self?'vous':'lui'} doit${enAttente?` · <span style="color:#B15E00;font-weight:600">${enAttente} en attente</span>`:''}</div>
+    ${(!isAdmin&&declOuverte('remb-'+p.id))?`<div class="decl">
       <div class="decl-g" style="grid-template-columns:1fr 1fr">
         ${declChamp('Domaine',`<select id="remb-domaine-${p.id}">${domOpts}</select>`)}
         ${declChamp('Date',dateFieldHtml(`remb-date-${p.id}`,'width:100%',null,dateDefautMois(y,m)))}
@@ -2098,9 +2121,9 @@ function renderRemboursementSection(p,y,m){
       <button class="btn btn-primary decl-go" onclick="addRemboursement('${p.id}')">Déclarer</button>
     </div>`:''}
     ${rows.length===0?`<div class="empty">${V.self?'Rien de réglé pour le compte de David et Svitlana ce mois-ci.':'Rien de réglé pour notre compte ce mois-ci.'}</div>`:''}
-    ${rows.map(x=>{const dom=gDom(x.domaine);return ligneMontant({
+    ${rows.map(x=>{return ligneMontant({
       date:ds(x.date),
-      titre:`<span class="pill ${PILL[dom.color||0]}" style="margin-right:5px">${dom.name}</span>${x.beneficiaire||'—'}`,
+      titre:`${pastilleDom(x.domaine,_du)}${x.beneficiaire||'—'}`,
       sous:x.note||'',
       montant:'+ '+money(x.montant),couleur:T,
       actions:`${valideBadge(x.status==='validé',`toggleRemboursementValide('${x.id}')`)}${x.status!=='validé'?`<button class="btn btn-xs btn-danger" onclick="delRemboursement('${x.id}')">✕</button>`:''}`
@@ -2174,7 +2197,7 @@ function renderBilanComments(p,y,m){
   const inputId=`bc-input-${p.id}-${key}`;
   return`<div id="bloc-comments" class="bilan-sec" style="border-left:3px solid #6B665E">
     <div class="sec-hdr" style="padding:5px 10px"><h2 style="font-size:12.5px">💬 Discussion — ${MONTHS_FR[m]} ${y}</h2></div>
-    <div style="font-size:10px;color:#999;margin:6px 0 8px">Pas lié à une réservation précise. Visible par ${p.name} et David/Svitlana.</div>
+    <div class="sec-regle">Pas lié à une réservation · visible par ${p.name} et David/Svitlana</div>
     ${thread.length===0?'<div class="empty" style="font-size:11.5px;padding:8px">Aucun message pour ce mois.</div>':''}
     ${thread.map(c=>{const mine=(isAdmin&&c.auteur==='admin')||(!isAdmin&&c.auteur==='presta');return`<div style="display:flex;flex-direction:column;align-items:${mine?'flex-end':'flex-start'};margin-bottom:5px">
       <div style="max-width:85%;background:${c.auteur==='admin'?'#E6F1FB':'#FBEAF0'};border-radius:8px;padding:5px 8px">
@@ -2220,15 +2243,15 @@ function menageDansMoisPour(r,p,y,m){
 /* Variante sans prestataire sous la main (récap admin, liste imprimable) : on va le chercher. */
 function menageDateRef(r){
   const mi=getMenageInfo(r);
-  const arr=r.dateArrivee||r.dateDepart||r.date;
-  if(!mi)return arr;
-  const pre=gPre(mi.pid);
-  if(!pre||pre.menageMoisSur!=='depart')return arr;
-  /* Date de sortie : on accepte les anciennes écritures du champ, et on refuse une date de
-     départ antérieure à l'arrivée (donnée abîmée) — sinon un séjour à cheval sur deux mois
-     retombait silencieusement sur le mois d'arrivée. */
-  const dep=r.dateDepart||r.dateFin||r.date||arr;
-  return(dep&&arr&&dep<arr)?arr:(dep||arr);
+  if(!mi)return r.dateArrivee||r.dateDepart||r.date;
+  /* On retrouve le prestataire par son identifiant ; s'il a été recréé ou renommé, on le
+     reconnaît quand même. Et en dernier recours, la règle métier s'applique d'office :
+     le ménage de Sacha (Les Déesses) tombe TOUJOURS le jour de sortie. */
+  let pre=(D.prestataires||[]).find(x=>x.id===mi.pid);
+  if(!pre)pre=(D.prestataires||[]).find(x=>mi.pid==='p2'?estSacha(x):mi.pid==='p1'?estMisha(x):false);
+  if(!pre)pre=(mi.pid==='p2')?{menageMoisSur:'depart'}:{menageMoisSur:'arrivee'};
+  if(mi.pid==='p2')pre={menageMoisSur:'depart'};
+  return menageJour(r,pre);
 }
 function menageDansMois(r,y,m){
   const d=menageDateRef(r);
@@ -2253,6 +2276,62 @@ function compteDepart(pid){return (D.comptesDepart||{})[pid]||null;}
 function finDeMois(y,m){return new Date(y,m+1,0).toISOString().slice(0,10);}
 /* Le mois compte dès lors qu'il se termine APRÈS le jour de démarrage : avec un démarrage au
    31/08, août est déjà soldé par l'avance, et septembre est le premier mois qui s'ajoute. */
+/* === Le compte courant à la vraie date ===
+   David : « l'avance / le retard doit être indiqué à la date en question (ménage réalisé,
+   paiements réalisés etc), pas en prévision — la vraie vie à la vraie date. »
+   On n'ajoute donc plus un bloc « dû pour le mois » à la fin de chaque mois : chaque élément
+   entre dans le compte le jour où il a réellement eu lieu — le ménage au jour du ménage, les
+   travaux au jour des travaux, un encaissement au jour où l'argent a été reçu.
+   Deux postes font exception, non par commodité mais parce qu'ils SONT mensuels par nature :
+   le forfait de gardiennage fixe et l'électricité (relevée d'index à index) — ils tombent donc
+   au dernier jour de leur mois, qui est bien la date à laquelle ils deviennent exigibles.
+   La somme des lignes d'un mois reste rigoureusement égale au « TOTAL DÛ » de ce mois : c'est le
+   même calcul, seulement réparti aux bonnes dates au lieu d'être empilé à la fin. */
+function evenementsCompteMois(p,y,m){
+  const L=[];
+  const monthKey=`${y}-${String(m+1).padStart(2,'0')}`;
+  const inMonthDate=d=>!!d&&d.startsWith(monthKey);
+  const fin=finDeMois(y,m);
+  const push=(date,label,detail,montant)=>{
+    if(!date||!montant)return;
+    L.push({date,label,detail,montant:Math.round(montant*100)/100});
+  };
+  push(fin,`Forfait gardiennage fixe — ${MONTHS_FR[m]}`,'Montant mensuel constant',p.forfaitMensuel||0);
+  D.reservations.filter(r=>r.status!=='annulé'&&menageDansMoisPour(r,p,y,m))
+    .map(r=>({r,mi:getMenageInfo(r)})).filter(x=>x.mi&&x.mi.pid===p.id)
+    .forEach(({r,mi})=>push(menageJour(r,p),'Ménage',displayClientName(r)||'',mi.montant));
+  D.reservations.filter(r=>r.status!=='annulé'&&r.prestaLines&&r.prestaLines[p.id]&&r.prestaLines[p.id].length)
+    .forEach(r=>{const d=r.dateArrivee||r.date; if(!inMonthDate(d))return;
+      r.prestaLines[p.id].forEach(l=>push(d,'Prestation',
+        [l.label||l.nom||'',displayClientName(r)||''].filter(Boolean).join(' · '),ligneCalc(l,p.id).net));});
+  (D.travauxSchedule||[]).filter(x=>x.pid===p.id&&inMonthDate(x.date))
+    .forEach(x=>push(x.date,'Travaux & activités',x.note||'',x.montant||0));
+  if(p.inputMode==='garde'){
+    D.reservations.filter(r=>r.status!=='annulé').forEach(r=>{
+      const pg=(r.prestaGarde||{})[p.id]; if(!pg)return;
+      Object.entries(pg.nights||{}).forEach(([date,v])=>{
+        if(inMonthDate(date))push(date,'Nuit de gardiennage',displayClientName(r)||'',gardeRate(v.duree));});
+    });
+    (D.gardeSchedule||[]).filter(x=>x.pid===p.id&&inMonthDate(x.date))
+      .forEach(x=>push(x.date,'Nuit de gardiennage','',gardeRate(x.duree)));
+  }
+  if(p.name==='Dominique'){
+    (D.dominiqueSchedule||[]).filter(x=>inMonthDate(x.date))
+      .forEach(x=>push(x.date,'Jardinage',x.note||'',x.montant||0));
+  }
+  if(p.electricite){
+    const e=computeElecCost(p.id,y,m);
+    if(e&&e.cost)push(fin,`Électricité — ${MONTHS_FR[m]}`,
+      (e.conso!==null?`${e.conso} kWh`:'')+` à la charge de ${p.name}`,-e.cost);
+  }
+  (D.remboursements||[]).filter(x=>x.pid===p.id&&inMonthDate(x.date))
+    .forEach(x=>push(x.date,'Réglé pour notre compte',
+      [x.beneficiaire,x.note].filter(Boolean).join(' · '),x.montant||0));
+  (D.encaissements||[]).filter(x=>x.pid===p.id&&inMonthDate(x.date))
+    .forEach(x=>push(x.date,'Reçu pour notre compte',
+      [x.provenance,x.note].filter(Boolean).join(' · '),-encaissementDu(x)));
+  return L;
+}
 function computeCompteCourant(p){
   const dep=compteDepart(p.id);
   const lignes=[];
@@ -2263,20 +2342,19 @@ function computeCompteCourant(p){
       detail:'Solde arrêté à cette date',montant:signe*Math.abs(+dep.montant||0)});
   }
   const debut=dep&&dep.date?dep.date:null;
-  const auj=new Date();
-  const finY=auj.getFullYear(),finM=auj.getMonth();
+  const auj=dstr(new Date());
   if(debut){
+    /* On balaie du mois de départ jusqu'au mois courant inclus, et on ne retient que les
+       événements POSTÉRIEURS au point de départ : ce jour-là, le solde a été arrêté d'un commun
+       accord, tout ce qui précède est déjà dedans. */
     const[dy,dm]=debut.split('-').map(Number);
+    const[fy,fm]=auj.split('-').map(Number);
     let y=dy,m=dm-1;
-    while(y<finY||(y===finY&&m<=finM)){
-      if(finDeMois(y,m)>debut){
-        const bt=computeBilanTotal(p,y,m);
-        if(bt&&bt.totalDu){
-          lignes.push({date:finDeMois(y,m),ordre:1,type:'mois',
-            label:`Dû pour ${MONTHS_FR[m]} ${y}`,
-            detail:'Total du bilan de ce mois',montant:bt.totalDu,y,m});
-        }
-      }
+    while(y<fy||(y===fy&&m<=fm-1)){
+      evenementsCompteMois(p,y,m).forEach(e=>{
+        if(e.date<=debut)return;
+        lignes.push(Object.assign({ordre:1,type:'activite',y,m},e));
+      });
       m++;if(m>11){m=0;y++;}
     }
   }
@@ -2288,9 +2366,16 @@ function computeCompteCourant(p){
       montant:signe*Math.abs(+x.montant||0)});
   });
   lignes.sort((a,b)=>(a.date||'').localeCompare(b.date||'')||a.ordre-b.ordre);
+  /* Ce qui n'a pas encore eu lieu ne pèse pas sur le solde d'aujourd'hui : un ménage prévu la
+     semaine prochaine n'est pas de l'argent dû aujourd'hui. On le garde de côté, affiché à part,
+     pour qu'on voie quand même ce qui arrive. */
+  const passees=lignes.filter(l=>!l.date||l.date<=auj);
+  const aVenir=lignes.filter(l=>l.date&&l.date>auj);
   let solde=0;
-  lignes.forEach(l=>{solde=Math.round((solde+l.montant)*100)/100;l.solde=solde;});
-  return{dep,lignes,solde};
+  passees.forEach(l=>{solde=Math.round((solde+l.montant)*100)/100;l.solde=solde;});
+  let soldeProjete=solde;
+  aVenir.forEach(l=>{soldeProjete=Math.round((soldeProjete+l.montant)*100)/100;l.solde=soldeProjete;});
+  return{dep,lignes:passees,aVenir,solde,soldeProjete,auj};
 }
 function setCompteDepart(pid){
   const date=(document.getElementById('cc-dep-date-'+pid)||{}).value;
@@ -2329,28 +2414,51 @@ function delCompteMouvement(id){
     `Compte courant — ligne supprimée (${fmt(x.date)}, ${money(x.montant)}) — ${p.name}`,[x.pid],false);}
   saveD();render();
 }
+/* === Le solde du compte courant, dit d'une seule voix ===
+   Il apparaît à deux endroits : en tête du récapitulatif (« où en est-on, tout de suite ») et
+   dans la section détaillée plus bas. Les deux doivent dire exactement la même chose, avec la
+   même couleur — d'où ce seul point de vérité, appelé par les deux. */
+function soldeCompteVoix(p,C){
+  C=C||computeCompteCourant(p);
+  const V=bilanVoix(p);
+  const nous=C.solde>0.005,eux=C.solde<-0.005;
+  return{C,nous,eux,
+    phrase:nous?(V.self?'Nous vous devons':'Nous lui devons')
+          :eux?(V.self?'Vous nous devez':'Il nous doit'):'Compte à zéro',
+    couleur:nous?'#A32D2D':eux?'#1F7A3D':'#6b665e',
+    fond:nous?'#FBEAEA':eux?'#EAF3DE':'#F5F4F1'};
+}
+/* Le même solde, en une seule ligne, à poser en haut du récapitulatif : David veut savoir où en
+   est l'avance de Misha ou de Sacha sans avoir à faire défiler tout le bilan du mois. */
+function bandeauCompteCourant(p){
+  if(p.accessMode!=='domaine')return'';
+  const{C,phrase,couleur,fond}=soldeCompteVoix(p);
+  const dep=C.dep?` · départ ${fmt(C.dep.date)}`:'';
+  return`<div style="background:${fond};border-radius:9px;padding:6px 10px;margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <span style="font-size:16px;line-height:1">📒</span>
+    <span style="flex:1;min-width:110px;font-size:11.5px;color:#6b665e">
+      <a href="#bloc-compte" onclick="event.preventDefault();var e=document.getElementById('bloc-compte');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})" style="color:#6b665e;border-bottom:1px dotted #bdb8ae;text-decoration:none">Compte courant</a>${dep}<br>
+      <strong style="color:${couleur};font-size:12px">${phrase}</strong>
+    </span>
+    <span style="font-size:19px;font-weight:700;color:${couleur};font-variant-numeric:tabular-nums;white-space:nowrap">${money(Math.abs(C.solde))}</span>
+  </div>`;
+}
 function renderCompteSection(p){
   if(p.accessMode!=='domaine')return'';
   const isAdmin=S.view==='admin';
   const V=bilanVoix(p);
   const C=computeCompteCourant(p);
   const T='#0C447C';
-  const nous=C.solde>0.005,eux=C.solde<-0.005;
-  const phrase=nous
-    ?(V.self?`Nous vous devons`:`Nous lui devons`)
-    :eux?(V.self?`Vous nous devez`:`Il nous doit`):`Compte à zéro`;
-  const couleur=nous?'#A32D2D':eux?'#1F7A3D':'#6b665e';
+  const {nous,eux,phrase,couleur,fond}=soldeCompteVoix(p,C);
   const modesOpts=COMPTE_MODES.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
   return`<div id="bloc-compte" class="bilan-sec" style="border-left:3px solid ${T}">
-    ${secBandeau('📒','Compte courant',MONTHS_FR[new Date().getMonth()],new Date().getFullYear(),null,T)}
-    <div class="sec-regle">Le compte qui court depuis le point de départ : chaque mois ajoute son <strong>total dû</strong>, chaque somme versée le diminue.
-      ${V.self?'':'Tout est réglé en espèces, sauf ce qui passe par une facture — il suffit alors de la marquer réglée.'}</div>
-    <div style="background:${nous?'#FBEAEA':eux?'#EAF3DE':'#F5F4F1'};border-radius:10px;padding:11px 13px;margin-bottom:11px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    ${secBandeau('📒','Compte courant',MONTHS_FR[new Date().getMonth()],new Date().getFullYear(),null,T,isAdmin?'cc-'+p.id:null)}
+    <div class="sec-regle">Chaque élément entre au compte <strong>le jour où il a eu lieu</strong> · chaque somme versée le diminue.</div>
+    <div style="background:${fond};border-radius:10px;padding:11px 13px;margin-bottom:11px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
       <span style="font-size:13px;font-weight:600;color:${couleur}">${phrase}</span>
       <span style="font-size:22px;font-weight:700;color:${couleur};font-variant-numeric:tabular-nums">${money(Math.abs(C.solde))}</span>
     </div>
-    ${!C.dep?`<div class="decl">
-      <div class="decl-t">🚩 Point de départ du compte</div>
+    ${(!C.dep&&isAdmin)?`<div class="decl">
       <div class="decl-g" style="grid-template-columns:1fr 1fr">
         ${declChamp('À la date du',dateFieldHtml(`cc-dep-date-${p.id}`,'width:100%',null,'2026-08-31'))}
         ${declChamp('Montant (€)',`<input type="number" id="cc-dep-montant-${p.id}" step="0.01" placeholder="ex. 1000">`)}
@@ -2359,9 +2467,15 @@ function renderCompteSection(p){
         ${declChamp("De quoi s'agit-il ?",`<select id="cc-dep-sens-${p.id}"><option value="avance">Une avance qu'on ${V.self?'vous':'lui'} a versée (${V.self?'vous nous':'il nous'} doit ce montant)</option><option value="dette">Une somme qu'on ${V.self?'vous':'lui'} doit encore</option></select>`)}
       </div>
       <button class="btn btn-primary decl-go" onclick="setCompteDepart('${p.id}')">Fixer le point de départ</button>
-    </div>`:`<div style="font-size:11px;color:#8a857c;margin-bottom:9px">Point de départ : <strong>${C.dep.sens==='avance'?'avance':'dette'} de ${money(Math.abs(C.dep.montant))}</strong> au ${fmt(C.dep.date)}.${isAdmin?` <a href="#" onclick="event.preventDefault();if(confirm('Effacer le point de départ ? Les autres lignes sont conservées.')){delete D.comptesDepart['${p.id}'];saveD();render();}" style="color:#A32D2D">modifier</a>`:''}</div>`}
-    ${isAdmin?`<div class="decl">
-      <div class="decl-t">➕ Enregistrer un mouvement</div>
+    </div>`:''}
+    ${/* Trois cas, et non deux : le point de départ existe, ou il manque et c'est à nous de le
+          poser (formulaire ci-dessus), ou il manque et c'est le prestataire qui regarde — il n'a
+          alors rien à saisir, mais il doit comprendre pourquoi son compte part de zéro. */
+      C.dep
+        ?`<div style="font-size:11px;color:#8a857c;margin-bottom:9px">Point de départ : <strong>${C.dep.sens==='avance'?'avance':'dette'} de ${money(Math.abs(C.dep.montant))}</strong> au ${fmt(C.dep.date)}.${isAdmin?` <a href="#" onclick="event.preventDefault();if(confirm('Effacer le point de départ ? Les autres lignes sont conservées.')){delete D.comptesDepart['${p.id}'];saveD();render();}" style="color:#A32D2D">modifier</a>`:''}</div>`
+        :(isAdmin?''
+          :`<div style="font-size:11px;color:#8a857c;margin-bottom:9px">Aucun point de départ n'a encore été fixé : le compte démarre à zéro et ne totalise que les lignes ci-dessous.</div>`)}
+    ${(isAdmin&&declOuverte('cc-'+p.id))?`<div class="decl">
       <div class="decl-g" style="grid-template-columns:1fr 1fr">
         ${declChamp('Date',dateFieldHtml(`cc-date-${p.id}`,'width:100%',null,dstr(new Date())))}
         ${declChamp('Montant (€)',`<input type="number" id="cc-montant-${p.id}" step="0.01" placeholder="ex. 500">`)}
@@ -2376,15 +2490,25 @@ function renderCompteSection(p){
     ${C.lignes.length===0?'<div class="empty">Rien encore. Fixez le point de départ pour commencer le compte.</div>':''}
     ${C.lignes.map(l=>`<div class="lg">
       <span class="lg-d">${ds(l.date)}</span>
-      <span class="lg-l">${l.label}${l.detail?`<small>${l.detail}</small>`:''}</span>
+      <span class="lg-l"><span class="lg-t">${l.label}</span>${l.detail?`<small><span class="s-txt">${l.detail}</span></small>`:''}</span>
       <span class="lg-m" style="color:${l.montant>=0?'#A32D2D':'#1F7A3D'}">${l.montant>=0?'+':'−'} ${money(Math.abs(l.montant))}</span>
       <span class="lg-a" style="min-width:78px;justify-content:flex-end">
         <span style="font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;color:${l.solde>0.005?'#A32D2D':l.solde<-0.005?'#1F7A3D':'#8a857c'}">${money(l.solde)}</span>
         ${(isAdmin&&l.type==='mouvement')?`<button class="btn btn-xs btn-danger" onclick="delCompteMouvement('${l.id}')">✕</button>`:''}
       </span>
     </div>`).join('')}
-    ${C.lignes.length?`<div class="lg-tot"><span>Solde à ce jour — ${phrase.toLowerCase()}</span><span class="v" style="color:${couleur}">${money(Math.abs(C.solde))}</span></div>
-    <div style="font-size:10.5px;color:#9a958c;margin-top:5px">Dans la colonne de droite, le solde après chaque ligne : <strong>positif</strong> = on ${V.self?'vous':'lui'} doit encore de l'argent, <strong>négatif</strong> = il reste une avance à consommer.</div>`:''}
+    ${C.lignes.length?`<div class="lg-tot"><span>Solde au ${fmt(C.auj)} — ${phrase.toLowerCase()}</span><span class="v" style="color:${couleur}">${money(Math.abs(C.solde))}</span></div>`:''}
+    ${(C.aVenir&&C.aVenir.length)?`<div style="margin-top:9px;padding-top:7px;border-top:1px dashed #e2ded7">
+      <div style="font-size:10.5px;color:#9a958c;margin-bottom:4px">Déjà prévu, <strong>pas encore compté</strong> (ça n'a pas encore eu lieu) :</div>
+      ${C.aVenir.map(l=>`<div class="lg" style="opacity:.6">
+        <span class="lg-d">${ds(l.date)}</span>
+        <span class="lg-l"><span class="lg-t">${l.label}</span>${l.detail?`<small><span class="s-txt">${l.detail}</span></small>`:''}</span>
+        <span class="lg-m" style="color:${l.montant>=0?'#A32D2D':'#1F7A3D'}">${l.montant>=0?'+':'−'} ${money(Math.abs(l.montant))}</span>
+        <span class="lg-a" style="min-width:78px;justify-content:flex-end"><span style="font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;color:#9a958c">${money(l.solde)}</span></span>
+      </div>`).join('')}
+      <div class="lg-tot" style="color:#8a857c;border-top-color:#e2ded7"><span>Solde une fois tout réalisé</span><span class="v" style="color:#8a857c">${money(Math.abs(C.soldeProjete))}</span></div>
+    </div>`:''}
+    ${C.lignes.length?`<div style="font-size:10.5px;color:#9a958c;margin-top:5px">Chaque ligne entre au compte <strong>le jour où elle a eu lieu</strong>. Dans la colonne de droite, le solde après cette ligne : <strong>positif</strong> = on ${V.self?'vous':'lui'} doit encore de l'argent, <strong>négatif</strong> = il reste une avance à consommer.</div>`:''}
   </div>`;
 }
 
@@ -2421,25 +2545,26 @@ function renderMenageSection(p,y,m){
       brut:`arr ${r.dateArrivee||'—'} · dép ${r.dateDepart||'—'} · retenu ${ref||'—'} · ${mi?mi.pid:'—'}`,
       louche:(r.dateDepart&&r.dateArrivee&&r.dateDepart<r.dateArrivee)||!r.dateDepart};
   }).sort((a,b)=>(a.r.dateArrivee||'').localeCompare(b.r.dateArrivee||''));
+  const _du=domaineUnique(menageEvs.map(({r})=>r.domaine));
   return`<div id="bloc-menage" class="bilan-sec" style="border-left:3px solid ${T}">
-    ${secBandeau('🧹','Forfait ménage',MONTHS_FR[m],y,menageTotal,T)}
-    <div class="sec-regle">Sans commission. Un ménage est compté sur le mois ${surDepart?`du <strong>départ</strong> des clients — une réservation du 31 juillet au 2 août compte pour <strong>août</strong>`:`de l'<strong>arrivée</strong> des clients — une réservation du 31 juillet au 2 août compte pour <strong>juillet</strong>`}.</div>
-    <div class="g3" style="margin-bottom:10px">
-      <div class="metric"><span class="lbl">Total dû</span><span class="val">${money(menageTotal)}</span></div>
-      <div class="metric"><span class="lbl">Déjà réglé</span><span class="val" style="color:#1F7A3D">${money(menagePaid)}</span></div>
-      <div class="metric"><span class="lbl">Reste</span><span class="val" style="color:#A32D2D">${money(menageTotal-menagePaid)}</span></div>
+    ${secBandeau('🧹','Forfait ménage',MONTHS_FR[m],y,menageTotal,T,null,_du)}
+    <div class="sec-regle">Sans commission · compté sur le mois ${surDepart?`du <strong>départ</strong>`:`de l'<strong>arrivée</strong>`} (31 juil → 2 aoû = ${surDepart?'<strong>août</strong>':'<strong>juillet</strong>'}).</div>
+    <div class="mini3">
+      <div><div class="k">Total dû</div><div class="v">${money(menageTotal)}</div></div>
+      <div><div class="k">Déjà réglé</div><div class="v" style="color:#1F7A3D">${money(menagePaid)}</div></div>
+      <div><div class="k">Reste</div><div class="v" style="color:#A32D2D">${money(menageTotal-menagePaid)}</div></div>
     </div>
     ${menageEvs.length===0?'<div class="empty">Aucun forfait ménage ce mois-ci.</div>':''}
-    ${menageEvs.map(({r,mi})=>{const dom=gDom(r.domaine);
+    ${menageEvs.map(({r,mi})=>{
       const sejour=(r.dateDepart&&r.dateDepart!==r.dateArrivee)?ds(r.dateArrivee)+' → '+ds(r.dateDepart):ds(r.dateArrivee);
       const jourCompte=menageJour(r,p);
       return ligneMontant({
         date:ds(jourCompte),
-        titre:`<span class="pill ${PILL[dom.color||0]}" style="margin-right:5px">${dom.name}</span>${displayClientName(r)||'—'}`,
-        sous:`séjour ${sejour} — compté sur ${MONTHS_FR[parseInt((jourCompte||'').split('-')[1],10)-1]||'—'} (${surDepart?'départ':'arrivée'})`,
+        titre:`${pastilleDom(r.domaine,_du)}${displayClientName(r)||'—'}`,
+        sous:`<span class="s-txt">${sejour} · ${surDepart?'départ':'arrivée'}</span><input class="s-note" type="text" id="menage-comment-${r.id}" value="${(r.menageComment||'').replace(/"/g,'&quot;')}" placeholder="note…" onchange="updMenageComment('${r.id}',this.value)">`,
         montant:`<span style="display:inline-flex;align-items:center;gap:3px"><input type="number" id="menage-montant-${r.id}" value="${mi.montant}" onchange="updMenageMontant('${r.id}',this.value)" style="width:62px;text-align:right;font-weight:700;font-size:12.5px;padding:4px 5px;border-radius:6px">€</span>`,
         actions:`${isAdmin?regleToggle(!!r.menagePaid,`toggleMenagePaid('${r.id}')`):''}${valideBadge(!!r.menageValide,`toggleMenageValide('${r.id}')`)}`
-      })+`<div style="margin:-4px 0 6px 0"><input type="text" id="menage-comment-${r.id}" value="${(r.menageComment||'').replace(/"/g,'&quot;')}" placeholder="Ajouter une note…" onchange="updMenageComment('${r.id}',this.value)" style="width:100%;font-size:11.5px;padding:4px 7px;color:#7a756d;border:1px solid #f0eee9;background:#fbfaf7;border-radius:6px;box-sizing:border-box"></div>`;}).join('')}
+      });}).join('')}
     ${menageEvs.length?ligneTotal('Total ménage',menageTotal,T):''}
     ${voisines.length?`<div style="margin-top:10px;padding-top:8px;border-top:1px dashed #e2ded7">
       <div style="font-size:10.5px;color:#9a958c;margin-bottom:5px">Pour information — séjours à cheval sur ${MONTHS_FR[m]} qui ne sont PAS comptés ici (ils sont facturés sur l'autre mois) :</div>
@@ -2536,7 +2661,7 @@ function renderElecSection(p,y,m){
   const effacer=(k)=>`<button type="button" title="Effacer définitivement cet index" onclick="if(confirm('Effacer définitivement cet index électricité ?'))updElecIndex('${p.id}','${k}','')" style="flex-shrink:0;border:none;background:#FCEBEB;color:#A32D2D;border-radius:7px;width:32px;height:32px;font-size:14px;font-weight:700;cursor:pointer;line-height:1">✕</button>`;
   return`<div id="bloc-elec" class="bilan-sec" style="border-left:3px solid ${T}">
     ${secBandeau('⚡','Électricité',MONTHS_FR[m],y,ec.conso!==null?ec.cost:null,T)}
-    <div class="sec-regle">Relevé du compteur en kWh, <strong>en fin de mois</strong>. La consommation se calcule toute seule à partir de l'index du mois précédent, et l'index de ce mois sert de départ au mois suivant.</div>
+    <div class="sec-regle">Index du compteur <strong>en fin de mois</strong> · la consommation et le report se calculent tout seuls.</div>
     ${ec.conso!==null?`<div style="text-align:right;margin-bottom:9px">${valideBadge(valide,`toggleElecValide('${p.id}','${key}')`)}</div>`:''}
     <div class="decl">
       <div class="decl-t">🔢 Les deux index du compteur</div>
@@ -2550,10 +2675,10 @@ function renderElecSection(p,y,m){
       </div>
       ${explication}
     </div>
-    <div class="g3">
-      <div class="metric"><span class="lbl">Consommation</span><span class="val">${ec.conso!==null?ec.conso+' kWh':'—'}</span></div>
-      <div class="metric"><span class="lbl">Tarif</span><span class="val">${ELEC_RATE.toFixed(2)} €/kWh</span></div>
-      <div class="metric"><span class="lbl">À ${V.self?'votre charge':'la charge de '+p.name}</span><span class="val" style="color:#A32D2D">${ec.conso!==null?money(ec.cost):'—'}</span></div>
+    <div class="mini3">
+      <div><div class="k">Consommation</div><div class="v">${ec.conso!==null?ec.conso+' kWh':'—'}</div></div>
+      <div><div class="k">Tarif</div><div class="v">${ELEC_RATE.toFixed(2)} €</div></div>
+      <div><div class="k">À ${V.self?'votre charge':'la charge de '+p.name}</div><div class="v" style="color:#A32D2D">${ec.conso!==null?money(ec.cost):'—'}</div></div>
     </div>
   </div>`;
 }
@@ -3052,22 +3177,50 @@ function renderCommissionDetailSection(p,y,m){
 /* ── Briques communes de la partie financière ──────────────────────────────────────────
    Une seule façon de dessiner un bandeau de section, un champ de saisie et une ligne de
    décompte : c'est ce qui fait qu'on s'y retrouve d'un bloc à l'autre sans réapprendre. */
-function secBandeau(ic,titre,mois,an,total,teinte){
+/* Le formulaire de déclaration est REPLIÉ par défaut : on ouvre le bloc, on lit ses chiffres,
+   et on ne déplie la saisie que si on a quelque chose à déclarer. C'est ce qui fait tenir tout
+   le bilan sur un écran au lieu de trois. */
+function toggleDecl(cle){S.declOuvert=(S.declOuvert===cle)?null:cle;render();}
+function declOuverte(cle){return S.declOuvert===cle;}
+function secBandeau(ic,titre,mois,an,total,teinte,cleDecl,domUnique){
   return`<div class="sec-hdr" style="background:${teinte}">
     <h2><span>${ic}</span><span style="overflow:hidden;text-overflow:ellipsis">${titre}</span>
-      <span style="opacity:.75;font-weight:400;white-space:nowrap">· ${mois} ${an}</span></h2>
+      <span class="sec-mois" style="opacity:.75;font-weight:400;white-space:nowrap">· ${mois} ${an}</span>
+      ${coiffeDom(domUnique)}</h2>
+    ${cleDecl?`<button class="sec-plus" onclick="toggleDecl('${cleDecl}')">${declOuverte(cleDecl)?'✕':'+ Déclarer'}</button>`:''}
     ${total!==null&&total!==undefined?`<span class="sec-total">${money(total)}</span>`:''}
   </div>`;
 }
 function declChamp(label,inner){
   return`<div class="decl-c"><label>${label}</label>${inner}</div>`;
 }
+/* === La pastille de domaine, seulement quand elle apprend quelque chose ===
+   Sur un téléphone, la place est comptée : « La Désirée » répétée sur chaque ligne mange la
+   moitié de la largeur et le nom du client finit en « Famille Dub… ». Or, quand toutes les
+   lignes d'une section portent sur le même domaine, la pastille ne distingue rien — elle ne fait
+   que répéter. On la sort alors une seule fois dans le bandeau, et les lignes récupèrent toute
+   la largeur pour le nom. Dès qu'il y a deux domaines mélangés, la pastille redevient utile et
+   revient sur chaque ligne : c'est le seul cas où elle porte de l'information. */
+function domaineUnique(ids){
+  const vus=[...new Set((ids||[]).filter(Boolean))];
+  return vus.length===1?vus[0]:null;
+}
+function pastilleDom(domId,domUnique){
+  if(!domId||domId===domUnique)return'';
+  const d=gDom(domId); if(!d)return'';
+  return`<span class="pill ${PILL[d.color||0]}" style="margin-right:5px">${d.name}</span>`;
+}
+function coiffeDom(domUnique){
+  if(!domUnique)return'';
+  const d=gDom(domUnique); if(!d)return'';
+  return`<span class="sec-dom">${d.name}</span>`;
+}
 /* Une ligne de décompte : la date à gauche (c'est par elle qu'on retrouve une ligne), le
    libellé au milieu, le montant à droite toujours au même endroit, les boutons tout à droite. */
 function ligneMontant(o){
   return`<div class="lg">
     <span class="lg-d">${o.date||''}</span>
-    <span class="lg-l">${o.titre||''}${o.sous?`<small>${o.sous}</small>`:''}</span>
+    <span class="lg-l"><span class="lg-t">${o.titre||''}</span>${o.sous?`<small>${String(o.sous).indexOf('s-txt')>=0?o.sous:`<span class="s-txt">${o.sous}</span>`}</small>`:''}</span>
     <span class="lg-m" style="color:${o.couleur||'#2A2A2A'}">${o.montant}</span>
     ${o.actions?`<span class="lg-a">${o.actions}</span>`:''}
   </div>`;
@@ -3124,6 +3277,7 @@ function renderBilanTotalSection(p,y,m){
   return`<div class="bilan-sec" style="background:#FBEAF0;border-color:#D9A8BC;margin-bottom:12px">
     <div class="sec-hdr" style="background:#993556"><h2>💰 Bilan total — ${MONTHS_FR[m]} ${y}</h2></div>
     ${bt.enAttente>0?`<div class="alert" style="background:#B15E00;color:#fff;font-weight:600;margin-bottom:7px;font-size:11.5px;padding:5px 9px">⏳ ${bt.enAttente} élément${bt.enAttente>1?'s':''} ci-dessous en attente de validation — vérifiez le calcul et validez, ou corrigez le montant.</div>`:''}
+    ${bandeauCompteCourant(p)}
     <div class="recap">
       ${p.forfaitMensuel?bilanLigneRow('Forfait gardiennage fixe',bt.forfaitDu,'+','bloc-forfait','🛡','#DDE7F6'):''}
       ${hasMenage?bilanLigneRow('Ménage',bt.menageDu,'+','bloc-menage','🧹','#D8EEEA'):''}
@@ -3142,15 +3296,9 @@ function renderBilanTotalSection(p,y,m){
       ${p.accessMode==='domaine'&&(bt.rembDu>0||bt.encDu>0)?`<div style="font-size:10.5px;color:#8a857c;text-align:right;padding-bottom:5px">${money(bt.totalActivite)} d'activité${bt.rembDu>0?` + ${money(bt.rembDu)} avancé pour nous`:''}${bt.encDu>0?` − ${money(bt.encDu)} encaissé pour nous`:''}</div>`:''}
       ${renderFactureLines(p,y,m,bt)}
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
-      <div style="background:#fff;border-radius:9px;padding:7px 10px">
-        <div style="font-size:10px;color:#8a857c;text-transform:uppercase;letter-spacing:.05em">Déjà réglé</div>
-        <div style="font-size:15px;font-weight:700;color:#1F7A3D;font-variant-numeric:tabular-nums">${money(bt.totalRecu)}</div>
-      </div>
-      <div style="background:#fff;border-radius:9px;padding:7px 10px">
-        <div style="font-size:10px;color:#8a857c;text-transform:uppercase;letter-spacing:.05em">Reste à verser</div>
-        <div style="font-size:15px;font-weight:700;color:#B93232;font-variant-numeric:tabular-nums">${money(bt.totalReste)}</div>
-      </div>
+    <div class="mini3" style="background:#fff;margin-bottom:0">
+      <div><div class="k">Déjà réglé</div><div class="v" style="color:#1F7A3D">${money(bt.totalRecu)}</div></div>
+      <div><div class="k">Reste à verser</div><div class="v" style="color:#B93232">${money(bt.totalReste)}</div></div>
     </div>
     ${p.forfaitMensuel?`<div id="bloc-forfait" style="margin-top:7px;display:flex;align-items:center;justify-content:space-between;gap:8px;background:#fff;border-radius:8px;padding:6px 9px;scroll-margin-top:12px">
       <span style="font-size:11.5px;color:#666">Forfait gardiennage fixe — ${money(bt.forfaitDu)}, montant constant</span>
@@ -5341,7 +5489,7 @@ function renderBilanAnnuelPresta(p,y){
       ${p.forfaitMensuel?ligne('🛡 Forfait gardiennage fixe',A.forfait,'#534AB7'):''}
       ${p.inputMode==='garde'?ligne('🛡 Gardiennage (nuits)',A.gardiennage,'#534AB7'):''}
       ${p.name==='Dominique'?ligne('🌱 Jardinage (journées)',A.jardinage,'#3F6212'):''}
-      ${p.electricite&&A.elec?ligne('⚡ Électricité (à sa charge)',-A.elec,'#A32D2D'):''}
+      ${p.electricite&&A.elec?ligne(`⚡ Électricité (à ${bilanVoix(p).self?'votre charge':'la charge de '+p.name})`,-A.elec,'#A32D2D'):''}
       <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0 4px;border-top:2px solid #5B5952;font-size:14px;font-weight:700">
         <span>Total activité ${y}</span><span style="font-size:17px">${money(A.activite)}</span>
       </div>
@@ -8747,11 +8895,15 @@ function memePaiement(p,d,a,ty){
    exactement ce qu'on veut voir tout de suite, et pouvoir remettre en place.
    Le journal sert ici de deuxième exemplaire : il est plafonné à 400 lignes, donc ce contrôle
    couvre tout ce qui est récent, ce qui est le moment où une perte se répare encore. */
-const MOIS_COURT=['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
+/* Graphies acceptées à la relecture : celles d'aujourd'hui ET celles d'avant (« jun », « jul »),
+   parce que les journaux déjà écrits les contiennent et doivent rester relisibles. */
+const MOIS_COURT_LUS=[['jan'],['fév'],['mar'],['avr'],['mai'],['juin','jun'],['juil','jul'],
+                      ['aoû','août'],['sep'],['oct'],['nov'],['déc']];
 function parseDateCourte(txt,ts){
   const m=String(txt||'').trim().match(/^(\d{1,2})\s+(\S+)/);
   if(!m)return null;
-  const mi=MOIS_COURT.indexOf(m[2].toLowerCase());
+  const mot=m[2].toLowerCase();
+  const mi=MOIS_COURT_LUS.findIndex(gr=>gr.indexOf(mot)>=0);
   if(mi<0)return null;
   const jour=parseInt(m[1]);
   const ref=new Date(ts||Date.now());
