@@ -350,7 +350,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 /* Numéro de version, affiché en haut de l'écran. Sert à répondre en une seconde à la seule
    question qui compte quand « ça marche chez moi mais pas chez elle » : les deux téléphones
    font-ils bien tourner la MÊME version ? */
-const APP_VERSION='2026-09-09-d';
+const APP_VERSION='2026-09-09-e';
 const SK='domnoрm_prod_v1';
 const SUPA_URL='https://hdtltrnabrgibkcvubzd.supabase.co';
 const SUPA_KEY='sb_publishable_zvpg0YOHegxqXJxbEKhSbQ_3oLwbrr1';
@@ -1024,6 +1024,11 @@ function runMigrations(){
   if(!D.encaissements)D.encaissements=[];
   if(!D.comptesMouvements)D.comptesMouvements=[];
   if(!D.comptesDepart)D.comptesDepart={};
+  /* Forfaits de travaux : une enveloppe convenue d'avance (ex. « 3 000 € de peinture aux Lions »)
+     que le prestataire réalise petit à petit. Chaque avancée est une ligne de travaux ordinaire
+     rattachée au forfait par forfaitId — ainsi elle entre dans le bilan du mois et dans le compte
+     courant à sa date, sans circuit parallèle, et le reste à réaliser se déduit tout seul. */
+  if(!D.forfaits)D.forfaits=[];
   if(!D.messages)D.messages=[];
   if(!D.electriciteIndex)D.electriciteIndex={};
   if(!D.forfaitPaid)D.forfaitPaid={};
@@ -1153,7 +1158,7 @@ const CHAMPS_HORS_EMPREINTE=['updatedAt','lastChange','lastChangeBy','fieldsUpda
 const NESTED_RESA=['commentaires','paiements','prestaLines'];
 const LISTES_SUIVIES=[['reservations',NESTED_RESA],['visites',null],['travauxSchedule',null],
   ['remboursements',null],['encaissements',null],['comptesMouvements',null],['factures',null],['gardeSchedule',null],['dominiqueSchedule',null],
-  ['bilanComments',null],['messages',null]];
+  ['bilanComments',null],['messages',null],['forfaits',null]];
 function empreinteItem(x,nested){
   const o={};
   Object.keys(x).sort().forEach(k=>{
@@ -1367,6 +1372,7 @@ function mergeRemoteSnapshot(remote){
   merged.remboursements=mergeById(remote.remboursements,D.remboursements,del('remboursement'));
   merged.encaissements=mergeById(remote.encaissements,D.encaissements,del('encaissement'));
   merged.comptesMouvements=mergeById(remote.comptesMouvements,D.comptesMouvements,del('compte'));
+  merged.forfaits=mergeById(remote.forfaits,D.forfaits,del('forfait'));
   merged.comptesDepart=Object.assign({},remote.comptesDepart,D.comptesDepart);
   merged.factures=mergeById(remote.factures,D.factures,del('facture'));
   merged.gardeSchedule=mergeById(remote.gardeSchedule,D.gardeSchedule,del('garde'));
@@ -1875,8 +1881,162 @@ function renderCommissionSection(p,y,m){
 }
 /* === Travaux hors réservation (Misha/Sacha) — intégrés à Mon Bilan, même logique de
    validation que les prestations avec commission. Rendu partagé perso/admin. === */
+/* === Forfaits de travaux ===
+   David : « on définit qu'il a 3 000 € de travaux, il l'a fait en septembre pour 1 000 €, et on
+   voit bien qu'il reste toujours 2 000 € à venir ».
+   Le forfait est une enveloppe convenue ; ce qui compte dans l'argent dû, ce sont les avancées
+   réellement réalisées, chacune à sa date. Le reste de l'enveloppe est un engagement — on le
+   suit, mais on ne le doit pas encore, et il n'entre donc dans aucun total : sans date de
+   réalisation, on ne saurait pas sur quel mois le poser, et l'afficher comme dû serait faux. */
+function forfaitsDe(pid){
+  return (D.forfaits||[]).filter(f=>f.pid===pid)
+    .sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+}
+function avanceesForfait(fid){
+  return (D.travauxSchedule||[]).filter(x=>x.forfaitId===fid)
+    .sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+}
+function computeForfait(f){
+  const av=avanceesForfait(f.id);
+  const realise=Math.round(av.reduce((a,x)=>a+(x.montant||0),0)*100)/100;
+  const enveloppe=Math.round((+f.montant||0)*100)/100;
+  const reste=Math.round((enveloppe-realise)*100)/100;
+  return{f,avancees:av,enveloppe,realise,reste,
+    pct:enveloppe>0?Math.max(0,Math.min(100,Math.round(realise/enveloppe*100))):0,
+    solde:f.clos||reste<=0.005};
+}
+/* Le total encore engagé sur un prestataire — ce qui est promis mais pas encore réalisé. */
+function resteEngage(pid){
+  return Math.round(forfaitsDe(pid).map(computeForfait)
+    .filter(c=>!c.solde).reduce((a,c)=>a+Math.max(0,c.reste),0)*100)/100;
+}
+function addForfait(pid){
+  const titre=((document.getElementById('fx-titre-'+pid)||{}).value||'').trim();
+  const domaine=(document.getElementById('fx-domaine-'+pid)||{}).value;
+  const montant=parseFloat((document.getElementById('fx-montant-'+pid)||{}).value)||0;
+  const date=(document.getElementById('fx-date-'+pid)||{}).value;
+  const manque=[];
+  if(!titre)manque.push('l\'intitulé');
+  if(!domaine)manque.push('le domaine');
+  if(!montant)manque.push('le montant');
+  if(manque.length){showMsgSansPerdre('Il manque '+manque.join(' et ')+' ⚠️');return;}
+  if(!D.forfaits)D.forfaits=[];
+  D.forfaits.push({id:gid(),pid,domaine,titre,montant:Math.round(montant*100)/100,
+    date:date||dstr(new Date()),clos:false,createdAt:Date.now()});
+  const p=gPre(pid);
+  logActivity('prestation',domaine,`Forfait de travaux défini — ${p.name} : ${titre} ${money(montant)}`,[pid],true);
+  S.declOuvert=null;saveD();showMsg('Forfait enregistré ✓');render();
+}
+function delForfait(id){
+  const f=(D.forfaits||[]).find(x=>x.id===id); if(!f)return;
+  const av=avanceesForfait(id);
+  if(av.length&&!confirm(`Ce forfait porte ${av.length} avancée(s) déjà déclarée(s). Elles seront conservées comme travaux ordinaires. Supprimer le forfait ?`))return;
+  av.forEach(x=>{delete x.forfaitId;});
+  D.forfaits=(D.forfaits||[]).filter(x=>x.id!==id);
+  markDeleted('forfait',id);
+  logActivity('prestation',f.domaine,`Forfait supprimé — ${gPre(f.pid).name} : ${f.titre}`,[f.pid],true);
+  saveD();render();
+}
+function toggleForfaitClos(id){
+  const f=(D.forfaits||[]).find(x=>x.id===id); if(!f)return;
+  f.clos=!f.clos;
+  logActivity('prestation',f.domaine,`Forfait ${f.clos?'soldé':'rouvert'} — ${gPre(f.pid).name} : ${f.titre}`,[f.pid],true);
+  saveD();render();
+}
+/* Déclarer une avancée : c'est une ligne de travaux comme une autre, simplement rattachée au
+   forfait. Elle passe donc par la même validation et les mêmes totaux que le reste. */
+function addAvanceeForfait(fid){
+  const f=(D.forfaits||[]).find(x=>x.id===fid); if(!f)return;
+  const date=(document.getElementById('fa-date-'+fid)||{}).value;
+  const montant=parseFloat((document.getElementById('fa-montant-'+fid)||{}).value)||0;
+  const note=((document.getElementById('fa-note-'+fid)||{}).value||'').trim();
+  const manque=[];
+  if(!date)manque.push('la date');
+  if(!montant)manque.push('le montant');
+  if(manque.length){showMsgSansPerdre('Il manque '+manque.join(' et ')+' ⚠️');return;}
+  const c=computeForfait(f);
+  if(montant>c.reste+0.005&&!confirm(`Le forfait « ${f.titre} » n'a plus que ${money(c.reste)} de disponible. Déclarer quand même ${money(montant)} ?`))return;
+  if(!D.travauxSchedule)D.travauxSchedule=[];
+  D.travauxSchedule.push({id:gid(),pid:f.pid,domaine:f.domaine,date,type:'travaux',mode:'forfait',
+    heures:null,montant:Math.round(montant*100)/100,note:note||f.titre,forfaitId:f.id,
+    status:'en_attente',createdAt:Date.now()});
+  logActivity('prestation',f.domaine,`Avancée sur forfait — ${gPre(f.pid).name} : ${f.titre} ${money(montant)} au ${fmt(date)}`,[f.pid],true);
+  S.declOuvert=null;saveD();showMsg('Avancée enregistrée, en attente de validation ✓');render();
+}
+function renderForfaitsSection(p,y,m){
+  if(!suiviFinancier(p))return'';
+  const isAdmin=S.view==='admin';
+  const V=bilanVoix(p);
+  const liste=forfaitsDe(p.id).map(computeForfait);
+  const ouverts=liste.filter(c=>!c.solde);
+  if(!liste.length&&!isAdmin)return'';
+  const T='#7A5800';
+  const totalReste=Math.round(ouverts.reduce((a,c)=>a+Math.max(0,c.reste),0)*100)/100;
+  const defaultDom=(p.domaines||[])[0]||(D.domaines[0]||{}).id;
+  const domOpts=D.domaines.map(d=>`<option value="${d.id}" ${d.id===defaultDom?'selected':''}>${d.name}</option>`).join('');
+  return`<div id="bloc-forfaits" class="bilan-sec" style="border-left:3px solid ${T}">
+    ${secBandeau('📐','Forfaits de travaux',MONTHS_FR[m],y,liste.length?totalReste:null,T,isAdmin?'fx-'+p.id:null)}
+    <div class="sec-regle">Une enveloppe convenue d'avance · seules les <strong>avancées réalisées</strong> comptent dans l'argent dû${totalReste?` · <strong>${money(totalReste)}</strong> encore à réaliser`:''}</div>
+    ${(isAdmin&&declOuverte('fx-'+p.id))?`<div class="decl">
+      <div class="decl-g" style="grid-template-columns:1fr 1fr">
+        ${declChamp('Intitulé',`<input type="text" id="fx-titre-${p.id}" placeholder="ex. peinture et fenêtres">`)}
+        ${declChamp('Domaine',`<select id="fx-domaine-${p.id}">${domOpts}</select>`)}
+        ${declChamp('Montant convenu (€)',`<input type="number" id="fx-montant-${p.id}" step="0.01" placeholder="ex. 3000">`)}
+        ${declChamp('Convenu le',dateFieldHtml(`fx-date-${p.id}`,'width:100%',null,dstr(new Date())))}
+      </div>
+      <button class="btn btn-primary decl-go" onclick="addForfait('${p.id}')">Définir le forfait</button>
+    </div>`:''}
+    ${liste.length===0?`<div class="empty">Aucun forfait défini${isAdmin?' — utilisez « + Déclarer » pour en convenir un.':'.'}</div>`:''}
+    ${liste.map(c=>renderForfaitBloc(c,p,isAdmin,V)).join('')}
+    ${ouverts.length?`<div class="lg-tot"><span>Reste à réaliser</span><span class="v" style="color:${T}">${money(totalReste)}</span></div>
+    <div style="font-size:10.5px;color:#9a958c;margin-top:5px">Ce reste n'est <strong>pas encore dû</strong> : il n'entre ni dans le total du mois ni dans le compte courant tant que l'avancée n'est pas déclarée à sa date.</div>`:''}
+  </div>`;
+}
+function renderForfaitBloc(c,p,isAdmin,V){
+  const f=c.f,dom=gDom(f.domaine);
+  const cle='fa-'+f.id;
+  const barre=`<div style="height:6px;background:#efece5;border-radius:4px;overflow:hidden;margin:4px 0 5px">
+    <div style="height:100%;width:${c.pct}%;background:${c.solde?'#1F7A3D':'#B58A2B'}"></div></div>`;
+  return`<div style="border-top:1px solid #f0eee9;padding:7px 0">
+    <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+      <span style="flex:1;min-width:110px;font-size:12.5px;font-weight:600;color:#3f3b35">${f.titre}</span>
+      <span class="pill ${PILL[dom.color||0]}" style="flex-shrink:0">${dom.name}</span>
+      ${c.solde?'<span class="bb bb-good" style="padding:2px 7px;font-size:10.5px">✓ Soldé</span>':''}
+    </div>
+    ${barre}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:#8a857c">
+      <span>Convenu <strong style="color:#3f3b35">${money(c.enveloppe)}</strong></span>
+      <span>· Réalisé <strong style="color:#1F7A3D">${money(c.realise)}</strong></span>
+      <span>· Reste <strong style="color:${c.reste>0.005?'#B15E00':'#8a857c'}">${money(Math.max(0,c.reste))}</strong></span>
+      ${f.date?`<span style="opacity:.75">· convenu le ${fmt(f.date)}</span>`:''}
+    </div>
+    ${c.avancees.map(x=>`<div class="lg" style="padding:2px 0">
+      <span class="lg-d">${ds(x.date)}</span>
+      <span class="lg-l"><span class="lg-t">${x.note||'Avancée'}</span>${x.status!=='validé'?'<small><span class="s-txt">en attente de validation</span></small>':''}</span>
+      <span class="lg-m" style="color:#8B5E12">${money(x.montant)}</span>
+    </div>`).join('')}
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px">
+      ${!c.solde?`<button class="btn btn-xs" onclick="toggleDecl('${cle}')">${declOuverte(cle)?'✕ Annuler':'+ Déclarer une avancée'}</button>`:''}
+      ${isAdmin?`<button class="btn btn-xs" onclick="toggleForfaitClos('${f.id}')">${f.clos?'Rouvrir':'Marquer soldé'}</button>
+      <button class="btn btn-xs btn-danger" onclick="delForfait('${f.id}')">✕</button>`:''}
+    </div>
+    ${declOuverte(cle)?`<div class="decl" style="margin-top:6px">
+      <div class="decl-g" style="grid-template-columns:1fr 1fr">
+        ${declChamp('Réalisé le',dateFieldHtml(`fa-date-${f.id}`,'width:100%',null,dstr(new Date())))}
+        ${declChamp('Montant réalisé (€)',`<input type="number" id="fa-montant-${f.id}" step="0.01" placeholder="ex. 1000">`)}
+      </div>
+      <div class="decl-g" style="grid-template-columns:1fr">
+        ${declChamp('Ce qui a été fait',`<input type="text" id="fa-note-${f.id}" placeholder="ex. peinture du hall">`)}
+      </div>
+      <button class="btn btn-primary decl-go" onclick="addAvanceeForfait('${f.id}')">Déclarer l'avancée</button>
+    </div>`:''}
+  </div>`;
+}
 function renderTravauxSection(p,y,m){
-  if(p.accessMode!=='domaine')return''; // réservé à Misha/Sacha (accès complet) — pas Pascaline ni les autres
+  /* Historiquement réservée à Misha/Sacha. Depuis les forfaits de travaux, Sébastien ou un autre
+     peut lui aussi avoir des lignes de travaux : on affiche alors la section, sinon elle reste
+     masquée pour ne pas encombrer ceux que ça ne concerne pas. */
+  if(p.accessMode!=='domaine'&&!(D.travauxSchedule||[]).some(x=>x.pid===p.id))return'';
   const isAdmin=S.view==='admin';
   const monthKey=`${y}-${String(m+1).padStart(2,'0')}`;
   const inMonth=dateStr=>!!dateStr&&dateStr.startsWith(monthKey);
@@ -1888,7 +2048,7 @@ function renderTravauxSection(p,y,m){
   const T='#8B5E12';
   const _du=domaineUnique(rows.map(x=>x.domaine));
   return`<div id="bloc-travaux" class="bilan-sec" style="border-left:3px solid ${T}">
-    ${secBandeau('🔧','Travaux &amp; activités',MONTHS_FR[m],y,total,T,isAdmin?null:'trav-'+p.id,_du)}
+    ${secBandeau('🔧','Travaux &amp; activités',MONTHS_FR[m],y,total,T,(isAdmin||p.accessMode!=='domaine')?null:'trav-'+p.id,_du)}
     <div class="sec-regle"><strong>${TRAVAUX_RATE} €/h</strong> pour les travaux, au forfait pour le reste · sans commission${enAttente?` · <span style="color:#B15E00;font-weight:600">${enAttente} en attente</span>`:''}</div>
     ${(!isAdmin&&declOuverte('trav-'+p.id))?`<div class="decl">
       <div class="decl-g" style="grid-template-columns:1fr 1fr">
@@ -2020,6 +2180,19 @@ function majApercuEnc(pid){
     ?`${money(mt)} encaissés via ${nom} → 14 % de frais (${money(Math.round((mt-du)*100)/100)}) vous restent → <strong>${money(du)}</strong> viendront en déduction de ce qu'on vous doit.`
     :`${money(mt)} reçus en direct → <strong>${money(du)}</strong> viendront en déduction de ce qu'on vous doit.`;
 }
+/* === D'où vient l'argent qu'il détient pour nous ===
+   David : « c'est les 2 : l'argent que je lui donne ou l'argent qu'il reçoit de la part des
+   clients pour nous. Dans les 2 cas ça gonfle l'avance qu'il a reçue ou ça réduit l'argent
+   qu'on lui doit. » Le calcul est donc rigoureusement le même dans les deux cas — seule la
+   provenance est notée, pour qu'on sache de quoi on parle en relisant la ligne. */
+const ENC_SOURCES=[
+  ['client','reçu d\'un client pour notre compte','reçu d\'un client pour notre compte'],
+  ['ds','remis par David et Svitlana','remis par David et Svitlana']
+];
+function encaissementSourceLabel(x){
+  const e=ENC_SOURCES.find(o=>o[0]===(x&&x.source||'client'));
+  return e?e[1]:ENC_SOURCES[0][1];
+}
 function encaissementViaLabel(x){
   return x.via==='structure'?'via sa structure':'reçu en direct';
 }
@@ -2029,6 +2202,7 @@ function addEncaissement(pid){
   const montant=parseFloat((document.getElementById('enc-montant-'+pid)||{}).value)||0;
   const via=(document.getElementById('enc-via-'+pid)||{}).value||'direct';
   const provenance=((document.getElementById('enc-prov-'+pid)||{}).value||'').trim();
+  const source=(document.getElementById('enc-src-'+pid)||{}).value||'client';
   const note=((document.getElementById('enc-note-'+pid)||{}).value||'').trim();
   const manque=[];
   if(!domaine)manque.push('le domaine');
@@ -2036,10 +2210,10 @@ function addEncaissement(pid){
   if(!montant)manque.push('le montant');
   if(manque.length){showMsgSansPerdre('Il manque '+manque.join(' et ')+' ⚠️');return;}
   if(!D.encaissements)D.encaissements=[];
-  D.encaissements.push({id:gid(),pid,domaine,date,montant:Math.round(montant*100)/100,via,
+  D.encaissements.push({id:gid(),pid,domaine,date,montant:Math.round(montant*100)/100,via,source,
     provenance,note,status:'en_attente',createdAt:Date.now()});
   const p=gPre(pid);
-  logActivity('remboursement',domaine,`Encaissé pour nous — ${p.name} : ${provenance||'—'} ${money(montant)} (${via==='structure'?'via sa structure':'en direct'})`,[pid],true);
+  logActivity('remboursement',domaine,`Encaissé pour nous — ${p.name} : ${provenance||'—'} ${money(montant)} (${encaissementSourceLabel({source})}${via==='structure'?', via sa structure':''})`,[pid],true);
   saveD();showMsg('Enregistré, en attente de validation ✓');render();
 }
 function delEncaissement(id){
@@ -2063,7 +2237,7 @@ function updEncaissementVia(id,via){
   x.via=via;saveD();render();
 }
 function renderEncaissementSection(p,y,m){
-  if(p.accessMode!=='domaine')return'';
+  if(!suiviFinancier(p))return'';
   const isAdmin=S.view==='admin';
   const V=bilanVoix(p);
   const monthKey=`${y}-${String(m+1).padStart(2,'0')}`;
@@ -2079,16 +2253,18 @@ function renderEncaissementSection(p,y,m){
   const nomStructure=p.structure||(V.self?'votre structure':'sa structure');
   const viaOpts=(sel)=>`<option value="direct" ${sel==='direct'?'selected':''}>Reçu en direct</option>`
     +(aUneStructure?`<option value="structure" ${sel==='structure'?'selected':''}>Via ${nomStructure} (14% de frais)</option>`:'');
+  const srcOpts=(sel)=>ENC_SOURCES.map(([v,l,ls])=>
+    `<option value="${v}" ${sel===v?'selected':''}>${V.self?ls:l}</option>`).join('');
   const titre=V.self?'Reçu pour le compte de David et Svitlana':'Reçu pour notre compte';
   const explication=V.self
-    ?`De l'argent qui nous revient et que vous avez encaissé (un client qui vous règle directement, une recette perçue pour nous…). Ce n'est pas une rémunération : ça vient en <strong>déduction</strong> de ce qu'on vous doit ce mois-ci.${aUneStructure?` Encaissé via ${nomStructure}, elle retient 14 % de frais : sur 100 € reçus, 86 € nous reviennent.`:''} David/Svitlana valide chaque ligne.`
-    :`De l'argent qui nous revient et que ${p.name} a encaissé. Ce n'est pas une rémunération : ça vient en <strong>déduction</strong> de ce qu'on lui doit ce mois-ci.${aUneStructure?` Encaissé via ${nomStructure}, elle retient 14 % de frais : sur 100 € reçus, 86 € nous reviennent.`:''} ${isAdmin?'Validez chaque ligne, ou laissez en attente.':''}`;
+    ?`De l'argent qui nous revient et que vous détenez — soit remis par David et Svitlana, soit encaissé d'un client pour notre compte. Ce n'est pas une rémunération : dans les deux cas ça vient en <strong>déduction</strong> de ce qu'on vous doit ce mois-ci.${aUneStructure?` Encaissé via ${nomStructure}, elle retient 14 % de frais : sur 100 € reçus, 86 € nous reviennent.`:''} David/Svitlana valide chaque ligne.`
+    :`De l'argent qui nous revient et que ${p.name} détient — soit remis par nous, soit encaissé d'un client pour notre compte. Ce n'est pas une rémunération : dans les deux cas ça vient en <strong>déduction</strong> de ce qu'on lui doit ce mois-ci.${aUneStructure?` Encaissé via ${nomStructure}, elle retient 14 % de frais : sur 100 € reçus, 86 € nous reviennent.`:''} ${isAdmin?'Validez chaque ligne, ou laissez en attente.':''}`;
   const enAttente=rows.filter(x=>x.status!=='validé').length;
   const T='#8C3A3A';
   const _du=domaineUnique(rows.map(x=>x.domaine));
   return`<div id="bloc-enc" class="bilan-sec" style="border-left:3px solid ${T}">
     ${secBandeau('💰',titre,MONTHS_FR[m],y,total,T,isAdmin?null:'enc-'+p.id,_du)}
-    <div class="sec-regle">De l'argent qui nous revient et qu'${V.self?'vous avez':'il a'} encaissé · vient en <strong>déduction</strong>${aUneStructure?` · via ${nomStructure}, 14 % de frais retenus`:''}${enAttente?` · <span style="color:#B15E00;font-weight:600">${enAttente} en attente</span>`:''}</div>
+    <div class="sec-regle">Argent qui nous revient et qu'${V.self?'vous détenez':'il détient'} — remis par nous ou encaissé d'un client · vient en <strong>déduction</strong>${aUneStructure?` · via ${nomStructure}, 14 % de frais retenus`:''}${enAttente?` · <span style="color:#B15E00;font-weight:600">${enAttente} en attente</span>`:''}</div>
     ${(!isAdmin&&declOuverte('enc-'+p.id))?`<div class="decl">
       <div class="decl-g" style="grid-template-columns:1fr 1fr">
         ${declChamp('Domaine',`<select id="enc-domaine-${p.id}">${domOpts}</select>`)}
@@ -2097,7 +2273,10 @@ function renderEncaissementSection(p,y,m){
         ${declChamp('Comment l\'avez-vous reçu ?',`<select id="enc-via-${p.id}" onchange="majApercuEnc('${p.id}')">${viaOpts('direct')}</select>`)}
       </div>
       <div class="decl-g" style="grid-template-columns:1fr 1fr">
-        ${declChamp('De qui / pour quoi',`<input type="text" id="enc-prov-${p.id}" placeholder="ex. acompte Mme Dubosc">`)}
+        ${declChamp('De qui vient l\'argent ?',`<select id="enc-src-${p.id}">${srcOpts('client')}</select>`)}
+        ${declChamp('Pour quoi / de qui',`<input type="text" id="enc-prov-${p.id}" placeholder="ex. acompte Mme Dubosc">`)}
+      </div>
+      <div class="decl-g" style="grid-template-columns:1fr">
         ${declChamp('Précision',`<input type="text" id="enc-note-${p.id}" placeholder="facultatif">`)}
       </div>
       <div id="enc-apercu-${p.id}" style="font-size:11.5px;color:#7A5800;background:#FDF4E3;border-radius:8px;padding:7px 10px;margin-bottom:9px;display:none"></div>
@@ -2109,7 +2288,7 @@ function renderEncaissementSection(p,y,m){
       titre:`${pastilleDom(x.domaine,_du)}${x.provenance||'—'}`,
       /* Le choix « comment l'argent a été reçu » décrit la ligne, il n'agit pas dessus : sa place
          est sur la ligne de détail, pas parmi les boutons — où sa largeur écrasait le nom. */
-      sous:`<span class="s-txt">${money(x.montant)} ${encaissementViaLabel(x)}${x.via==='structure'?` → −14 % de frais`:''} → <strong>${money(du)}</strong> à déduire${x.note?' · '+x.note:''}</span>${(!isAdmin&&aUneStructure&&x.status!=='validé')?`<select class="s-note" onchange="updEncaissementVia('${x.id}',this.value)" style="max-width:none;min-width:96px;flex:0 1 auto">${viaOpts(x.via||'direct')}</select>`:''}`,
+      sous:`<span class="s-txt">${money(x.montant)} ${encaissementSourceLabel(x)} · ${encaissementViaLabel(x)}${x.via==='structure'?` → −14 % de frais`:''} → <strong>${money(du)}</strong> à déduire${x.note?' · '+x.note:''}</span>${(!isAdmin&&aUneStructure&&x.status!=='validé')?`<select class="s-note" onchange="updEncaissementVia('${x.id}',this.value)" style="max-width:none;min-width:96px;flex:0 1 auto">${viaOpts(x.via||'direct')}</select>`:''}`,
       montant:'− '+money(du),couleur:T,
       actions:`${valideBadge(x.status==='validé',`toggleEncaissementValide('${x.id}')`)}${x.status!=='validé'?`<button class="btn btn-xs btn-danger" onclick="delEncaissement('${x.id}')">✕</button>`:''}`
     });}).join('')}
@@ -2117,7 +2296,7 @@ function renderEncaissementSection(p,y,m){
   </div>`;
 }
 function renderRemboursementSection(p,y,m){
-  if(p.accessMode!=='domaine')return''; // réservé à Misha/Sacha (accès complet) — pas Pascaline ni les autres
+  if(!suiviFinancier(p))return''; // réservé à Misha/Sacha (accès complet) — pas Pascaline ni les autres
   const isAdmin=S.view==='admin';
   const monthKey=`${y}-${String(m+1).padStart(2,'0')}`;
   const inMonth=dateStr=>!!dateStr&&dateStr.startsWith(monthKey);
@@ -2251,10 +2430,23 @@ function renderBilanComments(p,y,m){
    On prend le prestataire en paramètre au lieu d'aller le rechercher : partout où l'écran
    affiche « compté sur le mois du départ », c'est exactement le même objet qui sert au calcul.
    Plus aucun moyen que la phrase affichée et le calcul divergent. */
+/* === Qui compte sur le départ ? ===
+   La règle a été relue dans p.menageMoisSur — un champ de fiche. Or la fiche voyage par la
+   synchro : il a suffi qu'un appareil renvoie une fiche portant encore « arrivée » pour que
+   David voie 1 700 € là où Sacha voyait 2 200 €, sur exactement les mêmes réservations.
+   Une règle métier ne peut pas dépendre d'une donnée que la synchro peut écraser. Pour Sacha,
+   elle est donc déduite de son identité et de rien d'autre — le champ n'est plus qu'un réglage
+   pour les prestataires où la question se pose vraiment. */
+function menageSurDepart(p){
+  if(!p)return false;
+  if(estSacha(p))return true;      // règle fixe, non désactivable, identique sur tous les écrans
+  if(estMisha(p))return false;     // idem dans l'autre sens
+  return p.menageMoisSur==='depart';
+}
 function menageJour(r,p){
   const arr=r.dateArrivee||r.date||r.dateDepart;
   const dep=r.dateDepart||r.dateFin||arr;
-  if(!p||p.menageMoisSur!=='depart')return arr;
+  if(!menageSurDepart(p))return arr;
   if(!dep)return arr;
   /* « Un séjour à cheval sur deux mois se compte sur le mois SUIVANT » : on retient donc
      toujours la plus TARDIVE des deux dates. Formulé comme ça, même une date de sortie
@@ -2276,8 +2468,9 @@ function menageDateRef(r){
      le ménage de Sacha (Les Déesses) tombe TOUJOURS le jour de sortie. */
   let pre=(D.prestataires||[]).find(x=>x.id===mi.pid);
   if(!pre)pre=(D.prestataires||[]).find(x=>mi.pid==='p2'?estSacha(x):mi.pid==='p1'?estMisha(x):false);
-  if(!pre)pre=(mi.pid==='p2')?{menageMoisSur:'depart'}:{menageMoisSur:'arrivee'};
-  if(mi.pid==='p2')pre={menageMoisSur:'depart'};
+  /* Même sans fiche sous la main, la règle reste la même : on reconstitue le minimum. */
+  if(!pre)pre=(mi.pid==='p2')?{id:'p2'}:{id:mi.pid};
+  if(mi.pid==='p2')pre={id:'p2'};
   return menageJour(r,pre);
 }
 function menageDansMois(r,y,m){
@@ -2644,6 +2837,15 @@ function renderCompteMois(p,C,isAdmin,V){
         </div>`:''}
       </div>`;}).join('')}
     <div class="lg-tot" style="margin-top:6px"><span>Solde une fois tout réalisé${C.fin?` (jusqu'à ${fmt(C.fin)})`:''}</span><span class="v" style="color:${teinte(C.soldeProjete)}">${money(C.soldeProjete)}</span></div>
+    ${(()=>{const eng=resteEngage(p.id);
+      if(!eng)return'';
+      /* Un forfait convenu mais pas encore réalisé n'est pas de l'argent dû : sans date de
+         réalisation, on ne saurait pas sur quel mois le poser. On l'annonce donc à part, pour
+         qu'on sache ce qui reste à sortir au-delà du tableau. */
+      return`<div style="margin-top:7px;padding:6px 9px;background:#FDF6E7;border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+        <span style="font-size:11px;color:#7A5800">📐 Forfaits convenus <strong>pas encore réalisés</strong> — non comptés ci-dessus <a href="#bloc-forfaits" onclick="event.preventDefault();var e=document.getElementById('bloc-forfaits');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})" style="color:#7A5800">voir</a></span>
+        <span style="font-size:14px;font-weight:700;color:#7A5800;font-variant-numeric:tabular-nums;white-space:nowrap">${money(eng)}</span>
+      </div>`;})()}
     <div style="font-size:10.5px;color:#9a958c;margin-top:5px">Le solde de fin d'un mois est le report du mois suivant. <strong>Positif</strong> = on ${V.self?'vous':'lui'} doit de l'argent, <strong>négatif</strong> = il reste une avance à consommer. Les mois à venir sont des prévisions : tout ce qui est déjà au planning y est compté.</div>
   </div>`;
 }
@@ -2652,7 +2854,7 @@ function renderMenageSection(p,y,m){
   const menageEvs=D.reservations.filter(r=>r.status!=='annulé'&&menageDansMoisPour(r,p,y,m)).map(r=>({r,mi:getMenageInfo(r)})).filter(x=>x.mi&&x.mi.pid===p.id);
   const menageTotal=menageEvs.reduce((a,x)=>a+x.mi.montant,0);
   const menagePaid=menageEvs.filter(x=>x.r.menagePaid).reduce((a,x)=>a+x.mi.montant,0);
-  const surDepart=p.menageMoisSur==='depart';
+  const surDepart=menageSurDepart(p);
   const T='#1E7A6E';
   /* Un séjour qui chevauche deux mois n'apparaît que sur UN des deux. Pour qu'on ne se demande
      jamais « où est passé ce ménage ? », on liste discrètement en bas les séjours qui touchent
@@ -6020,7 +6222,9 @@ function renderPrestaDetailAdmin(p){
   const commSection=(p.inputMode==='notes')?renderCommissionSection(p,y,m):'';
 
   /* === Travaux hors réservation (Misha/Sacha uniquement — pas Pascaline) — rendu partagé avec la page perso, intégré à Mon Bilan === */
-  const travauxSection=(p.accessMode==='domaine')?renderTravauxSection(p,y,m):'';
+  const travauxSection=renderTravauxSection(p,y,m);
+  /* Les forfaits valent pour tout le monde — Misha, Sacha, Sébastien et les autres. */
+  const forfaitsSection=renderForfaitsSection(p,y,m);
 
   /* === Paiement fait / remboursement (Misha/Sacha uniquement) — rendu partagé avec la page perso === */
   const remboursementSection=(p.accessMode==='domaine')?(renderRemboursementSection(p,y,m)+renderEncaissementSection(p,y,m)):'';
@@ -6060,8 +6264,8 @@ function renderPrestaDetailAdmin(p){
   const commentsSection=renderBilanComments(p,y,m);
   /* Détail du calcul des prestations, tout en bas — cible des liens par circuit du Bilan total. */
   const commDetailSection='';
-  const allEmpty=!menageSection&&!gardeSection&&!commSection&&!travauxSection&&!remboursementSection&&!dominiqueSection&&!bilanTotalSection&&!elecSection&&!compteSection;
-  return`<div style="margin-top:16px">${nav}${bilanTotalSection}${commentsSection}${menageSection}${commSection}${travauxSection}${remboursementSection}${compteSection}${elecSection}${gardeSection}${dominiqueSection}${commDetailSection}${allEmpty?`<div class="empty">Aucun suivi financier spécifique pour ${p.name}.</div>`:''}</div>`;
+  const allEmpty=!menageSection&&!gardeSection&&!commSection&&!travauxSection&&!remboursementSection&&!dominiqueSection&&!bilanTotalSection&&!elecSection&&!compteSection&&!forfaitsSection;
+  return`<div style="margin-top:16px">${nav}${bilanTotalSection}${commentsSection}${menageSection}${commSection}${forfaitsSection}${travauxSection}${remboursementSection}${compteSection}${elecSection}${gardeSection}${dominiqueSection}${commDetailSection}${allEmpty?`<div class="empty">Aucun suivi financier spécifique pour ${p.name}.</div>`:''}</div>`;
 }function setClientsSortBy(v){S.clientsSortBy=v;render();}
 function updClientTel(rid,val){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
@@ -7092,10 +7296,10 @@ function buildFullBackupWorkbook(){
     'Validée':x.valide===false?'Non':'Oui'
   }));
 
-  const TRAV_H=['ID','ID Prestataire','Prestataire','Domaine','Date','Heures','Montant €','Note','Statut','Validé par','Validé le'];
+  const TRAV_H=['ID','ID Prestataire','Prestataire','Domaine','Date','Heures','Montant €','Note','ID Forfait','Statut','Validé par','Validé le'];
   const travauxRows=(D.travauxSchedule||[]).map(x=>({
     'ID':x.id,'ID Prestataire':x.pid,'Prestataire':gPre(x.pid).name,'Domaine':gDom(x.domaine).name,'Date':x.date||'',
-    'Heures':x.heures||0,'Montant €':x.montant||0,'Note':x.note||'','Statut':x.status||'',
+    'Heures':x.heures||0,'Montant €':x.montant||0,'Note':x.note||'','ID Forfait':x.forfaitId||'','Statut':x.status||'',
     'Validé par':x.validatedBy||'','Validé le':tsStr(x.validatedAt)
   }));
 
@@ -7108,12 +7312,21 @@ function buildFullBackupWorkbook(){
     'Validé par':x.validatedBy||'','Validé le':tsStr(x.validatedAt)
   }));
 
-  const ENC_H=['ID','ID Prestataire','Prestataire','Domaine','Date','Montant reçu €','Circuit','Provenance','Précision','Statut','Validé par','Validé le'];
+  const ENC_H=['ID','ID Prestataire','Prestataire','Domaine','Date','Montant reçu €','Vient de','Circuit','Provenance','Précision','Statut','Validé par','Validé le'];
   const encRows=(D.encaissements||[]).map(x=>({
     'ID':x.id,'ID Prestataire':x.pid,'Prestataire':gPre(x.pid).name,'Domaine':gDom(x.domaine).name,'Date':x.date||'',
-    'Montant reçu €':x.montant||0,'Circuit':x.via==='structure'?'Via sa structure':'Reçu en direct',
+    'Montant reçu €':x.montant||0,
+    'Vient de':x.source==='ds'?'David et Svitlana':'Un client',
+    'Circuit':x.via==='structure'?'Via sa structure':'Reçu en direct',
     'Provenance':x.provenance||'','Précision':x.note||'','Statut':x.status||'',
     'Validé par':x.validatedBy||'','Validé le':tsStr(x.validatedAt)
+  }));
+
+  const FX_H=['ID','ID Prestataire','Prestataire','Domaine','Intitulé','Montant convenu €','Convenu le','Soldé'];
+  const forfaitRows=(D.forfaits||[]).map(x=>({
+    'ID':x.id,'ID Prestataire':x.pid,'Prestataire':gPre(x.pid).name,'Domaine':gDom(x.domaine).name,
+    'Intitulé':x.titre||'','Montant convenu €':x.montant||0,'Convenu le':x.date||'',
+    'Soldé':x.clos?'Oui':'Non'
   }));
 
   const CC_H=['ID','ID Prestataire','Prestataire','Date','Sens','Montant €','Mode','Note'];
@@ -7185,6 +7398,7 @@ function buildFullBackupWorkbook(){
   addSheet('Factures',FACT_H,factRows);
   addSheet('Compte courant',CC_H,ccRows);
   addSheet('Compte départ',CCD_H,ccdRows);
+  addSheet('Forfaits travaux',FX_H,forfaitRows);
   addSheet('Commentaires bilan',BC_H,bilanCommentRows);
   addSheet('Finances mensuelles',FIN_H,financeRows);
   addSheet('Repères - Domaines',DOMREF_H,domaineRows);
@@ -7286,7 +7500,8 @@ function parseFullBackupWorkbook(wb){
     const pid=pidOf(x),domaine=domIdByName(x['Domaine']);
     if(!pid||!domaine){skipped++;return null;}
     return{id:String(x['ID']),pid,domaine,date:normDate(x['Date']),heures:numVal(x['Heures']),
-      montant:numVal(x['Montant €']),note:x['Note']||'',status:x['Statut']||'en_attente',validatedBy:x['Validé par']||''};
+      montant:numVal(x['Montant €']),note:x['Note']||'',forfaitId:x['ID Forfait']?String(x['ID Forfait']):undefined,
+      status:x['Statut']||'en_attente',validatedBy:x['Validé par']||''};
   }).filter(Boolean);
 
   const remboursements=rowsOf('Remboursements').filter(x=>x['ID']).map(x=>{
@@ -7302,8 +7517,19 @@ function parseFullBackupWorkbook(wb){
     if(!pid){skipped++;return null;}
     return{id:String(x['ID']),pid,domaine:domaine||'',date:normDate(x['Date']),montant:numVal(x['Montant reçu €']),
       via:(/structure/i.test(String(x['Circuit']||''))?'structure':'direct'),
+      /* Les sauvegardes antérieures n'ont pas la colonne « Vient de » : on retombe alors sur
+         « un client », qui était le seul cas prévu à l'époque. */
+      source:(/svitlana|david/i.test(String(x['Vient de']||''))?'ds':'client'),
       provenance:x['Provenance']||'',note:x['Précision']||'',status:x['Statut']||'en_attente',
       validatedBy:x['Validé par']||''};
+  }).filter(Boolean);
+
+  const forfaits=rowsOf('Forfaits travaux').filter(x=>x['ID']).map(x=>{
+    const pid=pidOf(x),domaine=domIdByName(x['Domaine']);
+    if(!pid){skipped++;return null;}
+    return{id:String(x['ID']),pid,domaine:domaine||'',titre:x['Intitulé']||'',
+      montant:numVal(x['Montant convenu €']),date:normDate(x['Convenu le']),
+      clos:/oui/i.test(String(x['Soldé']||''))};
   }).filter(Boolean);
 
   const comptesMouvements=rowsOf('Compte courant').filter(x=>x['ID']).map(x=>{
@@ -7353,7 +7579,7 @@ function parseFullBackupWorkbook(wb){
 
   return{reservations,commentaires,paiements,prestaLines,gardeResa,prestasExterieurs,visites,gardeSchedule,
     travauxSchedule,dominiqueSchedule,bilanComments,electriciteIndex,forfaitPaid,elecValide,
-    remboursements,encaissements,factures,comptesMouvements,comptesDepart,skipped};
+    remboursements,encaissements,factures,comptesMouvements,comptesDepart,forfaits,skipped};
 }
 
 /* === Restauration « remettre à l'identique » ===
@@ -7470,6 +7696,7 @@ function computeIdentiqueExtras(snap){
     resa:Array.from(snapResaIds),
     visite:ids(snap.visites),
     travaux:ids(snap.travauxSchedule),
+    forfait:ids(snap.forfaits),
     remboursement:ids(snap.remboursements),
     encaissement:ids(snap.encaissements),
     facture:ids(snap.factures),
@@ -7484,6 +7711,7 @@ function computeIdentiqueExtras(snap){
     resaToReplace,resaToRemove,
     visites:listDiff(D.visites,snap.visites),
     travaux:listDiff(D.travauxSchedule,snap.travauxSchedule),
+    forfaits:listDiff(D.forfaits,snap.forfaits),
     remboursements:listDiff(D.remboursements,snap.remboursements),
     encaissements:listDiff(D.encaissements,snap.encaissements),
     factures:listDiff(D.factures,snap.factures),
@@ -7504,7 +7732,7 @@ function computeRestoreDiff(snap,mode){
      listes de suppressions, sinon rien ne serait réintégré. */
   const delSet=k=>identique?new Set():new Set((D.deletedIds&&D.deletedIds[k])||[]);
   const dResa=delSet('resa'),dVisite=delSet('visite'),dComment=delSet('comment'),dPaiement=delSet('paiement'),
-        dPrestaLine=delSet('prestaLine'),dTravaux=delSet('travaux'),dGarde=delSet('garde'),
+        dPrestaLine=delSet('prestaLine'),dTravaux=delSet('travaux'),dForfait=delSet('forfait'),dGarde=delSet('garde'),
         dRemb=delSet('remboursement'),dEnc=delSet('encaissement'),dFacture=delSet('facture'),dCompte=delSet('compte'),
         dDominique=delSet('dominique'),dBilanComment=delSet('bilanComment'),dElecIndex=delSet('elecIndex');
 
@@ -7583,6 +7811,9 @@ function computeRestoreDiff(snap,mode){
   const existingTravauxIds=new Set((D.travauxSchedule||[]).map(x=>x.id));
   const travauxToAdd=snap.travauxSchedule.filter(x=>!existingTravauxIds.has(x.id)&&!dTravaux.has(x.id));
 
+  const existingForfaitIds=new Set((D.forfaits||[]).map(x=>x.id));
+  const forfaitsToAdd=(snap.forfaits||[]).filter(x=>!existingForfaitIds.has(x.id)&&!dForfait.has(x.id));
+
   const existingGardeSchedIds=new Set((D.gardeSchedule||[]).map(x=>x.id));
   const gardeScheduleToAdd=snap.gardeSchedule.filter(x=>!existingGardeSchedIds.has(x.id)&&!dGarde.has(x.id));
 
@@ -7625,6 +7856,7 @@ function computeRestoreDiff(snap,mode){
     prestasExterieurs:extToAttach.length+resaToAdd.reduce((a,r)=>a+r.prestasExterieurs.length,0),
     visites:visitesToAdd.length,
     travaux:travauxToAdd.length,
+    forfaitsTravaux:forfaitsToAdd.length,
     gardiennagePlanning:gardeScheduleToAdd.length,
     jardinageDominique:dominiqueToAdd.length,
     commentairesBilan:bilanCommentsToAdd.length,
@@ -7646,7 +7878,7 @@ function computeRestoreDiff(snap,mode){
   }
   return{mode:mode||'complete',identique,extras,
     resaToAdd,commentsToAttach,paiementsToAttach,prestaLinesToAttach,gardeNightsToAttach,extToAttach,
-    visitesToAdd,travauxToAdd,gardeScheduleToAdd,dominiqueToAdd,bilanCommentsToAdd,
+    visitesToAdd,travauxToAdd,forfaitsToAdd,gardeScheduleToAdd,dominiqueToAdd,bilanCommentsToAdd,
     remboursementsToAdd,encaissementsToAdd,facturesToAdd,comptesMouvementsToAdd,
     comptesDepart:snap.comptesDepart||{},
     elecIndexToFill,forfaitPaidToFill,elecValideToFill,counts,skipped:snap.skipped};
@@ -7662,6 +7894,7 @@ function applyRestoreDiff(diff){
   diff.extToAttach.forEach(({resaId,item})=>{const r=D.reservations.find(x=>x.id===resaId);if(r){if(!r.prestasExterieurs)r.prestasExterieurs=[];r.prestasExterieurs.push(item);}});
   diff.visitesToAdd.forEach(v=>D.visites.push(v));
   diff.travauxToAdd.forEach(t=>{if(!D.travauxSchedule)D.travauxSchedule=[];D.travauxSchedule.push(t);});
+  (diff.forfaitsToAdd||[]).forEach(f=>{if(!D.forfaits)D.forfaits=[];D.forfaits.push(f);});
   (diff.remboursementsToAdd||[]).forEach(x=>{if(!D.remboursements)D.remboursements=[];D.remboursements.push(x);});
   (diff.encaissementsToAdd||[]).forEach(x=>{if(!D.encaissements)D.encaissements=[];D.encaissements.push(x);});
   (diff.facturesToAdd||[]).forEach(x=>{if(!D.factures)D.factures=[];D.factures.push(x);});
@@ -7694,6 +7927,7 @@ function applyRestoreDiff(diff){
     };
     applyList('visites','visite',()=>D.visites,a2=>{D.visites=a2;});
     applyList('travaux','travaux',()=>D.travauxSchedule,a2=>{D.travauxSchedule=a2;});
+    applyList('forfaits','forfait',()=>D.forfaits,a2=>{D.forfaits=a2;});
     applyList('gardeSched','garde',()=>D.gardeSchedule,a2=>{D.gardeSchedule=a2;});
     applyList('dominique','dominique',()=>D.dominiqueSchedule,a2=>{D.dominiqueSchedule=a2;});
     applyList('bilanComments','bilanComment',()=>D.bilanComments,a2=>{D.bilanComments=a2;});
@@ -8475,8 +8709,8 @@ function renderModalContent(){
     <div class="field" style="margin-bottom:14px"><label>Domaines (pour l'accès complet ou l'occupation)</label><div style="padding:4px 0">${dC}</div></div>
     <div class="field" style="margin-bottom:14px"><label>Mois sur lequel compter le ménage</label>
       <select id="m-pmenage">
-        <option value="arrivee" ${(p.menageMoisSur||'arrivee')!=='depart'?'selected':''}>Mois de l'ARRIVÉE des clients — 31 juillet → 2 août compte pour juillet</option>
-        <option value="depart" ${p.menageMoisSur==='depart'?'selected':''}>Mois du DÉPART des clients — 31 juillet → 2 août compte pour août</option>
+        <option value="arrivee" ${!menageSurDepart(p)?'selected':''}>Mois de l'ARRIVÉE des clients — 31 juillet → 2 août compte pour juillet</option>
+        <option value="depart" ${menageSurDepart(p)?'selected':''}>Mois du DÉPART des clients — 31 juillet → 2 août compte pour août</option>
       </select>
       <div style="font-size:11px;color:#8a857c;margin-top:4px">Pour une réservation à cheval sur deux mois. Ce choix est conservé même si la fiche est renommée.</div>
     </div>
@@ -8507,6 +8741,7 @@ function renderPrestaMonBilan(p){
   ${renderBilanComments(p,y,m)}
   ${renderMenageSection(p,y,m)}
   ${renderCommissionSection(p,y,m)}
+  ${renderForfaitsSection(p,y,m)}
   ${renderTravauxSection(p,y,m)}
   ${renderRemboursementSection(p,y,m)}
   ${renderEncaissementSection(p,y,m)}
@@ -8523,13 +8758,16 @@ function renderPrestaCalendrierSeul(p){
   const tab=S.prestaTab||'calendrier';
   const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
   const notifs=prestaVisibleLog(p).filter(it=>it.ts>lastSeen);
-  const content=tab==='monbilan'?renderPrestaMonBilan(p):tab==='dernieres'?renderDernieresPresta(p):renderCalendrier();
+  const content=tab==='moncompte'?renderMonCompteBloc(p)
+    :tab==='monbilan'?renderPrestaMonBilan(p)
+    :tab==='dernieres'?renderDernieresPresta(p):renderCalendrier();
   return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone">🔔</button>${renderSyncBadge()}${renderVersionBadge()}<button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${renderVersionObsoleteBanner()}${renderNotifBanner(notifs,'dismissPrestaNotifs')}
   <div class="tabs">
     <button class="tab ${tab==='calendrier'?'active':''}" onclick="setPrestaTab('calendrier')"><span class="tab-ic">📅</span><span class="tab-lbl">Planning</span></button>
     <button class="tab ${tab==='monbilan'?'active':''}" onclick="setPrestaTab('monbilan')"><span class="tab-ic">💰</span><span class="tab-lbl">Mon Bilan</span></button>
+    ${compteActif(p)?ongletMonCompte(tab):''}
     <button class="tab ${tab==='dernieres'?'active':''}" onclick="setPrestaTab('dernieres')"><span class="tab-ic">🕓</span><span class="tab-lbl">Dernières<br>modifs</span></button>
   </div>
   ${content}`;
@@ -8704,6 +8942,25 @@ function renderPrestaHoraires(p){
   </div>`:''}`;
 }
 
+/* === « Mon compte », le même bloc pour tous ===
+   David : « bref tous les prestas ». Chacun doit pouvoir suivre ce qu'il a touché en avance,
+   ce qu'il détient pour nous, et ce qui lui reste à venir — avec exactement les mêmes chiffres
+   que ce que nous voyons de notre côté. */
+function renderMonCompteBloc(p){
+  const y=S.prestaBilanYear,m=S.prestaBilanMonth;
+  const bloc=bandeauCompteCourant(p)
+    +renderForfaitsSection(p,y,m)
+    +renderTravauxSection(p,y,m)
+    +renderRemboursementSection(p,y,m)
+    +renderEncaissementSection(p,y,m)
+    +renderCompteSection(p);
+  if(!bloc.trim())
+    return`<div class="empty">Aucun compte ouvert pour l'instant. David ou Svitlana peuvent l'ouvrir depuis leur écran.</div>`;
+  return`<div class="cal-header" style="margin-bottom:14px">${monthYearPicker('prestaBilanYear','prestaBilanMonth')}</div>${bloc}`;
+}
+function ongletMonCompte(tab){
+  return`<button class="tab ${tab==='moncompte'?'active':''}" onclick="setPrestaTab('moncompte')"><span class="tab-ic">📒</span><span class="tab-lbl">Mon compte</span></button>`;
+}
 function renderPrestaDominique(p){
   const tab=S.prestaTab||'calendrier';
   const lastSeen=(D.prestaLastSeen||{})[p.id]||0;
@@ -8733,13 +8990,20 @@ function renderPrestaDominique(p){
         ${x.comment?`<div style="font-size:12px;color:#534AB7;font-style:italic;margin-top:3px">${x.comment}</div>`:''}
       </div>`;}).join('')}
     </div>`;
+  } else if(tab==='moncompte'){
+    /* Dominique suit lui aussi son avance et ce qui lui reste à venir : ses journées déjà
+       programmées sur les mois suivants alimentent la projection, exactement comme les
+       réservations le font pour Misha et Sacha. */
+    content=renderMonCompteBloc(p);
   } else content=renderCalendrier();
+  const aCompte=compteActif(p);
   return`<div class="topbar"><span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:1.3px solid #993556;border-radius:50%;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;font-size:11px;color:#993556;flex-shrink:0">D.S</span><h1>Les Domaines de DS</h1><span class="badge bp">${p.name}</span><button class="btn btn-sm" onclick="enablePushNotifications()" title="Recevoir des notifications sur ce téléphone">🔔</button>${renderSyncBadge()}${renderVersionBadge()}<button class="btn btn-sm" onclick="logout()">Déconnexion</button></div>
   ${S.msg?`<div class="alert alert-ok">${S.msg}</div>`:''}
   ${renderVersionObsoleteBanner()}${renderNotifBanner(notifs,'dismissPrestaNotifs')}
   <div class="tabs">
     <button class="tab ${tab==='calendrier'?'active':''}" onclick="setPrestaTab('calendrier')"><span class="tab-ic">📅</span><span class="tab-lbl">Planning</span></button>
     <button class="tab ${tab==='planning'?'active':''}" onclick="setPrestaTab('planning')"><span class="tab-ic">🌱</span><span class="tab-lbl">Mon Planning</span></button>
+    ${aCompte?ongletMonCompte(tab):''}
   </div>
   ${content}`;
 }
@@ -8791,6 +9055,8 @@ function renderPrestaGardePersonnel(p){
   // jour de leur propre gardiennage, via la bannière de notifications en haut de page.
   if(tab==='planning'){
     content=renderGardePlanningCalendar(p);
+  } else if(tab==='moncompte'){
+    content=renderMonCompteBloc(p);
   } else if(tab==='monbilan'){
     const y=S.prestaBilanYear,m=S.prestaBilanMonth;
     // Pas de "Bilan total" séparé pour Sébastien/Mathilde : ils n'ont que du gardiennage, dont
@@ -8842,6 +9108,7 @@ function renderPrestaGardePersonnel(p){
     <button class="tab ${tab==='planning'?'active':''}" onclick="setPrestaTab('planning')"><span class="tab-ic">📅</span><span class="tab-lbl">Planning</span></button>
     <button class="tab ${tab==='liste'?'active':''}" onclick="setPrestaTab('liste')"><span class="tab-ic">📋</span><span class="tab-lbl">Liste</span></button>
     <button class="tab ${tab==='monbilan'?'active':''}" onclick="setPrestaTab('monbilan')"><span class="tab-ic">💰</span><span class="tab-lbl">Mon Bilan</span></button>
+    ${compteActif(p)?ongletMonCompte(tab):''}
   </div>
   ${content}`;
 }
@@ -9753,7 +10020,12 @@ function savePresta(id){
   /* Mois d'imputation du ménage : dès qu'il est choisi ici, il est marqué « manuel » et le
      démarrage ne le réécrit plus (voir runMigrations). */
   const menageMoisSur=((document.getElementById('m-pmenage')||{}).value==='depart')?'depart':'arrivee';
-  if(id){const p=D.prestataires.find(x=>x.id===id);Object.assign(p,{name,role,tel,email,domaines,accessMode,menageMoisSur,menageMoisManuel:true});}
+  if(id){const p=D.prestataires.find(x=>x.id===id);
+    /* Pour Misha et Sacha la règle du mois de ménage est figée : on n'enregistre pas un réglage
+       qui la contredirait et qui repartirait ensuite en synchro sur les autres appareils. */
+    const fige=estMisha(p)||estSacha(p);
+    Object.assign(p,{name,role,tel,email,domaines,accessMode},
+      fige?{}:{menageMoisSur,menageMoisManuel:true});}
   else D.prestataires.push({id:gid(),name,role,tel,email,domaines,accessMode,menageMoisSur,menageMoisManuel:true,token:'tok_'+name.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'')+'_'+Math.random().toString(36).slice(2,7)});
   saveD();S.modal=null;showMsg('Prestataire enregistré ✓');
 }
