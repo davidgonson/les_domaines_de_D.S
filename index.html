@@ -374,7 +374,6 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 <div class="app" id="root"></div>
@@ -382,7 +381,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 /* Numéro de version, affiché en haut de l'écran. Sert à répondre en une seconde à la seule
    question qui compte quand « ça marche chez moi mais pas chez elle » : les deux téléphones
    font-ils bien tourner la MÊME version ? */
-const APP_VERSION='2026-09-16-a';
+const APP_VERSION='2026-09-16-b';
 const SK='domnoрm_prod_v1';
 const SUPA_URL='https://hdtltrnabrgibkcvubzd.supabase.co';
 const SUPA_KEY='sb_publishable_zvpg0YOHegxqXJxbEKhSbQ_3oLwbrr1';
@@ -7147,6 +7146,12 @@ function generateContractHtml(r){
     .annex-sign .as-fill{height:34px;background:#fbfbfa}
     .annex-sign .as-fill.grand{height:78px}
 
+    /* ── FILIGRANE D.S ──
+       Il revient en bas de chaque page à l'impression : il doit donc rester très discret, et
+       se tenir dans la marge plutôt que par-dessus la dernière ligne de texte. */
+    .filigrane-ds{position:fixed;bottom:2mm;right:3mm;opacity:.5;z-index:99}
+    @media print{.filigrane-ds{opacity:.25;bottom:0;right:0}}
+
     /* ── EMPHASES ── */
     strong{font-weight:700}
     .sig-final{margin-top:28px;font-size:9.5pt;color:#666;font-style:italic;border-top:1px dashed #ccc;padding-top:14px}
@@ -7184,7 +7189,7 @@ function generateContractHtml(r){
     </div>`:''}
 
   <div class="footer-note">${cd.nomDomaine} &nbsp;·&nbsp; ${cd.siteWeb} &nbsp;·&nbsp; ${cd.email}</div>
-  <div style="position:fixed;bottom:7mm;right:8mm;opacity:0.65;z-index:99"><svg width="42" height="26" viewBox="0 0 42 26" xmlns="http://www.w3.org/2000/svg"><path d="M3 4 L3 22 L8 22 Q15 22 15 13 Q15 4 8 4 Z" fill="none" stroke="#222" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M38 8 Q35 4 30 4 Q23 4 23 13 Q23 22 30 22 Q36 22 38 18 L38 13 L32 13" fill="none" stroke="#222" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 25 Q10 22 21 24 Q32 26 41 23" fill="none" stroke="#222" stroke-width="0.9" stroke-linecap="round"/></svg></div>
+  <div class="filigrane-ds"><svg width="42" height="26" viewBox="0 0 42 26" xmlns="http://www.w3.org/2000/svg"><path d="M3 4 L3 22 L8 22 Q15 22 15 13 Q15 4 8 4 Z" fill="none" stroke="#222" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M38 8 Q35 4 30 4 Q23 4 23 13 Q23 22 30 22 Q36 22 38 18 L38 13 L32 13" fill="none" stroke="#222" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 25 Q10 22 21 24 Q32 26 41 23" fill="none" stroke="#222" stroke-width="0.9" stroke-linecap="round"/></svg></div>
   </div><!-- /zone-contrat -->
   <div class="zone-annexe">${annexeA4}</div>
 
@@ -7211,61 +7216,49 @@ function downloadContractPdf(rid){
    fabrique d'abord les pages portrait du contrat, puis on ajoute une page paysage par feuille
    d'annexe, l'image de la feuille occupant la page entière — donc à l'identique de l'original,
    sans reflow ni recadrage. */
-function _savePdfFromHtml(html,fileName,fini){
-  const fin=()=>{try{fini&&fini();}catch(e){}};
-  if(typeof html2pdf==='undefined'){
-    _downloadAsHtml(html,fileName.replace(/\.pdf$/,'.html'));   // pas de moteur PDF : version HTML
-    fin();return;
-  }
-  /* On fabrique le PDF depuis un cadre isolé (iframe) et non depuis la page de l'application :
-     la feuille de style du contrat ne peut donc pas déteindre une seconde sur l'écran de David
-     pendant la génération. Le contrat sort en pages A4 portrait, puis chaque feuille du
-     règlement intérieur est ajoutée telle quelle en page paysage — à l'identique de l'original,
-     sans reflow ni recadrage. */
-  const cadre=document.createElement('iframe');
-  cadre.setAttribute('aria-hidden','true');
-  cadre.style.cssText='position:fixed;left:-10000px;top:0;width:230mm;height:320mm;border:0;background:#fff;';
-  document.body.appendChild(cadre);
-  const nettoyer=()=>{try{document.body.removeChild(cadre);}catch(e){}};
-  const doc=cadre.contentDocument||cadre.contentWindow.document;
-  doc.open();doc.write(html);doc.close();
-  setTimeout(async()=>{
-    try{
-      const contrat=doc.querySelector('.zone-contrat')||doc.body;
-      const feuilles=Array.from(doc.querySelectorAll('.a4-paysage'));
-      const zoneAnnexe=doc.querySelector('.zone-annexe');
-      if(zoneAnnexe)zoneAnnexe.style.display='none';   // l'annexe ne passe pas dans le flux portrait
-      contrat.style.width='210mm';
-      contrat.style.margin='0';
-      contrat.style.boxShadow='none';
-      doc.body.style.background='#fff';
-      doc.body.style.padding='0';
-      const reglages={
-        margin:[13,12,15,12],
-        filename:fileName,
-        image:{type:'jpeg',quality:.96},
-        html2canvas:{scale:2,useCORS:true,letterRendering:true,backgroundColor:'#ffffff'},
-        /* Aucune coupure au milieu d'un paragraphe, d'un encadré ou d'un bloc de signature. */
-        pagebreak:{mode:['css','legacy'],avoid:['h2','p','.party-card','.parties-box','.signature-zone','.annex-avis','.footer-note']},
-        jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}
-      };
-      const pdf=await html2pdf().set(reglages).from(contrat).toPdf().get('pdf');
-      if(zoneAnnexe)zoneAnnexe.style.display='';
-      for(const feuille of feuilles){
-        const canvas=await html2pdf().set({html2canvas:{scale:2,useCORS:true,letterRendering:true,backgroundColor:'#ffffff'}})
-          .from(feuille).toCanvas().get('canvas');
-        pdf.addPage([297,210],'landscape');
-        pdf.addImage(canvas.toDataURL('image/jpeg',0.96),'JPEG',0,0,297,210);
-      }
-      pdf.save(fileName);
-      nettoyer();fin();
-    }catch(e){
-      console.warn('PDF',e);
-      nettoyer();fin();
-      _downloadAsHtml(html,fileName.replace(/\.pdf$/,'.html'));
-      showMsg('Le PDF n’a pas pu être fabriqué : le document a été téléchargé en HTML, ouvre-le puis Ctrl+P.');
+/* ══ IMPRIMER / ENREGISTRER EN PDF ══
+   Un seul moteur : celui du navigateur. Il compose le document avec ses vraies règles @page —
+   contrat en A4 portrait, règlement intérieur en A4 paysage — et produit un PDF au texte NET
+   et sélectionnable, à l'identique de l'écran.
+   (L'ancienne fabrication « maison » photographiait la page pour en faire une image : texte
+   flou, couleurs et cadres perdus, texte coupé à droite. Elle est supprimée.) */
+function _imprimerDocument(html,titre){
+  /* iPhone / iPad : l'impression depuis un cadre caché ne fonctionne pas, et l'application
+     lancée depuis l'icône d'accueil n'ouvre même pas la fenêtre d'impression. On ouvre donc le
+     document dans un onglet Safari, où l'impression part toute seule ; « Enregistrer au format
+     PDF » se trouve alors dans le menu Partager. */
+  const iOS=/iPad|iPhone|iPod/.test(navigator.userAgent)
+    ||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  if(iOS){
+    const auto=html.replace('</body>','<scr'+'ipt>window.addEventListener("load",function(){setTimeout(function(){window.print();},700);});</scr'+'ipt></body>');
+    const url=URL.createObjectURL(new Blob([auto],{type:'text/html;charset=utf-8'}));
+    const w=window.open(url,'_blank');
+    if(!w){
+      _downloadAsHtml(html,(titre||'contrat')+'.html');
+      showMsg('Ouvre le fichier téléchargé puis utilise Partager → Imprimer.');
     }
-  },350);
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+    return;
+  }
+  const vieux=document.getElementById('print-frame-hidden');
+  if(vieux)vieux.remove();
+  const frame=document.createElement('iframe');
+  frame.id='print-frame-hidden';
+  frame.setAttribute('aria-hidden','true');
+  frame.style.cssText='position:fixed;left:-10000px;top:0;width:230mm;height:320mm;border:none;background:#fff;';
+  document.body.appendChild(frame);
+  const doc=frame.contentDocument||frame.contentWindow.document;
+  doc.open();doc.write(html);doc.close();
+  setTimeout(function(){
+    try{frame.contentWindow.focus();frame.contentWindow.print();}
+    catch(e){
+      console.warn('print',e);
+      const url=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'}));
+      const w=window.open(url,'_blank');
+      if(!w)_downloadAsHtml(html,(titre||'contrat')+'.html');
+      setTimeout(()=>URL.revokeObjectURL(url),60000);
+    }
+  },700);
 }
 function _downloadAsHtml(html,fileName){
   const blob=new Blob([html],{type:'text/html;charset=utf-8'});
@@ -7419,15 +7412,19 @@ async function downloadContractDocx(rid){
      Comme dans le PDF : une A4 PAYSAGE recto-verso, sur trois colonnes. C'est une SECTION Word
      à part, avec sa propre orientation et son propre nombre de colonnes — le contrat, lui, reste
      en portrait. */
-  const annexe=[];
+  /* L'en-tête de l'annexe (logo + titre) occupe TOUTE la largeur de la feuille, comme sur la
+     feuille d'origine — il est donc dans une section à une seule colonne ; le texte du règlement
+     vient juste en dessous, sur trois colonnes, sans changer de page. */
+  const annexeTete=[];
   if(cd.logo){
     try{
       const imgBytes2=base64ToUint8Array(cd.logo);
-      annexe.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new ImageRun({data:imgBytes2,transformation:{width:52,height:52},type:'png'})],spacing:{after:60}}));
+      annexeTete.push(new Paragraph({alignment:AlignmentType.CENTER,children:[new ImageRun({data:imgBytes2,transformation:{width:52,height:52},type:'png'})],spacing:{after:60}}));
     }catch(e){}
   }
-  annexe.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:180},
+  annexeTete.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:120},
     children:[new TextRun({text:`2 - Règlement intérieur ${cd.nomDomaine.replace(/^Le /,'du ').replace(/^La /,'de la ')}`,bold:true,size:22})]}));
+  const annexe=[];
 
   buildAnnexSections(r).forEach(sec=>{
     if(!sec.h&&!sec.p.length)return;
@@ -7487,9 +7484,19 @@ async function downloadContractDocx(rid){
     sections:[
       /* Le contrat : A4 portrait. */
       {properties:{page:{size:{width:11906,height:16838},margin:{top:1080,right:1080,bottom:1080,left:1080}}},children},
-      /* L'annexe : A4 PAYSAGE, trois colonnes — la feuille d'origine, telle quelle. */
+      /* L'en-tête de l'annexe : même feuille paysage, mais sur une seule colonne. */
       {properties:{
-        page:{size:{width:16838,height:11906,orientation:'landscape'},margin:{top:560,right:620,bottom:560,left:620}},
+        page:{size:{width:11906,height:16838,orientation:'landscape'},margin:{top:560,right:620,bottom:560,left:620}}
+      },children:annexeTete},
+      /* Le corps de l'annexe : A4 PAYSAGE, trois colonnes — la feuille d'origine, telle quelle.
+         ATTENTION (piège de la librairie docx) : quand on demande l'orientation paysage, elle
+         intervertit ELLE-MÊME largeur et hauteur. Il faut donc lui donner les dimensions du
+         PORTRAIT (11906 × 16838) : c'est à cette condition que le fichier Word sort avec une
+         page de 297 × 210. Lui passer directement 16838 × 11906 produisait une page portrait
+         simplement étiquetée « paysage » — le règlement intérieur sortait donc en portrait. */
+      {properties:{
+        type:'continuous',
+        page:{size:{width:11906,height:16838,orientation:'landscape'},margin:{top:560,right:620,bottom:560,left:620}},
         column:{count:3,space:340,separate:false}
       },children:annexe}
     ]
@@ -8532,42 +8539,27 @@ function renderContractViewer(){
   return`<div class="contract-viewer-overlay">
     <div class="contract-viewer-bar">
       <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📄 ${name}</span>
-      ${btn('printContractViewer()','🖨 Imprimer')}
-      ${btn('saveContractPdf()','📄 <span class="bt-long">Enregistrer en </span>PDF',true)}
+      ${btn('imprimerContrat()','🖨 Imprimer')}
+      ${btn('enregistrerContratPdf()','📄 <span class="bt-long">Enregistrer en </span>PDF',true)}
       ${rid?btn(`downloadContractDocx('${rid}')`,'📝 Word'):''}
       ${btn('closeContractViewer()','✕ Fermer')}
     </div>
     <iframe id="contract-viewer-frame" class="contract-viewer-frame" src="${url}"></iframe>
   </div>`;
 }
-/* Impression : on recharge le document dans un cadre caché — il emporte avec lui ses propres
-   règles @page (portrait pour le contrat, paysage pour l'annexe), donc la mise en page tient
-   exactement, au lieu d'hériter de celle de l'application. */
-function printContractViewer(){
-  const html=S._contractHtml;
-  if(!html)return;
-  const old=document.getElementById('print-frame-hidden');
-  if(old)old.remove();
-  const frame=document.createElement('iframe');
-  frame.id='print-frame-hidden';
-  frame.setAttribute('aria-hidden','true');
-  frame.style.cssText='position:fixed;left:-10000px;top:0;width:230mm;height:320mm;border:none;background:#fff;';
-  document.body.appendChild(frame);
-  const doc=frame.contentDocument||frame.contentWindow.document;
-  doc.open();doc.write(html);doc.close();
-  setTimeout(function(){
-    try{frame.contentWindow.focus();frame.contentWindow.print();}
-    catch(e){console.warn('print',e);showMsg('Impression impossible ici — passe par « Enregistrer en PDF ».');}
-  },700);
+/* Imprimer : la fenêtre d'impression du navigateur, avec la mise en page du document —
+   contrat en portrait, règlement intérieur en paysage. */
+function imprimerContrat(){
+  if(!S._contractHtml)return;
+  _imprimerDocument(S._contractHtml,S._contractName);
 }
-/* Enregistrer en PDF : un vrai fichier PDF, pages portrait pour le contrat et pages paysage pour
-   le règlement intérieur, nommé d'après le client et la date. */
-function saveContractPdf(){
-  const html=S._contractHtml;
-  if(!html)return;
-  const fileName=(S._contractFileName||((S._contractName||'contrat')+'.pdf')).replace(/\.pdf$/,'')+'.pdf';
-  showMsg('Fabrication du PDF…');
-  _savePdfFromHtml(html,fileName,()=>showMsg('PDF enregistré ✓'));
+/* Enregistrer en PDF : c'est la même fenêtre, avec « Enregistrer au format PDF » comme
+   destination au lieu d'une imprimante. Le PDF obtenu est vectoriel — texte net, sélectionnable,
+   fichier léger — et le nom du fichier est déjà celui du contrat. */
+function enregistrerContratPdf(){
+  if(!S._contractHtml)return;
+  showMsg('Dans la fenêtre qui s’ouvre, choisis « Enregistrer au format PDF » comme destination.');
+  setTimeout(()=>_imprimerDocument(S._contractHtml,S._contractName),450);
 }
 function closeContractViewer(){
   if(S._contractBlobUrl){URL.revokeObjectURL(S._contractBlobUrl);S._contractBlobUrl=null;}
