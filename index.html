@@ -94,9 +94,17 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .modal h3{font-size:15px;font-weight:500;margin-bottom:14px}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
 .contract-viewer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:flex;flex-direction:column}
-.contract-viewer-bar{display:flex;align-items:center;gap:10px;background:#2a2a2a;padding:10px 16px;flex-shrink:0}
-.contract-viewer-bar span{color:#fff;font-size:13px;font-weight:500;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.contract-viewer-bar{display:flex;align-items:center;gap:8px;background:#2a2a2a;padding:9px 14px;flex-shrink:0;flex-wrap:wrap}
+.contract-viewer-bar span{color:#fff;font-size:13px;font-weight:500;flex:1;min-width:90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .contract-viewer-frame{flex:1;border:none;background:#fff}
+/* Téléphone : le nom du document laisse la place aux trois gestes, qui restent tous visibles
+   sur une seule rangée, sans rien qui déborde. */
+@media(max-width:640px){
+  .contract-viewer-bar{padding:8px 8px;gap:6px;flex-wrap:nowrap}
+  .contract-viewer-bar>span{display:none}
+  .contract-viewer-bar button{flex:1;min-width:0;padding:7px 4px;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .contract-viewer-bar .bt-long{display:none}
+}
 .comment-item{border:1px solid #e5e3de;border-radius:8px;padding:9px 12px;margin-bottom:6px;font-size:13px}
 .comment-item .meta{font-size:11px;color:#666;margin-bottom:4px;display:flex;justify-content:space-between}
 .link-box{display:flex;align-items:center;gap:8px;background:#f5f4f1;border-radius:8px;padding:8px 12px;font-size:11px;font-family:monospace;word-break:break-all;border:1px solid #e5e3de}
@@ -338,7 +346,31 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
   .form-section{padding:7px 9px;margin-bottom:7px}
   .g2,.g3{gap:7px}
   .modal h3{margin-bottom:10px}
+  .reg-modes{grid-template-columns:1fr 1fr}
 }
+/* ══ RÈGLEMENTS — la saisie « je l'ai payé » ══
+   Trois gros boutons, une date, un montant, un motif : c'est tout. Le bloc est toujours ouvert,
+   jamais derrière un « + Déclarer » : c'est le geste le plus fréquent de la page. */
+.reg-modes{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:7px}
+.reg-mode{background:#fff;border:1.5px solid #e2ded7;border-radius:8px;padding:7px 4px;font-size:11.5px;
+  font-weight:600;color:#8a857c;cursor:pointer;text-align:center;line-height:1.25;transition:.12s;font-family:inherit}
+.reg-mode .rm-ic{display:block;font-size:15px;margin-bottom:1px}
+.reg-mode.sel{background:#EAF3DE;border-color:#1F7A3D;color:#1F7A3D;box-shadow:0 0 0 1px #1F7A3D inset}
+.reg-pours{display:flex;flex-wrap:wrap;gap:4px;margin:2px 0 6px}
+.reg-pour{background:#F5F4F1;border:1px solid #e2ded7;border-radius:20px;padding:2px 9px;font-size:10.5px;
+  color:#6b665e;cursor:pointer;font-family:inherit}
+.reg-pour:hover{background:#EAF3DE;border-color:#1F7A3D;color:#1F7A3D}
+.reg-solde{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  border-radius:10px;padding:9px 12px;margin-bottom:9px}
+.reg-solde .rs-l{font-size:12.5px;font-weight:600}
+.reg-solde .rs-v{font-size:21px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.reg-fact{display:flex;align-items:center;gap:7px;flex-wrap:wrap;background:#FDF9EE;border:1px solid #EADFC4;
+  border-radius:8px;padding:6px 9px;margin-bottom:8px;font-size:11.5px;color:#7A5800}
+.reg-fact input[type=number]{width:86px;text-align:right;font-size:13px;padding:4px 7px;border-radius:6px}
+.pay-toggle{border-radius:20px;padding:3px 11px;font-size:11px;font-weight:700;cursor:pointer;
+  white-space:nowrap;border:1px solid transparent;font-family:inherit}
+.pay-toggle.on{background:#E8F3E0;color:#27500A;border-color:#BFD9A8}
+.pay-toggle.off{background:#FCEBEB;color:#791F1F;border-color:#EFC9C9}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
@@ -350,7 +382,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 /* Numéro de version, affiché en haut de l'écran. Sert à répondre en une seconde à la seule
    question qui compte quand « ça marche chez moi mais pas chez elle » : les deux téléphones
    font-ils bien tourner la MÊME version ? */
-const APP_VERSION='2026-09-09-e';
+const APP_VERSION='2026-09-16-a';
 const SK='domnoрm_prod_v1';
 const SUPA_URL='https://hdtltrnabrgibkcvubzd.supabase.co';
 const SUPA_KEY='sb_publishable_zvpg0YOHegxqXJxbEKhSbQ_3oLwbrr1';
@@ -2120,6 +2152,18 @@ function setFactureMois(pid,y,m,val){
     D.factures=D.factures.filter(f=>!(f.pid===pid&&f.monthKey===key));
     D.factures.push({id:gid(),pid,monthKey:key,destinataire:'',montant,note:'',createdAt:Date.now()});
   }
+  /* Si la facture du mois était déjà marquée réglée, le règlement la suit : on corrige le
+     montant versé, ou on retire le règlement si la facture disparaît. Jamais deux chiffres
+     différents pour la même facture. */
+  const regLie=reglementFacture(pid,y,m);
+  if(regLie){
+    if(montant<=0){
+      markDeleted('compte',regLie.id);
+      D.comptesMouvements=(D.comptesMouvements||[]).filter(x=>x.id!==regLie.id);
+    }else if(regLie.montant!==montant){
+      regLie.montant=montant;
+    }
+  }
   logActivity('remboursement',(p.domaines||[])[0]||null,`Facture du mois — ${p.name} : ${money(montant)} (${key})`,[pid],true);
   saveD();render();
 }
@@ -2357,8 +2401,8 @@ function renderGardeSection(p,y,m){
   const header=`<div class="sec-hdr" style="background:#3C3489"><h2><span>🛡</span><span>Gardiennage</span><span style="opacity:.75;font-weight:400">· ${MONTHS_FR[m]} ${y}</span></h2>${isAdmin?`<span style="display:flex;gap:6px"><button class="btn btn-xs btn-primary" onclick="openM('teamPlanning',null,{pid:'${p.id}'})">📅 Calendrier</button><button class="btn btn-xs" onclick="openM('gardePlanning',null,{pid:'${p.id}'})">💶 Liste</button></span>`:''}</div>
     <div class="g3" style="margin-bottom:14px">
       <div class="metric"><span class="lbl">Total dû ce mois</span><span class="val">${money(total)}</span></div>
-      <div class="metric"><span class="lbl">Réglé</span><span class="val" style="color:#27500A">${money(paid)}</span></div>
-      <div class="metric"><span class="lbl">Reste à régler</span><span class="val" style="color:#A32D2D">${money(total-paid)}</span></div>
+      <div class="metric"><span class="lbl">Pointé ✓</span><span class="val" style="color:#27500A">${money(paid)}</span></div>
+      <div class="metric"><span class="lbl">Non pointé</span><span class="val" style="color:#A32D2D">${money(total-paid)}</span></div>
     </div>`;
   if(isAdmin){
     const body=rows.length===0?'<div class="empty">Aucune nuit de gardiennage ce mois-ci.</div>':`<div style="overflow-x:auto"><table class="list-tbl"><thead><tr><th>Nuit du</th><th>Lieu</th><th>Durée</th><th>Commentaire</th><th>Montant</th><th>Mode</th><th>Validation</th><th>Événement</th><th></th></tr></thead>
@@ -2686,6 +2730,173 @@ function delCompteMouvement(id){
     `Compte courant — ligne supprimée (${fmt(x.date)}, ${money(x.montant)}) — ${p.name}`,[x.pid],false);}
   saveD();render();
 }
+/* ══════════════════════════════════════════════════════════════════════════════════════
+   LES RÈGLEMENTS — « quand je les paye »
+   ──────────────────────────────────────────────────────────────────────────────────────
+   David : « il n'y a pas la case de quand j'ai payé la facture, quand je leur ai donné en
+   espèces, quand je les ai payés, pour quoi ». Voilà cette case, et elle est unique : un
+   règlement n'est rien d'autre qu'un mouvement de compte courant dans le sens « réglé ». Il n'y
+   a donc qu'UN seul registre pour l'argent versé — celui du compte courant — qu'on le saisisse
+   par le bloc rapide en haut ou par le formulaire détaillé plus bas. Zéro double décompte.
+   Les pastilles « ✓ Réglé » posées ligne par ligne (ménage, forfait, nuit de gardiennage,
+   journée de Dominique) restent du POINTAGE : elles disent « celle-ci est soldée », elles ne
+   comptent pas d'argent. L'argent, c'est ici et seulement ici.
+   ══════════════════════════════════════════════════════════════════════════════════════ */
+const REG_POURS=['Solde du mois','Ménage','Gardiennage','Prestations','Travaux','Facture','Avance'];
+function reglementsDuMois(pid,y,m){
+  const k=monthKeyOf(y,m);
+  return (D.comptesMouvements||[]).filter(x=>x.pid===pid&&x.sens!=='du'&&(x.date||'').slice(0,7)===k)
+    .sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.createdAt||0)-(b.createdAt||0));
+}
+function totalReglePour(pid,y,m){
+  return Math.round(reglementsDuMois(pid,y,m).reduce((a,x)=>a+Math.abs(+x.montant||0),0)*100)/100;
+}
+function factureKeyOf(pid,y,m){return pid+'|'+monthKeyOf(y,m);}
+/* La facture du mois est « réglée » si — et seulement si — il existe le règlement qui la solde.
+   Pas de drapeau séparé qui pourrait dire l'inverse de la caisse : une seule vérité. */
+function reglementFacture(pid,y,m){
+  const k=factureKeyOf(pid,y,m);
+  return (D.comptesMouvements||[]).find(x=>x.factureKey===k)||null;
+}
+function pushReglement(pid,o){
+  if(!D.comptesMouvements)D.comptesMouvements=[];
+  const montant=Math.abs(Math.round((+o.montant||0)*100)/100);
+  const pour=(o.pour||'').trim();
+  D.comptesMouvements.push({id:gid(),pid,date:o.date,montant,mode:o.mode||'especes',sens:'verse',
+    note:pour,pour,factureKey:o.factureKey||'',createdAt:Date.now()});
+  const p=gPre(pid);
+  logActivity('remboursement',(p.domaines||[])[0]||null,
+    `Réglé à ${p.name} : ${money(montant)} — ${compteModeLabel(o.mode)}${pour?' · '+pour:''} (${fmt(o.date)})`,[pid],true);
+  saveD();showMsg('Règlement enregistré ✓');render();
+}
+function addReglementRapide(pid,y,m){
+  const g=id=>(document.getElementById(id)||{}).value;
+  const date=g('reg-date-'+pid),montant=parseFloat(g('reg-montant-'+pid))||0;
+  const mode=g('reg-mode-'+pid)||'especes',pour=(g('reg-pour-'+pid)||'').trim();
+  const manque=[];
+  if(!date)manque.push('la date');
+  if(!montant)manque.push('le montant');
+  if(manque.length){showMsgSansPerdre('Il manque '+manque.join(' et ')+' ⚠️');return;}
+  const fk=(mode==='facture'&&!reglementFacture(pid,y,m))?factureKeyOf(pid,y,m):'';
+  pushReglement(pid,{date,montant,mode,pour:pour||(mode==='facture'?'Facture du mois':''),factureKey:fk});
+}
+/* Le choix du mode ne redessine pas la page (on perdrait la saisie en cours) : il coche le
+   bouton et, pour une facture, propose d'emblée le montant de la facture du mois. */
+function pickRegMode(pid,mode,el,factureMontant,reste){
+  const h=document.getElementById('reg-mode-'+pid); if(h)h.value=mode;
+  const wrap=document.getElementById('reg-modes-'+pid);
+  if(wrap)wrap.querySelectorAll('.reg-mode').forEach(b=>b.classList.toggle('sel',b===el));
+  const mt=document.getElementById('reg-montant-'+pid);
+  if(mt&&!mt.dataset.touched){
+    const v=(mode==='facture'&&factureMontant>0)?factureMontant:reste;
+    mt.value=v>0?v:'';
+  }
+  const pr=document.getElementById('reg-pour-'+pid);
+  if(pr&&!pr.value&&mode==='facture')pr.value='Facture du mois';
+}
+function setRegPour(pid,txt){
+  const el=document.getElementById('reg-pour-'+pid);
+  if(el){el.value=txt;el.focus();}
+}
+/* La case « facture réglée » : cocher enregistre le règlement du montant de la facture, décocher
+   le supprime. Rien d'autre à faire, et le compte courant suit tout seul. */
+function toggleFacturePayee(pid,y,m){
+  const ex=reglementFacture(pid,y,m);
+  if(ex){delCompteMouvement(ex.id);showMsg('Facture remise à « non réglée »');return;}
+  const R=computeReglementMois(gPre(pid),y,m);
+  if(!R.totalFacture){showMsgSansPerdre("Saisis d'abord le montant de la facture ⚠️");return;}
+  pushReglement(pid,{date:dstr(new Date()),montant:R.totalFacture,mode:'facture',
+    pour:`Facture ${MONTHS_FR[m]} ${y}`,factureKey:factureKeyOf(pid,y,m)});
+}
+function factureRowHtml(p,y,m,compact){
+  const R=computeReglementMois(p,y,m);
+  const reg=reglementFacture(p.id,y,m);
+  const isAdmin=S.view==='admin';
+  const val=R.totalFacture?R.totalFacture:'';
+  const champ=isAdmin
+    ?`<input type="number" id="fact-mois-${p.id}${compact?'-c':''}" step="0.01" value="${val}" placeholder="0"
+        onchange="setFactureMois('${p.id}',${y},${m},this.value)"
+        style="width:86px;text-align:right;font-size:13px;padding:4px 7px;border-radius:6px">`
+    :`<strong style="font-size:13px">${money(R.totalFacture)}</strong>`;
+  /* Tant qu'aucun montant n'est saisi, il n'y a rien à régler : on n'affiche pas un bouton qui
+     ne pourrait qu'échouer, juste un rappel discret. */
+  const badge=!R.totalFacture
+    ?`<span style="font-size:10.5px;color:#a8a49c">aucune facture ce mois-ci</span>`
+    :isAdmin
+      ?`<button class="pay-toggle ${reg?'on':'off'}" onclick="toggleFacturePayee('${p.id}',${y},${m})">${reg?'✓ Réglée le '+ds(reg.date):'✗ Marquer réglée'}</button>`
+      :`<span class="pay-toggle ${reg?'on':'off'}">${reg?'✓ Réglée le '+ds(reg.date):'✗ Pas encore réglée'}</span>`;
+  return{R,reg,champ,badge};
+}
+/* Le bloc « Règlements » : ce qu'on doit ce mois-ci, ce qu'on a déjà versé, ce qui reste — et
+   juste en dessous, de quoi enregistrer un versement en trois gestes. */
+function renderReglementsBloc(p,y,m){
+  if(!suiviFinancier(p))return'';
+  const isAdmin=S.view==='admin';
+  const V=bilanVoix(p);
+  const bt=computeBilanTotal(p,y,m);
+  const regs=reglementsDuMois(p.id,y,m);
+  const regle=totalReglePour(p.id,y,m);
+  const reste=Math.round((bt.totalDu-regle)*100)/100;
+  const T='#1F7A3D';
+  const teinte=reste>0.005?'#A32D2D':reste<-0.005?'#1F7A3D':'#6b665e';
+  const fond=reste>0.005?'#FBEAEA':reste<-0.005?'#EAF3DE':'#F5F4F1';
+  const phrase=reste>0.005?`Reste à ${V.self?'vous':'lui'} régler pour ${MONTHS_FR[m]}`
+    :reste<-0.005?`Versé en trop sur ${MONTHS_FR[m]} (avance)`:`${MONTHS_FR[m]} est soldé`;
+  const F=factureRowHtml(p,y,m,true);
+  const C=compteActif(p)?computeCompteCourant(p):null;
+  const modeBtn=(v,ic,lbl,sel)=>`<button type="button" class="reg-mode${sel?' sel':''}" data-m="${v}"
+     onclick="pickRegMode('${p.id}','${v}',this,${F.R.totalFacture||0},${reste>0?reste:0})"><span class="rm-ic">${ic}</span>${lbl}</button>`;
+  return`<div id="bloc-reglements" class="bilan-sec" style="border-left:3px solid ${T}">
+    <div class="sec-hdr" style="background:${T}"><h2><span>💶</span><span>Règlements</span>
+      <span class="sec-mois" style="opacity:.75;font-weight:400;white-space:nowrap">· ${MONTHS_FR[m]} ${y}</span></h2>
+      <span class="sec-total">${money(regle)}</span></div>
+    <div class="sec-regle">Tout ce qui est <strong>sorti de la poche</strong> ce mois-ci : espèces, facture réglée, virement. Chaque ligne se déduit aussitôt de ce qu'on ${V.self?'vous':'lui'} doit.</div>
+    <div class="mini3" style="background:#fff">
+      <div><div class="k">Dû — ${MONTHS_FR[m]}</div><div class="v">${money(bt.totalDu)}</div></div>
+      <div><div class="k">Réglé</div><div class="v" style="color:#1F7A3D">${money(regle)}</div></div>
+      <div><div class="k">Reste</div><div class="v" style="color:${teinte}">${money(reste)}</div></div>
+    </div>
+    <div class="reg-solde" style="background:${fond}">
+      <span class="rs-l" style="color:${teinte}">${phrase}</span>
+      <span class="rs-v" style="color:${teinte}">${money(Math.abs(reste))}</span>
+    </div>
+    ${(p.inputMode==='garde'||p.name==='Dominique')?`<div class="reg-fact">
+      <span>🧾 Facture du mois</span>${F.champ}<span style="font-weight:600">€</span>
+      <span style="margin-left:auto">${F.badge}</span>
+    </div>`:''}
+    ${isAdmin?`<div class="decl" style="background:#fff;border-style:solid;border-color:#e2ded7">
+      <div style="font-size:9.5px;font-weight:600;color:#9a958c;margin-bottom:4px">Comment ce règlement a-t-il été fait ?</div>
+      <input type="hidden" id="reg-mode-${p.id}" value="especes">
+      <div class="reg-modes" id="reg-modes-${p.id}">
+        ${modeBtn('especes','💶','Espèces',true)}
+        ${modeBtn('facture','🧾','Facture',false)}
+        ${modeBtn('virement','🏦','Virement',false)}
+        ${modeBtn('autre','✍️','Autre',false)}
+      </div>
+      <div class="decl-g" style="grid-template-columns:1fr 1fr">
+        ${declChamp('Date du règlement',dateFieldHtml(`reg-date-${p.id}`,'width:100%',null,dstr(new Date())))}
+        ${declChamp('Montant (€)',`<input type="number" id="reg-montant-${p.id}" step="0.01" value="${reste>0?reste:''}" placeholder="0" oninput="this.dataset.touched=1">`)}
+      </div>
+      <div class="decl-g" style="grid-template-columns:1fr">
+        ${declChamp('Pour quoi ?',`<input type="text" id="reg-pour-${p.id}" placeholder="ex. solde d'août, ménage, facture…">`)}
+      </div>
+      <div class="reg-pours">${REG_POURS.map(t=>`<button type="button" class="reg-pour" onclick="setRegPour('${p.id}','${t}')">${t}</button>`).join('')}</div>
+      <button class="btn btn-primary decl-go" style="background:${T};border-color:${T}" onclick="addReglementRapide('${p.id}',${y},${m})">✓ Enregistrer ce règlement</button>
+    </div>`:''}
+    ${regs.length?`<div style="margin-top:2px">${regs.map(x=>`<div class="lg">
+        <span class="lg-d">${ds(x.date)}</span>
+        <span class="lg-l"><span class="lg-t">${compteModeLabel(x.mode)}</span>${(x.pour||x.note)?`<small><span class="s-txt">${x.pour||x.note}</span></small>`:''}</span>
+        <span class="lg-m" style="color:#1F7A3D">− ${money(Math.abs(x.montant))}</span>
+        ${isAdmin?`<span class="lg-a"><button class="btn btn-xs btn-danger" onclick="delCompteMouvement('${x.id}')">✕</button></span>`:''}
+      </div>`).join('')}
+      <div class="lg-tot"><span>Réglé en ${MONTHS_FR[m]}</span><span class="v" style="color:#1F7A3D">${money(regle)}</span></div>
+    </div>`:`<div class="empty">Aucun règlement enregistré en ${MONTHS_FR[m]} ${y}.</div>`}
+    ${(C&&C.dep)?`<div style="font-size:10.5px;color:#8a857c;margin-top:6px;text-align:right">
+      Compte courant toutes périodes : <strong style="color:${C.solde>0.005?'#A32D2D':C.solde<-0.005?'#1F7A3D':'#6b665e'}">${money(C.solde)}</strong>
+      <a href="#bloc-compte" onclick="event.preventDefault();var e=document.getElementById('bloc-compte');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})" style="color:#6b665e;margin-left:4px">voir le détail ↓</a>
+    </div>`:''}
+  </div>`;
+}
 /* === Le solde du compte courant, dit d'une seule voix ===
    Il apparaît à deux endroits : en tête du récapitulatif (« où en est-on, tout de suite ») et
    dans la section détaillée plus bas. Les deux doivent dire exactement la même chose, avec la
@@ -2715,10 +2926,13 @@ function bandeauCompteCourant(p){
     <span style="font-size:19px;font-weight:700;color:${couleur};font-variant-numeric:tabular-nums;white-space:nowrap">${money(Math.abs(C.solde))}</span>
   </div>`;
 }
+/* Un compte courant n'a de sens qu'à partir d'un point de départ : sans lui, on ne saurait pas
+   à partir de quand compter l'activité, et le solde afficherait uniquement les sommes versées —
+   donc « il nous doit » alors qu'on vient de le payer pour son mois. Tant que le point de départ
+   n'est pas posé, les règlements restent visibles dans le bloc « Règlements » du mois, et le
+   compte courant propose simplement de s'ouvrir. */
 function compteActif(p){
-  if(!p)return false;
-  if(compteDepart(p.id))return true;
-  return (D.comptesMouvements||[]).some(x=>x.pid===p.id);
+  return !!(p&&compteDepart(p.id));
 }
 /* Qui peut avoir un compte courant : les mêmes que ceux qu'on suit financièrement au bilan.
    David : « il faut faire ce système pour chaque prestataire ». */
@@ -2739,7 +2953,7 @@ function renderCompteSection(p){
   const {nous,eux,phrase,couleur,fond}=soldeCompteVoix(p,C);
   const modesOpts=COMPTE_MODES.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
   return`<div id="bloc-compte" class="bilan-sec" style="border-left:3px solid ${T}">
-    ${secBandeau('📒','Compte courant',MONTHS_FR[new Date().getMonth()],new Date().getFullYear(),null,T,(isAdmin&&actif)?'cc-'+p.id:null)}
+    ${secBandeau('📒','Compte courant',MONTHS_FR[new Date().getMonth()],new Date().getFullYear(),null,T,null)}
     <div class="sec-regle">Chaque élément entre au compte <strong>le jour où il a eu lieu</strong> · chaque somme versée le diminue.</div>
     ${actif?`<div style="background:${fond};border-radius:10px;padding:11px 13px;margin-bottom:11px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
       <span style="font-size:13px;font-weight:600;color:${couleur}">${phrase}</span>
@@ -2762,7 +2976,8 @@ function renderCompteSection(p){
         ?`<div style="font-size:11px;color:#8a857c;margin-bottom:9px">Point de départ : <strong>${C.dep.sens==='avance'?'avance':'dette'} de ${money(Math.abs(C.dep.montant))}</strong> au ${fmt(C.dep.date)}.${isAdmin?` <a href="#" onclick="event.preventDefault();if(confirm('Effacer le point de départ ? Les autres lignes sont conservées.')){delete D.comptesDepart['${p.id}'];saveD();render();}" style="color:#A32D2D">modifier</a>`:''}</div>`
         :(isAdmin?''
           :`<div style="font-size:11px;color:#8a857c;margin-bottom:9px">Aucun point de départ n'a encore été fixé : le compte démarre à zéro et ne totalise que les lignes ci-dessous.</div>`)}
-    ${(isAdmin&&declOuverte('cc-'+p.id))?`<div class="decl">
+    ${(isAdmin&&actif)?`<div class="decl">
+      <div style="font-size:9.5px;font-weight:600;color:#9a958c;margin-bottom:4px">Saisie détaillée — un versement, ou une somme à ajouter à ce qu'on ${V.self?'vous':'lui'} doit</div>
       <div class="decl-g" style="grid-template-columns:1fr 1fr">
         ${declChamp('Date',dateFieldHtml(`cc-date-${p.id}`,'width:100%',null,dstr(new Date())))}
         ${declChamp('Montant (€)',`<input type="number" id="cc-montant-${p.id}" step="0.01" placeholder="ex. 500">`)}
@@ -2888,8 +3103,8 @@ function renderMenageSection(p,y,m){
     <div class="sec-regle">Sans commission · compté sur le mois ${surDepart?`du <strong>départ</strong>`:`de l'<strong>arrivée</strong>`} (31 juil → 2 aoû = ${surDepart?'<strong>août</strong>':'<strong>juillet</strong>'}).</div>
     <div class="mini3">
       <div><div class="k">Total dû</div><div class="v">${money(menageTotal)}</div></div>
-      <div><div class="k">Déjà réglé</div><div class="v" style="color:#1F7A3D">${money(menagePaid)}</div></div>
-      <div><div class="k">Reste</div><div class="v" style="color:#A32D2D">${money(menageTotal-menagePaid)}</div></div>
+      <div><div class="k">Pointé ✓</div><div class="v" style="color:#1F7A3D">${money(menagePaid)}</div></div>
+      <div><div class="k">Non pointé</div><div class="v" style="color:#A32D2D">${money(menageTotal-menagePaid)}</div></div>
     </div>
     ${menageEvs.length===0?'<div class="empty">Aucun forfait ménage ce mois-ci.</div>':''}
     ${menageEvs.map(({r,mi})=>{
@@ -3102,10 +3317,15 @@ function computeBilanTotal(p,y,m){
   encDu=Math.round(encDu*100)/100;
   const totalActivite=Math.round((forfaitDu+menageDu+compDu+travDu-elecCost+gardeDu+jardDu)*100)/100;
   const totalDu=Math.round((totalActivite+rembDu-encDu)*100)/100;
-  const totalRecu=forfaitRecu+menageRecu+gardeRecu+jardRecu;
+  const totalRecu=forfaitRecu+menageRecu+gardeRecu+jardRecu;   // pointage ligne à ligne (pas de l'argent)
   const totalReste=Math.round((totalDu-totalRecu)*100)/100;
+  /* L'ARGENT réellement versé ce mois-ci : uniquement les règlements saisis (espèces, facture
+     réglée, virement…). C'est lui qui donne le « reste à régler » — jamais les pastilles de
+     pointage, qui ne sortent pas d'argent de la caisse. */
+  const regleMois=totalReglePour(p.id,y,m);
+  const resteApresReglements=Math.round((totalDu-regleMois)*100)/100;
   const enAttente=menageEnAttente+compEnAttente+elecEnAttente+travEnAttente+gardeEnAttente+rembEnAttente+encEnAttente;
-  return{key,forfaitDu,forfaitRecu,menageDu,menageRecu,menageEnAttente,compDu,compLignes,compEnAttente,travDu,travLignes,travEnAttente,gardeDu,gardeRecu,gardeLignes,gardeEnAttente,jardDu,jardRecu,jardLignes,elecCost,elecConso,elecEnAttente,rembDu,rembLignes,rembEnAttente,encDu,encLignes,encEnAttente,totalActivite,totalDu,totalRecu,totalReste,enAttente};
+  return{key,forfaitDu,forfaitRecu,menageDu,menageRecu,menageEnAttente,compDu,compLignes,compEnAttente,travDu,travLignes,travEnAttente,gardeDu,gardeRecu,gardeLignes,gardeEnAttente,jardDu,jardRecu,jardLignes,elecCost,elecConso,elecEnAttente,rembDu,rembLignes,rembEnAttente,encDu,encLignes,encEnAttente,totalActivite,totalDu,totalRecu,totalReste,regleMois,resteApresReglements,enAttente};
 }
 /* Vue annuelle : additionne totalActivite et rembDu sur les 12 mois de l'année y, pour isoler —
    comme demandé — ce que le prestataire a touché grâce à son activité vs. ce qu'on lui doit en
@@ -3587,23 +3807,26 @@ function bilanLigneRow(label,montant,sign,ancre,ic,teinte){
    montant, saisi ici même — puis « Reste à régler », qui n'est que la soustraction. C'est tout
    ce qui subsiste de l'ancien encart « Règlement du mois » du bas de page. */
 function renderFactureLines(p,y,m,bt){
-  const R=computeReglementMois(p,y,m);
-  const negatif=R.reste<0;
-  const val=R.totalFacture?R.totalFacture:'';
+  const F=factureRowHtml(p,y,m,false);
+  const R=F.R;
+  const regle=bt&&bt.regleMois!==undefined?bt.regleMois:totalReglePour(p.id,y,m);
+  const reste=Math.round(((bt?bt.totalDu:R.totalDu)-regle)*100)/100;
+  const negatif=reste<0;
   return`<div class="r-l" style="border-top:1px solid #F4E2E8;border-bottom:none;padding-top:8px">
       <span class="r-n"><span class="r-ic" style="background:#EDEBE6">🧾</span><span>dont facturé</span></span>
-      <span style="display:flex;align-items:center;gap:4px;flex-shrink:0">
-        <input type="number" id="fact-mois-${p.id}" step="0.01" value="${val}" placeholder="0"
-          onchange="setFactureMois('${p.id}',${y},${m},this.value)"
-          style="width:88px;text-align:right;font-size:13px;padding:5px 7px;border-radius:7px">
-        <span style="color:#72243E;font-weight:600">€</span>
+      <span style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        ${F.champ}<span style="color:#72243E;font-weight:600">€</span>${F.badge}
       </span>
+    </div>
+    <div class="r-l" style="border-bottom:none">
+      <span class="r-n"><span class="r-ic" style="background:#E8F3E0">💶</span><span><a href="#bloc-reglements" onclick="event.preventDefault();var e=document.getElementById('bloc-reglements');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})">déjà réglé ce mois-ci</a></span></span>
+      <span class="r-v r-moins">− ${money(regle)}</span>
     </div>
     <div class="r-l" style="border-bottom:none;font-weight:700;color:#72243E">
       <span class="r-n">Reste à régler</span>
-      <span class="r-v" style="font-size:16px;color:${negatif?'#A32D2D':'#72243E'}">${money(R.reste)}</span>
+      <span class="r-v" style="font-size:16px;color:${negatif?'#1F7A3D':'#72243E'}">${money(reste)}</span>
     </div>
-    ${negatif?`<div style="font-size:10.5px;color:#A32D2D;text-align:right;padding-bottom:4px">⚠️ La facture dépasse ce qui est dû ce mois-ci.</div>`:''}`;
+    ${negatif?`<div style="font-size:10.5px;color:#1F7A3D;text-align:right;padding-bottom:4px">Versé plus que le dû du mois : l'excédent reste en avance au compte courant.</div>`:''}`;
 }
 function renderBilanTotalSection(p,y,m){
   const isGardeOnly=p.inputMode==='garde';
@@ -3634,8 +3857,9 @@ function renderBilanTotalSection(p,y,m){
       ${renderFactureLines(p,y,m,bt)}
     </div>
     <div class="mini3" style="background:#fff;margin-bottom:0">
-      <div><div class="k">Déjà réglé</div><div class="v" style="color:#1F7A3D">${money(bt.totalRecu)}</div></div>
-      <div><div class="k">Reste à verser</div><div class="v" style="color:#B93232">${money(bt.totalReste)}</div></div>
+      <div><div class="k">Réglé — ${MONTHS_FR[m]}</div><div class="v" style="color:#1F7A3D">${money(bt.regleMois)}</div></div>
+      <div><div class="k">Reste à verser</div><div class="v" style="color:${bt.resteApresReglements>0.005?'#B93232':'#1F7A3D'}">${money(bt.resteApresReglements)}</div></div>
+      <div><div class="k">Pointé ✓</div><div class="v" style="color:#8a857c">${money(bt.totalRecu)}</div></div>
     </div>
     ${p.forfaitMensuel?`<div id="bloc-forfait" style="margin-top:7px;display:flex;align-items:center;justify-content:space-between;gap:8px;background:#fff;border-radius:8px;padding:6px 9px;scroll-margin-top:12px">
       <span style="font-size:11.5px;color:#666">Forfait gardiennage fixe — ${money(bt.forfaitDu)}, montant constant</span>
@@ -4518,29 +4742,19 @@ function injectBands(){
      On calcule donc d'abord, case par case et ligne par ligne, la fin de la bande qui s'y termine ;
      la zone réservée se place juste derrière, et la bande qui démarre dans la même case est
      repoussée derrière la zone (place laissée à son étiquette d'heure). */
-  const finDansCase={};
-  bands.forEach(b=>{
-    if(b.shapeClass!=='band-end'&&b.shapeClass!=='band-startend')return;
-    const k=(b.row*7+b.colStart+b.spanCols-1)+'_'+b.slot;
-    const f=dayFrac(b.visD);
-    if(finDansCase[k]===undefined||f>finDansCase[k])finDansCase[k]=f;
-  });
-  const zoneVis={};
-  Object.keys(visReserve).forEach(k=>{
-    const idx=parseInt(k.split('_')[0],10);
-    const c=cells[idx];if(!c)return;
-    const cr=c.getBoundingClientRect();
-    const cellL=cr.left-gridRect.left,cellW=cr.width;
-    const need=visiteReserveWidth(visReserve[k]);
-    const apres=(finDansCase[k]!==undefined)?(cellL+finDansCase[k]*cellW+3):(cellL+1);
-    /* Si la bande qui se termine laisse trop peu de place, on la raccourcit : la zone se pose
-       au tout début de la case et la bande s'arrête juste avant. */
-    let x=apres;
-    if(x+need>cellL+cellW-2)x=cellL+1;
-    zoneVis[k]={x,w:need,cellL,cellW,cellR:cellL+cellW};
-  });
-  window.__zoneVis=zoneVis;
-  const placed=[];
+  /* ═══════════════════════════════════════════════════════════════════════════════════
+     LES VISITES ET LES BANDES — DANS CET ORDRE, JAMAIS UN AUTRE
+     1. Une réservation COMMENCE dans sa case d'arrivée et FINIT dans sa case de départ.
+        Rien ne peut l'en faire sortir : c'est la seule règle inviolable (David : « il faut
+        toujours que l'arrivée et le départ soient dans la bonne date »).
+     2. La bande n'est jamais coupée en morceaux.
+     3. La pastille de visite ne chevauche rien : elle se loge dans la place qui reste, de
+        préférence en fin de journée, et rétrécit plutôt que de déborder.
+     4. En dernier recours seulement, la bande cède quelques pixels à son extrémité — et
+        jamais au point de quitter sa journée : elle en garde toujours une bonne part.
+     ═══════════════════════════════════════════════════════════════════════════════════ */
+  /* ── 1) Géométrie brute de chaque bande, visites mises de côté ── */
+  const geo=[];
   bands.forEach(b=>{
     const startIdx=b.row*7+b.colStart,endIdx=b.row*7+b.colStart+b.spanCols-1;
     const startCell=cells[startIdx],endCell=cells[endIdx];
@@ -4555,9 +4769,6 @@ function injectBands(){
        - case départ : part du bord gauche du segment, finit à hDep
        - case unique (startend) : de hArr à hDep dans la même case */
     if(b.shapeClass==='band-startend'){
-      /* Case unique (jour unique OU réservation de 2 jours qui tient dans une même ligne du
-         calendrier) : on va de l'heure visuelle d'arrivée à l'heure visuelle de départ — 9h→21h
-         par défaut, resserré à 14h→13h s'il y a un relais avec une autre réservation ce jour-là. */
       leftPx=(sRect.left-gridRect.left)+dayFrac(b.visA)*cellW;
       const rightPx=(eRect.left-gridRect.left)+dayFrac(b.visD)*cellW;
       widthPx=Math.max(rightPx-leftPx,6);
@@ -4572,39 +4783,111 @@ function injectBands(){
       leftPx=(sRect.left-gridRect.left);
       widthPx=(eRect.left+eRect.width-gridRect.left)-leftPx;
     }
-    /* === La bande reste ENTIÈRE, du jour d'arrivée au jour de départ — elle n'est plus
-       jamais découpée en morceaux (David : « il faut que la barre soit en entier, quitte à la
-       raccourcir de part et d'autre pour laisser passer les visites »).
-       - visites le jour de l'ARRIVÉE : la bande démarre un peu plus tard dans la case, les
-         pastilles se logent juste devant son début (début de journée) ;
-       - visites le jour du DÉPART : la bande s'arrête un peu plus tôt, les pastilles se logent
-         juste derrière sa fin (fin de journée) ;
-       - visites en PLEIN MILIEU du séjour : la bande ne bouge pas, la pastille se posera
-         par-dessus en fin de case (voir injectVisiteMarkers) — jamais de coupure. */
-    const _LARG_HEURE=13;   // place laissée à l'étiquette « 16h » posée juste avant la bande
-    let _placeSerree=false; // vrai quand il a fallu sacrifier l'étiquette d'heure pour tenir dans le jour
-    if(b.shapeClass==='band-start'||b.shapeClass==='band-startend'){
-      const _z=zoneVis[startIdx+'_'+b.slot];
-      if(_z){
-        const _cellR=(sRect.left+sRect.width)-gridRect.left;
-        /* On repousse le départ de la bande derrière la zone réservée à la pastille. Contrainte
-           absolue : la bande doit rester DANS SON JOUR. Si la case est trop étroite pour loger
-           en plus l'étiquette d'heure, c'est l'étiquette qui saute — jamais la règle du jour. */
-        const _apresZone=_z.x+_z.w+3;
-        let _minLeft=_apresZone+_LARG_HEURE;
-        if(_minLeft+10>_cellR){_minLeft=_apresZone;_placeSerree=true;}
-        if(leftPx<_minLeft){const _shift=Math.min(_minLeft-leftPx,widthPx-6);if(_shift>0){leftPx+=_shift;widthPx-=_shift;}}
-        if(leftPx>_cellR-8)leftPx=Math.max(_apresZone,_cellR-8);
+    geo.push({b,startIdx,endIdx,sRect,eRect,leftPx,widthPx,
+      debutIci:(b.shapeClass==='band-start'||b.shapeClass==='band-startend'),
+      finIci:(b.shapeClass==='band-end'||b.shapeClass==='band-startend')});
+  });
+  /* ── 2) Les pastilles de visite prennent la place qui reste ── */
+  const zoneVis={};
+  const _gm=visiteMarkerGeom();
+  Object.keys(visReserve).forEach(cle=>{
+    const idx=parseInt(cle.split('_')[0],10),slot=parseInt(cle.split('_')[1],10);
+    const n=visReserve[cle]||0;if(!n)return;
+    const c=cells[idx];if(!c)return;
+    const cr=c.getBoundingClientRect();
+    const cellL=cr.left-gridRect.left,cellW=cr.width,cellR=cellL+cellW;
+    const GAP=_gm.gap,DMAX=_gm.d,DMIN=9;
+    const besoin=d=>n*d+(n-1)*GAP;
+    /* La part de journée qu'une bande garde coûte que coûte : c'est ce qui rend la règle nº1
+       tenable — on ne peut jamais lui prendre assez pour la pousser hors de sa case. Sur un
+       téléphone, une case ne fait qu'une cinquantaine de pixels : on se contente alors d'une
+       douzaine de pixels bien visibles, sinon plus rien ne tiendrait un jour de relais. */
+    const MIN=Math.max(14,Math.min(cellW*0.30,30));
+    const blocs=geo.filter(x=>x.b.slot===slot&&x.startIdx<=idx&&x.endIdx>=idx)
+      .map(x=>({geo:x,a:Math.max(cellL,x.leftPx),b:Math.min(cellR,x.leftPx+x.widthPx)}))
+      .filter(o=>o.b>o.a+0.5).sort((p,q)=>p.a-q.a);
+    blocs.forEach(o=>{
+      const dedans=o.b-o.a;
+      /* Une bande ne cède que du côté où elle a une extrémité dans CETTE case : on ne
+         raccourcit jamais une bande de passage, qui doit traverser la journée entière. */
+      o.cedeDroite=(o.geo.finIci&&o.geo.endIdx===idx)?Math.max(0,dedans-MIN):0;
+      o.cedeGauche=(o.geo.debutIci&&o.geo.startIdx===idx)?Math.max(0,Math.min(dedans-MIN,(cellR-MIN)-o.a)):0;
+    });
+    /* Les intervalles libres de la case, de gauche à droite, avec leurs voisins. */
+    const trous=[];let cur=cellL+1,prec=null;
+    blocs.forEach(o=>{
+      trous.push({x1:cur,x2:o.a-2,gauche:prec,droite:o});
+      cur=Math.max(cur,o.b+2);prec=o;
+    });
+    trous.push({x1:cur,x2:cellR-1,gauche:prec,droite:null});
+    const dispo=t=>Math.max(0,t.x2-t.x1);
+    const potentiel=t=>dispo(t)+(t.gauche?t.gauche.cedeDroite:0)+(t.droite?t.droite.cedeGauche:0);
+    /* On cherche d'abord sans rien déranger, en partant de la fin de journée (c'est là que
+       David attend les visites) et en acceptant de réduire la pastille avant de bouger quoi
+       que ce soit. */
+    let choix=null,taille=0;
+    for(let d=DMAX;d>=DMIN&&!choix;d--){
+      for(let i=trous.length-1;i>=0;i--){
+        if(dispo(trous[i])>=besoin(d)){choix=trous[i];taille=d;break;}
       }
     }
-    if(b.shapeClass==='band-end'||b.shapeClass==='band-startend'){
-      const _z=zoneVis[endIdx+'_'+b.slot];
-      if(_z){
-        /* La bande qui se termine ne doit pas mordre sur la zone : on l'arrête juste avant. */
-        const _maxRight=_z.x-3;
-        if(leftPx+widthPx>_maxRight)widthPx=Math.max(6,_maxRight-leftPx);
+    let prendreG=0,prendreD=0;
+    if(!choix){
+      for(let d=DMAX;d>=DMIN&&!choix;d--){
+        for(let i=trous.length-1;i>=0;i--){
+          if(potentiel(trous[i])>=besoin(d)){choix=trous[i];taille=d;break;}
+        }
+      }
+      if(choix){
+        let manque=besoin(taille)-dispo(choix);
+        prendreG=Math.max(0,Math.min(manque,choix.gauche?choix.gauche.cedeDroite:0));manque-=prendreG;
+        prendreD=Math.max(0,Math.min(manque,choix.droite?choix.droite.cedeGauche:0));
       }
     }
+    if(!choix){
+      /* Le seul cas sans solution : un séjour occupe la journée d'un bout à l'autre sans y
+         commencer ni y finir. On ne coupe pas la bande — la pastille se pose par-dessus, en
+         fin de journée, et reste au-dessus pour rester lisible. */
+      const d=DMIN,larg=besoin(d);
+      zoneVis[cle]={x:Math.max(cellL+1,cellR-1-larg),w:larg,d,gap:GAP,n,cellL,cellW,cellR,overlay:true};
+      return;
+    }
+    if(prendreG&&choix.gauche){
+      const o=choix.gauche,nouvelleFin=o.b-prendreG;
+      o.geo.widthPx=Math.max(8,nouvelleFin-o.geo.leftPx);o.b=nouvelleFin;
+    }
+    if(prendreD&&choix.droite){
+      const o=choix.droite,nouveauDebut=o.a+prendreD;
+      o.geo.widthPx=Math.max(8,(o.geo.leftPx+o.geo.widthPx)-nouveauDebut);o.geo.leftPx=nouveauDebut;o.a=nouveauDebut;
+    }
+    const x1=choix.gauche?choix.gauche.b+2:cellL+1;
+    const x2=choix.droite?choix.droite.a-2:cellR-1;
+    const larg=besoin(taille);
+    let x=Math.max(x1,x2-larg);              // collées à la fin de la plage libre
+    if(x+larg>cellR-1)x=Math.max(cellL+1,cellR-1-larg);
+    zoneVis[cle]={x,w:larg,d:taille,gap:GAP,n,cellL,cellW,cellR,overlay:false};
+  });
+  window.__zoneVis=zoneVis;
+  const placed=[];
+  geo.forEach(g=>{
+    const b=g.b,startIdx=g.startIdx,endIdx=g.endIdx,sRect=g.sRect,eRect=g.eRect;
+    let leftPx=g.leftPx,widthPx=g.widthPx;
+    const _placeSerree=false;
+    /* ── Règle nº1, vérifiée en dernier : quoi qu'il se soit passé au-dessus, le début de la
+       bande est dans la case d'arrivée et sa fin dans la case de départ. ── */
+    if(g.debutIci){
+      const cL=sRect.left-gridRect.left,cR=cL+sRect.width;
+      if(leftPx<cL+1){widthPx-=(cL+1-leftPx);leftPx=cL+1;}
+      if(leftPx>cR-10){const dec=leftPx-(cR-10);leftPx-=dec;widthPx+=dec;}
+    }
+    if(g.finIci){
+      const cL=eRect.left-gridRect.left,cR=cL+eRect.width;
+      let right=leftPx+widthPx;
+      if(right>cR-1)right=cR-1;
+      if(right<cL+10)right=cL+10;
+      widthPx=Math.max(8,right-leftPx);
+    }
+    widthPx=Math.max(8,widthPx);
     const _isMobileNow=window.innerWidth<=640;
     const _bs=window.__bandSizing||{offset:_isMobileNow?21:22,pitch:_isMobileNow?20:19,bandH:_isMobileNow?17:16};
     const _pitch=_bs.pitch,_offTop=_bs.offset,_bandH=_bs.bandH;
@@ -4633,8 +4916,23 @@ function injectBands(){
         if(_applyDep){_renderWidth-=_hourMargin;}
       }
     }
+    /* Dernier arbitrage, et il tranche toujours dans le même sens : si l'étiquette d'heure
+       repoussait la BANDE COLORÉE hors de son jour d'arrivée ou de départ, c'est l'étiquette
+       qui saute. Ce qu'on doit voir d'abord, c'est une barre qui commence et finit aux bonnes
+       dates ; l'heure exacte reste lisible dans le détail de la réservation. */
+    if(_applyDep){
+      const _cLdep=eRect.left-gridRect.left;
+      if((_renderLeft+_renderWidth)<_cLdep+9){_renderWidth+=_hourMargin;_applyDep=false;}
+    }
+    if(_applyLeftCol){
+      const _cRarr=(sRect.left+sRect.width)-gridRect.left;
+      if(_renderLeft>_cRarr-9){_renderLeft-=_hourMargin;_renderWidth+=_hourMargin;_applyLeftCol=false;_applyArr=false;_applyP=false;}
+    }
     const div=document.createElement('div');
     div.className=`band ${b.shapeClass} ${b.bandCls}${b.optCls}${b.isPaid?' paid':''}`;
+    div.dataset.rid=b.rid;div.dataset.shape=b.shapeClass;
+    div.dataset.cells=startIdx+'-'+endIdx;
+    div.dataset.fp=Math.round(leftPx)+','+Math.round(widthPx);   // emprise réelle (bande + étiquettes), utile au diagnostic
     div.style.position='absolute';
     div.style.top=topPx+'px';
     div.style.left=_renderLeft+'px';
@@ -4837,8 +5135,13 @@ function injectVisiteMarkers(){
     const need=n*markerD+(n-1)*gap;
     const rowTop=cellTop+_offV+slot*_pitchV;
     const chosen={rowTop,startX:cellLeft+1,d:markerD,g:gap,moved:false,overlay:false};
+    /* injectBands a déjà fait tout le travail : il a mesuré la place réellement libre dans la
+       journée, décalé les bandes de ce qu'il pouvait sans les sortir de leur date, et arrêté la
+       taille des pastilles. On se contente de poser les ronds là où la place a été réservée. */
     const zone=(window.__zoneVis||{})[cellInfo.ci+'_'+slot];
-    if(zone&&zone.w>=need-1){
+    if(zone&&zone.n===n){
+      chosen.startX=zone.x;chosen.d=zone.d;chosen.g=zone.gap;chosen.overlay=!!zone.overlay;
+    } else if(zone&&zone.w>=need-1){
       chosen.startX=zone.x;
     } else {
       const rowObst=obstacles.filter(o=>Math.abs(o.top-rowTop)<5&&o.left<cellRight-1&&o.left+o.width>cellLeft+1);
@@ -4856,10 +5159,12 @@ function injectVisiteMarkers(){
       }
     }
     // Sécurité : si la case est vraiment trop étroite, on réduit la pastille plutôt que de déborder.
-    if(chosen.startX+need>cellRight-1){
-      const dispo=(cellRight-1)-chosen.startX;
-      chosen.d=Math.max(9,Math.floor((dispo-(n-1)*gap)/n));
+    const besoinReel=n*chosen.d+(n-1)*chosen.g;
+    if(chosen.startX+besoinReel>cellRight-1){
+      const dispoPx=(cellRight-1)-chosen.startX;
+      chosen.d=Math.max(8,Math.floor((dispoPx-(n-1)*chosen.g)/n));
     }
+    if(chosen.startX<cellLeft+1)chosen.startX=cellLeft+1;
     list.forEach((v,i)=>{
       const leftPx=chosen.startX+i*(chosen.d+chosen.g);
       const dom=gDom(v.domaine);const c=dom.color||0;
@@ -5147,8 +5452,8 @@ function renderDetailPanel(r){
       return _html;
     })()}
     ${readOnly?'':`<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary btn-sm" onclick="openM('editResa','${r.id}')">✏️ Modifier</button><button class="btn btn-sm btn-danger" onclick="delResa('${r.id}')">Suppr.</button><button class="btn btn-sm" style="flex:1;background:#0055A4;border-color:#0055A4;color:#fff;font-weight:700;font-size:14px;padding:10px" onclick="closePanel()">Fermer</button></div>
-    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sm" style="flex:1;border-color:#993556;color:#993556" onclick="downloadContractPdf('${r.id}')">📄 Voir contrat PDF</button><button class="btn btn-sm" style="flex:1;border-color:#185FA5;color:#185FA5" onclick="downloadContractDocx('${r.id}')">📝 Contrat Word</button></div>`}
-    ${readOnly&&S.presta&&S.presta.accessMode==='readonly_nofinance'?`<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sm" style="flex:1;border-color:#993556;color:#993556" onclick="downloadContractPdf('${r.id}')">📄 Voir contrat PDF</button><button class="btn btn-sm" style="flex:1;border-color:#185FA5;color:#185FA5" onclick="downloadContractDocx('${r.id}')">📝 Contrat Word</button></div>`:''}
+    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sm" style="flex:1;border-color:#993556;color:#993556" onclick="downloadContractPdf('${r.id}')">📄 Contrat + règlement</button><button class="btn btn-sm" style="flex:1;border-color:#185FA5;color:#185FA5" onclick="downloadContractDocx('${r.id}')">📝 Contrat Word</button></div>`}
+    ${readOnly&&S.presta&&S.presta.accessMode==='readonly_nofinance'?`<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sm" style="flex:1;border-color:#993556;color:#993556" onclick="downloadContractPdf('${r.id}')">📄 Contrat + règlement</button><button class="btn btn-sm" style="flex:1;border-color:#185FA5;color:#185FA5" onclick="downloadContractDocx('${r.id}')">📝 Contrat Word</button></div>`:''}
     </div>`;
 }
 
@@ -6242,8 +6547,8 @@ function renderPrestaDetailAdmin(p){
       <div class="sec-hdr"><h2>🌱 Planning de ${p.name} — ${MONTHS_FR[m]} ${y}</h2><span style="display:flex;gap:6px"><button class="btn btn-xs btn-primary" onclick="openM('teamPlanning',null,{pid:'${p.id}'})">📅 Calendrier</button><button class="btn btn-xs" onclick="openM('dominiquePlanning')">💶 Liste</button></span></div>
       <div class="g3" style="margin-bottom:10px">
         <div class="metric"><span class="lbl">Total dû ce mois</span><span class="val">${money(total)}</span></div>
-        <div class="metric"><span class="lbl">Réglé</span><span class="val" style="color:#27500A">${money(paid)}</span></div>
-        <div class="metric"><span class="lbl">Reste à régler</span><span class="val" style="color:#A32D2D">${money(total-paid)}</span></div>
+        <div class="metric"><span class="lbl">Pointé ✓</span><span class="val" style="color:#27500A">${money(paid)}</span></div>
+        <div class="metric"><span class="lbl">Non pointé</span><span class="val" style="color:#A32D2D">${money(total-paid)}</span></div>
       </div>
       ${rows.length===0?'<div class="empty">Aucune journée programmée ce mois-ci.</div>':''}
       ${rows.map((x,xIdx)=>{const dom=gDom(x.domaine);return`<div style="padding:6px 8px;margin:0 -8px;border-bottom:1px solid #e5e3de;font-size:13px;background:${xIdx%2===1?'#f7f6f3':'transparent'}">
@@ -6260,12 +6565,15 @@ function renderPrestaDetailAdmin(p){
   // Pas de "Bilan total" séparé pour Sébastien/Mathilde (gardiennage uniquement) : le total est
   // déjà dans la section Gardiennage — même règle que côté personnel.
   const bilanTotalSection=p.inputMode==='garde'?'':renderBilanTotalSection(p,y,m);
+  /* Les règlements — le geste le plus fréquent — juste sous le bilan du mois, pour tout le
+     monde (Sébastien et Mathilde compris, qui n'ont pas de « Bilan total » séparé). */
+  const reglementsSection=renderReglementsBloc(p,y,m);
   const elecSection=renderElecSection(p,y,m);
   const commentsSection=renderBilanComments(p,y,m);
   /* Détail du calcul des prestations, tout en bas — cible des liens par circuit du Bilan total. */
   const commDetailSection='';
   const allEmpty=!menageSection&&!gardeSection&&!commSection&&!travauxSection&&!remboursementSection&&!dominiqueSection&&!bilanTotalSection&&!elecSection&&!compteSection&&!forfaitsSection;
-  return`<div style="margin-top:16px">${nav}${bilanTotalSection}${commentsSection}${menageSection}${commSection}${forfaitsSection}${travauxSection}${remboursementSection}${compteSection}${elecSection}${gardeSection}${dominiqueSection}${commDetailSection}${allEmpty?`<div class="empty">Aucun suivi financier spécifique pour ${p.name}.</div>`:''}</div>`;
+  return`<div style="margin-top:16px">${nav}${bilanTotalSection}${reglementsSection}${commentsSection}${menageSection}${commSection}${forfaitsSection}${travauxSection}${remboursementSection}${compteSection}${elecSection}${gardeSection}${dominiqueSection}${commDetailSection}${allEmpty?`<div class="empty">Aucun suivi financier spécifique pour ${p.name}.</div>`:''}</div>`;
 }function setClientsSortBy(v){S.clientsSortBy=v;render();}
 function updClientTel(rid,val){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
@@ -6663,14 +6971,20 @@ function generateContractHtml(r){
     });
     return html+'</div>';
   }
+  /* Le règlement intérieur se signe en même temps que le contrat — c'est ce qui le rend
+     opposable. Il porte donc les deux signatures : celle du locataire, à remplir, et la nôtre,
+     déjà imprimée, exactement comme au bas du contrat. */
   const blocSignature=`<div class="ri-sign">
-      <div class="ri-sign-t">Signature précédée de la mention « lu et approuvé »</div>
+      <div class="ri-sign-t">Signature précédée de la mention « lu et approuvé » — annexe au contrat de location</div>
       <div class="ri-sign-r">
         <div class="ri-box"><div class="ri-box-l">Fait à</div><div class="ri-box-f"></div></div>
         <div class="ri-box"><div class="ri-box-l">Le</div><div class="ri-box-f"></div></div>
       </div>
       <div class="ri-box"><div class="ri-box-l">Nom du Locataire</div><div class="ri-box-f"></div></div>
-      <div class="ri-box"><div class="ri-box-l">Signature</div><div class="ri-box-f grand"></div></div>
+      <div class="ri-sign-r">
+        <div class="ri-box"><div class="ri-box-l">Signature du Locataire</div><div class="ri-box-f grand"></div></div>
+        <div class="ri-box"><div class="ri-box-l">Le Bailleur</div><div class="ri-box-f grand ri-sig-b">${typeof SIGNATURE_GONSON!=='undefined'&&SIGNATURE_GONSON?`<img src="${SIGNATURE_GONSON}" alt="">`:''}</div></div>
+      </div>
     </div>`;
   const pagesDef=cd.reglementPages||[[secs.map((_,i)=>i)]];
   const annexeA4=secs.length?pagesDef.map((page,pi)=>{
@@ -6695,9 +7009,40 @@ function generateContractHtml(r){
   return`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">
   <title>${contractFileName(r,cd,'pdf').replace(/\.pdf$/,'')}</title>
   <style>
-    @page{margin:16mm 15mm}
+    /* ══ MISE EN PAGE PAPIER ══
+       Le contrat s'imprime en A4 PORTRAIT ; l'annexe (le règlement intérieur) garde son format
+       d'origine, une A4 PAYSAGE recto-verso. Les deux cohabitent dans un même document grâce à
+       une page nommée : tout ce qui porte la classe .a4-paysage bascule sur une page paysage
+       sans marge, le reste reste en portrait. À l'écran, on montre de vraies feuilles posées sur
+       un fond gris — ce qu'on voit est exactement ce qui sortira de l'imprimante. */
+    @page{size:A4 portrait;margin:14mm 13mm}
+    @page paysage{size:A4 landscape;margin:0}
     *{box-sizing:border-box}
-    body{font-family:'Georgia','Times New Roman',serif;font-size:10.5pt;line-height:1.55;color:#2A2A2A;max-width:800px;margin:0 auto;padding:20px 24px 60px;background:#fff}
+    html{background:#fff}
+    body{font-family:'Georgia','Times New Roman',serif;font-size:10.5pt;line-height:1.55;color:#2A2A2A;margin:0;padding:0;background:#fff}
+    .zone-contrat{margin:0 auto}
+
+    @media screen{
+      body{background:#E9E6E0;padding:16px 8px 26px}
+      .zone-contrat{background:#fff;width:210mm;max-width:100%;padding:15mm 14mm 12mm;
+        box-shadow:0 3px 16px rgba(0,0,0,.2);border-radius:2px;margin:0 auto 16px}
+      .zone-annexe{display:flex;flex-direction:column;align-items:center;gap:16px}
+      .a4-paysage{box-shadow:0 3px 16px rgba(0,0,0,.2);flex-shrink:0}
+      /* Une feuille paysage fait 297 mm de large : sur un écran étroit (téléphone), on la
+         réduit d'un bloc plutôt que de la laisser déborder — la mise en page reste exacte. */
+      .zone-annexe{overflow-x:auto}
+    }
+    @media print{
+      body{background:#fff;padding:0;margin:0}
+      .zone-contrat{width:auto;max-width:none;padding:0;box-shadow:none;border-radius:0;margin:0}
+      .zone-annexe{display:block}
+      .a4-paysage{page:paysage;box-shadow:none;margin:0}
+      /* Rien ne doit se couper au mauvais endroit : ni un encadré de partie, ni un bloc de
+         signature, ni un titre laissé seul en bas de page. */
+      .party-card,.parties-box,.signature-zone,.annex-avis,.ri-sign,.ri-sec,.footer-note{break-inside:avoid;page-break-inside:avoid}
+      h2{break-after:avoid;page-break-after:avoid;break-inside:avoid}
+      p{orphans:3;widows:3}
+    }
 
     /* ── DÉGRADÉS PAR DOMAINE ── */
     ${r.domaine==='d1'?`
@@ -6774,6 +7119,8 @@ function generateContractHtml(r){
       color:#fff;background:${teinte};padding:.7mm 1.6mm}
     .ri-box-f{height:6mm;background:#fff}
     .ri-box-f.grand{height:12mm}
+    .ri-sig-b{display:flex;align-items:center;justify-content:center;overflow:hidden}
+    .ri-sig-b img{height:10mm;object-fit:contain;opacity:.92}
     .annex-break{page-break-before:always;padding-top:4px}
     .annex-header{text-align:center;padding-bottom:16px;margin:0 0 24px}
     .annex-header img{height:80px;object-fit:contain;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto}
@@ -6864,37 +7211,61 @@ function downloadContractPdf(rid){
    fabrique d'abord les pages portrait du contrat, puis on ajoute une page paysage par feuille
    d'annexe, l'image de la feuille occupant la page entière — donc à l'identique de l'original,
    sans reflow ni recadrage. */
-function _savePdfFromHtml(html,fileName){
+function _savePdfFromHtml(html,fileName,fini){
+  const fin=()=>{try{fini&&fini();}catch(e){}};
   if(typeof html2pdf==='undefined'){
     _downloadAsHtml(html,fileName.replace(/\.pdf$/,'.html'));   // pas de moteur PDF : version HTML
-    return;
+    fin();return;
   }
-  const hote=document.createElement('div');
-  hote.style.cssText='position:fixed;left:-9999px;top:0;background:#fff;';
-  hote.innerHTML=html;
-  document.body.appendChild(hote);
-  const contrat=hote.querySelector('.zone-contrat')||hote;
-  contrat.style.width='210mm';
-  const feuilles=Array.from(hote.querySelectorAll('.a4-paysage'));
-  const zoneAnnexe=hote.querySelector('.zone-annexe');
-  if(zoneAnnexe)zoneAnnexe.style.display='none';   // l'annexe ne passe pas dans le flux portrait
-  const nettoyer=()=>{try{document.body.removeChild(hote);}catch(e){}};
-  html2pdf().set({
-    margin:[12,10,12,10],
-    filename:fileName,
-    image:{type:'jpeg',quality:.95},
-    html2canvas:{scale:2,useCORS:true,letterRendering:true},
-    jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}
-  }).from(contrat).toPdf().get('pdf').then(async pdf=>{
-    if(zoneAnnexe)zoneAnnexe.style.display='';
-    for(const feuille of feuilles){
-      const canvas=await html2pdf().set({html2canvas:{scale:2,useCORS:true,letterRendering:true}})
-        .from(feuille).toCanvas().get('canvas');
-      pdf.addPage([297,210],'landscape');
-      pdf.addImage(canvas.toDataURL('image/jpeg',0.95),'JPEG',0,0,297,210);
+  /* On fabrique le PDF depuis un cadre isolé (iframe) et non depuis la page de l'application :
+     la feuille de style du contrat ne peut donc pas déteindre une seconde sur l'écran de David
+     pendant la génération. Le contrat sort en pages A4 portrait, puis chaque feuille du
+     règlement intérieur est ajoutée telle quelle en page paysage — à l'identique de l'original,
+     sans reflow ni recadrage. */
+  const cadre=document.createElement('iframe');
+  cadre.setAttribute('aria-hidden','true');
+  cadre.style.cssText='position:fixed;left:-10000px;top:0;width:230mm;height:320mm;border:0;background:#fff;';
+  document.body.appendChild(cadre);
+  const nettoyer=()=>{try{document.body.removeChild(cadre);}catch(e){}};
+  const doc=cadre.contentDocument||cadre.contentWindow.document;
+  doc.open();doc.write(html);doc.close();
+  setTimeout(async()=>{
+    try{
+      const contrat=doc.querySelector('.zone-contrat')||doc.body;
+      const feuilles=Array.from(doc.querySelectorAll('.a4-paysage'));
+      const zoneAnnexe=doc.querySelector('.zone-annexe');
+      if(zoneAnnexe)zoneAnnexe.style.display='none';   // l'annexe ne passe pas dans le flux portrait
+      contrat.style.width='210mm';
+      contrat.style.margin='0';
+      contrat.style.boxShadow='none';
+      doc.body.style.background='#fff';
+      doc.body.style.padding='0';
+      const reglages={
+        margin:[13,12,15,12],
+        filename:fileName,
+        image:{type:'jpeg',quality:.96},
+        html2canvas:{scale:2,useCORS:true,letterRendering:true,backgroundColor:'#ffffff'},
+        /* Aucune coupure au milieu d'un paragraphe, d'un encadré ou d'un bloc de signature. */
+        pagebreak:{mode:['css','legacy'],avoid:['h2','p','.party-card','.parties-box','.signature-zone','.annex-avis','.footer-note']},
+        jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}
+      };
+      const pdf=await html2pdf().set(reglages).from(contrat).toPdf().get('pdf');
+      if(zoneAnnexe)zoneAnnexe.style.display='';
+      for(const feuille of feuilles){
+        const canvas=await html2pdf().set({html2canvas:{scale:2,useCORS:true,letterRendering:true,backgroundColor:'#ffffff'}})
+          .from(feuille).toCanvas().get('canvas');
+        pdf.addPage([297,210],'landscape');
+        pdf.addImage(canvas.toDataURL('image/jpeg',0.96),'JPEG',0,0,297,210);
+      }
+      pdf.save(fileName);
+      nettoyer();fin();
+    }catch(e){
+      console.warn('PDF',e);
+      nettoyer();fin();
+      _downloadAsHtml(html,fileName.replace(/\.pdf$/,'.html'));
+      showMsg('Le PDF n’a pas pu être fabriqué : le document a été téléchargé en HTML, ouvre-le puis Ctrl+P.');
     }
-    pdf.save(fileName);
-  }).then(nettoyer,e=>{nettoyer();console.warn('PDF',e);});
+  },350);
 }
 function _downloadAsHtml(html,fileName){
   const blob=new Blob([html],{type:'text/html;charset=utf-8'});
@@ -7096,6 +7467,20 @@ async function downloadContractDocx(rid){
   annexe.push(caseSign('Nom du Locataire',260));
   annexe.push(new Paragraph({text:'',spacing:{after:50}}));
   annexe.push(caseSign('Signature du Locataire',620));
+  annexe.push(new Paragraph({text:'',spacing:{after:50}}));
+  /* Notre signature, déjà apposée : le règlement intérieur est signé des deux côtés, comme le
+     contrat — c'est ce qui en fait une pièce complète et opposable. */
+  const runsSigBailleur=[];
+  if(typeof SIGNATURE_GONSON!=='undefined'&&SIGNATURE_GONSON){
+    try{runsSigBailleur.push(new ImageRun({data:base64ToUint8Array(SIGNATURE_GONSON),transformation:{width:118,height:44},type:'png'}));}catch(e){}
+  }
+  annexe.push(new Table({
+    width:{size:100,type:WidthType.PERCENTAGE},
+    rows:[
+      new TableRow({children:[new TableCell({shading:{type:ShadingType.SOLID,color:themeColor},children:[new Paragraph({children:[new TextRun({text:'LE BAILLEUR',bold:true,size:11,color:'FFFFFF'})]})]})]}),
+      new TableRow({height:{value:620,rule:'atLeast'},children:[new TableCell({children:[new Paragraph({alignment:AlignmentType.CENTER,children:runsSigBailleur})]})]})
+    ]
+  }));
 
   const doc=new Document({
     styles:{default:{document:{run:{font:'Georgia',size:21}}}},
@@ -7329,11 +7714,12 @@ function buildFullBackupWorkbook(){
     'Soldé':x.clos?'Oui':'Non'
   }));
 
-  const CC_H=['ID','ID Prestataire','Prestataire','Date','Sens','Montant €','Mode','Note'];
+  const CC_H=['ID','ID Prestataire','Prestataire','Date','Sens','Montant €','Mode','Pour quoi','Note','Facture du mois'];
   const ccRows=(D.comptesMouvements||[]).map(x=>({
     'ID':x.id,'ID Prestataire':x.pid,'Prestataire':gPre(x.pid).name,'Date':x.date||'',
     'Sens':x.sens==='du'?'À lui régler en plus':'Réglé','Montant €':x.montant||0,
-    'Mode':compteModeLabel(x.mode),'Note':x.note||''
+    'Mode':compteModeLabel(x.mode),'Pour quoi':x.pour||'','Note':x.note||'',
+    'Facture du mois':x.factureKey||''
   }));
   const CCD_H=['ID Prestataire','Prestataire','Date de départ','Sens','Montant €'];
   const ccdRows=Object.entries(D.comptesDepart||{}).map(([pid,v])=>({
@@ -7537,7 +7923,8 @@ function parseFullBackupWorkbook(wb){
     if(!pid){skipped++;return null;}
     const mode=(String(x['Mode']||'').match(/factur/i)?'facture':String(x['Mode']||'').match(/virement/i)?'virement':String(x['Mode']||'').match(/esp/i)?'especes':'autre');
     return{id:String(x['ID']),pid,date:normDate(x['Date']),montant:numVal(x['Montant €']),
-      sens:/plus/i.test(String(x['Sens']||''))?'du':'verse',mode,note:x['Note']||''};
+      sens:/plus/i.test(String(x['Sens']||''))?'du':'verse',mode,pour:x['Pour quoi']||'',
+      note:x['Note']||'',factureKey:x['Facture du mois']||''};
   }).filter(Boolean);
 
   const comptesDepart={};
@@ -8130,7 +8517,6 @@ function renderContractViewer(){
   const rid=S._contractRid;
   const blob=new Blob([html],{type:'text/html;charset=utf-8'});
   const url=URL.createObjectURL(blob);
-  // Stocker l'URL pour le nettoyage
   if(!S._contractBlobUrl||S._contractBlobUrl!==url){
     if(S._contractBlobUrl)URL.revokeObjectURL(S._contractBlobUrl);
     S._contractBlobUrl=url;
@@ -8139,73 +8525,53 @@ function renderContractViewer(){
     const frame=document.getElementById('contract-viewer-frame');
     if(frame&&!frame.src){frame.src=url;}
   },50);
+  /* Trois gestes, pas un de plus : imprimer, enregistrer en PDF, ou récupérer la version Word
+     (seulement quand il s'agit d'un vrai contrat de réservation). Ce qu'on voit à l'écran est
+     exactement ce qui sort : le contrat en A4 portrait, le règlement intérieur en A4 paysage. */
+  const btn=(js,txt,fort)=>`<button class="btn btn-sm" style="${fort?'background:#fff;color:#111;border-color:#fff;font-weight:700':'background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)'};flex-shrink:0" onclick="${js}">${txt}</button>`;
   return`<div class="contract-viewer-overlay">
     <div class="contract-viewer-bar">
-      <span>📄 ${name}</span>
-      <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);flex-shrink:0" onclick="printContractViewer()">🖨 Imprimer</button>
-      <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);flex-shrink:0" onclick="saveAsContractViewer()">💾 Enregistrer sous</button>
-      <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);flex-shrink:0" onclick="closeContractViewer()">✕ Fermer</button>
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📄 ${name}</span>
+      ${btn('printContractViewer()','🖨 Imprimer')}
+      ${btn('saveContractPdf()','📄 <span class="bt-long">Enregistrer en </span>PDF',true)}
+      ${rid?btn(`downloadContractDocx('${rid}')`,'📝 Word'):''}
+      ${btn('closeContractViewer()','✕ Fermer')}
     </div>
     <iframe id="contract-viewer-frame" class="contract-viewer-frame" src="${url}"></iframe>
   </div>`;
 }
+/* Impression : on recharge le document dans un cadre caché — il emporte avec lui ses propres
+   règles @page (portrait pour le contrat, paysage pour l'annexe), donc la mise en page tient
+   exactement, au lieu d'hériter de celle de l'application. */
 function printContractViewer(){
   const html=S._contractHtml;
   if(!html)return;
-  // Créer un iframe caché, charger le contrat, lancer print()
   const old=document.getElementById('print-frame-hidden');
   if(old)old.remove();
   const frame=document.createElement('iframe');
   frame.id='print-frame-hidden';
-  frame.style.cssText='position:fixed;left:-9999px;top:0;width:210mm;height:297mm;border:none;';
+  frame.setAttribute('aria-hidden','true');
+  frame.style.cssText='position:fixed;left:-10000px;top:0;width:230mm;height:320mm;border:none;background:#fff;';
   document.body.appendChild(frame);
-  frame.contentDocument.open();
-  frame.contentDocument.write(html);
-  frame.contentDocument.close();
+  const doc=frame.contentDocument||frame.contentWindow.document;
+  doc.open();doc.write(html);doc.close();
   setTimeout(function(){
-    frame.contentWindow.focus();
-    frame.contentWindow.print();
-  },800);
+    try{frame.contentWindow.focus();frame.contentWindow.print();}
+    catch(e){console.warn('print',e);showMsg('Impression impossible ici — passe par « Enregistrer en PDF ».');}
+  },700);
 }
-function saveContractPdf(rid){
+/* Enregistrer en PDF : un vrai fichier PDF, pages portrait pour le contrat et pages paysage pour
+   le règlement intérieur, nommé d'après le client et la date. */
+function saveContractPdf(){
   const html=S._contractHtml;
   if(!html)return;
-  const r=rid?D.reservations.find(x=>x.id===rid):null;
-  const cd=r?(CONTRACT_DATA[r.domaine]||CONTRACT_DATA.d1):CONTRACT_DATA.d1;
-  const fileName=r?contractFileName(r,cd,'pdf'):(S._contractFileName||'contrat.pdf');
-  // Ouvrir dans nouvel onglet avec auto-print pour enregistrement PDF
-  const htmlWithPrint=html.replace('</body>',
-    '<script>window.addEventListener("load",function(){setTimeout(function(){window.print();},500);});<\/script></body>');
-  const blob=new Blob([htmlWithPrint],{type:'text/html;charset=utf-8'});
-  const url=URL.createObjectURL(blob);
-  const win=window.open(url,'_blank');
-  if(!win){
-    // Popup bloqué - télécharger le HTML
-    const a=document.createElement('a');
-    a.href=url;a.download=fileName.replace('.pdf','.html');
-    document.body.appendChild(a);a.click();document.body.removeChild(a);
-    showMsg('Ouvrez le fichier et faites Ctrl+P pour enregistrer en PDF');
-  }
-  setTimeout(()=>URL.revokeObjectURL(url),60000);
-}
-function saveAsContractViewer(){
-  // Enregistrer sous : télécharger le HTML - l'utilisateur choisit où et sous quel nom
-  const html=S._contractHtml;
-  if(!html)return;
-  const fileName=(S._contractFileName||'contrat').replace(/\.pdf$/,'')+'.html';
-  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;
-  a.download=fileName;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(()=>URL.revokeObjectURL(url),5000);
+  const fileName=(S._contractFileName||((S._contractName||'contrat')+'.pdf')).replace(/\.pdf$/,'')+'.pdf';
+  showMsg('Fabrication du PDF…');
+  _savePdfFromHtml(html,fileName,()=>showMsg('PDF enregistré ✓'));
 }
 function closeContractViewer(){
   if(S._contractBlobUrl){URL.revokeObjectURL(S._contractBlobUrl);S._contractBlobUrl=null;}
-  S._contractHtml=null;S._contractName=null;S._contractRid=null;
+  S._contractHtml=null;S._contractName=null;S._contractRid=null;S._contractFileName=null;
   closeM();
 }
 function openPrestaPrintList(pid){
@@ -8738,6 +9104,7 @@ function renderPrestaMonBilan(p){
   const y=S.prestaBilanYear,m=S.prestaBilanMonth;
   return`<div class="cal-header" style="margin-bottom:14px">${monthYearPicker('prestaBilanYear','prestaBilanMonth')}</div>
   ${renderBilanTotalSection(p,y,m)}
+  ${renderReglementsBloc(p,y,m)}
   ${renderBilanComments(p,y,m)}
   ${renderMenageSection(p,y,m)}
   ${renderCommissionSection(p,y,m)}
