@@ -413,6 +413,8 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .bc-date{color:#9a958c;font-size:11px}
 .bc-clair-n{font-size:10.5px;color:#9a958c;margin-top:4px}
 @media(max-width:420px){.bc-3 .v{font-size:15px}.bc-phrase{font-size:13.5px}}
+.bc-repli{display:block;width:100%;background:#F5F4F1;border:1px dashed #cfcac0;border-radius:8px;padding:8px;font:inherit;font-size:12.5px;color:#4a4640;cursor:pointer;margin-bottom:8px}
+.bc-repli:hover{background:#EFEDE8}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
@@ -423,7 +425,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 /* Numéro de version, affiché en haut de l'écran. Sert à répondre en une seconde à la seule
    question qui compte quand « ça marche chez moi mais pas chez elle » : les deux téléphones
    font-ils bien tourner la MÊME version ? */
-const APP_VERSION='2026-09-23-a';
+const APP_VERSION='2026-09-23-b';
 const SK='domnoрm_prod_v1';
 const SUPA_URL='https://hdtltrnabrgibkcvubzd.supabase.co';
 const SUPA_KEY='sb_publishable_zvpg0YOHegxqXJxbEKhSbQ_3oLwbrr1';
@@ -2615,6 +2617,26 @@ function finDeMois(y,m){return new Date(y,m+1,0).toISOString().slice(0,10);}
    au dernier jour de leur mois, qui est bien la date à laquelle ils deviennent exigibles.
    La somme des lignes d'un mois reste rigoureusement égale au « TOTAL DÛ » de ce mois : c'est le
    même calcul, seulement réparti aux bonnes dates au lieu d'être empilé à la fin. */
+/* Une prestation dans le compte courant : le calcul est écrit en toutes lettres, à la date de la
+   prestation (demande David du 23/09 : « prestation de 520 €, Misha payé en direct par le client,
+   on voit les −10 % donc 52 € dans le calcul »). */
+function calculPrestationCompte(l,c,p){
+  const taux=Math.round((c.tauxCommission||0)*100);
+  const self=bilanVoix(p).self;
+  const qui=self?'vous':p.name;
+  let calcul,label;
+  if(c.via==='structure'||c.via==='cash_presta'){
+    const ou=c.via==='structure'?`réglé à ${self?'votre':'sa'} structure (Ozarko)`:`réglé en direct à ${qui}`;
+    calcul=`${money(c.montant)} ${ou} → commission ${taux} % = ${money(c.commission)} dus à D.S`;
+    if(c.notrePartDue)calcul+=` + part qui nous revient ${money(c.notrePartDue)}`;
+    label=`Commission ${taux} %`;
+  }else{
+    const par=c.via==='cash_ds'?'encaissé par Svitlana':'encaissé par D.S';
+    calcul=`${money(c.montant)} ${par}${c.fiscalRetenu?` − 15 % frais (${money(c.fiscalRetenu)})`:''}${taux?` − commission ${taux} % (${money(c.commission)})`:''} = ${money(c.duToPresta)} pour ${qui}`;
+    label='Prestation';
+  }
+  return{label,calcul};
+}
 function evenementsCompteMois(p,y,m){
   const L=[];
   const monthKey=`${y}-${String(m+1).padStart(2,'0')}`;
@@ -2630,8 +2652,8 @@ function evenementsCompteMois(p,y,m){
     .forEach(({r,mi})=>push(menageJour(r,p),'Ménage',displayClientName(r)||'',mi.montant));
   D.reservations.filter(r=>r.status!=='annulé'&&r.prestaLines&&r.prestaLines[p.id]&&r.prestaLines[p.id].length)
     .forEach(r=>{const d=r.dateArrivee||r.date; if(!inMonthDate(d))return;
-      r.prestaLines[p.id].forEach(l=>push(d,'Prestation',
-        [l.label||l.nom||'',displayClientName(r)||''].filter(Boolean).join(' · '),ligneCalc(l,p.id).net));});
+      r.prestaLines[p.id].forEach(l=>{const c=ligneCalc(l,p.id);const q=calculPrestationCompte(l,c,p);
+        push(d,q.label,[q.calcul,[l.label||l.nom||'',displayClientName(r)||''].filter(Boolean).join(' · ')].filter(Boolean).join(' — '),c.net);});});
   (D.travauxSchedule||[]).filter(x=>x.pid===p.id&&inMonthDate(x.date))
     .forEach(x=>push(x.date,'Travaux & activités',x.note||'',x.montant||0));
   if(p.inputMode==='garde'){
@@ -9185,6 +9207,9 @@ function plusRecentReglage(a,b){
   if(!a)return b;if(!b)return a;
   return (+b.ts||0)>(+a.ts||0)?b:a;
 }
+function bcRepli(cle,txt,ancre){
+  return`<button type="button"${ancre?` id="${ancre}"`:''} class="bc-repli" onclick="S.bcDeplie=(S.bcDeplie==='${cle}'?null:'${cle}');render();">${txt}</button>`;
+}
 function toggleDeclChooser(){S.declChooser=!S.declChooser;render();}
 function toggleBilanVides(){S.bilanVoirVides=!S.bilanVoirVides;render();}
 /* Ouvre le bon formulaire depuis le bouton unique, puis amène l'écran dessus. */
@@ -9282,7 +9307,7 @@ function renderBilanClair(p,y,m,nav){
   /* --- Chaque section : à qui elle s'adresse, est-elle remplie, comment la rendre. --- */
   const S1=[
     {cle:'menage',ancre:'bloc-menage',nom:'Ménage',ok:!!(p.flatRate||p.inputMode==='notes'||nbMenage),plein:nbMenage>0,html:()=>renderMenageSection(p,y,m)},
-    {cle:'comm',ancre:'bloc-commission',nom:'Prestations',ok:p.inputMode==='notes',plein:bt.compLignes>0,ouvert:S.addPrestaLineOpen===p.id,html:()=>renderEnClairPrestations(p,y,m)+renderCommissionSection(p,y,m)},
+    {cle:'comm',ancre:'bloc-commission',nom:'Prestations',ok:p.inputMode==='notes',plein:bt.compLignes>0,ouvert:S.addPrestaLineOpen===p.id,html:()=>renderEnClairPrestations(p,y,m)+((S.bcDeplie==='comm'||S.addPrestaLineOpen===p.id||!bt.compLignes)?renderCommissionSection(p,y,m)+(bt.compLignes?bcRepli('comm','▴ Replier le détail des prestations'):''):bcRepli('comm','✏️ Modifier les prestations / voir le calcul détaillé','bloc-commission'))},
     {cle:'trav',ancre:'bloc-travaux',nom:'Travaux & activités',ok:domaine||bt.travLignes>0,plein:bt.travLignes>0,ouvert:declOuverte('trav-'+p.id),html:()=>renderTravauxSection(p,y,m)},
     {cle:'forf',ancre:'bloc-forfaits',nom:'Forfaits de travaux',ok:suivi&&(isAdmin||nbForfaits>0),plein:nbForfaits>0,ouvert:declOuverte('fx-'+p.id),html:()=>renderForfaitsSection(p,y,m)},
     {cle:'garde',ancre:'bloc-garde',nom:'Gardiennage',ok:p.inputMode==='garde',plein:true,html:()=>renderGardeSection(p,y,m)},
@@ -9297,7 +9322,7 @@ function renderBilanClair(p,y,m,nav){
     {cle:'regl',ancre:'bloc-reglements',nom:'Règlements',ok:suivi,plein:true,html:()=>renderReglementsBloc(p,y,m)}
   ];
   const S4=[
-    {cle:'total',ancre:'bloc-total',nom:'Calcul détaillé',ok:!!(p.forfaitMensuel||p.flatRate||p.inputMode==='notes'||p.inputMode==='garde'),plein:true,html:()=>`<div id="bloc-total">${renderBilanTotalSection(p,y,m)}</div>`},
+    {cle:'total',ancre:'bloc-total',_:0,nom:'Calcul détaillé',ok:!!(p.forfaitMensuel||p.flatRate||p.inputMode==='notes'||p.inputMode==='garde'),plein:true,html:()=>`<div id="bloc-total">${S.bcDeplie==='total'?renderBilanTotalSection(p,y,m)+bcRepli('total','▴ Replier le calcul détaillé'):bcRepli('total','🧮 Voir le calcul détaillé du mois (ligne par ligne)')}</div>`},
     {cle:'compte',ancre:'bloc-compte',nom:'Compte courant',ok:suivi&&(isAdmin||compteActif(p)),plein:compteActif(p),html:()=>renderCompteSection(p)}
   ];
   const visible=s=>s.ok&&(s.plein||s.ouvert||S.bilanVoirVides||S.bilanForceVoir===s.ancre);
