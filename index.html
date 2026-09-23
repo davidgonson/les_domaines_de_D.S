@@ -427,7 +427,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 /* Numéro de version, affiché en haut de l'écran. Sert à répondre en une seconde à la seule
    question qui compte quand « ça marche chez moi mais pas chez elle » : les deux téléphones
    font-ils bien tourner la MÊME version ? */
-const APP_VERSION='2026-09-23-c';
+const APP_VERSION='2026-09-23-f';
 const SK='domnoрm_prod_v1';
 const SUPA_URL='https://hdtltrnabrgibkcvubzd.supabase.co';
 const SUPA_KEY='sb_publishable_zvpg0YOHegxqXJxbEKhSbQ_3oLwbrr1';
@@ -1125,8 +1125,8 @@ const DEF={
   prestaLastSeen:{},
   reservations:[],
   admins:[
-    {id:'a1',name:'David',pin:'1984',tel:'0620143322',token:'adm_david_x7q2'},
-    {id:'a2',name:'Svitlana',pin:'2024',tel:'0630868569',token:'adm_svitlana_k4m9'}
+    {id:'a1',name:'David',pin:'1978',pinV:3,tel:'0620143322',token:'adm_david_x7q2'},
+    {id:'a2',name:'Svitlana',pin:'1982',pinV:3,tel:'0630868569',token:'adm_svitlana_k4m9'}
   ]
 };
 
@@ -1138,6 +1138,10 @@ const _sansAccent=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u03
 function estMisha(p){return !!p&&(p.id==='p1'||/^mi[cs]ha$/.test(_sansAccent(p.name)));}
 function estSacha(p){return !!p&&(p.id==='p2'||/^sa[cs]ha$/.test(_sansAccent(p.name)));}
 function runMigrations(){
+  /* 23/09 : nouveaux codes — David 1978, Svitlana 1982 (l'ancien 1984 a circulé). Le marqueur pinV voyage
+     avec la fiche admin : la migration ne s'applique qu'une fois et n'écrase jamais un code changé
+     ensuite depuis l'app. */
+  (D.admins||[]).forEach(a=>{if((a.id==='a1'||a.id==='a2')&&(+a.pinV||0)<3){a.pin=(a.id==='a1'?'1978':'1982');a.pinV=3;a.updatedAt=Date.now();}});
   if(!D.visites)D.visites=[];
   if(!D.activityLog)D.activityLog=[];
   if(!D.adminLastSeen)D.adminLastSeen={};
@@ -1510,6 +1514,7 @@ function mergeRemoteSnapshot(remote){
   merged.forfaitPaid=mergeFlatMap(remote.forfaitPaid,D.forfaitPaid);
   merged.elecValide=mergeFlatMap(remote.elecValide,D.elecValide);
   merged.bilanComments=mergeById(remote.bilanComments,D.bilanComments,del('bilanComment'));
+  if(remote.admins||D.admins)merged.admins=mergeById(remote.admins,D.admins,[]);
   const _bp=plusRecentReglage(remote.bilanPresentation,D.bilanPresentation);if(_bp)merged.bilanPresentation=_bp;
   /* activityLog ("Dernières modifications") n'était fusionné nulle part : Object.assign({},remote)
      plus haut lui donnait tout simplement la valeur de remote.activityLog, donc toute entrée
@@ -4572,16 +4577,36 @@ function refreshAllGardNights(){
 function _saveSession(kind,token){try{localStorage.setItem('ds_session',JSON.stringify({kind,token}));}catch(e){}}
 function _initAdmin(ad){S.view='admin';S.admin=ad;const now=new Date();S.calYear=now.getFullYear();S.calMonth=now.getMonth();S.bilanYear=now.getFullYear();S.bilanMonth=now.getMonth();S.listeYear=now.getFullYear();S.listeMonth=now.getMonth();S.visiteYear=now.getFullYear();S.visiteMonth=now.getMonth();S.adminPrestaYear=now.getFullYear();S.adminPrestaMonth=now.getMonth();}
 function _initPresta(pr){S.view='presta';S.presta=pr;const now=new Date();S.calYear=now.getFullYear();S.calMonth=now.getMonth();S.listeYear=now.getFullYear();S.listeMonth=now.getMonth();S.visiteYear=now.getFullYear();S.visiteMonth=now.getMonth();S.prestaBilanYear=now.getFullYear();S.prestaBilanMonth=now.getMonth();}
+/* ICÔNE D'ÉCRAN D'ACCUEIL PERSONNELLE (23/09) — le manifeste commun renvoyait l'icône vers la page
+   de connexion SANS le lien personnel ; sur iPhone l'icône n'a en plus pas accès à la session du
+   navigateur. Résultat : Misha tombait sur le code administrateur. Quand un prestataire ouvre son
+   lien, on remplace donc le manifeste par une copie dont l'adresse de départ contient SON lien :
+   l'icône ajoutée ensuite ouvre directement sa propre session. */
+async function manifestPersonnel(pr){
+  try{
+    const link=document.querySelector('link[rel="manifest"]');if(!link)return;
+    const base=new URL(link.dataset.orig||link.getAttribute('href'),location.href);
+    link.dataset.orig=base.href;
+    let m={};
+    try{const r=await fetch(base.href,{cache:'no-store'});if(r.ok)m=await r.json();}catch(e){}
+    const u=new URL(location.origin+location.pathname);u.searchParams.set('t',pr.token);
+    m.start_url=u.href;m.id=u.href;m.scope=new URL('./',location.href).href;
+    m.name=`Domaines DS — ${pr.name}`;m.short_name=pr.name;
+    m.display=m.display||'standalone';
+    (m.icons||[]).forEach(i=>{try{i.src=new URL(i.src,base).href;}catch(e){}});
+    link.setAttribute('href','data:application/manifest+json,'+encodeURIComponent(JSON.stringify(m)));
+  }catch(e){}
+}
 function checkToken(){
   const p=new URLSearchParams(window.location.search),t=p.get('t')||window.location.hash.replace('#','');
   const at=p.get('admin');
   if(at){const ad=D.admins.find(x=>x.token===at);if(ad){_initAdmin(ad);_saveSession('admin',at);return true;}}
-  if(t){const pr=D.prestataires.find(x=>x.token===t);if(pr){_initPresta(pr);_saveSession('presta',t);return true;}}
+  if(t){const pr=D.prestataires.find(x=>x.token===t);if(pr){_initPresta(pr);_saveSession('presta',t);manifestPersonnel(pr);return true;}}
   // Pas de lien dans l'URL : on reprend la session mémorisée sur cet appareil, s'il y en a une.
   try{
     const saved=JSON.parse(localStorage.getItem('ds_session')||'null');
     if(saved&&saved.kind==='admin'){const ad=D.admins.find(x=>x.token===saved.token);if(ad){_initAdmin(ad);return true;}}
-    if(saved&&saved.kind==='presta'){const pr=D.prestataires.find(x=>x.token===saved.token);if(pr){_initPresta(pr);return true;}}
+    if(saved&&saved.kind==='presta'){const pr=D.prestataires.find(x=>x.token===saved.token);if(pr){_initPresta(pr);manifestPersonnel(pr);return true;}}
   }catch(e){}
   return false;
 }
@@ -5305,15 +5330,36 @@ function renderLogin(){
   return`<div class="login-wrap">
   <div class="logo" style="font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;color:#993556;border:2px solid #993556;border-radius:50%;width:64px;height:64px;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto">D.S</div>
   <h2>Les Domaines de DS</h2>
-  <p>Connexion administrateur</p>
-  <div class="field" style="margin-bottom:14px"><input type="password" id="pin-in" class="pin-in" placeholder="••••" maxlength="8" autocomplete="off"></div>
-  <button class="btn btn-primary" style="width:100%;padding:10px" onclick="doLogin()">Connexion</button>
-  <p style="margin-top:18px;font-size:12px;color:#888">Prestataire ? Utilisez le lien reçu par WhatsApp.</p>
+  <p>Connexion <strong>David / Svitlana uniquement</strong></p>
+  ${S.loginChoix?`<p style="font-weight:600;margin-bottom:10px">Qui êtes-vous ?</p><div style="display:flex;gap:8px;margin-bottom:14px">${S.loginChoix.map(id=>{const a=D.admins.find(x=>x.id===id);return`<button class="btn btn-primary" style="flex:1;padding:12px;font-size:15px" onclick="loginComme('${id}')">${a?a.name:'?'}</button>`;}).join('')}</div>`:''}
+  <div class="field" style="margin-bottom:14px;${S.loginChoix?'display:none':''}"><input type="password" id="pin-in" class="pin-in" placeholder="••••" maxlength="8" autocomplete="off"></div>
+  ${S.loginChoix?'':`<button class="btn btn-primary" style="width:100%;padding:10px" onclick="doLogin()">Connexion</button>`}
+  <div style="margin-top:18px;font-size:12.5px;color:#7A5800;background:#FDF4E3;border-radius:10px;padding:10px 12px;text-align:left;line-height:1.45">
+    <strong>Vous êtes prestataire ?</strong> Ne saisissez aucun code ici.<br>
+    1. Supprimez cette icône de votre écran d'accueil.<br>
+    2. Ouvrez le <strong>lien personnel</strong> reçu par WhatsApp.<br>
+    3. Depuis cette page, refaites « Ajouter à l'écran d'accueil ».
+  </div>
   </div>`;
+}
+function loginComme(id){
+  if(!(S.loginChoix||[]).includes(id))return;
+  const a=D.admins.find(x=>x.id===id);if(!a)return;
+  S.loginChoix=null;_initAdmin(a);_saveSession('admin',a.token);render();
+}
+function changerMonCode(){
+  const a=(D.admins||[]).find(x=>S.admin&&x.id===S.admin.id);if(!a)return;
+  const v=((document.getElementById('new-pin')||{}).value||'').trim(),v2=((document.getElementById('new-pin2')||{}).value||'').trim();
+  if(v.length<4){showMsgSansPerdre('Le code doit faire au moins 4 chiffres ⚠️');return;}
+  if(v!==v2){showMsgSansPerdre('Les deux codes ne sont pas identiques ⚠️');return;}
+  a.pin=v;a.updatedAt=Date.now();S.admin=a;
+  saveD();showMsg('Nouveau code enregistré ✓');render();
 }
 function doLogin(){
   const pin=document.getElementById('pin-in').value;
-  const a=D.admins.find(x=>x.pin===pin);
+  const qui=D.admins.filter(x=>x.pin===pin);
+  if(qui.length>1){S.loginChoix=qui.map(x=>x.id);render();return;}
+  const a=qui[0];
   if(a){_initAdmin(a);_saveSession('admin',a.token);render();}
   else{const el=document.getElementById('pin-in');el.value='';el.style.borderColor='#E24B4A';el.placeholder='Code incorrect';}
 }
@@ -6606,6 +6652,12 @@ function renderPrestaList(){
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:#666">${url}</span>
       <button class="btn btn-xs" onclick="copyL('${url}',this)">Copier</button>
     </div>`;}).join('')}
+    ${S.admin?`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 0 2px">
+      <span style="font-size:12px;font-weight:600">🔒 Changer mon code (${S.admin.name})</span>
+      <input type="password" id="new-pin" maxlength="8" inputmode="numeric" placeholder="nouveau code" style="width:120px;font-size:13px;padding:4px 7px">
+      <input type="password" id="new-pin2" maxlength="8" inputmode="numeric" placeholder="confirmer" style="width:120px;font-size:13px;padding:4px 7px">
+      <button class="btn btn-xs btn-primary" onclick="changerMonCode()">Enregistrer</button>
+    </div>`:''}
     <div style="font-size:11px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:.04em;margin-top:14px;margin-bottom:8px">Prestataires</div>
     <div style="font-size:10px;color:#9a958c;margin-bottom:6px;line-height:1.35">📲 Envoyer ce lien par WhatsApp à chaque prestataire. Il voit uniquement ses interventions.</div>
     ${D.prestataires.length===0?'<div style="font-size:12px;color:#888">Aucun prestataire enregistré.</div>':''}
