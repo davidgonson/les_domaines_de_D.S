@@ -8,7 +8,22 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Domaines DS">
 <meta name="theme-color" content="#993556">
-<link rel="manifest" href="./manifest.webmanifest">
+<script>
+/* Icône d'écran d'accueil (23/09) : sur iPhone, l'icône s'ouvre à l'adresse donnée par le
+   manifeste, SANS le lien personnel, et sans la session du navigateur → écran du code admin.
+   Si la page est ouverte avec un lien prestataire (?t=…), on ne charge PAS le manifeste commun :
+   on en fabrique un dont l'adresse de départ contient ce lien. Si Safari ne lit pas ce manifeste,
+   il retombe sur l'adresse de la page — qui contient aussi le lien. Dans les deux cas l'icône
+   ouvre la session du prestataire. Écrit ici, dans l'en-tête, pour être en place AVANT que le
+   navigateur ne lise le manifeste. */
+(function(){
+  var t=null;try{t=new URLSearchParams(location.search).get('t');}catch(e){}
+  if(!t){document.write('<link rel="manifest" href="./manifest.webmanifest">');return;}
+  var u=location.origin+location.pathname+'?t='+encodeURIComponent(t);
+  var m={name:'Domaines DS',short_name:'Domaines DS',start_url:u,id:u,scope:location.origin+location.pathname.replace(/[^\/]*$/,''),display:'standalone',background_color:'#f5f4f1',theme_color:'#993556'};
+  document.write('<link rel="manifest" data-perso="1" href="data:application/manifest+json,'+encodeURIComponent(JSON.stringify(m)).replace(/"/g,'%22')+'">');
+})();
+</script>
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='32' fill='%23993556'/%3E%3Ctext x='90' y='118' font-family='-apple-system,Helvetica,Arial,sans-serif' font-size='74' font-weight='700' fill='white' text-anchor='middle'%3EDS%3C/text%3E%3C/svg%3E">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='32' fill='%23993556'/%3E%3Ctext x='90' y='118' font-family='-apple-system,Helvetica,Arial,sans-serif' font-size='74' font-weight='700' fill='white' text-anchor='middle'%3EDS%3C/text%3E%3C/svg%3E">
 <style>
@@ -427,7 +442,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 /* Numéro de version, affiché en haut de l'écran. Sert à répondre en une seconde à la seule
    question qui compte quand « ça marche chez moi mais pas chez elle » : les deux téléphones
    font-ils bien tourner la MÊME version ? */
-const APP_VERSION='2026-09-23-f';
+const APP_VERSION='2026-09-23-i';
 const SK='domnoрm_prod_v1';
 const SUPA_URL='https://hdtltrnabrgibkcvubzd.supabase.co';
 const SUPA_KEY='sb_publishable_zvpg0YOHegxqXJxbEKhSbQ_3oLwbrr1';
@@ -1141,6 +1156,8 @@ function runMigrations(){
   /* 23/09 : nouveaux codes — David 1978, Svitlana 1982 (l'ancien 1984 a circulé). Le marqueur pinV voyage
      avec la fiche admin : la migration ne s'applique qu'une fois et n'écrase jamais un code changé
      ensuite depuis l'app. */
+  if(!D.codesAcces)D.codesAcces={};
+  Object.entries(CODES_PRESTA_DEPART).forEach(([pid,pin])=>{if(!D.codesAcces[pid]&&(D.prestataires||[]).some(x=>x.id===pid))D.codesAcces[pid]={pin,ts:1};});
   (D.admins||[]).forEach(a=>{if((a.id==='a1'||a.id==='a2')&&(+a.pinV||0)<3){a.pin=(a.id==='a1'?'1978':'1982');a.pinV=3;a.updatedAt=Date.now();}});
   if(!D.visites)D.visites=[];
   if(!D.activityLog)D.activityLog=[];
@@ -1515,6 +1532,7 @@ function mergeRemoteSnapshot(remote){
   merged.elecValide=mergeFlatMap(remote.elecValide,D.elecValide);
   merged.bilanComments=mergeById(remote.bilanComments,D.bilanComments,del('bilanComment'));
   if(remote.admins||D.admins)merged.admins=mergeById(remote.admins,D.admins,[]);
+  if(remote.codesAcces||D.codesAcces)merged.codesAcces=mergeCodesAcces(remote.codesAcces,D.codesAcces);
   const _bp=plusRecentReglage(remote.bilanPresentation,D.bilanPresentation);if(_bp)merged.bilanPresentation=_bp;
   /* activityLog ("Dernières modifications") n'était fusionné nulle part : Object.assign({},remote)
      plus haut lui donnait tout simplement la valeur de remote.activityLog, donc toute entrée
@@ -4584,7 +4602,7 @@ function _initPresta(pr){S.view='presta';S.presta=pr;const now=new Date();S.calY
    l'icône ajoutée ensuite ouvre directement sa propre session. */
 async function manifestPersonnel(pr){
   try{
-    const link=document.querySelector('link[rel="manifest"]');if(!link)return;
+    const link=document.querySelector('link[rel="manifest"]');if(!link||link.dataset.perso)return;
     const base=new URL(link.dataset.orig||link.getAttribute('href'),location.href);
     link.dataset.orig=base.href;
     let m={};
@@ -5330,17 +5348,45 @@ function renderLogin(){
   return`<div class="login-wrap">
   <div class="logo" style="font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:600;color:#993556;border:2px solid #993556;border-radius:50%;width:64px;height:64px;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto">D.S</div>
   <h2>Les Domaines de DS</h2>
-  <p>Connexion <strong>David / Svitlana uniquement</strong></p>
+  <p>Entrez <strong>votre code personnel</strong></p>
   ${S.loginChoix?`<p style="font-weight:600;margin-bottom:10px">Qui êtes-vous ?</p><div style="display:flex;gap:8px;margin-bottom:14px">${S.loginChoix.map(id=>{const a=D.admins.find(x=>x.id===id);return`<button class="btn btn-primary" style="flex:1;padding:12px;font-size:15px" onclick="loginComme('${id}')">${a?a.name:'?'}</button>`;}).join('')}</div>`:''}
-  <div class="field" style="margin-bottom:14px;${S.loginChoix?'display:none':''}"><input type="password" id="pin-in" class="pin-in" placeholder="••••" maxlength="8" autocomplete="off"></div>
+  <div class="field" style="margin-bottom:14px;${S.loginChoix?'display:none':''}"><input type="password" id="pin-in" class="pin-in" placeholder="••••" maxlength="12" autocapitalize="characters" autocorrect="off" spellcheck="false" autocomplete="off" onkeydown="if(event.key==='Enter')doLogin()"></div>
   ${S.loginChoix?'':`<button class="btn btn-primary" style="width:100%;padding:10px" onclick="doLogin()">Connexion</button>`}
   <div style="margin-top:18px;font-size:12.5px;color:#7A5800;background:#FDF4E3;border-radius:10px;padding:10px 12px;text-align:left;line-height:1.45">
-    <strong>Vous êtes prestataire ?</strong> Ne saisissez aucun code ici.<br>
-    1. Supprimez cette icône de votre écran d'accueil.<br>
-    2. Ouvrez le <strong>lien personnel</strong> reçu par WhatsApp.<br>
-    3. Depuis cette page, refaites « Ajouter à l'écran d'accueil ».
+    Chaque personne a <strong>son propre code</strong> : il ouvre directement votre espace à vous. Vous ne l'avez pas ? Demandez-le à David ou Svitlana, ou ouvrez le lien personnel reçu par WhatsApp.
   </div>
   </div>`;
+}
+/* CODE PERSONNEL PAR PRESTATAIRE (23/09, idée de David) — chacun tape SON code sur l'écran de
+   connexion et arrive dans SA session. Fonctionne même depuis une icône d'écran d'accueil qui a
+   perdu le lien personnel. Stocké dans D.codesAcces = {pid:{pin,ts}} et fusionné entrée par
+   entrée (le plus récent gagne), pour qu'un code posé sur un appareil ne soit jamais écrasé. */
+function codePresta(pid){const c=(D.codesAcces||{})[pid];return c&&c.pin?String(c.pin).toUpperCase():'';}
+/* Codes de départ des prestataires : lettres + chiffres, pour ne jamais ressembler à un code
+   administrateur (David/Svitlana = chiffres seuls). Fixés en dur pour être identiques sur tous les
+   appareils ; ts:1 → n'importe quel code modifié ensuite dans l'app l'emporte. */
+const CODES_PRESTA_DEPART={p1:'MISHA27',p2:'SASHA58',p3:'PASCA41',p4:'DOMI63',p5:'SEBA85',p6:'MATHI32',p7:'YANA74'};
+function codeDejaPris(pin,saufId){
+  if((D.admins||[]).some(a=>a.id!==saufId&&a.pin===pin))return true;
+  return Object.keys(D.codesAcces||{}).some(pid=>pid!==saufId&&codePresta(pid)===pin);
+}
+function setCodePresta(pid,val){
+  const v=String(val||'').trim().toUpperCase();
+  if(v&&!(/^[A-Za-z0-9]{4,12}$/.test(v)&&/[A-Za-z]/.test(v))){showMsgSansPerdre('Code prestataire : 4 à 12 caractères, avec au moins une lettre ⚠️');render();return;}
+  if(v&&codeDejaPris(v,pid)){showMsgSansPerdre('Ce code est déjà utilisé par quelqu\'un d\'autre ⚠️');render();return;}
+  if(!D.codesAcces)D.codesAcces={};
+  D.codesAcces[pid]={pin:v.toUpperCase(),ts:Date.now()};
+  const pr=gPre(pid);
+  logActivity('reglage',null,v?`Code de connexion défini pour ${pr.name}`:`Code de connexion retiré pour ${pr.name}`,[],true);
+  saveD();showMsg(v?`Code de ${pr.name} enregistré ✓`:`Code de ${pr.name} retiré`);render();
+}
+function mergeCodesAcces(remote,local){
+  const out={};
+  new Set([...Object.keys(remote||{}),...Object.keys(local||{})]).forEach(k=>{
+    const a=(remote||{})[k],b=(local||{})[k];
+    out[k]=(!a)?b:(!b)?a:((+b.ts||0)>=(+a.ts||0)?b:a);
+  });
+  return out;
 }
 function loginComme(id){
   if(!(S.loginChoix||[]).includes(id))return;
@@ -5360,8 +5406,11 @@ function doLogin(){
   const qui=D.admins.filter(x=>x.pin===pin);
   if(qui.length>1){S.loginChoix=qui.map(x=>x.id);render();return;}
   const a=qui[0];
-  if(a){_initAdmin(a);_saveSession('admin',a.token);render();}
-  else{const el=document.getElementById('pin-in');el.value='';el.style.borderColor='#E24B4A';el.placeholder='Code incorrect';}
+  if(a){_initAdmin(a);_saveSession('admin',a.token);render();return;}
+  const pinU=String(pin||'').trim().toUpperCase();
+  const pr=pinU?(D.prestataires||[]).find(x=>codePresta(x.id)===pinU):null;
+  if(pr){_initPresta(pr);_saveSession('presta',pr.token);render();return;}
+  const el=document.getElementById('pin-in');el.value='';el.style.borderColor='#E24B4A';el.placeholder='Code incorrect';
 }
 
 function renderAdmin(){
@@ -6665,11 +6714,14 @@ function renderPrestaList(){
       const url=window.location.origin+window.location.pathname+'?t='+p.token;
       const prenom=p.name.split(' ')[0];
       const tel=(p.tel||'').replace(/\D/g,'');
-      const wa=tel?`https://wa.me/${tel}?text=${encodeURIComponent('Bonjour '+prenom+' 👋\n\nVoici votre lien pour consulter vos interventions sur les domaines :\n'+url+'\n\nIl suffit de l\'ouvrir — pas de mot de passe nécessaire.')}`:null;
+      const wa=tel?`https://wa.me/${tel}?text=${encodeURIComponent('Bonjour '+prenom+' 👋\n\nVoici votre lien pour consulter vos interventions sur les domaines :\n'+url+(codePresta(p.id)?'\n\nVotre code personnel : '+codePresta(p.id)+'\n(à taper sur l\'écran de connexion, par exemple depuis l\'icône de votre écran d\'accueil)':'\n\nIl suffit de l\'ouvrir — pas de mot de passe nécessaire.'))}`:null;
       return`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #e5e3de;flex-wrap:wrap">
         <span style="font-weight:500;font-size:13px;min-width:100px;flex-shrink:0">${p.name} <span style="color:#888;font-weight:400;font-size:11px">${p.role}</span></span>
         <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:#666">${url}</span>
         <button class="btn btn-xs" onclick="copyL('${url}',this)">Copier</button>
+        <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#666">🔒 Code
+          <input type="text" maxlength="12" autocapitalize="characters" value="${codePresta(p.id)}" placeholder="aucun" onchange="setCodePresta('${p.id}',this.value)" style="width:96px;font-size:12.5px;padding:3px 6px;text-align:center;letter-spacing:1px;text-transform:uppercase">
+        </span>
         ${wa?`<a class="wa-btn" style="padding:3px 8px;font-size:11px" href="${wa}" target="_blank">💬 WA</a>`:''}
       </div>`;}).join('')}
   </div>`;
@@ -8667,7 +8719,7 @@ function renderLiens(){
       const url=`${base}?t=${p.token}`;
       const prenom=p.name.split(' ')[0];
       const hasTel=!!(p.tel&&p.tel.trim());
-      const wa=hasTel?`https://wa.me/${(p.tel||'').replace(/\D/g,'')}?text=${encodeURIComponent('Bonjour '+prenom+' 👋\n\nVoici votre lien pour consulter vos interventions sur les domaines :\n'+url+'\n\nIl suffit de l\'ouvrir — pas de mot de passe nécessaire.')}`:null;
+      const wa=hasTel?`https://wa.me/${(p.tel||'').replace(/\D/g,'')}?text=${encodeURIComponent('Bonjour '+prenom+' 👋\n\nVoici votre lien pour consulter vos interventions sur les domaines :\n'+url+(codePresta(p.id)?'\n\nVotre code personnel : '+codePresta(p.id)+'\n(à taper sur l\'écran de connexion, par exemple depuis l\'icône de votre écran d\'accueil)':'\n\nIl suffit de l\'ouvrir — pas de mot de passe nécessaire.'))}`:null;
       return`<div style="margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid #e5e3de">
         <div style="font-weight:500;font-size:14px;margin-bottom:8px">${p.name} <span style="color:#888;font-weight:400;font-size:12px">${p.role}</span></div>
         <div class="link-box" style="margin-bottom:8px">
