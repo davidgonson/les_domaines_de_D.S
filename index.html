@@ -371,6 +371,48 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
   white-space:nowrap;border:1px solid transparent;font-family:inherit}
 .pay-toggle.on{background:#E8F3E0;color:#27500A;border-color:#BFD9A8}
 .pay-toggle.off{background:#FCEBEB;color:#791F1F;border-color:#EFC9C9}
+.bc-bascule{font-size:11px;color:#8a857c;text-align:center;margin:14px 0 4px}
+.bc-bascule a{color:#993556}
+.bc-resume{background:#fff;border:1px solid #D9A8BC;border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.bc-phrase{font-size:14.5px;line-height:1.45;color:#2a2a2a;margin-bottom:10px}
+.bc-3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
+.bc-3>div{background:#faf9f7;border-radius:8px;padding:7px 8px;text-align:center}
+.bc-3 .k{font-size:10.5px;color:#8a857c;margin-bottom:2px}
+.bc-3 .v{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+.bc-formule{font-size:11.5px;color:#6b665e;text-align:center;margin-bottom:6px;line-height:1.7}
+.bc-f{white-space:nowrap}
+.bc-attente{background:#FDF1DE;color:#8A5300;border-radius:7px;padding:5px 9px;font-size:12px;font-weight:600;margin-bottom:6px}
+.bc-legende{display:flex;flex-wrap:wrap;gap:12px;font-size:10.5px;color:#8a857c;justify-content:center}
+.bc-legende i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+.bc-decl{margin-bottom:12px}
+.bc-decl-btn{width:100%;padding:10px;font-size:14px;font-weight:600}
+.bc-choix{display:grid;gap:6px;margin-top:8px}
+.bc-ch{display:flex;align-items:center;gap:10px;text-align:left;background:#fff;border:1px solid #e2ded7;border-radius:10px;padding:10px 12px;cursor:pointer;font:inherit;color:#2a2a2a}
+.bc-ch:hover{border-color:#993556;background:#FBF4F7}
+.bc-ch-ic{font-size:20px;flex-shrink:0}
+.bc-ch strong{display:block;font-size:13.5px}
+.bc-ch small{display:block;font-size:11px;color:#8a857c;margin-top:1px}
+.bc-etape{border-left:3px solid #993556;padding-left:8px;margin:0 0 14px}
+.bc-et-hd{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+.bc-et-n{width:26px;height:26px;border-radius:50%;background:#993556;color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.bc-et-tx{flex:1;min-width:0}
+.bc-et-t{font-size:14px;font-weight:700;color:#2a2a2a}
+.bc-et-s{font-size:11px;color:#8a857c}
+.bc-v{font-size:15px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+.bc-plus{color:#1F7A3D}
+.bc-moins{color:#A32D2D}
+.bc-nul{color:#9a958c}
+.bc-att{background:#FDF1DE;color:#8A5300;border-radius:5px;padding:0 5px;font-size:10px;font-weight:600}
+.bc-vide{font-size:11.5px;color:#9a958c;background:#F5F4F1;border-radius:7px;padding:6px 9px;margin-bottom:6px}
+.bc-vides-all{text-align:center;margin:-4px 0 12px}
+.bc-clair{background:#FBF6EA;border:1px solid #EADFC2;border-radius:10px;padding:8px 10px;margin-bottom:8px}
+.bc-clair-t{font-size:12.5px;font-weight:700;color:#7A5800;margin-bottom:5px}
+.bc-clair-l{font-size:12.5px;padding:5px 0;border-top:1px solid #EFE6CF}
+.bc-clair-l:first-of-type{border-top:none}
+.bc-clair-p{color:#4a4640;margin-top:1px}
+.bc-date{color:#9a958c;font-size:11px}
+.bc-clair-n{font-size:10.5px;color:#9a958c;margin-top:4px}
+@media(max-width:420px){.bc-3 .v{font-size:15px}.bc-phrase{font-size:13.5px}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
@@ -381,7 +423,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 /* Numéro de version, affiché en haut de l'écran. Sert à répondre en une seconde à la seule
    question qui compte quand « ça marche chez moi mais pas chez elle » : les deux téléphones
    font-ils bien tourner la MÊME version ? */
-const APP_VERSION='2026-09-16-b';
+const APP_VERSION='2026-09-23-a';
 const SK='domnoрm_prod_v1';
 const SUPA_URL='https://hdtltrnabrgibkcvubzd.supabase.co';
 const SUPA_KEY='sb_publishable_zvpg0YOHegxqXJxbEKhSbQ_3oLwbrr1';
@@ -479,6 +521,28 @@ function renderSyncBadgeInPlace(){
   const el=document.getElementById('sync-badge');
   if(el)el.outerHTML=renderSyncBadge();
 }
+/* === ÉCONOMIE DE BANDE PASSANTE (23/09/2026) ===
+   Cause du dépassement Supabase (8,26 Go / 5,5) : une boucle silencieuse.
+   1. Après un envoi, on mémorisait la date au format JS « …Z », alors que Supabase la renvoie
+      au format « …+00:00 ». Même heure, texte différent → la vérification légère croyait
+      toujours à du nouveau et retéléchargeait toute la base à chaque battement.
+   2. La comparaison « le serveur a-t-il tout ? » se faisait sur le texte brut. Or Supabase
+      (jsonb) range les champs dans son propre ordre : l'ordre différait toujours → l'app
+      renvoyait toute la base (et la recevait en retour) à chaque battement, sur chaque appareil.
+   Correctifs : on garde la date exactement telle que le serveur la donne, on compare les dates
+   comme des instants (pas comme du texte), et on compare les données indépendamment de l'ordre
+   des champs. */
+function stableStr(o){
+  if(o===null||typeof o!=='object')return JSON.stringify(o===undefined?null:o);
+  if(Array.isArray(o))return'['+o.map(stableStr).join(',')+']';
+  return'{'+Object.keys(o).filter(k=>o[k]!==undefined).sort().map(k=>JSON.stringify(k)+':'+stableStr(o[k])).join(',')+'}';
+}
+function memeInstant(a,b){
+  if(!a||!b)return false;
+  if(a===b)return true;
+  const x=Date.parse(a),y=Date.parse(b);
+  return !isNaN(x)&&x===y;
+}
 async function fetchRemoteD(){
   try{
     const res=await fetch(`${SUPA_URL}/rest/v1/app_state?id=eq.1&select=data,updated_at`,{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});
@@ -538,7 +602,7 @@ async function pushRemoteD(d,_retry){
       }
       return;
     }
-    _lastRemoteUpdatedAt=nowIso;
+    _lastRemoteUpdatedAt=(rows&&rows[0]&&rows[0].updated_at)||nowIso; // format exact du serveur
     markSynced();
   }catch(e){
     console.error('Supabase push a échoué (données gardées en local en attendant), nouvelle tentative programmée',e);
@@ -1415,6 +1479,7 @@ function mergeRemoteSnapshot(remote){
   merged.forfaitPaid=mergeFlatMap(remote.forfaitPaid,D.forfaitPaid);
   merged.elecValide=mergeFlatMap(remote.elecValide,D.elecValide);
   merged.bilanComments=mergeById(remote.bilanComments,D.bilanComments,del('bilanComment'));
+  const _bp=plusRecentReglage(remote.bilanPresentation,D.bilanPresentation);if(_bp)merged.bilanPresentation=_bp;
   /* activityLog ("Dernières modifications") n'était fusionné nulle part : Object.assign({},remote)
      plus haut lui donnait tout simplement la valeur de remote.activityLog, donc toute entrée
      ajoutée localement (logActivity) depuis la dernière fois qu'on avait interrogé le serveur
@@ -1903,7 +1968,7 @@ function renderCommissionSection(p,y,m){
   return`<div id="bloc-commission" class="bilan-sec" style="border-left:3px solid #7A5800">
     ${secBandeau('🧾','Prestations',MONTHS_FR[m],y,null,'#7A5800').replace('</div>',validSummary+'</div>')}
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px">
-      <button class="btn btn-sm btn-primary" onclick="toggleAddPrestaLine('${p.id}')">${S.addPrestaLineOpen===p.id?'✕ Annuler':'+ Ajouter'}</button>
+      ${(!_bilanClair||S.addPrestaLineOpen===p.id)?`<button class="btn btn-sm btn-primary" onclick="toggleAddPrestaLine('${p.id}')">${S.addPrestaLineOpen===p.id?'✕ Annuler':'+ Ajouter'}</button>`:'<span></span>'}
       <span style="font-size:10px;color:#9a958c;text-align:right">Le mode de règlement pilote le calcul.</span>
     </div>
     ${S.addPrestaLineOpen===p.id?renderAddPrestaLineForm(p):''}
@@ -3743,7 +3808,7 @@ function secBandeau(ic,titre,mois,an,total,teinte,cleDecl,domUnique){
     <h2><span>${ic}</span><span style="overflow:hidden;text-overflow:ellipsis">${titre}</span>
       <span class="sec-mois" style="opacity:.75;font-weight:400;white-space:nowrap">· ${mois} ${an}</span>
       ${coiffeDom(domUnique)}</h2>
-    ${cleDecl?`<button class="sec-plus" onclick="toggleDecl('${cleDecl}')">${declOuverte(cleDecl)?'✕':'+ Déclarer'}</button>`:''}
+    ${(cleDecl&&(!_bilanClair||declOuverte(cleDecl)))?`<button class="sec-plus" onclick="toggleDecl('${cleDecl}')">${declOuverte(cleDecl)?'✕':'+ Déclarer'}</button>`:''}
     ${total!==null&&total!==undefined?`<span class="sec-total">${money(total)}</span>`:''}
   </div>`;
 }
@@ -5345,7 +5410,7 @@ function renderDetailPanel(r){
   const _isSvitDP=S.admin&&S.admin.id==='a2';
   const prs=(r.prestataires||[]).map(pid=>{const p=gPre(pid);if(_isSvitDP&&(p.name==='Dominique'||p.name==='Mathilde'||p.name==='Sébastien'))return'';return p.name?`<span class="pill ${PILL[c]}" style="margin-right:4px">${p.name}</span>`:''}).join('');
   const pays=r.paiements||[];const tot=totPay(r);const solde=(r.montant||0)-tot;
-  const comms=(readOnly?(r.commentaires||[]).filter(cm=>cm.visible):(r.commentaires||[]));
+  const comms=(readOnly?(r.commentaires||[]).filter(cm=>cm.visible):(r.commentaires||[])).filter(cm=>!(cm.photoUrl&&!(cm.texte||'').trim()));
   const isJ=r.dateArrivee===r.dateDepart;
   /* Misha et Sasha ont plus bas un bloc « Prestation de … » entièrement modifiable : réafficher
      ici les mêmes lignes en lecture seule faisait doublon et allongeait la fiche pour rien. */
@@ -5409,11 +5474,10 @@ function renderDetailPanel(r){
       ${pays.map(pa=>`<div style="display:flex;gap:4px;font-size:12px;padding:4px 0;border-bottom:1px solid #e5e3de"><span style="flex:1;color:#555">${fmt(pa.date)}</span><span style="font-weight:500">${money(pa.montant)}</span><span style="color:#555;margin-left:4px">${pa.type||pa.note||''}${pa.comment?' — '+pa.comment:''}</span></div>`).join('')}
       ${pays.length>0?`<div style="font-size:11px;margin-top:5px;display:flex;justify-content:space-between"><span style="color:#444;font-weight:700">Total ${money(r.montant||0)}</span><span style="font-weight:600;color:${solde>0?'#A32D2D':'#27500A'}">Solde ${money(solde)}</span></div>`:''}
     </div>`:''}
-    ${comms.length>0?`<div class="dp-section"><label>Notes (${comms.length})</label>${comms.map(c=>`<div style="font-size:12px;padding:5px 0;border-bottom:1px solid #e5e3de"><div style="color:#666;font-size:10px;margin-bottom:2px">${c.auteurNom}${c.auteur==='presta'?' (prestataire)':''} · ${fmt(c.date)}</div>${c.photoUrl?`<img src="${c.photoUrl}" style="max-width:100%;max-height:200px;border-radius:8px;margin-top:3px;display:block;cursor:pointer" onclick="window.open(this.src,'_blank')">`:''}${c.texte?`<div>${commentTexte(c,r)}</div>`:''}</div>`).join('')}</div>`:''}
+    ${comms.length>0?`<div class="dp-section"><label>Notes (${comms.length})</label>${comms.map(c=>`<div style="font-size:12px;padding:5px 0;border-bottom:1px solid #e5e3de"><div style="color:#666;font-size:10px;margin-bottom:2px">${c.auteurNom}${c.auteur==='presta'?' (prestataire)':''} · ${fmt(c.date)}</div>${c.texte?`<div>${commentTexte(c,r)}</div>`:''}</div>`).join('')}</div>`:''}
     ${(!readOnly)?(()=>{const ct=getMenageInfo(r);if(!ct)return'';return`<div class="dp-section"><label>💬 Commentaire pour ${ct.name}</label>
       <textarea id="dp-admin-com" rows="2" placeholder="Une précision pour ${ct.name}…" style="resize:none;width:100%;box-sizing:border-box;margin-bottom:6px"></textarea>
-      <input type="file" id="dp-admin-photo" accept="image/*" style="display:none" onchange="addAdminQuickPhoto('${r.id}',this)">
-      <div style="display:flex;gap:8px"><button class="btn btn-sm" onclick="document.getElementById('dp-admin-photo').click()">📷 Photo</button><button class="btn btn-sm btn-primary" onclick="addAdminQuickComment('${r.id}')">Envoyer</button></div>
+      <div style="display:flex;gap:8px"><button class="btn btn-sm btn-primary" onclick="addAdminQuickComment('${r.id}')">Envoyer</button></div>
     </div>`;})():''}
     ${(()=>{
       if(!readOnly||!S.presta)return '';
@@ -6515,6 +6579,8 @@ function renderPrestaDetailAdmin(p){
   const inMonth=dateStr=>!!dateStr&&dateStr.startsWith(monthKey);
   const canPrintList=p.inputMode==='garde'||!!p.flatRate;
   const nav=`<div class="cal-header" style="margin-bottom:14px">${monthYearPicker('adminPrestaYear','adminPrestaMonth')}${canPrintList?`<button class="btn btn-sm" onclick="openPrestaPrintList('${p.id}')" title="Liste imprimable des prestations du mois, sans mention de paiement">🖨 Liste imprimable</button>`:''}</div>`;
+  if(bilanClairActif())return`<div style="margin-top:16px">${renderBilanClair(p,y,m,nav)}</div>`;
+  const basculeV2=`<div class="bc-bascule" style="margin:0 0 10px">Présentation des bilans : <strong>ancienne</strong> · <a href="#" onclick="event.preventDefault();setBilanPresentation('v2')">passer à la nouvelle</a></div>`;
 
   /* === Forfait ménage (Misha / Sasha / Pascaline) — rendu partagé avec la page perso === */
   const menageSection=(p.flatRate||p.inputMode==='notes')?renderMenageSection(p,y,m):'';
@@ -6572,7 +6638,7 @@ function renderPrestaDetailAdmin(p){
   /* Détail du calcul des prestations, tout en bas — cible des liens par circuit du Bilan total. */
   const commDetailSection='';
   const allEmpty=!menageSection&&!gardeSection&&!commSection&&!travauxSection&&!remboursementSection&&!dominiqueSection&&!bilanTotalSection&&!elecSection&&!compteSection&&!forfaitsSection;
-  return`<div style="margin-top:16px">${nav}${bilanTotalSection}${reglementsSection}${commentsSection}${menageSection}${commSection}${forfaitsSection}${travauxSection}${remboursementSection}${compteSection}${elecSection}${gardeSection}${dominiqueSection}${commDetailSection}${allEmpty?`<div class="empty">Aucun suivi financier spécifique pour ${p.name}.</div>`:''}</div>`;
+  return`<div style="margin-top:16px">${basculeV2}${nav}${bilanTotalSection}${reglementsSection}${commentsSection}${menageSection}${commSection}${forfaitsSection}${travauxSection}${remboursementSection}${compteSection}${elecSection}${gardeSection}${dominiqueSection}${commDetailSection}${allEmpty?`<div class="empty">Aucun suivi financier spécifique pour ${p.name}.</div>`:''}</div>`;
 }function setClientsSortBy(v){S.clientsSortBy=v;render();}
 function updClientTel(rid,val){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
@@ -7638,11 +7704,11 @@ function buildFullBackupWorkbook(){
     'Dernier changement':r.lastChange||'','Modifié par':r.lastChangeBy||''
   }));
 
-  const COM_H=['ID','ID Réservation','Date','Auteur','Nom auteur','Texte','Visible','Photo jointe'];
+  const COM_H=['ID','ID Réservation','Date','Auteur','Nom auteur','Texte','Visible'];
   const commentRows=[];
   D.reservations.forEach(r=>{(r.commentaires||[]).forEach(c=>{commentRows.push({
     'ID':c.id,'ID Réservation':r.id,'Date':c.date||'','Auteur':c.auteur||'','Nom auteur':c.auteurNom||'',
-    'Texte':c.texte||'','Visible':c.visible===false?'Non':'Oui','Photo jointe':c.photoUrl?'Oui':'Non'
+    'Texte':c.texte||'','Visible':c.visible===false?'Non':'Oui'
   });});});
 
   const PAY_H=['ID','ID Réservation','Date','Montant €','Type','Commentaire'];
@@ -8693,7 +8759,7 @@ function renderModalContent(){
       </select>
       <input type="text" class="pay-inline" id="modpay-comment-${pa.id}" value="${pa.comment||''}" placeholder="Commentaire…" onchange="updPay('${r.id}','${pa.id}','comment',this.value)" style="flex:1 1 130px;min-width:130px;color:#888">
       <button class="btn btn-xs btn-danger" onclick="delPay('${r.id||''}','${pa.id}')" style="flex-shrink:0">✕</button></div>`;}).join('');
-    const comms=r.commentaires||[];
+    const comms=(r.commentaires||[]).filter(cm=>!(cm.photoUrl&&!(cm.texte||'').trim()));
     return`<div class="modal-sticky-top">
     <h3>${type==='newResa'?'➕ Nouvelle réservation':'✏️ Modifier — '+(displayClientName(r)||fmt(r.dateArrivee||''))}</h3>
     ${(type==='editResa'&&r.createdAt)?`<div style="font-size:9.5px;color:#aaa;margin:-8px 0 12px">Créée le ${new Date(r.createdAt).toLocaleDateString('fr-FR')} à ${new Date(r.createdAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>`:''}
@@ -8800,11 +8866,9 @@ function renderModalContent(){
     <hr style="border:none;border-top:1px solid #e5e3de;margin:8px 0">
     <div style="font-size:12px;font-weight:500;margin-bottom:5px;color:#555">💬 ${(()=>{const ct=getMenageInfo(r);return`Commentaire visible par ${ct?ct.name:'le gardien'}`;})()}</div>
     ${type==='editResa'?`
-    ${comms.map(c=>`<div class="comment-item"><div class="meta"><span>${c.auteurNom} · ${fmt(c.date)}</span><button type="button" onclick="delComment('${r.id}','${c.id}')" style="background:none;border:none;color:#bbb;cursor:pointer;font-size:13px;padding:0 2px;line-height:1" title="Supprimer">✕</button></div>${c.photoUrl?`<img src="${c.photoUrl}" style="max-width:100%;max-height:220px;border-radius:8px;margin-top:4px;display:block;cursor:pointer" onclick="window.open(this.src,'_blank')">`:''}${(c.texte!==undefined)?`<textarea id="comment-text-${c.id}" rows="1" style="resize:none;width:100%;box-sizing:border-box;font-size:12px;padding:3px 5px;border:1px solid transparent;border-radius:4px;background:transparent;font-family:inherit;color:#333;margin-top:2px;overflow:hidden" onfocus="this.style.borderColor='#8a8678';this.style.background='#fff';this.style.overflow='auto'" onblur="this.style.borderColor='transparent';this.style.background='transparent';this.style.overflow='hidden';updComment('${r.id}','${c.id}',this.value)">${(c.texte||'').replace(/</g,'&lt;')}</textarea>`:''}</div>`).join('')}
+    ${comms.map(c=>`<div class="comment-item"><div class="meta"><span>${c.auteurNom} · ${fmt(c.date)}</span><button type="button" onclick="delComment('${r.id}','${c.id}')" style="background:none;border:none;color:#bbb;cursor:pointer;font-size:13px;padding:0 2px;line-height:1" title="Supprimer">✕</button></div>${(c.texte!==undefined)?`<textarea id="comment-text-${c.id}" rows="1" style="resize:none;width:100%;box-sizing:border-box;font-size:12px;padding:3px 5px;border:1px solid transparent;border-radius:4px;background:transparent;font-family:inherit;color:#333;margin-top:2px;overflow:hidden" onfocus="this.style.borderColor='#8a8678';this.style.background='#fff';this.style.overflow='auto'" onblur="this.style.borderColor='transparent';this.style.background='transparent';this.style.overflow='hidden';updComment('${r.id}','${c.id}',this.value)">${(c.texte||'').replace(/</g,'&lt;')}</textarea>`:''}</div>`).join('')}
     <textarea id="com-txt" rows="1" placeholder="Nouveau commentaire ou instruction…" style="resize:none;margin-bottom:4px;padding:3.5px 7px;font-size:12px"></textarea>
-    <input type="file" id="com-photo" accept="image/*" style="display:none" onchange="addPhotoComment('${r.id}',this)">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
-      <button class="btn btn-sm" onclick="document.getElementById('com-photo').click()">📷 Photo</button>
       <button class="btn btn-sm btn-primary" style="margin-left:auto" onclick="addComment('${r.id}')">+ Commentaire</button>
     </div>
     `:`
@@ -9092,8 +9156,237 @@ function otherPrestaNames(r,excludeId){
 function visiteAsItem(v){
   return{id:v.id,_isVisite:true,domaine:v.domaine,dateArrivee:v.date,dateDepart:v.date,heureArrivee:v.heure,heureDepart:v.heure,client:v.client||'Visite',typeEvenement:v.typeEvenement||'',status:v.status==='annulée'?'annulé':'confirmé',nbPersonnes:0,nbSoiree:0,prestataires:[],prestaGarde:{},commentaires:[]};
 }
+/* =====================================================================================
+   BILAN CLAIR — nouvelle présentation des bilans prestataires (23/09/2026, demande David)
+   -------------------------------------------------------------------------------------
+   Même calcul, même saisie, mêmes sections qu'avant : seule la MISE EN PAGE change.
+     • en haut : une phrase et 3 chiffres (on vous doit / déjà réglé / reste) ;
+     • une légende de couleurs unique ;
+     • un seul bouton « + Déclarer quelque chose » qui pose une question simple ;
+     • 4 étapes numérotées, toujours dans le même ordre :
+         ① ce qui a été fait   ② avancé ou reçu pour nous   ③ réglé   ④ solde & compte courant
+       (① + ② − ③ = ④ : la page se lit comme une addition) ;
+     • les sections vides sont repliées sur une seule ligne grise.
+   RETOUR ARRIÈRE : D.bilanPresentation = {v:'v1'|'v2',ts}. David ou Svitlana bascule d'un clic
+   (lien en bas de chaque bilan). En 'v1', l'ancienne présentation, restée intacte, s'affiche
+   exactement comme avant, pour tout le monde.
+   ===================================================================================== */
+let _bilanClair=false; // vrai pendant le rendu d'un bilan clair : masque les « + Déclarer » de chaque section
+function bilanClairActif(){
+  const bp=D&&D.bilanPresentation;
+  return !(bp&&bp.v==='v1');
+}
+function setBilanPresentation(v){
+  D.bilanPresentation={v,ts:Date.now()};
+  logActivity('reglage',null,v==='v1'?'Bilans prestataires : retour à l’ancienne présentation':'Bilans prestataires : nouvelle présentation activée',[],true);
+  saveD();showMsg(v==='v1'?'Ancienne présentation rétablie ✓':'Nouvelle présentation activée ✓');render();
+}
+function plusRecentReglage(a,b){
+  if(!a)return b;if(!b)return a;
+  return (+b.ts||0)>(+a.ts||0)?b:a;
+}
+function toggleDeclChooser(){S.declChooser=!S.declChooser;render();}
+function toggleBilanVides(){S.bilanVoirVides=!S.bilanVoirVides;render();}
+/* Ouvre le bon formulaire depuis le bouton unique, puis amène l'écran dessus. */
+function ouvrirDeclaration(cle,ancre,pid){
+  S.declChooser=false;
+  if(cle==='comm'){S.addPrestaLineOpen=pid;S.declOuvert=null;}
+  else if(cle)S.declOuvert=cle;
+  S.bilanForceVoir=ancre;
+  render();
+  setTimeout(()=>{
+    const e=document.getElementById(ancre);
+    if(e)e.scrollIntoView({behavior:'smooth',block:'start'});
+    if(ancre==='bloc-comments'){const i=e&&e.querySelector('input');if(i)i.focus();}
+  },60);
+}
+function bcMontantSigne(v){
+  const n=Math.round((+v||0)*100)/100;
+  if(Math.abs(n)<0.005)return`<span class="bc-v bc-nul">0 €</span>`;
+  return n>0?`<span class="bc-v bc-plus">+ ${money(n)}</span>`:`<span class="bc-v bc-moins">− ${money(-n)}</span>`;
+}
+/* Une prestation à commission, en une phrase lisible par tout le monde. */
+function phrasePrestation(l,pid,self,nom){
+  const c=ligneCalc(l,pid);
+  const taux=Math.round((c.tauxCommission||0)*100);
+  const circuit={
+    ds:`encaissé par nous${c.fiscalRetenu?' (−15 % de frais de structure)':''}${taux?`, −${taux} % de commission`:''}`,
+    cash_ds:`encaissé par Svitlana${taux?`, −${taux} % de commission`:''}`,
+    structure:`réglé à ${self?'votre':'sa'} structure (Ozarko)`,
+    cash_presta:`réglé en direct ${self?'à vous':'à '+nom}`
+  }[c.via]||'';
+  let issue;
+  if(c.net>0.005)issue=`<strong class="bc-plus">${self?'vous recevez':nom+' reçoit'} ${money(c.net)}</strong>`;
+  else if(c.net<-0.005)issue=`<strong class="bc-moins">${self?'vous nous devez':nom+' nous doit'} ${money(-c.net)}${taux?' de commission':''}</strong>`;
+  else issue=`<span class="bc-nul">rien à reverser</span>`;
+  return`${money(c.montant)} → ${circuit} → ${issue}`;
+}
+function renderEnClairPrestations(p,y,m){
+  const self=bilanVoix(p).self;
+  const lignes=[];
+  D.reservations.filter(r=>r.status!=='annulé'&&r.prestaLines&&r.prestaLines[p.id]&&r.prestaLines[p.id].length).forEach(r=>{
+    const d=r.dateArrivee||r.date;if(!d)return;const[ry,rm]=d.split('-').map(Number);if(!(ry===y&&rm===(m+1)))return;
+    r.prestaLines[p.id].forEach(l=>lignes.push({d,r,l}));
+  });
+  if(!lignes.length)return'';
+  lignes.sort((a,b)=>a.d.localeCompare(b.d));
+  return`<div class="bc-clair">
+    <div class="bc-clair-t">🧾 Vos prestations en clair${self?'':` — ${p.name}`}</div>
+    ${lignes.map(({d,r,l})=>`<div class="bc-clair-l">
+      <div><span class="bc-date">${ds(d)}</span> <strong>${(l.label||'Prestation').replace(/</g,'&lt;')}</strong> · ${(displayClientName(r)||r.client||gDom(r.domaine).name).replace(/</g,'&lt;')}${l.valide?'':' <span class="bc-att">à valider</span>'}</div>
+      <div class="bc-clair-p">${phrasePrestation(l,p.id,self,p.name)}</div>
+    </div>`).join('')}
+    <div class="bc-clair-n">Le détail du calcul et la modification de chaque ligne sont juste en dessous.</div>
+  </div>`;
+}
+/* Jardinage (Dominique) — sorti tel quel de la fiche admin pour pouvoir le réutiliser. */
+function renderDominiqueSection(p,y,m){
+  if(p.name!=='Dominique')return'';
+  const monthKey=`${y}-${String(m+1).padStart(2,'0')}`;
+  const inMonth=dateStr=>!!dateStr&&dateStr.startsWith(monthKey);
+  const isAdmin=S.view==='admin';
+  const rows=[...(D.dominiqueSchedule||[])].filter(x=>inMonth(x.date)).sort((a,b)=>a.date.localeCompare(b.date));
+  const total=rows.reduce((a,x)=>a+(x.montant||0),0);
+  const paid=rows.filter(x=>x.paid).reduce((a,x)=>a+(x.montant||0),0);
+  return`<div id="bloc-jardin" style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
+    <div class="sec-hdr"><h2>🌱 Planning de ${p.name} — ${MONTHS_FR[m]} ${y}</h2>${isAdmin?`<span style="display:flex;gap:6px"><button class="btn btn-xs btn-primary" onclick="openM('teamPlanning',null,{pid:'${p.id}'})">📅 Calendrier</button><button class="btn btn-xs" onclick="openM('dominiquePlanning')">💶 Liste</button></span>`:''}</div>
+    <div class="g3" style="margin-bottom:10px">
+      <div class="metric"><span class="lbl">Total dû ce mois</span><span class="val">${money(total)}</span></div>
+      <div class="metric"><span class="lbl">Pointé ✓</span><span class="val" style="color:#27500A">${money(paid)}</span></div>
+      <div class="metric"><span class="lbl">Non pointé</span><span class="val" style="color:#A32D2D">${money(total-paid)}</span></div>
+    </div>
+    ${rows.length===0?'<div class="empty">Aucune journée programmée ce mois-ci.</div>':''}
+    ${rows.map((x,xIdx)=>{const dom=gDom(x.domaine);return`<div style="padding:6px 8px;margin:0 -8px;border-bottom:1px solid #e5e3de;font-size:13px;background:${xIdx%2===1?'#f7f6f3':'transparent'}">
+      <div style="margin-bottom:4px"><span class="pill ${PILL[dom.color||0]}" style="margin-right:6px">${dom.name}</span>${dn(x.date)} ${ds(x.date)}</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        ${isAdmin?`<input type="text" id="domin-comment-${x.id}" value="${(x.comment||'').replace(/"/g,'&quot;')}" placeholder="Commentaire" onchange="updDominiquePlanningComment('${x.id}',this.value)" style="flex:1;min-width:0;font-size:12px;padding:3px 5px;color:#888">`:`<span style="flex:1;min-width:0;font-size:12px;color:#534AB7;font-style:italic">${(x.comment||'').replace(/</g,'&lt;')}</span>`}
+        <strong style="white-space:nowrap">${money(x.montant)}</strong>
+        ${isAdmin?`<span class="pill" style="background:${x.paid?'#E8F3E0':'#FCEBEB'};color:${x.paid?'#27500A':'#791F1F'};cursor:pointer;flex-shrink:0" onclick="toggleDominiquePlanningPaid('${x.id}')">${x.paid?'✓ Réglé':'✗ Régler'}</span>`:`<span style="color:${x.paid?'#27500A':'#A32D2D'};font-size:12px;flex-shrink:0">${x.paid?'✓ Reçu':'✗ Non reçu'}</span>`}
+      </div>
+    </div>`;}).join('')}
+  </div>`;
+}
+/* Le bilan d'un prestataire pour le mois (y,m), nouvelle présentation. nav = en-tête de mois. */
+function renderBilanClair(p,y,m,nav){
+  const isAdmin=S.view==='admin';
+  const V=bilanVoix(p);
+  const self=V.self;
+  const bt=computeBilanTotal(p,y,m);
+  const moisNom=MONTHS_FR[m];
+  const domaine=p.accessMode==='domaine';
+  const suivi=suiviFinancier(p);
+  const vous=self?'vous':p.name;
+  const nbMenage=D.reservations.filter(r=>r.status!=='annulé'&&menageDansMoisPour(r,p,y,m)).map(r=>getMenageInfo(r)).filter(mi=>mi&&mi.pid===p.id).length;
+  const nbForfaits=forfaitsDe(p.id).length;
+
+  /* --- Chaque section : à qui elle s'adresse, est-elle remplie, comment la rendre. --- */
+  const S1=[
+    {cle:'menage',ancre:'bloc-menage',nom:'Ménage',ok:!!(p.flatRate||p.inputMode==='notes'||nbMenage),plein:nbMenage>0,html:()=>renderMenageSection(p,y,m)},
+    {cle:'comm',ancre:'bloc-commission',nom:'Prestations',ok:p.inputMode==='notes',plein:bt.compLignes>0,ouvert:S.addPrestaLineOpen===p.id,html:()=>renderEnClairPrestations(p,y,m)+renderCommissionSection(p,y,m)},
+    {cle:'trav',ancre:'bloc-travaux',nom:'Travaux & activités',ok:domaine||bt.travLignes>0,plein:bt.travLignes>0,ouvert:declOuverte('trav-'+p.id),html:()=>renderTravauxSection(p,y,m)},
+    {cle:'forf',ancre:'bloc-forfaits',nom:'Forfaits de travaux',ok:suivi&&(isAdmin||nbForfaits>0),plein:nbForfaits>0,ouvert:declOuverte('fx-'+p.id),html:()=>renderForfaitsSection(p,y,m)},
+    {cle:'garde',ancre:'bloc-garde',nom:'Gardiennage',ok:p.inputMode==='garde',plein:true,html:()=>renderGardeSection(p,y,m)},
+    {cle:'jardin',ancre:'bloc-jardin',nom:'Jardinage',ok:p.name==='Dominique',plein:true,html:()=>renderDominiqueSection(p,y,m)}
+  ];
+  const S2=[
+    {cle:'remb',ancre:'bloc-remb',nom:V.pourNotreCompte,ok:domaine&&suivi,plein:bt.rembLignes>0,ouvert:declOuverte('remb-'+p.id),html:()=>renderRemboursementSection(p,y,m)},
+    {cle:'enc',ancre:'bloc-enc',nom:V.recuNotreCompte,ok:domaine&&suivi,plein:bt.encLignes>0,ouvert:declOuverte('enc-'+p.id),html:()=>renderEncaissementSection(p,y,m)},
+    {cle:'elec',ancre:'bloc-elec',nom:'Électricité',ok:!!p.electricite,plein:true,html:()=>renderElecSection(p,y,m)}
+  ];
+  const S3=[
+    {cle:'regl',ancre:'bloc-reglements',nom:'Règlements',ok:suivi,plein:true,html:()=>renderReglementsBloc(p,y,m)}
+  ];
+  const S4=[
+    {cle:'total',ancre:'bloc-total',nom:'Calcul détaillé',ok:!!(p.forfaitMensuel||p.flatRate||p.inputMode==='notes'||p.inputMode==='garde'),plein:true,html:()=>`<div id="bloc-total">${renderBilanTotalSection(p,y,m)}</div>`},
+    {cle:'compte',ancre:'bloc-compte',nom:'Compte courant',ok:suivi&&(isAdmin||compteActif(p)),plein:compteActif(p),html:()=>renderCompteSection(p)}
+  ];
+  const visible=s=>s.ok&&(s.plein||s.ouvert||S.bilanVoirVides||S.bilanForceVoir===s.ancre);
+  const vides=[];
+  const CERCLE=['①','②','③','④'];let numEtape=0;const numDe={};
+  const rendreEtape=(n,titre,sousTitre,montant,sections,couleurMontant)=>{
+    const utiles=sections.filter(s=>s.ok);
+    if(!utiles.length)return'';
+    numDe[n]=++numEtape;const nAff=numEtape;
+    const aVoir=utiles.filter(visible);
+    utiles.filter(s=>!visible(s)).forEach(s=>vides.push(s.nom));
+    const valeur=couleurMontant?`<span class="bc-v" style="color:${couleurMontant}">${money(Math.abs(montant))}</span>`:bcMontantSigne(montant);
+    const videsEtape=utiles.filter(s=>!visible(s)).map(s=>s.nom.replace(/&amp;/g,'&'));
+    return`<div class="bc-etape">
+      <div class="bc-et-hd"><span class="bc-et-n">${nAff}</span><div class="bc-et-tx"><div class="bc-et-t">${titre}</div><div class="bc-et-s">${sousTitre}</div></div>${valeur}</div>
+      ${aVoir.map(s=>s.html()).join('')}
+      ${videsEtape.length?`<div class="bc-vide">Rien ce mois-ci : ${videsEtape.join(', ')}</div>`:''}
+    </div>`;
+  };
+  _bilanClair=true;
+  let etapes='';
+  try{
+    const e1=Math.round((bt.totalActivite+bt.elecCost)*100)/100;
+    const e2=Math.round((bt.rembDu-bt.encDu-bt.elecCost)*100)/100;
+    etapes+=rendreEtape(1,self?'Ce que vous avez fait':`Ce que ${p.name} a fait`,
+      'Ménage, prestations, travaux, gardiennage… tout ce qui est rémunéré',e1,S1);
+    etapes+=rendreEtape(2,self?'Ce que vous avez avancé ou reçu pour nous':`Ce que ${p.name} a avancé ou reçu pour nous`,
+      'Avancé = s’ajoute · reçu pour nous et électricité = se déduit',e2,S2);
+    etapes+=rendreEtape(3,self?'Ce qui vous a été réglé':`Ce qui a été réglé à ${p.name}`,
+      'Espèces, virement, facture réglée — se déduit de ce qu’on doit',-bt.regleMois,S3);
+    const reste=bt.resteApresReglements;
+    etapes+=rendreEtape(4,'Le solde du mois',
+      reste>0.005?`Reste à ${self?'vous':'lui'} régler`:reste<-0.005?'Versé en avance':'Mois soldé',
+      reste,S4,reste>0.005?'#A32D2D':'#1F7A3D');
+  }finally{_bilanClair=false;}
+
+  /* --- Résumé : une phrase, trois chiffres. --- */
+  const du=bt.totalDu,regle=bt.regleMois,reste=bt.resteApresReglements;
+  let phrase;
+  if(du>=0)phrase=self?`En ${moisNom}, on vous doit <strong>${money(du)}</strong>.`:`En ${moisNom}, on doit <strong>${money(du)}</strong> à ${p.name}.`;
+  else phrase=self?`En ${moisNom}, vous nous devez <strong>${money(-du)}</strong>.`:`En ${moisNom}, ${p.name} nous doit <strong>${money(-du)}</strong>.`;
+  phrase+=` Déjà réglé : <strong>${money(regle)}</strong>. `;
+  if(reste>0.005)phrase+=`Reste à ${self?'vous':'lui'} régler : <strong class="bc-moins">${money(reste)}</strong>.`;
+  else if(reste<-0.005)phrase+=`Versé en avance : <strong class="bc-plus">${money(-reste)}</strong> (reporté au compte courant).`;
+  else phrase+=`<strong class="bc-plus">Le mois est soldé.</strong>`;
+  const e1=Math.round((bt.totalActivite+bt.elecCost)*100)/100;
+  const e2=Math.round((bt.rembDu-bt.encDu-bt.elecCost)*100)/100;
+  const c_=k=>numDe[k]?CERCLE[numDe[k]-1]+' ':'';
+  const formule=`<span class="bc-f">${c_(1)}${money(e1)}</span>${numDe[2]?` ${e2<0?'−':'+'} <span class="bc-f">${c_(2)}${money(Math.abs(e2))}</span>`:''}${numDe[3]?` − <span class="bc-f">${c_(3)}${money(regle)}</span>`:''} = <span class="bc-f"><strong>${c_(4)}${money(reste)}</strong></span>`;
+  const resume=`<div class="bc-resume">
+    <div class="bc-phrase">${phrase}</div>
+    <div class="bc-3">
+      <div><div class="k">${du>=0?(self?'On vous doit':`On doit à ${p.name}`):(self?'Vous nous devez':`${p.name} nous doit`)}</div><div class="v">${money(Math.abs(du))}</div></div>
+      <div><div class="k">Déjà réglé</div><div class="v" style="color:#1F7A3D">${money(regle)}</div></div>
+      <div><div class="k">${reste<-0.005?'En avance':'Reste'}</div><div class="v" style="color:${reste>0.005?'#A32D2D':'#1F7A3D'}">${money(Math.abs(reste))}</div></div>
+    </div>
+    <div class="bc-formule">${formule}</div>
+    ${bt.enAttente>0?`<div class="bc-attente">⏳ ${bt.enAttente} élément${bt.enAttente>1?'s':''} ${isAdmin?'à valider (pastilles orange ci-dessous)':'en attente de validation par David ou Svitlana'}</div>`:''}
+    <div class="bc-legende"><span><i style="background:#1F7A3D"></i>${self?'on vous doit':'on lui doit'} (+)</span><span><i style="background:#A32D2D"></i>à déduire (−)</span><span><i style="background:#D98A00"></i>à valider</span></div>
+  </div>`;
+
+  /* --- Bouton unique « Déclarer ». --- */
+  const opts=[];
+  if(!isAdmin){
+    if(domaine)opts.push(['🔧','J’ai fait des travaux ou une activité','Réparation, entretien, ménage ponctuel…',`ouvrirDeclaration('trav-${p.id}','bloc-travaux')`]);
+    if(p.inputMode==='notes')opts.push(['🧾','J’ai fait une prestation pour un client','Traiteur, animation, décoration… le calcul s’affiche tout seul',`ouvrirDeclaration('comm','bloc-commission','${p.id}')`]);
+    if(domaine&&suivi)opts.push(['💳','J’ai payé quelque chose pour vous','Un achat, un artisan, un envoi… vous serez remboursé',`ouvrirDeclaration('remb-${p.id}','bloc-remb')`]);
+    if(domaine&&suivi)opts.push(['💰','J’ai reçu de l’argent pour vous','D’un client ou remis par David/Svitlana — se déduit',`ouvrirDeclaration('enc-${p.id}','bloc-enc')`]);
+    if(p.electricite)opts.push(['⚡','J’ai relevé le compteur électrique','Index de fin de mois',`ouvrirDeclaration(null,'bloc-elec')`]);
+  }else{
+    if(suivi)opts.push(['💶',`J’ai réglé ${p.name}`,'Espèces, virement, facture réglée',`ouvrirDeclaration(null,'bloc-reglements')`]);
+    if(p.inputMode==='notes')opts.push(['🧾','Ajouter une prestation','Rattachée à une réservation',`ouvrirDeclaration('comm','bloc-commission','${p.id}')`]);
+    if(suivi)opts.push(['📐','Définir un forfait de travaux','Une enveloppe convenue d’avance',`ouvrirDeclaration('fx-${p.id}','bloc-forfaits')`]);
+    if(p.electricite)opts.push(['⚡','Saisir un index électrique','Index de fin de mois',`ouvrirDeclaration(null,'bloc-elec')`]);
+  }
+  opts.push(['💬',self?'J’ai une question':`Écrire à ${p.name}`,'Message sur le bilan du mois',`ouvrirDeclaration(null,'bloc-comments')`]);
+  const declarer=`<div class="bc-decl">
+    <button class="btn btn-primary bc-decl-btn" onclick="toggleDeclChooser()">${S.declChooser?'✕ Fermer':(isAdmin?'+ Ajouter / régler quelque chose':'+ Déclarer quelque chose')}</button>
+    ${S.declChooser?`<div class="bc-choix">${opts.map(([ic,t,s,js])=>`<button type="button" class="bc-ch" onclick="${js}"><span class="bc-ch-ic">${ic}</span><span><strong>${t}</strong><small>${s}</small></span></button>`).join('')}</div>`:''}
+  </div>`;
+
+  const bascule=isAdmin?`<div class="bc-bascule">Présentation des bilans : <strong>nouvelle</strong> · <a href="#" onclick="event.preventDefault();if(confirm('Revenir à l\\'ancienne présentation des bilans, pour tout le monde ?'))setBilanPresentation('v1')">revenir à l'ancienne</a></div>`:'';
+  const voirVides=vides.length?`<div class="bc-vides-all"><button type="button" class="btn btn-xs" onclick="toggleBilanVides()">${S.bilanVoirVides?'Replier les rubriques vides':'Afficher aussi les rubriques vides'}</button></div>`:(S.bilanVoirVides?`<div class="bc-vides-all"><button type="button" class="btn btn-xs" onclick="toggleBilanVides()">Replier les rubriques vides</button></div>`:'');
+  return`<div class="bc">${nav||''}${resume}${declarer}${etapes}${voirVides}${renderBilanComments(p,y,m)}${bascule}</div>`;
+}
+
 function renderPrestaMonBilan(p){
   const y=S.prestaBilanYear,m=S.prestaBilanMonth;
+  if(bilanClairActif())return renderBilanClair(p,y,m,`<div class="cal-header" style="margin-bottom:14px">${monthYearPicker('prestaBilanYear','prestaBilanMonth')}</div>`);
   return`<div class="cal-header" style="margin-bottom:14px">${monthYearPicker('prestaBilanYear','prestaBilanMonth')}</div>
   ${renderBilanTotalSection(p,y,m)}
   ${renderReglementsBloc(p,y,m)}
@@ -9221,7 +9514,7 @@ function renderPresta(){
       </div>
     </div>`;
     }
-    const comms=(r.commentaires||[]).filter(c=>c.visible);const isJ=r.dateArrivee===r.dateDepart;const others=otherPrestaNames(r,p.id);
+    const comms=(r.commentaires||[]).filter(c=>c.visible).filter(cm=>!(cm.photoUrl&&!(cm.texte||'').trim()));const isJ=r.dateArrivee===r.dateDepart;const others=otherPrestaNames(r,p.id);
     return`<div class="ev-card">
       <div style="font-size:17px;font-weight:500;margin-bottom:2px">${displayClientName(r)||dom.name}</div>
       ${r.typeEvenement?`<div style="font-size:13px;color:#993556;font-weight:600;margin-bottom:6px">${r.typeEvenement}</div>`:''}
@@ -9327,7 +9620,9 @@ function renderPrestaDominique(p){
   let content;
   // Plus d'onglet « Dernières modifs » pour Dominique : il ne reçoit que les mises à jour de son
   // propre planning, via la bannière de notifications en haut (prestaVisibleLog, régime ownOnly).
-  if(tab==='planning'){
+  if(tab==='planning'&&bilanClairActif()){
+    content=renderBilanClair(p,S.prestaBilanYear,S.prestaBilanMonth,`<div class="cal-header" style="margin-bottom:14px">${monthYearPicker('prestaBilanYear','prestaBilanMonth')}</div>`);
+  } else if(tab==='planning'){
     const y=S.prestaBilanYear,m=S.prestaBilanMonth;
     const inMonth=x=>{const[ry,rm]=x.date.split('-').map(Number);return ry===y&&rm===(m+1);};
     const rows=[...D.dominiqueSchedule].filter(inMonth).sort((a,b)=>a.date.localeCompare(b.date));
@@ -9421,7 +9716,8 @@ function renderPrestaGardePersonnel(p){
     // Pas de "Bilan total" séparé pour Sébastien/Mathilde : ils n'ont que du gardiennage, dont
     // le total est déjà dans la section Gardiennage juste en dessous — un second total ferait
     // doublon.
-    content=`<div class="cal-header" style="margin-bottom:14px">${monthYearPicker('prestaBilanYear','prestaBilanMonth')}</div>
+    content=bilanClairActif()?renderBilanClair(p,y,m,`<div class="cal-header" style="margin-bottom:14px">${monthYearPicker('prestaBilanYear','prestaBilanMonth')}</div>`)
+    :`<div class="cal-header" style="margin-bottom:14px">${monthYearPicker('prestaBilanYear','prestaBilanMonth')}</div>
     ${renderBilanComments(p,y,m)}
     ${renderGardeSection(p,y,m)}`;
   } else {
@@ -10034,45 +10330,7 @@ function addPrestaComment(rid){
   logActivity('commentaire',r.domaine,`💬 ${S.presta.name} : « ${txt} »`,[S.presta.id],true,r.id);
   saveD();showMsg('Commentaire envoyé ✓');render();
 }
-function resizeImageFile(file,maxDim,callback){
-  const reader=new FileReader();
-  reader.onload=ev=>{
-    const img=new Image();
-    img.onload=()=>{
-      let w=img.width,h=img.height;
-      if(w>h&&w>maxDim){h=Math.round(h*maxDim/w);w=maxDim;}
-      else if(h>maxDim){w=Math.round(w*maxDim/h);h=maxDim;}
-      const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
-      canvas.getContext('2d').drawImage(img,0,0,w,h);
-      callback(canvas.toDataURL('image/jpeg',0.72));
-    };
-    img.src=ev.target.result;
-  };
-  reader.readAsDataURL(file);
-}
-function addPhotoComment(rid,inputEl){
-  const file=inputEl.files&&inputEl.files[0];if(!file)return;
-  const r=D.reservations.find(x=>x.id===rid);if(!r)return;
-  const isPresta=S.view==='presta'&&S.presta;
-  const authorName=isPresta?S.presta.name:(S.admin?S.admin.name:'Système');
-  resizeImageFile(file,1000,dataUrl=>{
-    if(!r.commentaires)r.commentaires=[];
-    r.commentaires.push({id:gid(),auteur:isPresta?'presta':'admin',auteurNom:authorName,date:new Date().toISOString().slice(0,10),texte:'',photoUrl:dataUrl,visible:true});
-    stampChange(r,`Photo ajoutée par ${authorName}`);
-    saveD();showMsg('Photo ajoutée ✓');inputEl.value='';render();
-  });
-}
-function addAdminQuickPhoto(rid,inputEl){
-  const file=inputEl.files&&inputEl.files[0];if(!file||!S.admin)return;
-  const r=D.reservations.find(x=>x.id===rid);if(!r)return;
-  const ct=getMenageInfo(r);
-  resizeImageFile(file,1000,dataUrl=>{
-    if(!r.commentaires)r.commentaires=[];
-    r.commentaires.push({id:gid(),auteur:'admin',auteurNom:S.admin.name,date:new Date().toISOString().slice(0,10),texte:'',photoUrl:dataUrl,visible:true});
-    if(ct)logActivity('commentaire',r.domaine,`💬 ${S.admin.name} → ${ct.name} : photo ajoutée`,[ct.pid],false,r.id);
-    saveD();showMsg('Photo envoyée ✓');inputEl.value='';render();
-  });
-}
+/* Photos dans les commentaires : supprimées le 23/09/2026 (décision David — inutiles et lourdes pour la bande passante). */
 function addAdminQuickComment(rid){
   const r=D.reservations.find(x=>x.id===rid);if(!r||!S.admin)return;
   const el=document.getElementById('dp-admin-com');const txt=(el&&el.value||'').trim();if(!txt)return;
@@ -10700,7 +10958,7 @@ async function initApp(){
   runMigrations();
   saveD();
   if(!checkToken())render();else render();
-  setInterval(syncCycle,10000); // battement 10 s (validé par David) — la vérification est désormais quasi gratuite
+  setInterval(()=>{if(!document.hidden)syncCycle();},30000); // battement 30 s, en pause quand l'app est en arrière-plan (validé par David le 23/09) — rattrapage immédiat au retour ci-dessous
   /* Filets de rattrapage supplémentaires : dès que le réseau revient, ou dès qu'on rouvre
      l'application (retour sur l'onglet, sortie de veille du téléphone), on relance tout de suite
      un cycle complet au lieu d'attendre le prochain battement. C'est exactement le scénario de
@@ -10734,16 +10992,17 @@ async function syncCycle(){
       const r=await fetch(`${SUPA_URL}/rest/v1/app_state?id=eq.1&select=updated_at`,{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});
       if(r.ok){
         const j=await r.json();
-        if(j&&j[0]&&j[0].updated_at&&j[0].updated_at===_lastRemoteUpdatedAt)return true; // rien de neuf nulle part
+        if(j&&j[0]&&j[0].updated_at&&memeInstant(j[0].updated_at,_lastRemoteUpdatedAt))return true; // rien de neuf nulle part
       }
     }
   }catch(e){/* doute → cycle complet ci-dessous */}
   const fresh=await fetchRemoteD();
   if(!fresh)return false;                       // pas de réseau : on retentera au prochain battement
+  const freshStr=stableStr(fresh);              // AVANT la fusion (qui peut compléter l'objet reçu)
   const merged=mergeRemoteSnapshot(fresh);
-  const mergedStr=JSON.stringify(merged);
-  const serveurIncomplet=(mergedStr!==JSON.stringify(fresh)); // on a des choses qu'il n'a pas
-  if(mergedStr!==JSON.stringify(D)){
+  const mergedStr=stableStr(merged);
+  const serveurIncomplet=(mergedStr!==freshStr); // on a des choses qu'il n'a pas (ordre des champs ignoré)
+  if(mergedStr!==stableStr(D)){
     D=merged;
     reinitEmpreintes();
     try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}
