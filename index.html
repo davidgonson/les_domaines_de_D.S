@@ -415,6 +415,8 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 @media(max-width:420px){.bc-3 .v{font-size:15px}.bc-phrase{font-size:13.5px}}
 .bc-repli{display:block;width:100%;background:#F5F4F1;border:1px dashed #cfcac0;border-radius:8px;padding:8px;font:inherit;font-size:12.5px;color:#4a4640;cursor:pointer;margin-bottom:8px}
 .bc-repli:hover{background:#EFEDE8}
+.bc-compte .bilan-sec{border:2px solid #0C447C;box-shadow:0 2px 10px rgba(12,68,124,.12);margin-bottom:16px}
+.bc-compte .bilan-sec .sec-hdr h2{font-size:15px}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
@@ -425,7 +427,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 /* Numéro de version, affiché en haut de l'écran. Sert à répondre en une seconde à la seule
    question qui compte quand « ça marche chez moi mais pas chez elle » : les deux téléphones
    font-ils bien tourner la MÊME version ? */
-const APP_VERSION='2026-09-23-b';
+const APP_VERSION='2026-09-23-c';
 const SK='domnoрm_prod_v1';
 const SUPA_URL='https://hdtltrnabrgibkcvubzd.supabase.co';
 const SUPA_KEY='sb_publishable_zvpg0YOHegxqXJxbEKhSbQ_3oLwbrr1';
@@ -444,6 +446,24 @@ let _lastRemoteUpdatedAt=null;
 let _syncPending=false;      // il reste des modifications non confirmées côté serveur
 try{if(localStorage.getItem(SK+'_pending')==='1')_syncPending=true;}catch(e){} // survit à une fermeture avant confirmation
 let _syncLastOk=null;        // horodatage du dernier envoi confirmé
+/* LIAISON AVEC LE SERVEUR (23/09) — la pastille « ✓ à jour » ne regardait que NOS envois : un
+   appareil qui n'arrivait plus à LIRE le serveur (quota Supabase dépassé, réseau…) affichait
+   quand même « à jour » alors qu'il ne recevait plus rien des autres. On mémorise donc aussi la
+   dernière réponse correcte du serveur, et la pastille passe au rouge si elle date. */
+let _serveurOkTs=null,_serveurErr=null;const _appDebut=Date.now();
+const SERVEUR_ALERTE_MS=75000;
+function noteServeur(ok,info){
+  if(ok){_serveurOkTs=Date.now();_serveurErr=null;}
+  else _serveurErr=info||'injoignable';
+  refreshSyncBadge();
+}
+async function forcerSynchro(){
+  showMsg('Synchronisation en cours…');
+  const ok=await syncCycle(true);
+  if(_syncPending)pushRemoteD(D);
+  showMsg(ok?'Données à jour avec le serveur ✓':'Serveur injoignable — '+(_serveurErr||'réessayez dans un instant')+' ⚠️');
+  render();
+}
 let _pushRetryDelay=3000;    // délai avant relance, doublé à chaque échec (plafonné)
 let _pushTimer=null;
 let _pendingSince=null;
@@ -455,6 +475,8 @@ const SYNC_ALERT_MS=15000;
 function syncPending(){return _syncPending;}
 /* État AFFICHÉ (différent de l'état interne) : 'ok' tant que rien n'est bloqué durablement. */
 function syncBadgeState(){
+  const sansLiaison=(Date.now()-(_serveurOkTs||_appDebut))>=SERVEUR_ALERTE_MS;
+  if(sansLiaison&&_serveurErr)return'offline';
   if(_syncPending&&_pendingSince&&(Date.now()-_pendingSince)>=SYNC_ALERT_MS)return'pending';
   return'ok';
 }
@@ -485,9 +507,13 @@ function schedulePushRetry(){
 /* Pastille de synchronisation : « ⏳ à envoyer » tant que quelque chose n'est pas confirmé côté
    serveur, « ✓ à jour » sinon. On la met à jour sur place, sans re-rendre toute la page. */
 function renderSyncBadge(){
+  if(syncBadgeState()==='offline'){
+    const q=/402|429|quota/i.test(_serveurErr||'');
+    return`<span id="sync-badge" onclick="forcerSynchro()" title="${q?'Le serveur Supabase refuse les requêtes (quota dépassé).':'Le serveur ne répond plus.'} Depuis ${_serveurOkTs?new Date(_serveurOkTs).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'l\'ouverture'}, cet écran ne reçoit plus les saisies des autres et n'envoie plus les siennes (elles sont gardées sur l'appareil). Touchez pour réessayer." style="display:inline-flex;align-items:center;gap:3px;background:#FBEAEA;color:#A32D2D;border:1px solid #E3A5A5;border-radius:20px;padding:2px 8px;font-size:10.5px;font-weight:700;white-space:nowrap;flex-shrink:0;cursor:pointer">⚠️ ${q?'quota serveur':'hors liaison'}</span>`;
+  }
   return syncBadgeState()==='pending'
-    ?`<span id="sync-badge" title="Des modifications ne sont pas encore parties. Elles sont enregistrées sur cet appareil et repartiront automatiquement dès que la connexion reviendra." style="display:inline-flex;align-items:center;gap:3px;background:#FFF3D6;color:#7A5800;border:1px solid #E8C97A;border-radius:20px;padding:2px 8px;font-size:10.5px;font-weight:700;white-space:nowrap;flex-shrink:0">⏳ à envoyer</span>`
-    :`<span id="sync-badge" title="Tout est enregistré et transmis${_syncLastOk?' — dernier envoi à '+new Date(_syncLastOk).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):''}." style="display:inline-flex;align-items:center;gap:3px;background:#EAF3DE;color:#27500A;border:1px solid #BEDCA4;border-radius:20px;padding:2px 8px;font-size:10.5px;font-weight:700;white-space:nowrap;flex-shrink:0">✓ à jour</span>`;
+    ?`<span id="sync-badge" onclick="forcerSynchro()" title="Touchez pour synchroniser maintenant. Des modifications ne sont pas encore parties. Elles sont enregistrées sur cet appareil et repartiront automatiquement dès que la connexion reviendra." style="display:inline-flex;align-items:center;gap:3px;background:#FFF3D6;color:#7A5800;border:1px solid #E8C97A;border-radius:20px;padding:2px 8px;font-size:10.5px;font-weight:700;white-space:nowrap;flex-shrink:0;cursor:pointer">⏳ à envoyer</span>`
+    :`<span id="sync-badge" onclick="forcerSynchro()" title="Touchez pour synchroniser maintenant. Tout est enregistré et transmis${_syncLastOk?' — dernier envoi à '+new Date(_syncLastOk).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):''}." style="display:inline-flex;align-items:center;gap:3px;background:#EAF3DE;color:#27500A;border:1px solid #BEDCA4;border-radius:20px;padding:2px 8px;font-size:10.5px;font-weight:700;white-space:nowrap;flex-shrink:0;cursor:pointer">✓ à jour</span>`;
 }
 /* === « Mon écran tourne-t-il sur la version à jour ? » ===
    Sur ordinateur comme sur téléphone, le navigateur garde longtemps l'ancienne page en mémoire :
@@ -547,15 +573,16 @@ function memeInstant(a,b){
 }
 async function fetchRemoteD(){
   try{
-    const res=await fetch(`${SUPA_URL}/rest/v1/app_state?id=eq.1&select=data,updated_at`,{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});
-    if(!res.ok)return null;
+    const res=await fetch(`${SUPA_URL}/rest/v1/app_state?id=eq.1&select=data,updated_at`,{cache:'no-store',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});
+    if(!res.ok){let t='';try{t=(await res.text()).slice(0,120);}catch(e){}noteServeur(false,'erreur '+res.status+' '+t);return null;}
+    noteServeur(true);
     const json=await res.json();
     if(json&&json[0]&&json[0].data&&Object.keys(json[0].data).length){
       _lastRemoteUpdatedAt=json[0].updated_at||null;
       return json[0].data;
     }
     return null;
-  }catch(e){console.error('Supabase fetch a échoué, utilisation des données locales',e);return null;}
+  }catch(e){console.error('Supabase fetch a échoué, utilisation des données locales',e);noteServeur(false,'réseau');return null;}
 }
 /* ENVOI AVEC VERROU OPTIMISTE — auparavant, cet envoi écrasait purement et simplement la ligne
    serveur (PATCH sans condition), quel que soit ce que d'autres appareils avaient pu y écrire
@@ -579,6 +606,7 @@ async function pushRemoteD(d,_retry){
       body:JSON.stringify({data:d,updated_at:nowIso})
     });
     if(!res.ok){
+      noteServeur(false,'erreur '+res.status);
       console.error('Supabase push a échoué (statut '+res.status+'), nouvelle tentative programmée');
       /* On ne se contente plus d'UNE seule tentative de secours : tant que l'envoi n'a pas été
          confirmé, on considère qu'il reste des choses en attente et on relance à délai croissant.
@@ -587,6 +615,7 @@ async function pushRemoteD(d,_retry){
       markSyncPending();schedulePushRetry();
       return;
     }
+    noteServeur(true);
     let rows=null;try{rows=await res.json();}catch(e){}
     if(filter&&(!rows||!rows.length)){
       // Conflit détecté (voir le commentaire ci-dessus) : notre envoi n'a rien modifié côté
@@ -3062,7 +3091,7 @@ function renderCompteSection(p){
         ?`<div style="font-size:11px;color:#8a857c;margin-bottom:9px">Point de départ : <strong>${C.dep.sens==='avance'?'avance':'dette'} de ${money(Math.abs(C.dep.montant))}</strong> au ${fmt(C.dep.date)}.${isAdmin?` <a href="#" onclick="event.preventDefault();if(confirm('Effacer le point de départ ? Les autres lignes sont conservées.')){delete D.comptesDepart['${p.id}'];saveD();render();}" style="color:#A32D2D">modifier</a>`:''}</div>`
         :(isAdmin?''
           :`<div style="font-size:11px;color:#8a857c;margin-bottom:9px">Aucun point de départ n'a encore été fixé : le compte démarre à zéro et ne totalise que les lignes ci-dessous.</div>`)}
-    ${(isAdmin&&actif)?`<div class="decl">
+    ${(isAdmin&&actif&&(!_bilanClair||declOuverte('cc-mv-'+p.id)))?`<div class="decl">
       <div style="font-size:9.5px;font-weight:600;color:#9a958c;margin-bottom:4px">Saisie détaillée — un versement, ou une somme à ajouter à ce qu'on ${V.self?'vous':'lui'} doit</div>
       <div class="decl-g" style="grid-template-columns:1fr 1fr">
         ${declChamp('Date',dateFieldHtml(`cc-date-${p.id}`,'width:100%',null,dstr(new Date())))}
@@ -9323,7 +9352,6 @@ function renderBilanClair(p,y,m,nav){
   ];
   const S4=[
     {cle:'total',ancre:'bloc-total',_:0,nom:'Calcul détaillé',ok:!!(p.forfaitMensuel||p.flatRate||p.inputMode==='notes'||p.inputMode==='garde'),plein:true,html:()=>`<div id="bloc-total">${S.bcDeplie==='total'?renderBilanTotalSection(p,y,m)+bcRepli('total','▴ Replier le calcul détaillé'):bcRepli('total','🧮 Voir le calcul détaillé du mois (ligne par ligne)')}</div>`},
-    {cle:'compte',ancre:'bloc-compte',nom:'Compte courant',ok:suivi&&(isAdmin||compteActif(p)),plein:compteActif(p),html:()=>renderCompteSection(p)}
   ];
   const visible=s=>s.ok&&(s.plein||s.ouvert||S.bilanVoirVides||S.bilanForceVoir===s.ancre);
   const vides=[];
@@ -9395,6 +9423,7 @@ function renderBilanClair(p,y,m,nav){
   }else{
     if(suivi)opts.push(['💶',`J’ai réglé ${p.name}`,'Espèces, virement, facture réglée',`ouvrirDeclaration(null,'bloc-reglements')`]);
     if(p.inputMode==='notes')opts.push(['🧾','Ajouter une prestation','Rattachée à une réservation',`ouvrirDeclaration('comm','bloc-commission','${p.id}')`]);
+    if(suivi&&compteActif(p))opts.push(['📒','Autre mouvement au compte courant','Une somme à lui régler en plus, une correction…',`ouvrirDeclaration('cc-mv-${p.id}','bloc-compte')`]);
     if(suivi)opts.push(['📐','Définir un forfait de travaux','Une enveloppe convenue d’avance',`ouvrirDeclaration('fx-${p.id}','bloc-forfaits')`]);
     if(p.electricite)opts.push(['⚡','Saisir un index électrique','Index de fin de mois',`ouvrirDeclaration(null,'bloc-elec')`]);
   }
@@ -9406,7 +9435,10 @@ function renderBilanClair(p,y,m,nav){
 
   const bascule=isAdmin?`<div class="bc-bascule">Présentation des bilans : <strong>nouvelle</strong> · <a href="#" onclick="event.preventDefault();if(confirm('Revenir à l\\'ancienne présentation des bilans, pour tout le monde ?'))setBilanPresentation('v1')">revenir à l'ancienne</a></div>`:'';
   const voirVides=vides.length?`<div class="bc-vides-all"><button type="button" class="btn btn-xs" onclick="toggleBilanVides()">${S.bilanVoirVides?'Replier les rubriques vides':'Afficher aussi les rubriques vides'}</button></div>`:(S.bilanVoirVides?`<div class="bc-vides-all"><button type="button" class="btn btn-xs" onclick="toggleBilanVides()">Replier les rubriques vides</button></div>`:'');
-  return`<div class="bc">${nav||''}${resume}${declarer}${etapes}${voirVides}${renderBilanComments(p,y,m)}${bascule}</div>`;
+  _bilanClair=true;
+  let compte='';
+  try{compte=(suivi&&(isAdmin||compteActif(p)))?`<div class="bc-compte">${renderCompteSection(p)}</div>`:'';}finally{_bilanClair=false;}
+  return`<div class="bc">${nav||''}${declarer}${compte}${etapes}${voirVides}${renderBilanComments(p,y,m)}${bascule}</div>`;
 }
 
 function renderPrestaMonBilan(p){
@@ -11001,7 +11033,7 @@ async function initApp(){
    vrai. Autrement dit, une saisie faite hors ligne ne repartait jamais tant que quelqu'un d'autre
    n'avait pas, par chance, modifié quelque chose de son côté. Si personne d'autre ne touchait à
    rien, la saisie restait indéfiniment sur l'appareil, invisible pour tous les autres. */
-async function syncCycle(){
+async function syncCycle(force){
   suivreVersion();
   /* === Économie de bande passante (quota Supabase) ===
      Avant, chaque battement re-téléchargeait TOUTES les données, sur chaque appareil, même
@@ -11013,9 +11045,10 @@ async function syncCycle(){
      lorsqu'il y a réellement du nouveau, d'un côté ou de l'autre. Au moindre doute (erreur,
      réponse inattendue), on refait le cycle complet — la fiabilité passe avant l'économie. */
   try{
-    if(!_syncPending&&_lastRemoteUpdatedAt){
-      const r=await fetch(`${SUPA_URL}/rest/v1/app_state?id=eq.1&select=updated_at`,{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});
-      if(r.ok){
+    if(!force&&!_syncPending&&_lastRemoteUpdatedAt){
+      const r=await fetch(`${SUPA_URL}/rest/v1/app_state?id=eq.1&select=updated_at`,{cache:'no-store',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});
+      if(!r.ok)noteServeur(false,'erreur '+r.status);
+      if(r.ok){noteServeur(true);
         const j=await r.json();
         if(j&&j[0]&&j[0].updated_at&&memeInstant(j[0].updated_at,_lastRemoteUpdatedAt))return true; // rien de neuf nulle part
       }
