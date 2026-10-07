@@ -432,6 +432,101 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .bc-repli:hover{background:#EFEDE8}
 .bc-compte .bilan-sec{border:2px solid #0C447C;box-shadow:0 2px 10px rgba(12,68,124,.12);margin-bottom:16px}
 .bc-compte .bilan-sec .sec-hdr h2{font-size:15px}
+/* Plannings équipe v2 */
+.tp-tarif{font-size:12px;color:#7a756c;margin:2px 0 8px}
+.tp-opts{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px;padding:8px 10px;background:#f7f6f3;border-radius:10px}
+.tp-lbl{font-size:10px;font-weight:700;color:#9a958c;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.tp-seg{display:inline-flex;border:1px solid #d9d5cc;border-radius:8px;overflow:hidden;flex-shrink:0}
+.tp-seg button{border:0;background:#fff;padding:3px 7px;font-size:13px;cursor:pointer;opacity:.45}
+.tp-seg button.sel{background:#F3EAD9;opacity:1;font-weight:700}
+.tp-seg.big button{padding:5px 10px;font-size:12.5px}
+.tp-seg.lock button{cursor:default}
+.tp-nav{display:flex;align-items:center;justify-content:space-between;margin:4px 0 6px;font-size:14px}
+.tp-aide{font-size:11px;color:#8a857c;margin-bottom:6px;line-height:1.4}
+.tp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.tp-dow{text-align:center;font-size:10px;font-weight:700;color:#8a8678;padding-bottom:2px}
+.tp-cell{min-height:50px;border:1.5px solid #e5e3de;border-radius:6px;padding:3px;cursor:pointer;background:#fdfdfc;display:flex;flex-direction:column;gap:2px;min-width:0}
+.tp-cell:hover{background:#f6efe9}
+.tp-cell.tp-we{background:#faf8f4}
+.tp-cell.tp-pris{background:#fff;border-color:#cfc9bd}
+.tp-cell.tp-auj{border-color:#993556}
+.tp-cell.tp-vide{background:transparent;border:0;cursor:default}
+.tp-n{font-size:10.5px;font-weight:600;color:#888}
+.tp-auj .tp-n{color:#993556;font-weight:800}
+.tp-bs{display:flex;flex-wrap:wrap;gap:2px}
+.tp-b{font-size:9px!important;padding:1px 4px!important;font-weight:800;white-space:nowrap}
+.tp-b small{font-size:8px;margin-left:1px}
+.tp-b .tp-ok{font-style:normal;color:#1F7A3D;margin-left:2px}
+.tp-lock{border:1px dashed rgba(0,0,0,.35);opacity:.9}
+.tp-sec{font-size:11px;font-weight:800;color:#6b665e;text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px}
+.tp-l{display:flex;align-items:center;gap:6px;padding:6px 6px;border-bottom:1px solid #eeebe5;font-size:12.5px;flex-wrap:wrap}
+.tp-l.ok{background:#F6FAF1}
+.tp-d{white-space:nowrap;min-width:62px;font-weight:600}
+.tp-dom{font-size:10.5px!important}
+.tp-l select.tp-dur{font-size:11.5px;padding:2px 3px;width:auto!important;min-width:0;flex:0 0 auto;height:auto}
+.tp-m{font-weight:700;white-space:nowrap;margin-left:auto}
+.tp-st{border:1px solid transparent;border-radius:12px;padding:2px 8px;font-size:11px;font-weight:700;white-space:nowrap;background:none;cursor:pointer}
+span.tp-st{cursor:default}
+.tp-st.on{background:#E8F3E0;color:#27500A}
+.tp-st.off{background:#FCEBEB;color:#791F1F;border-color:#F2C6C6}
+.tp-st.fac{background:#F3EAD9;color:#7A5800}
+.tp-x{border:0;background:none;color:#b33;cursor:pointer;font-size:12px;padding:2px 4px}
+.tp-regs{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+.tp-reg{border:1px solid #e2ded7;border-radius:10px;padding:9px 11px;background:#fff}
+.tp-reg-h{display:flex;justify-content:space-between;font-weight:700;font-size:13.5px}
+.tp-reg-s{font-size:11.5px;color:#6b665e;margin:4px 0 6px;line-height:1.45}
+.tp-reg-a{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.tp-date{font-size:11px;color:#6b665e;display:flex;align-items:center;gap:4px}
+.tp-date input{font-size:12px;padding:3px 5px}
+@media(max-width:520px){.tp-cell{min-height:44px}.tp-d{min-width:auto}}
+
+/* ══ BILAN « COMPTE COURANT » (Misha & Sacha) ══ */
+.cx-head{background:#fff;border:1px solid #D9CFC0;border-radius:12px;padding:11px 14px;margin-bottom:10px}
+.cx-lbl{font-size:10.5px;font-weight:700;color:#0C447C;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.cx-h1{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.cx-ph{font-size:14px;font-weight:600}
+.cx-big{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cx-sub{font-size:11px;color:#8a857c;margin-top:5px;display:flex;flex-wrap:wrap;gap:4px 12px}
+.cx-sub b{color:#4a4640}
+.cx-chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:6px;margin-bottom:10px}
+.cx-chip{display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #e2ded7;border-radius:10px;padding:9px 10px;font:inherit;font-size:12.5px;font-weight:600;color:#3f3b35;cursor:pointer;text-align:left;line-height:1.2}
+.cx-chip .ic{font-size:16px;flex-shrink:0}
+.cx-chip.prim{background:#0C447C;border-color:#0C447C;color:#fff}
+.cx-chip.on{box-shadow:0 0 0 2px #0C447C inset;background:#EEF4FB;color:#0C447C}
+.cx-chip.prim.on{background:#08335E;color:#fff}
+.cx-saisie{background:#FBFAF7;border:1.5px solid #0C447C;border-radius:12px;padding:10px 12px 12px;margin-bottom:12px}
+.cx-saisie-t{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:700;color:#0C447C;font-size:13px;margin-bottom:8px}
+.cx-saisie-t button{border:none;background:#E6EDF6;color:#0C447C;border-radius:6px;padding:2px 8px;cursor:pointer;font-size:12px}
+.cx-saisie .decl{background:transparent;border:none;padding:0;margin:0}
+.cx-led{background:#fff;border:2px solid #0C447C;border-radius:12px;overflow:hidden;margin-bottom:12px}
+.cx-led-h{background:#0C447C;color:#fff;padding:7px 12px;display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:13px}
+.cx-l{display:flex;align-items:flex-start;gap:7px;padding:7px 10px;border-bottom:1px solid #f0eee9}
+.cx-l.fut{opacity:.55}
+.cx-l.rep{background:#f7f6f3}
+.cx-d{flex-shrink:0;background:#f2f0eb;color:#6b665e;border-radius:4px;padding:1px 5px;font-size:10px;font-weight:600;white-space:nowrap;margin-top:2px;min-width:44px;text-align:center}
+.cx-ic{flex-shrink:0;width:18px;text-align:center;font-size:13px}
+.cx-t{flex:1;min-width:0;font-size:12.5px;line-height:1.3;font-weight:600;color:#3f3b35}
+.cx-t em{font-style:normal;font-weight:600;color:#B15E00;font-size:10px;margin-left:4px}
+.cx-t small{color:#9a958c;font-size:10.5px;font-weight:400;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.cx-t.lk{cursor:pointer}
+.cx-t.lk:hover b{text-decoration:underline}
+.cx-m{flex-shrink:0;text-align:right;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:13px}
+.cx-m small{display:block;font-weight:500;font-size:10px;color:#a8a49c}
+.cx-m.p{color:#A32D2D}.cx-m.n{color:#1F7A3D}.cx-m.z{color:#9a958c}
+.cx-a{flex-shrink:0;display:flex;gap:3px;align-items:center;min-width:24px;justify-content:flex-end}
+.cx-b{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.cx-b.ok{background:#1F7A3D}.cx-b.wait{background:#D98A00}.cx-b.clk{cursor:pointer}
+.cx-x{border:none;background:#FCEBEB;color:#A32D2D;border-radius:6px;width:22px;height:22px;font-size:11px;cursor:pointer;flex-shrink:0}
+.cx-rec{padding:6px 12px;background:#F3F7FC;font-size:11px;color:#6b665e;display:flex;gap:4px 14px;flex-wrap:wrap;border-top:1px solid #DCE6F2}
+.cx-rec b{font-variant-numeric:tabular-nums}
+.cx-fact{padding:6px 12px;background:#FDF9EE;display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:11.5px;color:#7A5800;border-top:1px solid #EADFC4}
+.cx-fact input{width:86px;text-align:right;font-size:13px;padding:4px 7px;border-radius:6px}
+.cx-f{padding:9px 12px;background:#F3F7FC;display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:700;font-size:13px;border-top:1.5px solid #0C447C}
+.cx-f .v{font-size:19px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cx-empty{padding:14px;text-align:center;font-size:12px;color:#9a958c}
+.cx-leg{font-size:10.5px;color:#8a857c;display:flex;flex-wrap:wrap;gap:4px 12px;margin:-4px 2px 12px}
+@media(max-width:520px){.cx-big{font-size:22px}.cx-chip{font-size:12px;padding:8px}.cx-d{min-width:38px}}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
@@ -442,7 +537,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 /* Numéro de version, affiché en haut de l'écran. Sert à répondre en une seconde à la seule
    question qui compte quand « ça marche chez moi mais pas chez elle » : les deux téléphones
    font-ils bien tourner la MÊME version ? */
-const APP_VERSION='2026-09-23-i';
+const APP_VERSION='2026-10-07-b';
 const SK='domnoрm_prod_v1';
 const SUPA_URL='https://hdtltrnabrgibkcvubzd.supabase.co';
 const SUPA_KEY='sb_publishable_zvpg0YOHegxqXJxbEKhSbQ_3oLwbrr1';
@@ -671,6 +766,9 @@ const EVENT_TYPES=['Mariage','Anniversaire','Séminaire','Famille / Amis','EVJF 
    mais son montant est saisi à la main à CHAQUE fois, jamais pré-rempli. */
 const FREE_EVT=v=>v==='Gratuit'||v==='Perso';
 const DOMINIQUE_RATES={d1:120,d2:150,d3:120};
+/* À partir du 1er novembre 2026, une journée de Dominique vaut 135 €, quel que soit le domaine. */
+const DOMINIQUE_TARIF_UNIQUE=135,DOMINIQUE_TARIF_UNIQUE_DEBUT='2026-11-01';
+function dominiqueRate(domaine,date){return(date&&date>=DOMINIQUE_TARIF_UNIQUE_DEBUT)?DOMINIQUE_TARIF_UNIQUE:(DOMINIQUE_RATES[domaine]||0);}
 const LEG_BG=['#F4C0D1','#F5D98B','#C0DD97','#CECBF6','#B5D4F4'];
 const BAND_FULL=['b0f','b1f','b2f','b3f','b4f'];
 const BAND_LIGHT=['b0l','b1l','b2l','b3l','b4l'];
@@ -1153,6 +1251,7 @@ const _sansAccent=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u03
 function estMisha(p){return !!p&&(p.id==='p1'||/^mi[cs]ha$/.test(_sansAccent(p.name)));}
 function estSacha(p){return !!p&&(p.id==='p2'||/^sa[cs]ha$/.test(_sansAccent(p.name)));}
 function runMigrations(){
+  (D.dominiqueSchedule||[]).forEach(x=>{if(x&&x.date&&x.date>=DOMINIQUE_TARIF_UNIQUE_DEBUT&&x.montant!==DOMINIQUE_TARIF_UNIQUE)x.montant=DOMINIQUE_TARIF_UNIQUE;});
   /* 23/09 : nouveaux codes — David 1978, Svitlana 1982 (l'ancien 1984 a circulé). Le marqueur pinV voyage
      avec la fiche admin : la migration ne s'applique qu'une fois et n'écrase jamais un code changé
      ensuite depuis l'app. */
@@ -1957,7 +2056,7 @@ function submitAddPrestaLine(pid){
   const p=gPre(pid);
   logActivity('prestation',r.domaine,`Prestation ajoutée : ${label||'—'}${montant?' · '+money(montant):''} — ${p.name} (${displayClientName(r)||'—'})`,[pid],false,rid);
   saveD();
-  S.addPrestaLineOpen=null;
+  S.addPrestaLineOpen=null;S.saisie=null;
   showMsg('Prestation ajoutée ✓');
   render();
 }
@@ -2075,7 +2174,7 @@ function addForfait(pid){
     date:date||dstr(new Date()),clos:false,createdAt:Date.now()});
   const p=gPre(pid);
   logActivity('prestation',domaine,`Forfait de travaux défini — ${p.name} : ${titre} ${money(montant)}`,[pid],true);
-  S.declOuvert=null;saveD();showMsg('Forfait enregistré ✓');render();
+  S.declOuvert=null;S.saisie=null;saveD();showMsg('Forfait enregistré ✓');render();
 }
 function delForfait(id){
   const f=(D.forfaits||[]).find(x=>x.id===id); if(!f)return;
@@ -2376,7 +2475,7 @@ function addEncaissement(pid){
     provenance,note,status:'en_attente',createdAt:Date.now()});
   const p=gPre(pid);
   logActivity('remboursement',domaine,`Encaissé pour nous — ${p.name} : ${provenance||'—'} ${money(montant)} (${encaissementSourceLabel({source})}${via==='structure'?', via sa structure':''})`,[pid],true);
-  saveD();showMsg('Enregistré, en attente de validation ✓');render();
+  S.saisie=null;saveD();showMsg('Enregistré, en attente de validation ✓');render();
 }
 function delEncaissement(id){
   const x=(D.encaissements||[]).find(y=>y.id===id);
@@ -2516,7 +2615,7 @@ function renderGardeSection(p,y,m){
   rows.sort((a,b)=>a.date.localeCompare(b.date));
   const total=rows.reduce((a,x)=>a+gardeRate(x.duree),0),paid=rows.filter(x=>x.paid).reduce((a,x)=>a+gardeRate(x.duree),0);
   const enAttenteCount=rows.filter(x=>!x.valide).length;
-  const header=`<div class="sec-hdr" style="background:#3C3489"><h2><span>🛡</span><span>Gardiennage</span><span style="opacity:.75;font-weight:400">· ${MONTHS_FR[m]} ${y}</span></h2>${isAdmin?`<span style="display:flex;gap:6px"><button class="btn btn-xs btn-primary" onclick="openM('teamPlanning',null,{pid:'${p.id}'})">📅 Calendrier</button><button class="btn btn-xs" onclick="openM('gardePlanning',null,{pid:'${p.id}'})">💶 Liste</button></span>`:''}</div>
+  const header=`<div class="sec-hdr" style="background:#3C3489"><h2><span>🛡</span><span>Gardiennage</span><span style="opacity:.75;font-weight:400">· ${MONTHS_FR[m]} ${y}</span></h2>${isAdmin?`<span style="display:flex;gap:6px"><button class="btn btn-xs btn-primary" onclick="openM('teamPlanning',null,{pid:'${p.id}'})">📅 Planning & règlements</button></span>`:''}</div>
     <div class="g3" style="margin-bottom:14px">
       <div class="metric"><span class="lbl">Total dû ce mois</span><span class="val">${money(total)}</span></div>
       <div class="metric"><span class="lbl">Pointé ✓</span><span class="val" style="color:#27500A">${money(paid)}</span></div>
@@ -2524,7 +2623,7 @@ function renderGardeSection(p,y,m){
     </div>`;
   if(isAdmin){
     const body=rows.length===0?'<div class="empty">Aucune nuit de gardiennage ce mois-ci.</div>':`<div style="overflow-x:auto"><table class="list-tbl"><thead><tr><th>Nuit du</th><th>Lieu</th><th>Durée</th><th>Commentaire</th><th>Montant</th><th>Mode</th><th>Validation</th><th>Événement</th><th></th></tr></thead>
-      <tbody>${rows.map(x=>{const dom=gDom(x.domaine);const toggleCall=x.source==='resa'?`toggleGardeNightPaid('${x.resaId}','${p.id}','${x.date}')`:`toggleGardeSchedulePaid('${x.schedId}')`;const methodCall=x.source==='resa'?`setGardeNightPayMethod('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeSchedulePayMethod('${x.schedId}',this.value)`;const dureeCall=x.source==='resa'?`setGardeNightDuree('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleDuree('${x.schedId}',this.value)`;const commentCall=x.source==='resa'?`setGardeNightComment('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleComment('${x.schedId}',this.value)`;const delCall=x.source==='resa'?`delGardeNight('${x.resaId}','${p.id}','${x.date}')`:`delGardePlanning('${x.schedId}')`;const valideCall=x.source==='resa'?`toggleGardeNightValide('${x.resaId}','${p.id}','${x.date}')`:`toggleGardeScheduleValide('${x.schedId}')`;return`<tr><td>${dn(x.date)} ${ds(x.date)}</td><td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td><td><select onchange="${dureeCall}" style="font-size:12px"><option value="courte" ${x.duree==='courte'?'selected':''}>Courte (22h-2h)</option><option value="longue" ${x.duree==='longue'?'selected':''}>Longue (22h-4h)</option></select></td><td><input type="text" id="garde-com-${x.source==='resa'?(x.resaId+'_'+p.id+'_'+x.date):x.schedId}" value="${x.comment||''}" placeholder="Commentaire" onchange="${commentCall}" style="font-size:12px;padding:3px 5px;width:130px;color:#888"></td><td>${money(gardeRate(x.duree))}</td><td>${regleToggle(x.paid,toggleCall)}</td><td>${valideBadge(x.valide,valideCall)}</td><td>${x.client}</td><td><button class="btn btn-xs btn-danger" onclick="${delCall}">✕</button></td></tr>`;}).join('')}</tbody></table></div>`;
+      <tbody>${rows.map(x=>{const dom=gDom(x.domaine);const toggleCall=x.source==='resa'?`toggleGardeNightPaid('${x.resaId}','${p.id}','${x.date}')`:`toggleGardeSchedulePaid('${x.schedId}')`;const methodCall=x.source==='resa'?`setGardeNightPayMethod('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeSchedulePayMethod('${x.schedId}',this.value)`;const dureeCall=x.source==='resa'?`setGardeNightDuree('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleDuree('${x.schedId}',this.value)`;const commentCall=x.source==='resa'?`setGardeNightComment('${x.resaId}','${p.id}','${x.date}',this.value)`:`setGardeScheduleComment('${x.schedId}',this.value)`;const delCall=x.source==='resa'?`delGardeNight('${x.resaId}','${p.id}','${x.date}')`:`delGardePlanning('${x.schedId}')`;const valideCall=x.source==='resa'?`toggleGardeNightValide('${x.resaId}','${p.id}','${x.date}')`:`toggleGardeScheduleValide('${x.schedId}')`;return`<tr><td>${dn(x.date)} ${ds(x.date)}</td><td><span class="pill ${PILL[dom.color||0]}">${dom.name}</span></td><td><select onchange="${dureeCall}" style="font-size:12px"><option value="courte" ${x.duree==='courte'?'selected':''}>Courte (22h-2h)</option><option value="longue" ${x.duree==='longue'?'selected':''}>Longue (22h-4h)</option></select></td><td><input type="text" id="garde-com-${x.source==='resa'?(x.resaId+'_'+p.id+'_'+x.date):x.schedId}" value="${x.comment||''}" placeholder="Commentaire" onchange="${commentCall}" style="font-size:12px;padding:3px 5px;width:130px;color:#888"></td><td>${money(gardeRate(x.duree))}</td><td>${planModeOf(p,{payMethod:x.payMethod})==='facture'?'🧾':'💶'} ${regleToggle(x.paid,toggleCall)}</td><td>${valideBadge(x.valide,valideCall)}</td><td>${x.client}</td><td><button class="btn btn-xs btn-danger" onclick="${delCall}">✕</button></td></tr>`;}).join('')}</tbody></table></div>`;
     return`<div id="bloc-garde" class="bilan-sec" style="border-left:3px solid #3C3489">${header}${enAttenteCount>0?`<div class="alert" style="background:#B15E00;color:#fff;font-weight:700;margin-bottom:10px;font-size:12.5px">⏳ ${enAttenteCount} nuit${enAttenteCount>1?'s':''} en attente de validation.</div>`:''}${body}</div>`;
   }
   const body=rows.length===0?'<div class="empty">Aucune nuit de gardiennage ce mois-ci.</div>':rows.map((x,xIdx)=>{const dom=gDom(x.domaine);return`<div style="padding:7px 4px;border-bottom:1px solid #f0eee8;font-size:12.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:${xIdx%2===1?'#f7f6f3':'transparent'}">
@@ -2655,7 +2754,7 @@ function menageDansMois(r,y,m){
 const COMPTE_MODES=[['especes','💶 Espèces'],['facture','🧾 Facture réglée'],['virement','🏦 Virement'],['autre','Autre']];
 function compteModeLabel(m){const o=COMPTE_MODES.find(x=>x[0]===m);return o?o[1]:'Autre';}
 function compteDepart(pid){return (D.comptesDepart||{})[pid]||null;}
-function finDeMois(y,m){return new Date(y,m+1,0).toISOString().slice(0,10);}
+function finDeMois(y,m){return dstr(new Date(y,m+1,0));}
 /* Le mois compte dès lors qu'il se termine APRÈS le jour de démarrage : avec un démarrage au
    31/08, août est déjà soldé par l'avance, et septembre est le premier mois qui s'ajoute. */
 /* === Le compte courant à la vraie date ===
@@ -2694,45 +2793,302 @@ function evenementsCompteMois(p,y,m){
   const monthKey=`${y}-${String(m+1).padStart(2,'0')}`;
   const inMonthDate=d=>!!d&&d.startsWith(monthKey);
   const fin=finDeMois(y,m);
-  const push=(date,label,detail,montant)=>{
+  /* ref : ce qui permet, depuis le compte courant, de valider, supprimer ou ouvrir la ligne. */
+  const push=(date,label,detail,montant,ref)=>{
     if(!date||!montant)return;
-    L.push({date,label,detail,montant:Math.round(montant*100)/100});
+    L.push({date,label,detail,montant:Math.round(montant*100)/100,ref:ref||null});
   };
-  push(fin,`Forfait gardiennage fixe — ${MONTHS_FR[m]}`,'Montant mensuel constant',p.forfaitMensuel||0);
+  push(fin,`Forfait gardiennage fixe — ${MONTHS_FR[m]}`,'Montant mensuel constant',p.forfaitMensuel||0,{k:'forfait',key:monthKey});
   D.reservations.filter(r=>r.status!=='annulé'&&menageDansMoisPour(r,p,y,m))
     .map(r=>({r,mi:getMenageInfo(r)})).filter(x=>x.mi&&x.mi.pid===p.id)
-    .forEach(({r,mi})=>push(menageJour(r,p),'Ménage',displayClientName(r)||'',mi.montant));
+    .forEach(({r,mi})=>push(menageJour(r,p),'Ménage',displayClientName(r)||'',mi.montant,{k:'menage',rid:r.id,valide:!!r.menageValide}));
   D.reservations.filter(r=>r.status!=='annulé'&&r.prestaLines&&r.prestaLines[p.id]&&r.prestaLines[p.id].length)
     .forEach(r=>{const d=r.dateArrivee||r.date; if(!inMonthDate(d))return;
       r.prestaLines[p.id].forEach(l=>{const c=ligneCalc(l,p.id);const q=calculPrestationCompte(l,c,p);
-        push(d,q.label,[q.calcul,[l.label||l.nom||'',displayClientName(r)||''].filter(Boolean).join(' · ')].filter(Boolean).join(' — '),c.net);});});
+        push(d,q.label,[q.calcul,[l.label||l.nom||'',displayClientName(r)||''].filter(Boolean).join(' · ')].filter(Boolean).join(' — '),c.net,
+          {k:'presta',rid:r.id,lid:l.id,valide:!!l.valide});});});
   (D.travauxSchedule||[]).filter(x=>x.pid===p.id&&inMonthDate(x.date))
-    .forEach(x=>push(x.date,'Travaux & activités',x.note||'',x.montant||0));
+    .forEach(x=>push(x.date,x.forfaitId?'Avancée sur forfait':travauxTypeLabel(x.type||'travaux').replace(/^\S+\s/,''),
+      [x.mode==='heure'&&x.heures?`${x.heures} h × ${TRAVAUX_RATE} €`:'',x.note].filter(Boolean).join(' · '),x.montant||0,
+      {k:'trav',id:x.id,valide:x.status==='validé'}));
   if(p.inputMode==='garde'){
     D.reservations.filter(r=>r.status!=='annulé').forEach(r=>{
       const pg=(r.prestaGarde||{})[p.id]; if(!pg)return;
       Object.entries(pg.nights||{}).forEach(([date,v])=>{
-        if(inMonthDate(date))push(date,'Nuit de gardiennage',displayClientName(r)||'',gardeRate(v.duree));});
+        if(inMonthDate(date))push(date,'Nuit de gardiennage',displayClientName(r)||'',gardeRate(v.duree),{k:'garde',rid:r.id,date,valide:v.valide!==false});});
     });
     (D.gardeSchedule||[]).filter(x=>x.pid===p.id&&inMonthDate(x.date))
-      .forEach(x=>push(x.date,'Nuit de gardiennage','',gardeRate(x.duree)));
+      .forEach(x=>push(x.date,'Nuit de gardiennage','',gardeRate(x.duree),{k:'gardeS',id:x.id,valide:x.valide!==false}));
   }
   if(p.name==='Dominique'){
     (D.dominiqueSchedule||[]).filter(x=>inMonthDate(x.date))
-      .forEach(x=>push(x.date,'Jardinage',x.note||'',x.montant||0));
+      .forEach(x=>push(x.date,'Jardinage',x.note||'',x.montant||0,{k:'jard',id:x.id}));
   }
   if(p.electricite){
     const e=computeElecCost(p.id,y,m);
     if(e&&e.cost)push(fin,`Électricité — ${MONTHS_FR[m]}`,
-      (e.conso!==null?`${e.conso} kWh`:'')+` à la charge de ${p.name}`,-e.cost);
+      (e.conso!==null?`${e.conso} kWh`:'')+` à la charge de ${p.name}`,-e.cost,{k:'elec',key:monthKey,valide:isElecValide(p.id,monthKey)});
   }
   (D.remboursements||[]).filter(x=>x.pid===p.id&&inMonthDate(x.date))
     .forEach(x=>push(x.date,'Réglé pour notre compte',
-      [x.beneficiaire,x.note].filter(Boolean).join(' · '),x.montant||0));
+      [x.beneficiaire,x.note].filter(Boolean).join(' · '),x.montant||0,{k:'remb',id:x.id,valide:x.status==='validé'}));
   (D.encaissements||[]).filter(x=>x.pid===p.id&&inMonthDate(x.date))
     .forEach(x=>push(x.date,'Reçu pour notre compte',
-      [x.provenance,x.note].filter(Boolean).join(' · '),-encaissementDu(x)));
+      [x.provenance,x.note].filter(Boolean).join(' · '),-encaissementDu(x),{k:'enc',id:x.id,valide:x.status==='validé'}));
   return L;
+}
+/* ══════════════════════════════════════════════════════════════════════════════════════
+   BILAN « COMPTE COURANT » — Misha et Sacha (07/10/2026, demande de David)
+   Le compte courant devient LA page : en haut, où on en est aujourd'hui ; juste dessous, une
+   rangée de boutons pour tout ce qu'on peut ajouter ou régler ; puis le mois choisi, ligne par
+   ligne, à sa vraie date, avec le solde qui court. Chaque ligne se valide (pastille) ou se
+   supprime (✕) directement là. Les écrans détaillés d'avant restent accessibles, repliés en bas,
+   pour corriger un montant — aucune fonctionnalité n'est perdue, elles ne sont plus en vrac.
+   ══════════════════════════════════════════════════════════════════════════════════════ */
+function ledgerMois(p,y,m){
+  const key=monthKeyOf(y,m),debut=key+'-01',auj=dstr(new Date());
+  const dep=compteDepart(p.id);
+  const actif=!!(dep&&dep.date&&dep.date.slice(0,7)<=key);
+  let report=0,lignes=[];
+  if(actif){
+    const C=computeCompteCourant(p);
+    C.lignes.concat(C.aVenir).forEach(l=>{
+      const d=l.date||'';
+      if(d<debut)report=l.solde;
+      else if(d.slice(0,7)===key)lignes.push(l);
+    });
+  }else{
+    evenementsCompteMois(p,y,m).forEach(e=>lignes.push(Object.assign({ordre:1,type:'activite'},e)));
+    (D.comptesMouvements||[]).filter(x=>x.pid===p.id&&(x.date||'').slice(0,7)===key).forEach(x=>{
+      lignes.push({date:x.date,ordre:2,type:'mouvement',id:x.id,mode:x.mode,
+        label:(x.sens==='du')?'À lui régler en plus':'Réglé',
+        detail:[compteModeLabel(x.mode),x.pour||x.note].filter(Boolean).join(' · '),
+        montant:(x.sens==='du'?1:-1)*Math.abs(+x.montant||0)});
+    });
+    lignes.sort((a,b)=>(a.date||'').localeCompare(b.date||'')||a.ordre-b.ordre);
+  }
+  let s=report,fait=0,deduit=0,regle=0,plus=0;
+  lignes.forEach(l=>{
+    s=Math.round((s+l.montant)*100)/100;l.soldeM=s;
+    if(l.type==='activite'){if(l.montant>0)fait+=l.montant;else deduit-=l.montant;}
+    else if(l.type==='mouvement'){if(l.montant<0)regle-=l.montant;else plus+=l.montant;}
+  });
+  const r2=v=>Math.round(v*100)/100;
+  return{key,report:r2(report),lignes,fin:r2(s),dep,actif,auj,fait:r2(fait),deduit:r2(deduit),regle:r2(regle),plus:r2(plus)};
+}
+function setSaisie(k){
+  if(k==='msg'){
+    setTimeout(()=>{const e=document.getElementById('bloc-comments');if(e){e.scrollIntoView({behavior:'smooth',block:'start'});const i=e.querySelector('input');if(i)i.focus();}},30);
+    return;
+  }
+  S.saisie=(S.saisie===k)?null:k;
+  S.addPrestaLineOpen=null;
+  render();
+}
+function toggleCx(k){S[k]=!S[k];render();}
+function ccBadge(valide,js){
+  const adm=S.view==='admin';
+  return`<span class="cx-b ${valide?'ok':'wait'}${adm?' clk':''}" title="${valide?'Validé':'À valider'}${adm?' — toucher pour changer':''}"${adm?` onclick="event.stopPropagation();${js}"`:''}>${valide?'✓':'⏳'}</span>`;
+}
+function ccSuppr(js){
+  return`<button class="cx-x" title="Supprimer" onclick="event.stopPropagation();if(confirm('Supprimer cette ligne ?')){${js}}">✕</button>`;
+}
+function ccIcone(l){
+  if(l.type==='depart')return'📌';
+  if(l.type==='mouvement')return l.montant>0?'➕':(l.mode==='facture'?'🧾':l.mode==='virement'?'🏦':'💶');
+  const k=l.ref&&l.ref.k;
+  return{menage:'🧹',presta:'🧾',trav:'🔧',forfait:'🛡',garde:'🛡',gardeS:'🛡',jard:'🌱',elec:'⚡',remb:'💳',enc:'💰'}[k]||'•';
+}
+function ccActions(l,p,isAdmin){
+  if(l.type==='mouvement')return isAdmin?ccSuppr(`delCompteMouvement('${l.id}')`):'';
+  if(l.type!=='activite')return'';
+  const r=l.ref||{};
+  switch(r.k){
+    case'menage':return ccBadge(r.valide,`toggleMenageValide('${r.rid}')`);
+    case'presta':return ccBadge(r.valide,`toggleLigneValide('${r.rid}','${p.id}','${r.lid}')`)
+      +((isAdmin||!r.valide)?ccSuppr(`${isAdmin?'delPrestaLine':'delPrestaLineSelf'}('${r.rid}','${p.id}','${r.lid}')`):'');
+    case'trav':return ccBadge(r.valide,`toggleTravauxValide('${r.id}')`)+((isAdmin||!r.valide)?ccSuppr(`delTravaux('${r.id}')`):'');
+    case'remb':return ccBadge(r.valide,`toggleRemboursementValide('${r.id}')`)+((isAdmin||!r.valide)?ccSuppr(`delRemboursement('${r.id}')`):'');
+    case'enc':return ccBadge(r.valide,`toggleEncaissementValide('${r.id}')`)+((isAdmin||!r.valide)?ccSuppr(`delEncaissement('${r.id}')`):'');
+    case'elec':return ccBadge(r.valide,`toggleElecValide('${p.id}','${r.key}')`);
+    case'garde':return ccBadge(r.valide,`toggleGardeNightValide('${r.rid}','${p.id}','${r.date}')`);
+    case'gardeS':return ccBadge(r.valide,`toggleGardeScheduleValide('${r.id}')`);
+  }
+  return'';
+}
+function ccLigneHtml(l,p,isAdmin,auj){
+  const r=l.ref||{};
+  const futur=l.date&&l.date>auj;
+  const v=l.montant,cls=v>0.005?'p':v<-0.005?'n':'z';
+  const lien=r.rid?(isAdmin?`openM('editResa','${r.rid}')`:`selectAndGoPrestaCal('${r.rid}')`):'';
+  const esc=t=>String(t||'').replace(/</g,'&lt;');
+  return`<div class="cx-l${futur?' fut':''}">
+    <span class="cx-d">${ds(l.date)}</span>
+    <span class="cx-ic">${ccIcone(l)}</span>
+    <span class="cx-t${lien?' lk':''}"${lien?` onclick="${lien}"`:''}><b>${esc(l.label)}</b>${futur?'<em>prévu</em>':''}${l.detail?`<small>${esc(l.detail)}</small>`:''}</span>
+    <span class="cx-m ${cls}">${v>=0?'+':'−'} ${money(Math.abs(v))}<small>= ${money(l.soldeM)}</small></span>
+    <span class="cx-a">${ccActions(l,p,isAdmin)}</span>
+  </div>`;
+}
+/* Les formulaires de saisie, tous au même endroit (juste sous les boutons). Ils réutilisent les
+   mêmes champs et les mêmes fonctions d'enregistrement qu'avant : rien ne change dans les données.
+   Les DATES sont pré-remplies (aujourd'hui, ou le 1er du mois affiché) ; les MONTANTS jamais. */
+function renderSaisieCompte(p,y,m,k){
+  const V=bilanVoix(p);
+  const defaultDom=(p.domaines||[])[0];
+  const domOpts=D.domaines.map(d=>`<option value="${d.id}" ${d.id===defaultDom?'selected':''}>${d.name}</option>`).join('');
+  const jour=dateDefautMois(y,m);
+  const btn=(txt,js)=>`<button class="btn btn-primary decl-go" onclick="${js}">${txt}</button>`;
+  let titre='',corps='';
+  if(k==='trav'){
+    titre='🔧 Travaux, activité ou ménage ponctuel';
+    corps=`<div class="decl-g" style="grid-template-columns:1fr 1fr">
+        ${declChamp('Domaine',`<select id="trav-domaine-${p.id}">${domOpts}</select>`)}
+        ${declChamp('Date',dateFieldHtml(`trav-date-${p.id}`,'width:100%',null,jour))}
+        ${declChamp('Nature',`<select id="trav-type-${p.id}" onchange="var h=travauxTypeAlHeure(this.value);document.getElementById('trav-mode-${p.id}').style.display=h?'':'none';if(!h)document.getElementById('trav-mode-${p.id}').value='forfait';var f=document.getElementById('trav-mode-${p.id}').value==='forfait'||!h;document.getElementById('trav-heures-${p.id}').parentNode.style.display=f?'none':'';document.getElementById('trav-forfait-${p.id}').parentNode.style.display=f?'':'none';">${TRAVAUX_TYPES.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>`)}
+        ${declChamp('Compté',`<select id="trav-mode-${p.id}" onchange="var h=this.value==='heure';document.getElementById('trav-heures-${p.id}').parentNode.style.display=h?'':'none';document.getElementById('trav-forfait-${p.id}').parentNode.style.display=h?'none':'';"><option value="heure">À l'heure (${TRAVAUX_RATE} €/h)</option><option value="forfait">Au forfait</option></select>`)}
+        ${declChamp("Nombre d'heures",`<input type="number" id="trav-heures-${p.id}" step="0.5" placeholder="ex. 3">`)}
+        <div class="decl-c" style="display:none"><label>Montant convenu (€)</label><input type="number" id="trav-forfait-${p.id}" step="0.01" placeholder="ex. 150"></div>
+      </div>
+      <div class="decl-g" style="grid-template-columns:1fr">${declChamp('Ce qui a été fait',`<input type="text" id="trav-note-${p.id}" placeholder="ex. réparation du portail">`)}</div>
+      ${btn('Déclarer',`addTravaux('${p.id}')`)}`;
+  }else if(k==='remb'){
+    titre=V.self?'💳 J’ai payé quelque chose pour David et Svitlana':`💳 ${p.name} a payé pour nous`;
+    corps=`<div class="decl-g" style="grid-template-columns:1fr 1fr">
+        ${declChamp('Domaine',`<select id="remb-domaine-${p.id}">${domOpts}</select>`)}
+        ${declChamp('Date',dateFieldHtml(`remb-date-${p.id}`,'width:100%',null,jour))}
+        ${declChamp('Montant payé (€)',`<input type="number" id="remb-montant-${p.id}" step="0.01" placeholder="0">`)}
+        ${declChamp('Payé à qui / pour quoi',`<input type="text" id="remb-benef-${p.id}" placeholder="ex. La Poste">`)}
+      </div>
+      <div class="decl-g" style="grid-template-columns:1fr">${declChamp('Motif',`<input type="text" id="remb-note-${p.id}" placeholder="facultatif">`)}</div>
+      <div style="font-size:11px;color:#8a857c;margin-bottom:8px">S'ajoute à ce qu'on ${V.self?'vous':'lui'} doit — compté à part de l'activité.</div>
+      ${btn('Déclarer',`addRemboursement('${p.id}')`)}`;
+  }else if(k==='enc'){
+    const aStruct=!!p.structure;
+    titre=V.self?'💰 J’ai reçu de l’argent pour David et Svitlana':`💰 ${p.name} a reçu de l'argent pour nous`;
+    corps=`<div class="decl-g" style="grid-template-columns:1fr 1fr">
+        ${declChamp('Domaine',`<select id="enc-domaine-${p.id}">${domOpts}</select>`)}
+        ${declChamp('Date',dateFieldHtml(`enc-date-${p.id}`,'width:100%',null,jour))}
+        ${declChamp('Montant reçu (€)',`<input type="number" id="enc-montant-${p.id}" step="0.01" placeholder="0" oninput="majApercuEnc('${p.id}')">`)}
+        ${declChamp('Comment',`<select id="enc-via-${p.id}" onchange="majApercuEnc('${p.id}')"><option value="direct">Reçu en direct</option>${aStruct?`<option value="structure">Via ${p.structure} (14 % de frais)</option>`:`<option value="structure">Via sa structure (14 % de frais)</option>`}</select>`)}
+        ${declChamp("D'où vient l'argent",`<select id="enc-src-${p.id}">${ENC_SOURCES.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>`)}
+        ${declChamp('Pour quoi / de qui',`<input type="text" id="enc-prov-${p.id}" placeholder="ex. acompte Mme Dubosc">`)}
+      </div>
+      <div class="decl-g" style="grid-template-columns:1fr">${declChamp('Précision',`<input type="text" id="enc-note-${p.id}" placeholder="facultatif">`)}</div>
+      <div id="enc-apercu-${p.id}" style="font-size:11.5px;color:#7A5800;background:#FDF4E3;border-radius:8px;padding:7px 10px;margin-bottom:9px;display:none"></div>
+      ${btn('Déclarer',`addEncaissement('${p.id}')`)}`;
+  }else if(k==='presta'){
+    titre='🧾 Prestation pour un client';
+    corps=renderAddPrestaLineForm(p);
+  }else if(k==='regl'){
+    titre=`💶 Régler ${p.name}`;
+    const modeBtn=(v,ic,lbl,sel)=>`<button type="button" class="reg-mode${sel?' sel':''}" onclick="pickRegMode('${p.id}','${v}',this,0,0)"><span class="rm-ic">${ic}</span>${lbl}</button>`;
+    corps=`<input type="hidden" id="reg-mode-${p.id}" value="especes">
+      <div class="reg-modes" id="reg-modes-${p.id}">${modeBtn('especes','💶','Espèces',true)}${modeBtn('facture','🧾','Facture',false)}${modeBtn('virement','🏦','Virement',false)}${modeBtn('autre','✍️','Autre',false)}</div>
+      <div class="decl-g" style="grid-template-columns:1fr 1fr">
+        ${declChamp('Date du règlement',dateFieldHtml(`reg-date-${p.id}`,'width:100%',null,dstr(new Date())))}
+        ${declChamp('Montant (€)',`<input type="number" id="reg-montant-${p.id}" step="0.01" placeholder="0">`)}
+      </div>
+      <div class="decl-g" style="grid-template-columns:1fr">${declChamp('Pour quoi',`<input type="text" id="reg-pour-${p.id}" placeholder="ex. solde d'octobre, ménage…">`)}</div>
+      <div class="reg-pours">${REG_POURS.map(t=>`<button type="button" class="reg-pour" onclick="setRegPour('${p.id}','${t}')">${t}</button>`).join('')}</div>
+      ${btn('✓ Enregistrer ce règlement',`addReglementRapide('${p.id}',${y},${m})`)}`;
+  }else if(k==='plus'){
+    titre=`➕ Somme à ajouter au compte de ${p.name}`;
+    corps=`<div class="decl-g" style="grid-template-columns:1fr 1fr">
+        ${declChamp('Date',dateFieldHtml(`cc-date-${p.id}`,'width:100%',null,dstr(new Date())))}
+        ${declChamp('Montant (€)',`<input type="number" id="cc-montant-${p.id}" step="0.01" placeholder="0">`)}
+        ${declChamp('Sens',`<select id="cc-sens-${p.id}"><option value="du" selected>À lui régler en plus</option><option value="verse">Je lui ai réglé</option></select>`)}
+        ${declChamp('Comment',`<select id="cc-mode-${p.id}">${COMPTE_MODES.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>`)}
+      </div>
+      <div class="decl-g" style="grid-template-columns:1fr">${declChamp('Précision',`<input type="text" id="cc-note-${p.id}" placeholder="ex. prime, correction…">`)}</div>
+      ${btn('Enregistrer',`addCompteMouvement('${p.id}')`)}`;
+  }else if(k==='forfait'){
+    titre='📐 Forfait de travaux (enveloppe convenue)';
+    corps=`<div class="decl-g" style="grid-template-columns:1fr 1fr">
+        ${declChamp('Intitulé',`<input type="text" id="fx-titre-${p.id}" placeholder="ex. peinture et fenêtres">`)}
+        ${declChamp('Domaine',`<select id="fx-domaine-${p.id}">${domOpts}</select>`)}
+        ${declChamp('Montant convenu (€)',`<input type="number" id="fx-montant-${p.id}" step="0.01" placeholder="0">`)}
+        ${declChamp('Convenu le',dateFieldHtml(`fx-date-${p.id}`,'width:100%',null,dstr(new Date())))}
+      </div>
+      <div style="font-size:11px;color:#8a857c;margin-bottom:8px">Rien n'est dû tant qu'aucune avancée n'est déclarée : ${V.self?'vous déclarez':p.name+' déclare'} chaque avancée dans « Détails » → Forfaits.</div>
+      ${btn('Définir le forfait',`addForfait('${p.id}')`)}`;
+  }else if(k==='depart'){
+    const dep=compteDepart(p.id)||{};
+    titre='📌 Point de départ du compte courant';
+    corps=`<div class="decl-g" style="grid-template-columns:1fr 1fr">
+        ${declChamp('À la date du',dateFieldHtml(`cc-dep-date-${p.id}`,'width:100%',null,dep.date||dstr(new Date())))}
+        ${declChamp('Montant (€)',`<input type="number" id="cc-dep-montant-${p.id}" step="0.01" placeholder="0" value="${dep.montant!==undefined?Math.abs(dep.montant):''}">`)}
+      </div>
+      <div class="decl-g" style="grid-template-columns:1fr">${declChamp("De quoi s'agit-il ?",`<select id="cc-dep-sens-${p.id}"><option value="avance" ${dep.sens!=='dette'?'selected':''}>Une avance qu'on lui a versée (il nous doit ce montant)</option><option value="dette" ${dep.sens==='dette'?'selected':''}>Une somme qu'on lui doit encore</option></select>`)}</div>
+      <div style="font-size:11px;color:#8a857c;margin-bottom:8px">Tout ce qui a eu lieu jusqu'à cette date est considéré comme réglé ; le compte court à partir du lendemain.</div>
+      ${btn('Enregistrer le point de départ',`setCompteDepart('${p.id}')`)}`;
+  }
+  if(!corps)return'';
+  return`<div class="cx-saisie" id="cx-saisie"><div class="cx-saisie-t"><span>${titre}</span><button onclick="setSaisie(null)">✕ Fermer</button></div><div class="decl">${corps}</div></div>`;
+}
+function renderBilanCompte(p,y,m,nav){
+  const isAdmin=S.view==='admin';
+  const V=bilanVoix(p);
+  const L=ledgerMois(p,y,m);
+  const bt=computeBilanTotal(p,y,m);
+  const moisNom=MONTHS_FR[m];
+  const actif=compteActif(p);
+  const teinte=v=>v>0.005?'#A32D2D':v<-0.005?'#1F7A3D':'#6b665e';
+  const phrase=v=>v>0.005?(V.self?'Nous vous devons':`Nous devons à ${p.name}`)
+                :v<-0.005?(V.self?'Vous nous devez':`${p.name} nous doit`):'Compte à zéro';
+  /* ── 1. Où on en est, aujourd'hui ── */
+  const sub=[];
+  let tete;
+  if(actif){
+    const C=computeCompteCourant(p);
+    sub.push(`Point de départ : ${C.dep.sens==='avance'?'avance':'dette'} de <b>${money(Math.abs(C.dep.montant))}</b> au ${fmt(C.dep.date)}`);
+    if(C.aVenir.length)sub.push(`Une fois tout le prévu réalisé : <b style="color:${teinte(C.soldeProjete)}">${phrase(C.soldeProjete).toLowerCase()} ${money(Math.abs(C.soldeProjete))}</b>`);
+    tete=`<div class="cx-head"><div class="cx-lbl">📒 Compte courant — aujourd'hui</div>
+      <div class="cx-h1"><span class="cx-ph" style="color:${teinte(C.solde)}">${phrase(C.solde)}</span><span class="cx-big" style="color:${teinte(C.solde)}">${money(Math.abs(C.solde))}</span></div>`;
+  }else{
+    tete=`<div class="cx-head"><div class="cx-lbl">📒 Compte courant</div>
+      <div class="cx-h1"><span class="cx-ph" style="color:#6b665e">Pas encore ouvert</span>${isAdmin?`<button class="btn btn-sm btn-primary" onclick="setSaisie('depart')">Ouvrir le compte</button>`:''}</div>`;
+    sub.push(V.self?'Le mois ci-dessous repart de zéro tant que David ou Svitlana n’a pas fixé le point de départ.':'Sans point de départ, chaque mois repart de zéro.');
+  }
+  if(bt.enAttente>0)sub.push(`<span style="color:#B15E00">⏳ <b>${bt.enAttente}</b> ligne${bt.enAttente>1?'s':''} à valider en ${moisNom}</span>`);
+  const eng=resteEngage(p.id);
+  if(eng)sub.push(`📐 <b>${money(eng)}</b> de forfaits convenus pas encore réalisés`);
+  tete+=`<div class="cx-sub">${sub.map(x=>`<span>${x}</span>`).join('')}</div></div>`;
+  /* ── 2. Tout ce qu'on peut ajouter ou régler, au même endroit ── */
+  const chips=isAdmin
+    ?[['regl','💶',`Régler ${p.name}`,true],['presta','🧾','Prestation client'],['plus','➕','Somme en plus'],['forfait','📐','Forfait travaux'],['depart','📌',actif?'Point de départ':'Ouvrir le compte']]
+    :[['trav','🔧','Travaux / activité',true],['presta','🧾','Prestation client'],['remb','💳','J’ai payé pour vous'],['enc','💰','J’ai reçu pour vous'],['msg','💬','Une question']];
+  const chipsHtml=`<div class="cx-chips">${chips.filter(c=>c[0]!=='presta'||p.inputMode==='notes').map(([k,ic,l,prim])=>`<button type="button" class="cx-chip${prim?' prim':''}${S.saisie===k?' on':''}" onclick="setSaisie('${k}')"><span class="ic">${ic}</span><span>${l}</span></button>`).join('')}</div>`;
+  const saisie=S.saisie?renderSaisieCompte(p,y,m,S.saisie):'';
+  /* ── 3. Le mois, ligne par ligne, à sa vraie date ── */
+  const F=factureRowHtml(p,y,m,true);
+  const lignes=L.lignes.map(l=>ccLigneHtml(l,p,isAdmin,L.auj)).join('');
+  const releve=`<div class="cx-led" id="bloc-cx">
+    <div class="cx-led-h"><span>${moisNom} ${y}</span><span style="font-weight:500;font-size:11px;opacity:.85">${L.lignes.length} ligne${L.lignes.length>1?'s':''}</span></div>
+    ${L.actif?`<div class="cx-l rep"><span class="cx-d">report</span><span class="cx-ic">↪</span><span class="cx-t">Solde reporté du mois précédent<small>${phrase(L.report)}</small></span><span class="cx-m ${L.report>0.005?'p':L.report<-0.005?'n':'z'}">${money(L.report)}</span><span class="cx-a"></span></div>`:''}
+    ${lignes||`<div class="cx-empty">Aucun mouvement en ${moisNom}.</div>`}
+    <div class="cx-rec"><span>Fait / dû <b style="color:#A32D2D">+ ${money(L.fait+L.plus)}</b></span><span>Déduit <b style="color:#1F7A3D">− ${money(L.deduit)}</b></span><span>Réglé <b style="color:#1F7A3D">− ${money(L.regle)}</b></span></div>
+    ${(isAdmin||F.R.totalFacture)?`<div class="cx-fact"><span>🧾 dont facturé</span>${F.champ}<span>€</span><span style="margin-left:auto">${F.badge}</span></div>`:''}
+    <div class="cx-f"><span>${L.actif?`Solde fin ${moisNom}`:`Bilan de ${moisNom}`} — ${phrase(L.fin).toLowerCase()}</span><span class="v" style="color:${teinte(L.fin)}">${money(Math.abs(L.fin))}</span></div>
+  </div>
+  <div class="cx-leg"><span><b style="color:#A32D2D">+</b> augmente ce qu'on ${V.self?'vous':'lui'} doit</span><span><b style="color:#1F7A3D">−</b> le diminue</span><span>✓ validé · ⏳ à valider${isAdmin?' (toucher pour valider)':''}</span><span>Toucher un nom ouvre la réservation</span></div>`;
+  /* ── 4. Ce qui reste à part ── */
+  const elec=p.electricite?renderElecSection(p,y,m):'';
+  const discussion=renderBilanComments(p,y,m);
+  let tous='',details='';
+  _bilanClair=true;
+  try{
+    if(actif){
+      tous=bcRepli('cxTous',S.bcDeplie==='cxTous'?'▴ Replier le compte mois par mois':'📆 Voir le compte mois par mois (report, prévisions)')
+        +(S.bcDeplie==='cxTous'?`<div class="bilan-sec" style="padding:8px 6px">${renderCompteMois(p,computeCompteCourant(p),isAdmin,V)}</div>`:'');
+    }
+    const ouvert=S.bcDeplie==='cxDetails';
+    details=bcRepli('cxDetails',ouvert?'▴ Replier les détails':'🔍 Détails & corrections (modifier un montant, forfaits, calcul complet)')
+      +(ouvert?[renderMenageSection(p,y,m),p.inputMode==='notes'?renderCommissionSection(p,y,m):'',renderForfaitsSection(p,y,m),
+        renderTravauxSection(p,y,m),renderRemboursementSection(p,y,m),renderEncaissementSection(p,y,m),renderBilanTotalSection(p,y,m)].join(''):'');
+  }finally{_bilanClair=false;}
+  const bascule=isAdmin?`<div class="bc-bascule">Présentation des bilans : <strong>compte courant</strong> · <a href="#" onclick="event.preventDefault();if(confirm('Revenir à l\\'ancienne présentation des bilans, pour tout le monde ?'))setBilanPresentation('v1')">revenir à l'ancienne</a></div>`:'';
+  return`<div class="bc">${nav||''}${tete}${chipsHtml}${saisie}${releve}${elec}${discussion}${tous}${details}${bascule}</div>`;
 }
 function computeCompteCourant(p){
   const dep=compteDepart(p.id);
@@ -2841,7 +3197,7 @@ function setCompteDepart(pid){
   const p=gPre(pid);
   logActivity('remboursement',(p.domaines||[])[0]||null,
     `Compte courant — point de départ ${sens==='avance'?'avance':'dette'} ${money(montant)} au ${fmt(date)} (${p.name})`,[pid],true);
-  saveD();showMsg('Point de départ enregistré ✓');render();
+  S.saisie=null;saveD();showMsg('Point de départ enregistré ✓');render();
 }
 function addCompteMouvement(pid){
   const date=(document.getElementById('cc-date-'+pid)||{}).value;
@@ -2858,12 +3214,14 @@ function addCompteMouvement(pid){
   const p=gPre(pid);
   logActivity('remboursement',(p.domaines||[])[0]||null,
     `Compte courant — ${sens==='du'?'à régler en plus':'réglé'} ${money(montant)} (${compteModeLabel(mode)}) — ${p.name}`,[pid],true);
-  saveD();showMsg('Enregistré ✓');render();
+  S.saisie=null;saveD();showMsg('Enregistré ✓');render();
 }
 function delCompteMouvement(id){
   const x=(D.comptesMouvements||[]).find(v=>v.id===id);
   D.comptesMouvements=(D.comptesMouvements||[]).filter(v=>v.id!==id);
   markDeleted('compte',id);
+  /* Un paiement fait depuis le planning (espèces) : ses lignes repassent « à payer ». */
+  if(x&&Array.isArray(x.lignes))x.lignes.forEach(k=>{const o=planLigneObj(x.pid,k);if(o){o.paid=false;planTouch(o);}});
   if(x){const p=gPre(x.pid);logActivity('remboursement',(p.domaines||[])[0]||null,
     `Compte courant — ligne supprimée (${fmt(x.date)}, ${money(x.montant)}) — ${p.name}`,[x.pid],false);}
   saveD();render();
@@ -2905,7 +3263,7 @@ function pushReglement(pid,o){
   const p=gPre(pid);
   logActivity('remboursement',(p.domaines||[])[0]||null,
     `Réglé à ${p.name} : ${money(montant)} — ${compteModeLabel(o.mode)}${pour?' · '+pour:''} (${fmt(o.date)})`,[pid],true);
-  saveD();showMsg('Règlement enregistré ✓');render();
+  S.saisie=null;saveD();showMsg('Règlement enregistré ✓');render();
 }
 function addReglementRapide(pid,y,m){
   const g=id=>(document.getElementById(id)||{}).value;
@@ -2924,11 +3282,6 @@ function pickRegMode(pid,mode,el,factureMontant,reste){
   const h=document.getElementById('reg-mode-'+pid); if(h)h.value=mode;
   const wrap=document.getElementById('reg-modes-'+pid);
   if(wrap)wrap.querySelectorAll('.reg-mode').forEach(b=>b.classList.toggle('sel',b===el));
-  const mt=document.getElementById('reg-montant-'+pid);
-  if(mt&&!mt.dataset.touched){
-    const v=(mode==='facture'&&factureMontant>0)?factureMontant:reste;
-    mt.value=v>0?v:'';
-  }
   const pr=document.getElementById('reg-pour-'+pid);
   if(pr&&!pr.value&&mode==='facture')pr.value='Facture du mois';
 }
@@ -3013,7 +3366,7 @@ function renderReglementsBloc(p,y,m){
       </div>
       <div class="decl-g" style="grid-template-columns:1fr 1fr">
         ${declChamp('Date du règlement',dateFieldHtml(`reg-date-${p.id}`,'width:100%',null,dstr(new Date())))}
-        ${declChamp('Montant (€)',`<input type="number" id="reg-montant-${p.id}" step="0.01" value="${reste>0?reste:''}" placeholder="0" oninput="this.dataset.touched=1">`)}
+        ${declChamp('Montant (€)',`<input type="number" id="reg-montant-${p.id}" step="0.01" placeholder="0">`)}
       </div>
       <div class="decl-g" style="grid-template-columns:1fr">
         ${declChamp('Pour quoi ?',`<input type="text" id="reg-pour-${p.id}" placeholder="ex. solde d'août, ménage, facture…">`)}
@@ -6651,9 +7004,9 @@ function renderPrestaList(){
     if(!team.length)return'';
     return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
       <div class="sec-hdr"><h2>🗓 Plannings équipe — accès direct</h2></div>
-      <div style="font-size:11px;color:#9a958c;margin-bottom:9px;line-height:1.35">Gardiennages et jardinage : ouvrir le calendrier de la personne et cliquer sur les jours pour ajouter, modifier (nuit courte/longue) ou retirer une intervention.</div>
+      <div style="font-size:11px;color:#9a958c;margin-bottom:9px;line-height:1.35">Un clic sur une personne : son calendrier du mois, la liste des interventions et le règlement (💶 espèces ou 🧾 facture) au même endroit.</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${team.map(p=>`<button class="btn" style="padding:9px 14px;font-size:13px" onclick="openM('teamPlanning',null,{pid:'${p.id}'})">${p.name==='Dominique'?'🌱':'🛡'} ${p.name} <span style="color:#888;font-size:11px">· ${p.role}</span></button>`).join('')}
+        ${team.map(p=>`<button class="btn" style="padding:9px 14px;font-size:13px" onclick="openM('teamPlanning',null,{pid:'${p.id}'})">${p.name==='Dominique'?'🌱':'🛡'} ${p.name} <span style="color:#888;font-size:11px">· ${(()=>{const n=new Date();const L=planLignes(p,n.getFullYear(),n.getMonth());const rf=reglementFacture(p.id,n.getFullYear(),n.getMonth());const reste=L.filter(l=>l.mode==='facture'?!rf:!(l.paid||l.reg)).reduce((a,l)=>a+l.montant,0);return `${L.length} ce mois${reste>0.005?` · <b style="color:#A32D2D">${money(reste)} à régler</b>`:L.length?' · <b style="color:#1F7A3D">à jour ✓</b>':''}`;})()}</span></button>`).join('')}
       </div>
     </div>`;
   })()}
@@ -6734,7 +7087,7 @@ function renderPrestaDetailAdmin(p){
   const inMonth=dateStr=>!!dateStr&&dateStr.startsWith(monthKey);
   const canPrintList=p.inputMode==='garde'||!!p.flatRate;
   const nav=`<div class="cal-header" style="margin-bottom:14px">${monthYearPicker('adminPrestaYear','adminPrestaMonth')}${canPrintList?`<button class="btn btn-sm" onclick="openPrestaPrintList('${p.id}')" title="Liste imprimable des prestations du mois, sans mention de paiement">🖨 Liste imprimable</button>`:''}</div>`;
-  if(bilanClairActif())return`<div style="margin-top:16px">${renderBilanClair(p,y,m,nav)}</div>`;
+  if(bilanClairActif())return`<div style="margin-top:16px">${p.accessMode==='domaine'?renderBilanCompte(p,y,m,nav):renderBilanClair(p,y,m,nav)}</div>`;
   const basculeV2=`<div class="bc-bascule" style="margin:0 0 10px">Présentation des bilans : <strong>ancienne</strong> · <a href="#" onclick="event.preventDefault();setBilanPresentation('v2')">passer à la nouvelle</a></div>`;
 
   /* === Forfait ménage (Misha / Sasha / Pascaline) — rendu partagé avec la page perso === */
@@ -6764,7 +7117,7 @@ function renderPrestaDetailAdmin(p){
     const total=rows.reduce((a,x)=>a+(x.montant||0),0);
     const paid=rows.filter(x=>x.paid).reduce((a,x)=>a+(x.montant||0),0);
     dominiqueSection=`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
-      <div class="sec-hdr"><h2>🌱 Planning de ${p.name} — ${MONTHS_FR[m]} ${y}</h2><span style="display:flex;gap:6px"><button class="btn btn-xs btn-primary" onclick="openM('teamPlanning',null,{pid:'${p.id}'})">📅 Calendrier</button><button class="btn btn-xs" onclick="openM('dominiquePlanning')">💶 Liste</button></span></div>
+      <div class="sec-hdr"><h2>🌱 Planning de ${p.name} — ${MONTHS_FR[m]} ${y}</h2><span style="display:flex;gap:6px"><button class="btn btn-xs btn-primary" onclick="openM('teamPlanning',null,{pid:'${p.id}'})">📅 Planning & règlements</button></span></div>
       <div class="g3" style="margin-bottom:10px">
         <div class="metric"><span class="lbl">Total dû ce mois</span><span class="val">${money(total)}</span></div>
         <div class="metric"><span class="lbl">Pointé ✓</span><span class="val" style="color:#27500A">${money(paid)}</span></div>
@@ -9068,7 +9421,7 @@ function renderModalContent(){
     const total=rows.reduce((a,x)=>a+(x.montant||0),0);
     const paid=rows.filter(x=>x.paid).reduce((a,x)=>a+(x.montant||0),0);
     return`<h3>📅 Planning de Dominique</h3>
-    <div style="font-size:12px;color:#888;margin-bottom:12px">Tarif : 120 € / jour (La Désirée, Les Lions) · 150 € / jour (Les Déesses)</div>
+    <div style="font-size:12px;color:#888;margin-bottom:12px">Tarif : 120 € / jour (La Désirée, Les Lions) · 150 € / jour (Les Déesses) — <strong>135 € / jour partout à partir du 1er novembre 2026</strong></div>
     <div style="display:flex;gap:8px;margin-bottom:14px;align-items:flex-end;flex-wrap:wrap">
       <div class="field" style="flex:1;min-width:130px"><label>Domaine</label><select id="dom-pl-domaine">${D.domaines.map(d=>`<option value="${d.id}">${d.name}</option>`).join('')}</select></div>
       <div class="field" style="flex:1;min-width:110px"><label>Date</label><input type="date" id="dom-pl-date"></div>
@@ -9088,76 +9441,7 @@ function renderModalContent(){
       <button class="btn btn-xs btn-danger" onclick="delDominiquePlanning('${x.id}')">✕</button></div>`;}).join('')}
     <div class="modal-actions"><button class="btn" onclick="closeM()">Fermer</button></div>`;
   }
-  if(type==='teamPlanning'){
-    /* === Calendrier direct d'un membre de l'équipe (Sébastien, Mathilde, Dominique) ===
-       David : « je veux un truc plus direct pour définir les jours où ils interviennent ou
-       n'interviennent plus ». Un vrai calendrier mensuel, un clic sur un jour suffit :
-       - gardiennage : clic → nuit LONGUE · re-clic → COURTE · re-clic → retirée ;
-       - Dominique : clic → journée ajoutée (domaine sélectionné) · re-clic → retirée.
-       Les nuits liées à une réservation (cochées dans la fiche) apparaissent avec un cadenas :
-       un clic dessus ouvre la réservation, c'est là-bas qu'elles se gèrent. */
-    const pid=S.modal.pid;
-    const p=gPre(pid);
-    const isDominique=p.name==='Dominique';
-    if(S.teamPlanY===undefined||S.teamPlanM===undefined){const now=new Date();S.teamPlanY=now.getFullYear();S.teamPlanM=now.getMonth();}
-    if(!S.teamPlanDom||!D.domaines.some(d=>d.id===S.teamPlanDom))S.teamPlanDom=(p.domaines||[])[0]||'d1';
-    const y=S.teamPlanY,m=S.teamPlanM;
-    const mk=`${y}-${String(m+1).padStart(2,'0')}`;
-    const todayStr=dstr(new Date());
-    /* Interventions du mois, par date */
-    const byDate={};
-    if(isDominique){
-      (D.dominiqueSchedule||[]).forEach(x=>{if(x.date&&x.date.startsWith(mk))(byDate[x.date]=byDate[x.date]||[]).push({kind:'libre',id:x.id,domaine:x.domaine});});
-    } else {
-      (D.gardeSchedule||[]).forEach(x=>{if(x.pid===pid&&x.date&&x.date.startsWith(mk))(byDate[x.date]=byDate[x.date]||[]).push({kind:'libre',id:x.id,domaine:x.domaine,duree:x.duree||'longue'});});
-      (D.reservations||[]).forEach(r=>{
-        if(r.status==='annulé'||!r.prestaGarde||!r.prestaGarde[pid])return;
-        Object.keys(r.prestaGarde[pid].nights||{}).forEach(dt=>{
-          if(dt.startsWith(mk))(byDate[dt]=byDate[dt]||[]).push({kind:'resa',rid:r.id,domaine:r.prestaGarde[pid].domaine||r.domaine,duree:(r.prestaGarde[pid].nights[dt].duree)||'longue',cli:displayClientName(r)||'—'});
-        });
-      });
-    }
-    const nbInMonth=Object.values(byDate).reduce((a,l)=>a+l.length,0);
-    /* Grille du mois (lundi → dimanche) */
-    const first=new Date(y,m,1);
-    const firstCol=(first.getDay()+6)%7;
-    const nbDays=new Date(y,m+1,0).getDate();
-    const cells=[];
-    for(let i=0;i<firstCol;i++)cells.push(null);
-    for(let d2=1;d2<=nbDays;d2++)cells.push(`${mk}-${String(d2).padStart(2,'0')}`);
-    while(cells.length%7)cells.push(null);
-    const cellHtml=dt=>{
-      if(!dt)return'<div style="min-height:52px;background:#faf9f7;border-radius:6px"></div>';
-      const list=byDate[dt]||[];
-      const isToday=dt===todayStr;
-      const badges=list.map(e=>{
-        const dom=gDom(e.domaine);
-        if(e.kind==='resa')return`<span class="pill ${PILL[dom.color||0]}" title="Lié à la réservation de ${e.cli} — cliquer pour l'ouvrir" onclick="event.stopPropagation();openM('editResa','${e.rid}')" style="font-size:8.5px;padding:1px 4px;opacity:.85;border:1px dashed rgba(0,0,0,.35)">🔒${isDominique?'':(e.duree==='courte'?' C':' L')}</span>`;
-        return`<span class="pill ${PILL[dom.color||0]}" style="font-size:8.5px;padding:1px 4px;font-weight:800">${isDominique?'🌱':(e.duree==='courte'?'C':'L')}</span>`;
-      }).join('');
-      return`<div onclick="teamPlanDayClick('${pid}','${dt}')" style="min-height:52px;border:1.5px solid ${isToday?'#993556':'#e5e3de'};border-radius:6px;padding:3px 4px;cursor:pointer;background:${list.length?'#fff':'#fdfdfc'};display:flex;flex-direction:column;gap:2px" onmouseover="this.style.background='#f6efe9'" onmouseout="this.style.background='${list.length?'#fff':'#fdfdfc'}'">
-        <span style="font-size:10.5px;font-weight:${isToday?'800':'600'};color:${isToday?'#993556':'#888'}">${parseInt(dt.slice(8),10)}</span>
-        <span style="display:flex;flex-wrap:wrap;gap:2px">${badges}</span>
-      </div>`;
-    };
-    const weeks=[];for(let i=0;i<cells.length;i+=7)weeks.push(cells.slice(i,i+7));
-    return`<h3>${isDominique?'🌱':'🛡'} Planning de ${p.name||'—'} — calendrier direct</h3>
-    <div style="font-size:11.5px;color:#888;margin:4px 0 10px;line-height:1.45">${isDominique
-      ?'Un clic sur un jour <b>ajoute</b> une intervention sur le domaine sélectionné ci-dessous · un clic sur un jour déjà prévu la <b>retire</b>. Tarif : 120 € (La Désirée, Les Lions) · 150 € (Les Déesses).'
-      :'Un clic sur un jour libre → nuit <b>longue</b> · re-clic → <b>courte</b> · re-clic → <b>retirée</b>. Les nuits 🔒 viennent d\'une réservation : cliquer dessus ouvre la fiche concernée. Tarif : 110 € nuit longue · 75 € nuit courte.'}
-      Chaque changement est enregistré dans les Dernières modifs.</div>
-    <div class="field" style="margin-bottom:10px"><label>Domaine des nouvelles interventions</label>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">${D.domaines.map(d=>`<span class="pill ${PILL[d.color||0]}" onclick="teamPlanSetDom('${d.id}')" style="cursor:pointer;padding:4px 10px;${S.teamPlanDom===d.id?'outline:2px solid #993556;outline-offset:1px;font-weight:800':'opacity:.55'}">${d.name}</span>`).join('')}</div>
-    </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-      <button class="btn btn-sm" onclick="teamPlanNav(-1)">‹</button>
-      <span style="font-weight:700;font-size:14px">${MONTHS_FR[m]} ${y} <span style="font-weight:400;color:#888;font-size:12px">· ${nbInMonth} intervention${nbInMonth>1?'s':''}</span></span>
-      <button class="btn btn-sm" onclick="teamPlanNav(1)">›</button>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px">${['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(d2=>`<div style="text-align:center;font-size:10px;font-weight:700;color:#8a8678">${d2}</div>`).join('')}</div>
-    ${weeks.map(w=>`<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px">${w.map(cellHtml).join('')}</div>`).join('')}
-    <div class="modal-actions"><button class="btn" onclick="openM('${isDominique?'dominiquePlanning':'gardePlanning'}',null,{pid:'${pid}'})">💶 Liste & règlements</button><button class="btn btn-primary" onclick="closeM()">Fermer</button></div>`;
-  }
+  if(type==='teamPlanning')return renderTeamPlanningModal();
   if(type==='gardePlanning'){
     const pid=S.modal.pid;
     const gp=D.prestataires.find(x=>x.id===pid)||{};
@@ -9407,7 +9691,7 @@ function renderDominiqueSection(p,y,m){
   const total=rows.reduce((a,x)=>a+(x.montant||0),0);
   const paid=rows.filter(x=>x.paid).reduce((a,x)=>a+(x.montant||0),0);
   return`<div id="bloc-jardin" style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
-    <div class="sec-hdr"><h2>🌱 Planning de ${p.name} — ${MONTHS_FR[m]} ${y}</h2>${isAdmin?`<span style="display:flex;gap:6px"><button class="btn btn-xs btn-primary" onclick="openM('teamPlanning',null,{pid:'${p.id}'})">📅 Calendrier</button><button class="btn btn-xs" onclick="openM('dominiquePlanning')">💶 Liste</button></span>`:''}</div>
+    <div class="sec-hdr"><h2>🌱 Planning de ${p.name} — ${MONTHS_FR[m]} ${y}</h2>${isAdmin?`<span style="display:flex;gap:6px"><button class="btn btn-xs btn-primary" onclick="openM('teamPlanning',null,{pid:'${p.id}'})">📅 Planning & règlements</button></span>`:''}</div>
     <div class="g3" style="margin-bottom:10px">
       <div class="metric"><span class="lbl">Total dû ce mois</span><span class="val">${money(total)}</span></div>
       <div class="metric"><span class="lbl">Pointé ✓</span><span class="val" style="color:#27500A">${money(paid)}</span></div>
@@ -9547,7 +9831,7 @@ function renderBilanClair(p,y,m,nav){
 
 function renderPrestaMonBilan(p){
   const y=S.prestaBilanYear,m=S.prestaBilanMonth;
-  if(bilanClairActif())return renderBilanClair(p,y,m,`<div class="cal-header" style="margin-bottom:14px">${monthYearPicker('prestaBilanYear','prestaBilanMonth')}</div>`);
+  if(bilanClairActif()){const _nav=`<div class="cal-header" style="margin-bottom:14px">${monthYearPicker('prestaBilanYear','prestaBilanMonth')}</div>`;return p.accessMode==='domaine'?renderBilanCompte(p,y,m,_nav):renderBilanClair(p,y,m,_nav);}
   return`<div class="cal-header" style="margin-bottom:14px">${monthYearPicker('prestaBilanYear','prestaBilanMonth')}</div>
   ${renderBilanTotalSection(p,y,m)}
   ${renderReglementsBloc(p,y,m)}
@@ -10826,7 +11110,7 @@ function updPrestaEmail(pid,val){
    mises à jour — y compris chez Misha/Sacha quand c'est chez eux (voir prestaVisibleLog). */
 function dominiqueDayAddCore(domaine,date){
   if(!domaine||!date)return;
-  const montant=DOMINIQUE_RATES[domaine]||0;
+  const montant=dominiqueRate(domaine,date);
   if(!D.dominiqueSchedule)D.dominiqueSchedule=[];
   D.dominiqueSchedule.push({id:gid(),domaine,date,montant,paid:false});
   const dom=D.prestataires.find(p=>p.name==='Dominique');
@@ -10896,10 +11180,230 @@ function gardeNightDureeCore(id,duree){
   if(_lg)_lg.plan=true;
   saveD();return x;
 }
+/* ══════════════════════════════════════════════════════════════════════════════════════
+   PLANNINGS ÉQUIPE v2 — Dominique, Sébastien, Mathilde
+   Une seule fenêtre : le calendrier (un clic = une intervention), la liste du mois, et le
+   règlement, qui ne connaît que deux façons de payer : 💶 espèces ou 🧾 facture.
+   - Chaque intervention porte son mode (payMethod) ; par défaut celui de la personne
+     (p.modeReglement), réglable d'un clic en haut de la fenêtre.
+   - Espèces : « Payer » sur une ligne, ou « Payer tout » pour le mois → un VRAI règlement
+     (comptesMouvements, mode espèces) qui garde la liste des lignes payées (lignes:[clé]).
+     Annuler le paiement d'une ligne retire la ligne du règlement ; supprimer le règlement
+     remet ses lignes « à payer ». Une seule vérité : la caisse.
+   - Facture : le total des lignes « facture » est proposé comme facture du mois ; « Facture
+     réglée » utilise le mécanisme existant (toggleFacturePayee).
+   ══════════════════════════════════════════════════════════════════════════════════════ */
+function planModeDefaut(p){return(p&&p.modeReglement==='facture')?'facture':'especes';}
+function planModeOf(p,o){const m=o&&o.payMethod;return m==='facture'?'facture':(m?'especes':planModeDefaut(p));}
+function planMontantObj(pid,key,o){if(!o)return 0;return key.startsWith('dom:')?(+o.montant||0):gardeRate(o.duree||'longue');}
+function planLignes(p,y,m){
+  const mk=monthKeyOf(y,m);const L=[];
+  if(p.name==='Dominique'){
+    (D.dominiqueSchedule||[]).forEach(x=>{if((x.date||'').startsWith(mk))L.push({key:'dom:'+x.id,o:x,date:x.date,domaine:x.domaine,montant:+x.montant||0,comment:x.comment||''});});
+  }else{
+    (D.gardeSchedule||[]).forEach(x=>{if(x.pid===p.id&&(x.date||'').startsWith(mk))L.push({key:'gs:'+x.id,o:x,date:x.date,domaine:x.domaine,duree:x.duree||'longue',montant:gardeRate(x.duree||'longue'),comment:x.comment||''});});
+    (D.reservations||[]).forEach(r=>{
+      if(r.status==='annulé'||!r.prestaGarde||!r.prestaGarde[p.id])return;
+      const pg=r.prestaGarde[p.id];
+      Object.entries(pg.nights||{}).forEach(([dt,v])=>{if(v&&dt.startsWith(mk))L.push({key:'gn:'+r.id+':'+dt,o:v,rid:r.id,date:dt,domaine:pg.domaine||r.domaine,duree:v.duree||'longue',montant:gardeRate(v.duree||'longue'),comment:v.comment||'',cli:displayClientName(r)||'—',locked:true});});
+    });
+  }
+  L.forEach(l=>{l.mode=planModeOf(p,l.o);l.paid=!!l.o.paid;l.reg=planRegDeLigne(p.id,l.key);});
+  return L.sort((a,b)=>a.date.localeCompare(b.date));
+}
+function planLigneObj(pid,key){
+  const i=key.indexOf(':');const k=key.slice(0,i),rest=key.slice(i+1);
+  if(k==='dom')return(D.dominiqueSchedule||[]).find(x=>x.id===rest);
+  if(k==='gs')return(D.gardeSchedule||[]).find(x=>x.id===rest);
+  if(k==='gn'){const j=rest.indexOf(':');const rid=rest.slice(0,j),dt=rest.slice(j+1);
+    const r=(D.reservations||[]).find(x=>x.id===rid);
+    return r&&r.prestaGarde&&r.prestaGarde[pid]&&r.prestaGarde[pid].nights?r.prestaGarde[pid].nights[dt]:null;}
+  return null;
+}
+function planRegDeLigne(pid,key){return(D.comptesMouvements||[]).find(x=>x.pid===pid&&Array.isArray(x.lignes)&&x.lignes.includes(key))||null;}
+function planTouch(o){if(o){o.updatedAt=Date.now();o.fieldsUpdatedAt=Date.now();}}
+function planSetModeDefaut(pid,mode){
+  const p=gPre(pid);if(!p||!p.id)return;
+  p.modeReglement=mode;p.updatedAt=Date.now();
+  saveD();render();
+}
+function planSetMode(pid,key,mode){
+  const o=planLigneObj(pid,key);if(!o)return;
+  if(planRegDeLigne(pid,key)){S.tpMsg="Déjà payée en espèces : annule d'abord le paiement de cette ligne.";render();return;}
+  o.payMethod=mode;planTouch(o);S.tpMsg=null;
+  saveD();render();
+}
+function planPayer(pid,keys){
+  const p=gPre(pid);const y=S.teamPlanY,m=S.teamPlanM;
+  const date=((document.getElementById('tp-date')||{}).value)||dstr(new Date());
+  const L=planLignes(p,y,m).filter(l=>keys.includes(l.key)&&l.mode==='especes'&&!l.paid&&!l.reg);
+  if(!L.length)return;
+  const tot=Math.round(L.reduce((a,l)=>a+l.montant,0)*100)/100;
+  const quoi=p.name==='Dominique'?'Jardinage':'Gardiennage';
+  const unite=p.name==='Dominique'?'journée':'nuit';
+  const pour=L.length===1?`${quoi} du ${ds(L[0].date)}`:`${quoi} · ${L.length} ${unite}s (${ds(L[0].date)} → ${ds(L[L.length-1].date)})`;
+  L.forEach(l=>{l.o.paid=true;l.o.payMethod='especes';planTouch(l.o);});
+  if(!D.comptesMouvements)D.comptesMouvements=[];
+  D.comptesMouvements.push({id:gid(),pid,date,montant:tot,mode:'especes',sens:'verse',note:pour,pour,factureKey:'',lignes:L.map(l=>l.key),createdAt:Date.now(),updatedAt:Date.now()});
+  logActivity('remboursement',(p.domaines||[])[0]||null,`Réglé à ${p.name} : ${money(tot)} — 💶 Espèces · ${pour} (${fmt(date)})`,[pid],true);
+  S.tpMsg=`💶 ${money(tot)} payés en espèces le ${ds(date)} ✓`;
+  saveD();render();
+}
+function planPayerTout(pid){
+  const p=gPre(pid);
+  planPayer(pid,planLignes(p,S.teamPlanY,S.teamPlanM).filter(l=>l.mode==='especes'&&!l.paid).map(l=>l.key));
+}
+function planAnnulerPaiement(pid,key){
+  const o=planLigneObj(pid,key);const reg=planRegDeLigne(pid,key);
+  if(o){o.paid=false;planTouch(o);}
+  if(reg){
+    const mt=planMontantObj(pid,key,o);
+    reg.lignes=reg.lignes.filter(k=>k!==key);
+    reg.montant=Math.round(((+reg.montant||0)-mt)*100)/100;
+    planTouch(reg);
+    if(!reg.lignes.length||reg.montant<=0.005){S.tpMsg='Paiement annulé';delCompteMouvement(reg.id);return;}
+    const p=gPre(pid);
+    logActivity('remboursement',(p.domaines||[])[0]||null,`Paiement en espèces corrigé — ${p.name} : ${money(reg.montant)} (une ligne retirée)`,[pid],false);
+  }
+  S.tpMsg='Paiement annulé';
+  saveD();render();
+}
+function planEnregistrerFacture(pid,montant){
+  setFactureMois(pid,S.teamPlanY,S.teamPlanM,montant);
+}
+function planFactureReglee(pid){
+  const p=gPre(pid);const y=S.teamPlanY,m=S.teamPlanM;
+  const L=planLignes(p,y,m).filter(l=>l.mode==='facture');
+  const reg=reglementFacture(pid,y,m);
+  if(reg){L.forEach(l=>{l.o.paid=false;planTouch(l.o);});toggleFacturePayee(pid,y,m);return;}
+  const R=computeReglementMois(p,y,m);
+  if(!R.totalFacture){S.tpMsg="Enregistre d'abord le montant de la facture du mois.";render();return;}
+  L.forEach(l=>{l.o.paid=true;planTouch(l.o);});
+  toggleFacturePayee(pid,y,m);
+}
+function renderTeamPlanningModal(){
+  const pid=S.modal.pid;
+  const p=gPre(pid);
+  const isDominique=p.name==='Dominique';
+  const isAdmin=S.view==='admin';
+  if(S.teamPlanY===undefined||S.teamPlanM===undefined){const now=new Date();S.teamPlanY=now.getFullYear();S.teamPlanM=now.getMonth();}
+  if(!S.teamPlanDom||!D.domaines.some(d=>d.id===S.teamPlanDom))S.teamPlanDom=(p.domaines||[])[0]||'d1';
+  const y=S.teamPlanY,m=S.teamPlanM;
+  const mk=monthKeyOf(y,m);
+  const todayStr=dstr(new Date());
+  const L=planLignes(p,y,m);
+  const byDate={};L.forEach(l=>(byDate[l.date]=byDate[l.date]||[]).push(l));
+  const unite=isDominique?'journée':'nuit';
+  /* Calendrier */
+  const first=new Date(y,m,1),firstCol=(first.getDay()+6)%7,nbDays=new Date(y,m+1,0).getDate();
+  const cells=[];for(let i=0;i<firstCol;i++)cells.push(null);
+  for(let d2=1;d2<=nbDays;d2++)cells.push(`${mk}-${String(d2).padStart(2,'0')}`);
+  while(cells.length%7)cells.push(null);
+  const regFact=reglementFacture(pid,y,m);
+  const ligneReglee=l=>l.mode==='facture'?!!regFact:(l.paid||!!l.reg);
+  const cellHtml=dt=>{
+    if(!dt)return'<div class="tp-cell tp-vide"></div>';
+    const list=byDate[dt]||[];
+    const isToday=dt===todayStr,isWe=[5,6].includes((new Date(dt+'T12:00:00').getDay()+6)%7);
+    const badges=list.map(e=>{
+      const dom=gDom(e.domaine);
+      const txt=isDominique?'🌱':(e.duree==='courte'?'C':'L');
+      const ok=ligneReglee(e)?'<i class="tp-ok">✓</i>':'';
+      if(e.locked)return`<span class="pill ${PILL[dom.color||0]} tp-b tp-lock" title="Lié à la réservation de ${e.cli} — cliquer pour l'ouvrir" onclick="event.stopPropagation();openM('editResa','${e.rid}')">🔒${txt}${ok}</span>`;
+      return`<span class="pill ${PILL[dom.color||0]} tp-b">${txt}<small>${e.mode==='facture'?'🧾':'💶'}</small>${ok}</span>`;
+    }).join('');
+    return`<div class="tp-cell${list.length?' tp-pris':''}${isToday?' tp-auj':''}${isWe?' tp-we':''}" onclick="teamPlanDayClick('${pid}','${dt}')"><span class="tp-n">${parseInt(dt.slice(8),10)}</span><span class="tp-bs">${badges}</span></div>`;
+  };
+  const weeks=[];for(let i=0;i<cells.length;i+=7)weeks.push(cells.slice(i,i+7));
+  /* Totaux du mois */
+  const sum=a=>Math.round(a.reduce((s,l)=>s+l.montant,0)*100)/100;
+  const esp=L.filter(l=>l.mode==='especes'),fac=L.filter(l=>l.mode==='facture');
+  const espPaye=sum(esp.filter(l=>l.paid||l.reg)),espTot=sum(esp),espReste=Math.round((espTot-espPaye)*100)/100;
+  const facTot=sum(fac);
+  const R=computeReglementMois(p,y,m);
+  const total=sum(L);
+  const modeDef=planModeDefaut(p);
+  const tarif=isDominique
+    ?(mk>='2026-11'?'135 € / journée, partout':'120 € (Désirée, Lions) · 150 € (Déesses) — 135 € partout dès le 1er novembre 2026')
+    :`${money(gardeRate('longue'))} nuit longue (22h-4h) · ${money(gardeRate('courte'))} nuit courte (22h-2h)`;
+  const aide=isDominique
+    ?'Clic sur un jour : <b>ajoute</b> une journée sur le domaine choisi · re-clic : la <b>retire</b>.'
+    :'Clic sur un jour : nuit <b>longue</b> · re-clic : <b>courte</b> · re-clic : <b>retirée</b>. 🔒 = nuit liée à une réservation (clic pour l\'ouvrir).';
+  const statut=l=>{
+    if(l.mode==='facture'){
+      if(regFact)return`<span class="tp-st on">✓ facture réglée</span>`;
+      return`<span class="tp-st fac">sur facture</span>`;
+    }
+    if(l.reg)return isAdmin?`<button class="tp-st on" title="Annuler ce paiement" onclick="planAnnulerPaiement('${pid}','${l.key}')">✓ payé ${ds(l.reg.date)}</button>`:`<span class="tp-st on">✓ payé ${ds(l.reg.date)}</span>`;
+    if(l.paid)return isAdmin?`<button class="tp-st on" title="Remettre à payer" onclick="planAnnulerPaiement('${pid}','${l.key}')">✓ pointé</button>`:`<span class="tp-st on">✓ pointé</span>`;
+    return isAdmin?`<button class="tp-st off" onclick="planPayer('${pid}',['${l.key}'])">Payer ${money(l.montant)}</button>`:`<span class="tp-st off">à payer</span>`;
+  };
+  const modeSeg=l=>{
+    const verrou=!!l.reg||(l.mode==='facture'&&!!regFact);
+    return`<span class="tp-seg${verrou?' lock':''}">
+      <button class="${l.mode==='especes'?'sel':''}" ${verrou?'disabled':''} onclick="planSetMode('${pid}','${l.key}','especes')" title="Payée en espèces">💶</button><button class="${l.mode==='facture'?'sel':''}" ${verrou?'disabled':''} onclick="planSetMode('${pid}','${l.key}','facture')" title="Sur facture">🧾</button></span>`;
+  };
+  const dureeSel=l=>{
+    if(isDominique)return'';
+    const call=l.locked?`setGardeNightDuree('${l.rid}','${pid}','${l.date}',this.value)`:`gardeNightDureeCore('${l.key.slice(3)}',this.value);render()`;
+    return`<select class="tp-dur" onchange="${call}"><option value="longue" ${l.duree!=='courte'?'selected':''}>Longue</option><option value="courte" ${l.duree==='courte'?'selected':''}>Courte</option></select>`;
+  };
+  const delBtn=l=>{
+    if(l.locked)return`<button class="tp-x" title="Ouvrir la réservation" onclick="openM('editResa','${l.rid}')">🔒</button>`;
+    const call=isDominique?`dominiqueDayDelCore('${l.key.slice(4)}');render()`:`gardeNightDelCore('${l.key.slice(3)}');render()`;
+    return`<button class="tp-x" title="Retirer" onclick="${call}">✕</button>`;
+  };
+  const lignesHtml=L.length===0?`<div class="empty" style="margin:6px 0">Aucune ${unite} ce mois-ci — clique sur un jour du calendrier.</div>`
+    :L.map(l=>{const dom=gDom(l.domaine);return`<div class="tp-l${ligneReglee(l)?' ok':''}">
+      <span class="tp-d">${dn(l.date)} ${ds(l.date)}</span>
+      <span class="pill ${PILL[dom.color||0]} tp-dom">${dom.name}</span>
+      ${dureeSel(l)}
+      <span class="tp-m">${money(l.montant)}</span>
+      ${isAdmin?modeSeg(l):`<span class="tp-mode">${l.mode==='facture'?'🧾':'💶'}</span>`}
+      ${statut(l)}
+      ${isAdmin?delBtn(l):''}
+    </div>`;}).join('');
+  const facBloc=fac.length===0?'':`<div class="tp-reg">
+      <div class="tp-reg-h"><span>🧾 Sur facture</span><strong>${money(facTot)}</strong></div>
+      <div class="tp-reg-s">${fac.length} ${unite}${fac.length>1?'s':''} à facturer ce mois-ci.
+        ${R.totalFacture?`Facture du mois enregistrée : <b>${money(R.totalFacture)}</b>.`:'Aucune facture enregistrée pour ce mois.'}</div>
+      <div class="tp-reg-a">
+        ${Math.abs(R.totalFacture-facTot)>0.005&&!regFact?`<button class="btn btn-sm" onclick="planEnregistrerFacture('${pid}',${facTot})">Enregistrer la facture : ${money(facTot)}</button>`:''}
+        ${R.totalFacture?`<button class="btn btn-sm ${regFact?'':'btn-primary'}" onclick="planFactureReglee('${pid}')">${regFact?`✓ Réglée le ${ds(regFact.date)} — annuler`:'✓ Facture réglée'}</button>`:''}
+      </div></div>`;
+  const espBloc=esp.length===0?'':`<div class="tp-reg">
+      <div class="tp-reg-h"><span>💶 En espèces</span><strong>${money(espTot)}</strong></div>
+      <div class="tp-reg-s">Déjà payé : <b style="color:#1F7A3D">${money(espPaye)}</b> · reste à payer : <b style="color:${espReste>0.005?'#A32D2D':'#1F7A3D'}">${money(espReste)}</b></div>
+      ${espReste>0.005?`<div class="tp-reg-a"><label class="tp-date">Payé le ${dateFieldHtml('tp-date','',null,todayStr)}</label>
+        <button class="btn btn-sm btn-primary" style="background:#1F7A3D;border-color:#1F7A3D" onclick="planPayerTout('${pid}')">💶 Payer les ${money(espReste)} restants</button></div>`:''}
+    </div>`;
+  return`<h3>${isDominique?'🌱':'🛡'} Planning de ${p.name||'—'}</h3>
+  <div class="tp-tarif">Tarif : ${tarif}</div>
+  ${S.tpMsg?`<div class="alert alert-ok" style="margin:6px 0">${S.tpMsg}</div>`:''}
+  ${isAdmin?`<div class="tp-opts">
+    <div><div class="tp-lbl">Domaine des nouvelles ${unite}s</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">${D.domaines.map(d=>`<span class="pill ${PILL[d.color||0]}" onclick="teamPlanSetDom('${d.id}')" style="cursor:pointer;padding:4px 10px;${S.teamPlanDom===d.id?'outline:2px solid #993556;outline-offset:1px;font-weight:800':'opacity:.5'}">${d.name}</span>`).join('')}</div></div>
+    <div><div class="tp-lbl">Payé habituellement</div>
+      <span class="tp-seg big"><button class="${modeDef==='especes'?'sel':''}" onclick="planSetModeDefaut('${pid}','especes')">💶 Espèces</button><button class="${modeDef==='facture'?'sel':''}" onclick="planSetModeDefaut('${pid}','facture')">🧾 Facture</button></span></div>
+  </div>`:''}
+  <div class="tp-nav">
+    <button class="btn btn-sm" onclick="teamPlanNav(-1)">‹</button>
+    <span><b>${MONTHS_FR[m]} ${y}</b> <span style="color:#888;font-size:12px">· ${L.length} ${unite}${L.length>1?'s':''} · ${money(total)}</span></span>
+    <button class="btn btn-sm" onclick="teamPlanNav(1)">›</button>
+  </div>
+  ${isAdmin?`<div class="tp-aide">${aide}</div>`:''}
+  <div class="tp-grid">${['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(d2=>`<div class="tp-dow">${d2}</div>`).join('')}${weeks.map(w=>w.map(cellHtml).join('')).join('')}</div>
+  <div class="tp-sec">Le mois en détail</div>
+  <div class="tp-ls">${lignesHtml}</div>
+  ${L.length?`<div class="tp-sec">Règlement de ${MONTHS_FR[m]}</div><div class="tp-regs">${espBloc}${facBloc}</div>`:''}
+  <div class="modal-actions">${isAdmin?`<button class="btn" onclick="openM('${isDominique?'dominiquePlanning':'gardePlanning'}',null,{pid:'${pid}'})">Toutes les dates</button>`:''}<button class="btn btn-primary" onclick="S.tpMsg=null;closeM()">Fermer</button></div>`;
+}
+
 /* === Calendrier direct « Plannings équipe » (modal teamPlanning) === */
-function teamPlanNav(d){S.teamPlanM+=d;if(S.teamPlanM>11){S.teamPlanM=0;S.teamPlanY++;}if(S.teamPlanM<0){S.teamPlanM=11;S.teamPlanY--;}render();}
+function teamPlanNav(d){S.tpMsg=null;S.teamPlanM+=d;if(S.teamPlanM>11){S.teamPlanM=0;S.teamPlanY++;}if(S.teamPlanM<0){S.teamPlanM=11;S.teamPlanY--;}render();}
 function teamPlanSetDom(id){S.teamPlanDom=id;render();}
 function teamPlanDayClick(pid,date){
+  S.tpMsg=null;
   const p=gPre(pid);
   if(p.name==='Dominique'){
     /* Un clic : ajoute la journée sur le domaine sélectionné · re-clic : la retire.
@@ -10957,7 +11461,7 @@ function addTravaux(pid){
     D.travauxSchedule.push({id:gid(),pid,domaine,date,type,mode:'heure',heures,montant:Math.round(heures*TRAVAUX_RATE*100)/100,note,status:'en_attente',createdAt:Date.now()});
     logActivity('créée',domaine,`${typeLabel} déclaré — ${p?p.name:''} (${fmt(date)}, ${heures}h)`,[pid],true);
   }
-  saveD();showMsg(`${typeLabel} déclaré, en attente de validation ✓`);render();
+  S.saisie=null;saveD();showMsg(`${typeLabel} déclaré, en attente de validation ✓`);render();
 }
 function travauxAmountLabel(x){return x.mode==='forfait'?`${money(x.montant)} (forfait)`:`${x.heures}h`;}
 function delTravaux(id){
@@ -10984,7 +11488,7 @@ function addRemboursement(pid){
   D.remboursements.push({id:gid(),pid,domaine,date,montant:Math.round(montant*100)/100,beneficiaire,note,status:'en_attente',createdAt:Date.now()});
   const p=D.prestataires.find(x=>x.id===pid);
   logActivity('remboursement',domaine,`Dépense pour nous — ${p?p.name:''} : ${beneficiaire||'—'} ${money(montant)}${note?' ('+note+')':''}`,[pid],true);
-  saveD();showMsg('Enregistré, en attente de validation ✓');render();
+  S.saisie=null;saveD();showMsg('Enregistré, en attente de validation ✓');render();
 }
 function delRemboursement(id){
   const x=(D.remboursements||[]).find(x=>x.id===id);
