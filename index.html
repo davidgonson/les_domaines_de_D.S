@@ -524,6 +524,48 @@ span.tp-st{cursor:default}
 .cx-f{padding:9px 12px;background:#F3F7FC;display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:700;font-size:13px;border-top:1.5px solid #0C447C}
 .cx-f .v{font-size:19px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .cx-empty{padding:14px;text-align:center;font-size:12px;color:#9a958c}
+/* Bilan compte courant v2 — années / mois */
+.cx-grp{font-size:10.5px;font-weight:800;color:#6b665e;text-transform:uppercase;letter-spacing:.05em;margin:4px 2px 5px}
+.cx-chips.cx-chips2{grid-template-columns:1fr 1fr}
+@media(max-width:560px){.cx-chips.cx-chips2{grid-template-columns:1fr}}
+.cx-chip{width:100%;justify-self:stretch;box-sizing:border-box}
+.cx-chip .tx{display:flex;flex-direction:column;min-width:0;flex:1;line-height:1.25}
+.cx-chip .tx small{font-size:10px;font-weight:500;color:#8a857c;margin-top:1px}
+.cx-chip.prim .tx small{color:#cfe0f3}
+.cx-chip.cxs-out{border-left:4px solid #1F7A3D}
+.cx-chip.cxs-in{border-left:4px solid #A32D2D}
+.cx-comptes{margin-bottom:12px}
+.cx-annee{background:#fff;border:2px solid #0C447C;border-radius:12px;overflow:hidden;margin-bottom:10px}
+.cx-an{background:#0C447C;color:#fff;padding:8px 12px;display:flex;align-items:center;gap:10px;cursor:pointer;flex-wrap:wrap}
+.cx-an-y{font-weight:800;font-size:15px}
+.cx-an-i{font-size:11px;opacity:.85;flex:1}
+.cx-an-i b{color:#fff}
+.cx-an-s{background:#fff;border-radius:6px;padding:1px 8px;font-weight:800;font-variant-numeric:tabular-nums;font-size:13px}
+.cx-mo{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid #eeebe5;cursor:pointer;font-size:13px}
+.cx-mo:hover{background:#F6F9FD}
+.cx-mo.vide{color:#a8a49c}
+.cx-mo.fut .cx-mo-n{color:#7a8aa0}
+.cx-mo.cur{background:#FBF6EA}
+.cx-mo.open{background:#EEF4FB;border-bottom-color:#cddcee}
+.cx-mo-n{font-weight:700;min-width:96px}
+.cx-mo-n em{font-style:normal;font-size:9.5px;font-weight:700;color:#B15E00;background:#FDF0D5;border-radius:4px;padding:0 4px;margin-left:3px}
+.cx-mo-i{font-size:11px;color:#8a857c;flex:1}
+.cx-mo-i b{color:#B15E00}
+.cx-mo-mv{display:flex;gap:6px;font-size:11px;font-variant-numeric:tabular-nums}
+.cx-mo-mv i{font-style:normal;font-weight:600}
+.cx-mo-mv i.p{color:#A32D2D}.cx-mo-mv i.n{color:#1F7A3D}
+.cx-mo-s{font-weight:800;font-variant-numeric:tabular-nums;min-width:74px;text-align:right}
+.cx-mo-body{border-bottom:2px solid #cddcee;background:#fff}
+.cx-c{flex-shrink:1;max-width:34%;font-size:11px;font-style:italic;color:#534AB7;text-align:right;line-height:1.25;margin-top:2px;overflow:hidden;text-overflow:ellipsis}
+.cx-cb{border:none;background:#F1EFFA;color:#534AB7;border-radius:6px;width:22px;height:22px;font-size:11px;cursor:pointer;flex-shrink:0;padding:0}
+.cx-elec{background:#FFFaf2}
+.cx-el-in{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:500;color:#A8590F;margin-top:4px}
+.cx-in{width:92px!important;font-size:12.5px!important;padding:3px 6px!important;text-align:right}
+.cx-outils{display:flex;gap:6px;flex-wrap:wrap;padding:7px 10px;background:#fafaf8;border-top:1px solid #eeebe5}
+.cx-outils button{border:1px solid #d9d5cc;background:#fff;border-radius:7px;padding:4px 9px;font:inherit;font-size:11.5px;cursor:pointer;color:#3f3b35}
+.cx-det{padding:8px}
+@media(max-width:520px){.cx-mo-mv{display:none}.cx-mo-n{min-width:80px}.cx-c{max-width:40%}}
+
 .cx-leg{font-size:10.5px;color:#8a857c;display:flex;flex-wrap:wrap;gap:4px 12px;margin:-4px 2px 12px}
 @media(max-width:520px){.cx-big{font-size:22px}.cx-chip{font-size:12px;padding:8px}.cx-d{min-width:38px}}
 
@@ -537,7 +579,7 @@ span.tp-st{cursor:default}
 /* Numéro de version, affiché en haut de l'écran. Sert à répondre en une seconde à la seule
    question qui compte quand « ça marche chez moi mais pas chez elle » : les deux téléphones
    font-ils bien tourner la MÊME version ? */
-const APP_VERSION='2026-10-07-b';
+const APP_VERSION='2026-10-08-a';
 const SK='domnoрm_prod_v1';
 const SUPA_URL='https://hdtltrnabrgibkcvubzd.supabase.co';
 const SUPA_KEY='sb_publishable_zvpg0YOHegxqXJxbEKhSbQ_3oLwbrr1';
@@ -2796,33 +2838,33 @@ function evenementsCompteMois(p,y,m){
   /* ref : ce qui permet, depuis le compte courant, de valider, supprimer ou ouvrir la ligne. */
   const push=(date,label,detail,montant,ref)=>{
     if(!date||!montant)return;
-    L.push({date,label,detail,montant:Math.round(montant*100)/100,ref:ref||null});
+    L.push({date,label,detail,montant:Math.round(montant*100)/100,ref:ref||null,com:(ref&&ref.com)||''});
   };
   push(fin,`Forfait gardiennage fixe — ${MONTHS_FR[m]}`,'Montant mensuel constant',p.forfaitMensuel||0,{k:'forfait',key:monthKey});
   D.reservations.filter(r=>r.status!=='annulé'&&menageDansMoisPour(r,p,y,m))
     .map(r=>({r,mi:getMenageInfo(r)})).filter(x=>x.mi&&x.mi.pid===p.id)
-    .forEach(({r,mi})=>push(menageJour(r,p),'Ménage',displayClientName(r)||'',mi.montant,{k:'menage',rid:r.id,valide:!!r.menageValide}));
+    .forEach(({r,mi})=>push(menageJour(r,p),'Ménage',displayClientName(r)||'',mi.montant,{k:'menage',rid:r.id,valide:!!r.menageValide,com:r.menageComment||''}));
   D.reservations.filter(r=>r.status!=='annulé'&&r.prestaLines&&r.prestaLines[p.id]&&r.prestaLines[p.id].length)
     .forEach(r=>{const d=r.dateArrivee||r.date; if(!inMonthDate(d))return;
       r.prestaLines[p.id].forEach(l=>{const c=ligneCalc(l,p.id);const q=calculPrestationCompte(l,c,p);
         push(d,q.label,[q.calcul,[l.label||l.nom||'',displayClientName(r)||''].filter(Boolean).join(' · ')].filter(Boolean).join(' — '),c.net,
-          {k:'presta',rid:r.id,lid:l.id,valide:!!l.valide});});});
+          {k:'presta',rid:r.id,lid:l.id,valide:!!l.valide,com:l.com||''});});});
   (D.travauxSchedule||[]).filter(x=>x.pid===p.id&&inMonthDate(x.date))
     .forEach(x=>push(x.date,x.forfaitId?'Avancée sur forfait':travauxTypeLabel(x.type||'travaux').replace(/^\S+\s/,''),
       [x.mode==='heure'&&x.heures?`${x.heures} h × ${TRAVAUX_RATE} €`:'',x.note].filter(Boolean).join(' · '),x.montant||0,
-      {k:'trav',id:x.id,valide:x.status==='validé'}));
+      {k:'trav',id:x.id,valide:x.status==='validé',com:x.com||''}));
   if(p.inputMode==='garde'){
     D.reservations.filter(r=>r.status!=='annulé').forEach(r=>{
       const pg=(r.prestaGarde||{})[p.id]; if(!pg)return;
       Object.entries(pg.nights||{}).forEach(([date,v])=>{
-        if(inMonthDate(date))push(date,'Nuit de gardiennage',displayClientName(r)||'',gardeRate(v.duree),{k:'garde',rid:r.id,date,valide:v.valide!==false});});
+        if(inMonthDate(date))push(date,`Nuit de gardiennage ${v.duree==='courte'?'courte':'longue'}`,[gDom(pg.domaine||r.domaine).name,displayClientName(r)||'',v.payMethod==='facture'?'🧾 sur facture':''].filter(Boolean).join(' · '),gardeRate(v.duree),{k:'garde',rid:r.id,date,valide:v.valide!==false,com:v.comment||''});});
     });
     (D.gardeSchedule||[]).filter(x=>x.pid===p.id&&inMonthDate(x.date))
-      .forEach(x=>push(x.date,'Nuit de gardiennage','',gardeRate(x.duree),{k:'gardeS',id:x.id,valide:x.valide!==false}));
+      .forEach(x=>push(x.date,`Nuit de gardiennage ${x.duree==='courte'?'courte':'longue'}`,[gDom(x.domaine).name,planModeOf(p,x)==='facture'?'🧾 sur facture':'💶 espèces'].filter(Boolean).join(' · '),gardeRate(x.duree),{k:'gardeS',id:x.id,valide:x.valide!==false,com:x.comment||''}));
   }
   if(p.name==='Dominique'){
     (D.dominiqueSchedule||[]).filter(x=>inMonthDate(x.date))
-      .forEach(x=>push(x.date,'Jardinage',x.note||'',x.montant||0,{k:'jard',id:x.id}));
+      .forEach(x=>push(x.date,'Jardinage',[gDom(x.domaine).name,planModeOf(p,x)==='facture'?'🧾 sur facture':'💶 espèces'].join(' · '),x.montant||0,{k:'jard',id:x.id,com:x.comment||''}));
   }
   if(p.electricite){
     const e=computeElecCost(p.id,y,m);
@@ -2831,10 +2873,10 @@ function evenementsCompteMois(p,y,m){
   }
   (D.remboursements||[]).filter(x=>x.pid===p.id&&inMonthDate(x.date))
     .forEach(x=>push(x.date,'Réglé pour notre compte',
-      [x.beneficiaire,x.note].filter(Boolean).join(' · '),x.montant||0,{k:'remb',id:x.id,valide:x.status==='validé'}));
+      [x.beneficiaire,x.note].filter(Boolean).join(' · '),x.montant||0,{k:'remb',id:x.id,valide:x.status==='validé',com:x.com||''}));
   (D.encaissements||[]).filter(x=>x.pid===p.id&&inMonthDate(x.date))
     .forEach(x=>push(x.date,'Reçu pour notre compte',
-      [x.provenance,x.note].filter(Boolean).join(' · '),-encaissementDu(x),{k:'enc',id:x.id,valide:x.status==='validé'}));
+      [x.provenance,x.note].filter(Boolean).join(' · '),-encaissementDu(x),{k:'enc',id:x.id,valide:x.status==='validé',com:x.com||''}));
   return L;
 }
 /* ══════════════════════════════════════════════════════════════════════════════════════
@@ -2845,13 +2887,13 @@ function evenementsCompteMois(p,y,m){
    supprime (✕) directement là. Les écrans détaillés d'avant restent accessibles, repliés en bas,
    pour corriger un montant — aucune fonctionnalité n'est perdue, elles ne sont plus en vrac.
    ══════════════════════════════════════════════════════════════════════════════════════ */
-function ledgerMois(p,y,m){
+function ledgerMois(p,y,m,Cc){
   const key=monthKeyOf(y,m),debut=key+'-01',auj=dstr(new Date());
   const dep=compteDepart(p.id);
   const actif=!!(dep&&dep.date&&dep.date.slice(0,7)<=key);
   let report=0,lignes=[];
   if(actif){
-    const C=computeCompteCourant(p);
+    const C=Cc||computeCompteCourant(p);
     C.lignes.concat(C.aVenir).forEach(l=>{
       const d=l.date||'';
       if(d<debut)report=l.solde;
@@ -2860,10 +2902,10 @@ function ledgerMois(p,y,m){
   }else{
     evenementsCompteMois(p,y,m).forEach(e=>lignes.push(Object.assign({ordre:1,type:'activite'},e)));
     (D.comptesMouvements||[]).filter(x=>x.pid===p.id&&(x.date||'').slice(0,7)===key).forEach(x=>{
-      lignes.push({date:x.date,ordre:2,type:'mouvement',id:x.id,mode:x.mode,
-        label:(x.sens==='du')?'À lui régler en plus':'Réglé',
+      lignes.push({date:x.date,ordre:2,type:'mouvement',id:x.id,mode:x.mode,sens:x.sens,com:x.com||'',
+        label:mvLabel(x,p),
         detail:[compteModeLabel(x.mode),x.pour||x.note].filter(Boolean).join(' · '),
-        montant:(x.sens==='du'?1:-1)*Math.abs(+x.montant||0)});
+        montant:((x.sens==='du'||x.sens==='rendu')?1:-1)*Math.abs(+x.montant||0)});
     });
     lignes.sort((a,b)=>(a.date||'').localeCompare(b.date||'')||a.ordre-b.ordre);
   }
@@ -2895,7 +2937,7 @@ function ccSuppr(js){
 }
 function ccIcone(l){
   if(l.type==='depart')return'📌';
-  if(l.type==='mouvement')return l.montant>0?'➕':(l.mode==='facture'?'🧾':l.mode==='virement'?'🏦':'💶');
+  if(l.type==='mouvement')return l.sens==='rendu'?'↩️':l.montant>0?'➕':(l.mode==='facture'?'🧾':l.mode==='virement'?'🏦':'💶');
   const k=l.ref&&l.ref.k;
   return{menage:'🧹',presta:'🧾',trav:'🔧',forfait:'🛡',garde:'🛡',gardeS:'🛡',jard:'🌱',elec:'⚡',remb:'💳',enc:'💰'}[k]||'•';
 }
@@ -2916,6 +2958,18 @@ function ccActions(l,p,isAdmin){
   }
   return'';
 }
+function cxComBtn(l,p){
+  let args=null;const r=l.ref||{};
+  if(l.type==='mouvement')args=`'mv','${l.id}'`;
+  else if(l.type==='activite')switch(r.k){
+    case'menage':args=`'menage','${r.rid}'`;break;
+    case'garde':args=`'garde','${r.rid}','${r.date}'`;break;
+    case'presta':args=`'presta','${r.rid}','${r.lid}'`;break;
+    case'gardeS':case'jard':case'trav':case'remb':case'enc':args=`'${r.k}','${r.id}'`;break;
+  }
+  if(!args)return'';
+  return`<button class="cx-cb" title="Petit commentaire" onclick="event.stopPropagation();cxEditCom('${p.id}',${args})">💬</button>`;
+}
 function ccLigneHtml(l,p,isAdmin,auj){
   const r=l.ref||{};
   const futur=l.date&&l.date>auj;
@@ -2926,8 +2980,9 @@ function ccLigneHtml(l,p,isAdmin,auj){
     <span class="cx-d">${ds(l.date)}</span>
     <span class="cx-ic">${ccIcone(l)}</span>
     <span class="cx-t${lien?' lk':''}"${lien?` onclick="${lien}"`:''}><b>${esc(l.label)}</b>${futur?'<em>prévu</em>':''}${l.detail?`<small>${esc(l.detail)}</small>`:''}</span>
+    ${l.com?`<span class="cx-c">${esc(l.com)}</span>`:''}
     <span class="cx-m ${cls}">${v>=0?'+':'−'} ${money(Math.abs(v))}<small>= ${money(l.soldeM)}</small></span>
-    <span class="cx-a">${ccActions(l,p,isAdmin)}</span>
+    <span class="cx-a">${isAdmin?cxComBtn(l,p):''}${ccActions(l,p,isAdmin)}</span>
   </div>`;
 }
 /* Les formulaires de saisie, tous au même endroit (juste sous les boutons). Ils réutilisent les
@@ -2981,7 +3036,7 @@ function renderSaisieCompte(p,y,m,k){
     titre='🧾 Prestation pour un client';
     corps=renderAddPrestaLineForm(p);
   }else if(k==='regl'){
-    titre=`💶 Régler ${p.name}`;
+    titre=`💶 Je donne de l’argent à ${p.name}`;
     const modeBtn=(v,ic,lbl,sel)=>`<button type="button" class="reg-mode${sel?' sel':''}" onclick="pickRegMode('${p.id}','${v}',this,0,0)"><span class="rm-ic">${ic}</span>${lbl}</button>`;
     corps=`<input type="hidden" id="reg-mode-${p.id}" value="especes">
       <div class="reg-modes" id="reg-modes-${p.id}">${modeBtn('especes','💶','Espèces',true)}${modeBtn('facture','🧾','Facture',false)}${modeBtn('virement','🏦','Virement',false)}${modeBtn('autre','✍️','Autre',false)}</div>
@@ -2992,6 +3047,16 @@ function renderSaisieCompte(p,y,m,k){
       <div class="decl-g" style="grid-template-columns:1fr">${declChamp('Pour quoi',`<input type="text" id="reg-pour-${p.id}" placeholder="ex. solde d'octobre, ménage…">`)}</div>
       <div class="reg-pours">${REG_POURS.map(t=>`<button type="button" class="reg-pour" onclick="setRegPour('${p.id}','${t}')">${t}</button>`).join('')}</div>
       ${btn('✓ Enregistrer ce règlement',`addReglementRapide('${p.id}',${y},${m})`)}`;
+  }else if(k==='rendu'){
+    titre=`↩️ ${p.name} me rend de l’argent`;
+    corps=`<div class="decl-g" style="grid-template-columns:1fr 1fr">
+        ${declChamp('Date',dateFieldHtml(`rd-date-${p.id}`,'width:100%',null,dstr(new Date())))}
+        ${declChamp('Montant rendu (€)',`<input type="number" id="rd-montant-${p.id}" step="0.01" placeholder="0">`)}
+        ${declChamp('Comment',`<select id="rd-mode-${p.id}"><option value="especes">💶 Espèces</option><option value="virement">🏦 Virement</option><option value="autre">Autre</option></select>`)}
+        ${declChamp('Pour quoi',`<input type="text" id="rd-note-${p.id}" placeholder="ex. trop-perçu, monnaie rendue…">`)}
+      </div>
+      <div style="font-size:11px;color:#8a857c;margin-bottom:8px">L'argent revient chez nous : ce qu'il nous doit diminue (ou ce qu'on lui doit augmente).</div>
+      ${btn('Enregistrer',`addRendu('${p.id}')`)}`;
   }else if(k==='plus'){
     titre=`➕ Somme à ajouter au compte de ${p.name}`;
     corps=`<div class="decl-g" style="grid-template-columns:1fr 1fr">
@@ -3026,69 +3091,222 @@ function renderSaisieCompte(p,y,m,k){
   if(!corps)return'';
   return`<div class="cx-saisie" id="cx-saisie"><div class="cx-saisie-t"><span>${titre}</span><button onclick="setSaisie(null)">✕ Fermer</button></div><div class="decl">${corps}</div></div>`;
 }
-function renderBilanCompte(p,y,m,nav){
+/* ══════════════════════════════════════════════════════════════════════════════════════
+   BILAN « COMPTE COURANT » v2 (08/10/2026) — pour tout le monde (Misha, Sacha, Sébastien,
+   Mathilde, Dominique…). En haut : où on en est + les boutons « argent » et « activité ».
+   Dessous : le compte lu ANNÉE par ANNÉE (2026, 2027…), chacune en 12 mois qu'on ouvre d'un
+   clic. Le mois ouvert montre ses lignes, avec leur petit commentaire juste avant le montant,
+   l'électricité (index du compteur saisi directement dans la ligne), la validation (⏳/✓)
+   et, à la demande, les écrans détaillés du mois pour corriger.
+   ══════════════════════════════════════════════════════════════════════════════════════ */
+function lc1(t){t=String(t||'');return t.charAt(0).toLowerCase()+t.slice(1);}
+function cxToggleMois(k){if(!S.cxOuverts)S.cxOuverts={};S.cxOuverts[k]=!S.cxOuverts[k];render();}
+function cxToggleAn(y){if(!S.cxAns)S.cxAns={};S.cxAns[y]=!cxAnOuvert(y);render();}
+function cxAnOuvert(y){const cy=new Date().getFullYear();if(S.cxAns&&S.cxAns[y]!==undefined)return S.cxAns[y];return y>=cy;}
+function cxToggleDet(k){S.cxDet=(S.cxDet===k)?null:k;render();}
+function cxAnnees(p){
+  const cy=new Date().getFullYear();let a=cy,b=cy;
+  const voir=d=>{const yy=parseInt(String(d||'').slice(0,4),10);if(yy>2000&&yy<2100){if(yy<a)a=yy;if(yy>b)b=yy;}};
+  const dep=compteDepart(p.id);if(dep)voir(dep.date);
+  (D.comptesMouvements||[]).forEach(x=>{if(x.pid===p.id)voir(x.date);});
+  ['travauxSchedule','remboursements','encaissements','gardeSchedule'].forEach(t=>(D[t]||[]).forEach(x=>{if(x.pid===p.id)voir(x.date);}));
+  if(p.name==='Dominique')(D.dominiqueSchedule||[]).forEach(x=>voir(x.date));
+  (D.reservations||[]).forEach(r=>{
+    if(r.status==='annulé')return;
+    const mi=getMenageInfo(r);
+    const lie=(mi&&mi.pid===p.id)||(r.prestaLines&&r.prestaLines[p.id]&&r.prestaLines[p.id].length)||(r.prestaGarde&&r.prestaGarde[p.id]);
+    if(lie){voir(r.dateArrivee||r.date);voir(r.dateDepart);}
+  });
+  if(p.electricite)Object.keys((D.electriciteIndex||{})[p.id]||{}).forEach(k=>voir(k));
+  const out=[];for(let y=a;y<=b;y++)out.push(y);return out;
+}
+/* Les petits commentaires : chaque ligne garde le sien, dans le champ qui existait déjà quand il
+   y en avait un (nuit de gardiennage, journée de Dominique, ménage), sinon dans « com ». */
+function cxEditCom(pid,k,a,b){
+  let o=null,f='com';
+  if(k==='menage'){o=(D.reservations||[]).find(x=>x.id===a);f='menageComment';}
+  else if(k==='garde'){const r=(D.reservations||[]).find(x=>x.id===a);o=r&&r.prestaGarde&&r.prestaGarde[pid]&&r.prestaGarde[pid].nights?r.prestaGarde[pid].nights[b]:null;f='comment';if(r){r.updatedAt=Date.now();r.fieldsUpdatedAt=Date.now();}}
+  else if(k==='gardeS'){o=(D.gardeSchedule||[]).find(x=>x.id===a);f='comment';}
+  else if(k==='jard'){o=(D.dominiqueSchedule||[]).find(x=>x.id===a);f='comment';}
+  else if(k==='trav')o=(D.travauxSchedule||[]).find(x=>x.id===a);
+  else if(k==='remb')o=(D.remboursements||[]).find(x=>x.id===a);
+  else if(k==='enc')o=(D.encaissements||[]).find(x=>x.id===a);
+  else if(k==='mv')o=(D.comptesMouvements||[]).find(x=>x.id===a);
+  else if(k==='presta'){const r=(D.reservations||[]).find(x=>x.id===a);o=r&&r.prestaLines&&r.prestaLines[pid]?r.prestaLines[pid].find(l=>l.id===b):null;if(r){r.updatedAt=Date.now();r.fieldsUpdatedAt=Date.now();}}
+  if(!o)return;
+  const v=prompt('Petit commentaire sur cette ligne :',o[f]||'');
+  if(v===null)return;
+  o[f]=v.trim();
+  if(k==='menage'){o.updatedAt=Date.now();o.fieldsUpdatedAt=Date.now();}
+  else{o.updatedAt=Date.now();}
+  saveD();render();
+}
+function addRendu(pid){
+  const date=(document.getElementById('rd-date-'+pid)||{}).value;
+  const montant=parseFloat((document.getElementById('rd-montant-'+pid)||{}).value)||0;
+  const mode=(document.getElementById('rd-mode-'+pid)||{}).value||'especes';
+  const note=((document.getElementById('rd-note-'+pid)||{}).value||'').trim();
+  const manque=[];if(!date)manque.push('la date');if(!montant)manque.push('le montant');
+  if(manque.length){showMsgSansPerdre('Il manque '+manque.join(' et ')+' ⚠️');return;}
+  if(!D.comptesMouvements)D.comptesMouvements=[];
+  D.comptesMouvements.push({id:gid(),pid,date,montant:Math.round(Math.abs(montant)*100)/100,mode,sens:'rendu',note,pour:note,createdAt:Date.now()});
+  const p=gPre(pid);
+  logActivity('remboursement',(p.domaines||[])[0]||null,`Compte courant — ${p.name} nous a rendu ${money(montant)} (${compteModeLabel(mode)})${note?' · '+note:''}`,[pid],true);
+  S.saisie=null;saveD();showMsg('Enregistré ✓');render();
+}
+/* Ligne électricité, dans le mois : on tape l'index de fin de mois, le reste se calcule. */
+function cxElecLigne(p,y,m,l,isAdmin){
+  const ec=computeElecCost(p.id,y,m);
+  const key=monthKeyOf(y,m);
+  const champ=`<input type="number" class="cx-in" value="${ec.curIdx!==null?ec.curIdx:''}" placeholder="kWh" onclick="event.stopPropagation()" onchange="updElecIndex('${p.id}','${ec.curKey}',this.value)">`;
+  const calc=ec.conso!==null?`${ec.prevIdx} → ${ec.curIdx} = ${ec.conso} kWh × ${ELEC_RATE.toFixed(2)} €`
+    :ec.curIdx===null?`index de fin ${MONTHS_FR[m]} à saisir`:`il manque l'index de fin ${MONTHS_FR[(m+11)%12]}`;
+  const v=l?l.montant:0;
+  return`<div class="cx-l cx-elec">
+    <span class="cx-d">${ds(finDeMois(y,m))}</span><span class="cx-ic">⚡</span>
+    <span class="cx-t"><b>Électricité — ${MONTHS_FR[m]}</b><small>${calc}</small>
+      <span class="cx-el-in">Index fin ${MONTHS_FR[m]} ${champ} kWh</span></span>
+    ${l?`<span class="cx-m n">− ${money(Math.abs(v))}<small>= ${money(l.soldeM)}</small></span>`:'<span class="cx-m z">—</span>'}
+    <span class="cx-a">${l?ccBadge(isElecValide(p.id,key),`toggleElecValide('${p.id}','${key}')`):''}</span>
+  </div>`;
+}
+function cxMoisDetail(p,y,m,L,isAdmin,V,phrase,teinte){
+  const key=L.key;
+  const moisNom=MONTHS_FR[m];
+  let html='';
+  if(L.actif)html+=`<div class="cx-l rep"><span class="cx-d">report</span><span class="cx-ic">↪</span><span class="cx-t">Solde reporté<small>${phrase(L.report)}</small></span><span class="cx-m ${L.report>0.005?'p':L.report<-0.005?'n':'z'}">${money(L.report)}</span><span class="cx-a"></span></div>`;
+  let elecFait=false;
+  L.lignes.forEach(l=>{
+    if(l.type==='activite'&&l.ref&&l.ref.k==='elec'&&p.electricite){html+=cxElecLigne(p,y,m,l,isAdmin);elecFait=true;}
+    else html+=ccLigneHtml(l,p,isAdmin,L.auj);
+  });
+  if(p.electricite&&!elecFait)html+=cxElecLigne(p,y,m,null,isAdmin);
+  if(!L.lignes.length&&!p.electricite)html+=`<div class="cx-empty">Rien en ${moisNom}.</div>`;
+  const F=factureRowHtml(p,y,m,true);
+  html+=`<div class="cx-rec"><span>Fait / ajouté <b style="color:#A32D2D">+ ${money(L.fait+L.plus)}</b></span><span>Déduit <b style="color:#1F7A3D">− ${money(L.deduit)}</b></span><span>Réglé <b style="color:#1F7A3D">− ${money(L.regle)}</b></span></div>`;
+  if(isAdmin||F.R.totalFacture)html+=`<div class="cx-fact"><span>🧾 dont facturé</span>${F.champ}<span>€</span><span style="margin-left:auto">${F.badge}</span></div>`;
+  html+=`<div class="cx-f"><span>${L.actif?`Solde fin ${moisNom}`:`Bilan de ${moisNom}`} — ${lc1(phrase(L.fin))}</span><span class="v" style="color:${teinte(L.fin)}">${money(Math.abs(L.fin))}</span></div>`;
+  const outils=[];
+  if(p.inputMode==='garde'||p.name==='Dominique')outils.push(isAdmin?`<button onclick="S.teamPlanY=${y};S.teamPlanM=${m};openM('teamPlanning',null,{pid:'${p.id}'})">📅 Planning de ${moisNom}</button>`:'');
+  if(isAdmin&&(p.inputMode==='garde'||p.flatRate))outils.push(`<button onclick="S.adminPrestaYear=${y};S.adminPrestaMonth=${m};openPrestaPrintList('${p.id}')">🖨 Liste imprimable</button>`);
+  outils.push(`<button onclick="cxToggleDet('${key}')">${S.cxDet===key?'▴ Replier les détails':'🔍 Détails & corrections'}</button>`);
+  html+=`<div class="cx-outils">${outils.filter(Boolean).join('')}</div>`;
+  if(S.cxDet===key){
+    _bilanClair=true;
+    try{
+      html+=`<div class="cx-det">${[renderMenageSection(p,y,m),p.inputMode==='notes'?renderCommissionSection(p,y,m):'',renderForfaitsSection(p,y,m),
+        renderTravauxSection(p,y,m),renderRemboursementSection(p,y,m),renderEncaissementSection(p,y,m),
+        p.inputMode==='garde'?renderGardeSection(p,y,m):'',p.name==='Dominique'?renderDominiqueSection(p,y,m):'',
+        p.electricite?renderElecSection(p,y,m):'',renderBilanTotalSection(p,y,m)].join('')}</div>`;
+    }finally{_bilanClair=false;}
+  }
+  return html;
+}
+function renderBilanCompte(p,y0,m0,nav){
   const isAdmin=S.view==='admin';
   const V=bilanVoix(p);
-  const L=ledgerMois(p,y,m);
-  const bt=computeBilanTotal(p,y,m);
-  const moisNom=MONTHS_FR[m];
+  const now=new Date(),cy=now.getFullYear(),cm=now.getMonth();
+  const curKey=monthKeyOf(cy,cm);
+  if(!S.cxOuverts){S.cxOuverts={};S.cxOuverts[curKey]=true;}
   const actif=compteActif(p);
+  const C=actif?computeCompteCourant(p):null;
   const teinte=v=>v>0.005?'#A32D2D':v<-0.005?'#1F7A3D':'#6b665e';
   const phrase=v=>v>0.005?(V.self?'Nous vous devons':`Nous devons à ${p.name}`)
                 :v<-0.005?(V.self?'Vous nous devez':`${p.name} nous doit`):'Compte à zéro';
-  /* ── 1. Où on en est, aujourd'hui ── */
+  /* ── Les années, chacune en 12 mois ── */
+  const annees=cxAnnees(p);
+  let attenteTot=0;
+  const anHtml=annees.map(y=>{
+    const ouvert=cxAnOuvert(y);
+    const mois=[];
+    let fait=0,regle=0,fin=0,att=0;
+    for(let m=0;m<12;m++){
+      const L=ledgerMois(p,y,m,C);
+      const wait=L.lignes.filter(l=>l.type==='activite'&&l.ref&&('valide' in l.ref)&&!l.ref.valide).length;
+      att+=wait;fait+=L.fait+L.plus-L.deduit;regle+=L.regle;fin=actif?L.fin:Math.round((fin+L.fin)*100)/100;
+      mois.push({m,L,wait});
+    }
+    attenteTot+=att;
+    const r2=v=>Math.round(v*100)/100;
+    const tete=`<div class="cx-an${ouvert?' open':''}" onclick="cxToggleAn(${y})">
+      <span class="cx-an-y">${ouvert?'▾':'▸'} ${y}</span>
+      <span class="cx-an-i">activité <b>${money(r2(fait))}</b> · réglé <b>${money(r2(regle))}</b>${att?` · <b style="color:#B15E00">⏳ ${att}</b>`:''}</span>
+      <span class="cx-an-s" style="color:${teinte(fin)}">${actif?'fin déc. ':'total '}${money(Math.abs(fin))}</span>
+    </div>`;
+    if(!ouvert)return`<div class="cx-annee">${tete}</div>`;
+    const lignes=mois.map(({m,L,wait})=>{
+      const key=L.key,open=!!S.cxOuverts[key],cur=key===curKey,fut=key>curKey;
+      const n=L.lignes.length;
+      const mv=n?`<span class="cx-mo-mv">${L.fait+L.plus-L.deduit?`<i class="p">+${money(r2(L.fait+L.plus-L.deduit))}</i>`:''}${L.regle?`<i class="n">−${money(L.regle)}</i>`:''}</span>`:'<span class="cx-mo-mv"></span>';
+      const row=`<div class="cx-mo${open?' open':''}${cur?' cur':''}${!n?' vide':''}${fut?' fut':''}" onclick="cxToggleMois('${key}')">
+        <span class="cx-mo-n">${open?'▾':'▸'} ${MONTHS_FR[m]}${cur?' <em>en cours</em>':''}</span>
+        <span class="cx-mo-i">${n?`${n} ligne${n>1?'s':''}`:'—'}${wait?` <b>⏳ ${wait}</b>`:''}</span>
+        ${mv}
+        <span class="cx-mo-s" style="color:${teinte(L.fin)}">${(n||L.actif)?money(Math.abs(L.fin)):''}</span>
+      </div>`;
+      return row+(open?`<div class="cx-mo-body">${cxMoisDetail(p,y,m,L,isAdmin,V,phrase,teinte)}</div>`:'');
+    }).join('');
+    return`<div class="cx-annee">${tete}<div class="cx-mos">${lignes}</div></div>`;
+  }).join('');
+  /* ── Où on en est, aujourd'hui ── */
   const sub=[];
   let tete;
   if(actif){
-    const C=computeCompteCourant(p);
     sub.push(`Point de départ : ${C.dep.sens==='avance'?'avance':'dette'} de <b>${money(Math.abs(C.dep.montant))}</b> au ${fmt(C.dep.date)}`);
-    if(C.aVenir.length)sub.push(`Une fois tout le prévu réalisé : <b style="color:${teinte(C.soldeProjete)}">${phrase(C.soldeProjete).toLowerCase()} ${money(Math.abs(C.soldeProjete))}</b>`);
+    if(C.aVenir.length)sub.push(`Une fois tout le prévu réalisé : <b style="color:${teinte(C.soldeProjete)}">${lc1(phrase(C.soldeProjete))} ${money(Math.abs(C.soldeProjete))}</b>`);
     tete=`<div class="cx-head"><div class="cx-lbl">📒 Compte courant — aujourd'hui</div>
       <div class="cx-h1"><span class="cx-ph" style="color:${teinte(C.solde)}">${phrase(C.solde)}</span><span class="cx-big" style="color:${teinte(C.solde)}">${money(Math.abs(C.solde))}</span></div>`;
   }else{
     tete=`<div class="cx-head"><div class="cx-lbl">📒 Compte courant</div>
       <div class="cx-h1"><span class="cx-ph" style="color:#6b665e">Pas encore ouvert</span>${isAdmin?`<button class="btn btn-sm btn-primary" onclick="setSaisie('depart')">Ouvrir le compte</button>`:''}</div>`;
-    sub.push(V.self?'Le mois ci-dessous repart de zéro tant que David ou Svitlana n’a pas fixé le point de départ.':'Sans point de départ, chaque mois repart de zéro.');
+    sub.push(V.self?'Chaque mois repart de zéro tant que David ou Svitlana n’a pas fixé le point de départ.':'Sans point de départ, chaque mois repart de zéro.');
   }
-  if(bt.enAttente>0)sub.push(`<span style="color:#B15E00">⏳ <b>${bt.enAttente}</b> ligne${bt.enAttente>1?'s':''} à valider en ${moisNom}</span>`);
+  if(attenteTot>0)sub.push(`<span style="color:#B15E00">⏳ <b>${attenteTot}</b> ligne${attenteTot>1?'s':''} à valider</span>`);
   const eng=resteEngage(p.id);
   if(eng)sub.push(`📐 <b>${money(eng)}</b> de forfaits convenus pas encore réalisés`);
   tete+=`<div class="cx-sub">${sub.map(x=>`<span>${x}</span>`).join('')}</div></div>`;
-  /* ── 2. Tout ce qu'on peut ajouter ou régler, au même endroit ── */
-  const chips=isAdmin
-    ?[['regl','💶',`Régler ${p.name}`,true],['presta','🧾','Prestation client'],['plus','➕','Somme en plus'],['forfait','📐','Forfait travaux'],['depart','📌',actif?'Point de départ':'Ouvrir le compte']]
-    :[['trav','🔧','Travaux / activité',true],['presta','🧾','Prestation client'],['remb','💳','J’ai payé pour vous'],['enc','💰','J’ai reçu pour vous'],['msg','💬','Une question']];
-  const chipsHtml=`<div class="cx-chips">${chips.filter(c=>c[0]!=='presta'||p.inputMode==='notes').map(([k,ic,l,prim])=>`<button type="button" class="cx-chip${prim?' prim':''}${S.saisie===k?' on':''}" onclick="setSaisie('${k}')"><span class="ic">${ic}</span><span>${l}</span></button>`).join('')}</div>`;
-  const saisie=S.saisie?renderSaisieCompte(p,y,m,S.saisie):'';
-  /* ── 3. Le mois, ligne par ligne, à sa vraie date ── */
-  const F=factureRowHtml(p,y,m,true);
-  const lignes=L.lignes.map(l=>ccLigneHtml(l,p,isAdmin,L.auj)).join('');
-  const releve=`<div class="cx-led" id="bloc-cx">
-    <div class="cx-led-h"><span>${moisNom} ${y}</span><span style="font-weight:500;font-size:11px;opacity:.85">${L.lignes.length} ligne${L.lignes.length>1?'s':''}</span></div>
-    ${L.actif?`<div class="cx-l rep"><span class="cx-d">report</span><span class="cx-ic">↪</span><span class="cx-t">Solde reporté du mois précédent<small>${phrase(L.report)}</small></span><span class="cx-m ${L.report>0.005?'p':L.report<-0.005?'n':'z'}">${money(L.report)}</span><span class="cx-a"></span></div>`:''}
-    ${lignes||`<div class="cx-empty">Aucun mouvement en ${moisNom}.</div>`}
-    <div class="cx-rec"><span>Fait / dû <b style="color:#A32D2D">+ ${money(L.fait+L.plus)}</b></span><span>Déduit <b style="color:#1F7A3D">− ${money(L.deduit)}</b></span><span>Réglé <b style="color:#1F7A3D">− ${money(L.regle)}</b></span></div>
-    ${(isAdmin||F.R.totalFacture)?`<div class="cx-fact"><span>🧾 dont facturé</span>${F.champ}<span>€</span><span style="margin-left:auto">${F.badge}</span></div>`:''}
-    <div class="cx-f"><span>${L.actif?`Solde fin ${moisNom}`:`Bilan de ${moisNom}`} — ${phrase(L.fin).toLowerCase()}</span><span class="v" style="color:${teinte(L.fin)}">${money(Math.abs(L.fin))}</span></div>
-  </div>
-  <div class="cx-leg"><span><b style="color:#A32D2D">+</b> augmente ce qu'on ${V.self?'vous':'lui'} doit</span><span><b style="color:#1F7A3D">−</b> le diminue</span><span>✓ validé · ⏳ à valider${isAdmin?' (toucher pour valider)':''}</span><span>Toucher un nom ouvre la réservation</span></div>`;
-  /* ── 4. Ce qui reste à part ── */
-  const elec=p.electricite?renderElecSection(p,y,m):'';
-  const discussion=renderBilanComments(p,y,m);
-  let tous='',details='';
-  _bilanClair=true;
-  try{
-    if(actif){
-      tous=bcRepli('cxTous',S.bcDeplie==='cxTous'?'▴ Replier le compte mois par mois':'📆 Voir le compte mois par mois (report, prévisions)')
-        +(S.bcDeplie==='cxTous'?`<div class="bilan-sec" style="padding:8px 6px">${renderCompteMois(p,computeCompteCourant(p),isAdmin,V)}</div>`:'');
+  /* ── Les boutons : d'abord l'argent (qui donne quoi à qui), puis l'activité ── */
+  const planning=(p.inputMode==='garde'||p.name==='Dominique');
+  const autonome=p.accessMode==='domaine'||p.inputMode==='notes';
+  const nm=p.name;
+  let argent,activite;
+  if(isAdmin){
+    argent=[['regl','💶','Je lui donne de l’argent','espèces, virement, facture — on lui doit moins','out']];
+    argent.push(['rendu','↩️',`${nm} me rend de l’argent`,'remboursement, trop-perçu — on lui doit plus','in']);
+    if(autonome){
+      argent.push(['remb','💳',`${nm} a payé quelqu’un pour nous`,'artisan, courses, facture — on lui doit plus','in']);
+      argent.push(['enc','💰',`${nm} a reçu de l’argent pour nous`,'client, acompte — on lui doit moins','out']);
     }
-    const ouvert=S.bcDeplie==='cxDetails';
-    details=bcRepli('cxDetails',ouvert?'▴ Replier les détails':'🔍 Détails & corrections (modifier un montant, forfaits, calcul complet)')
-      +(ouvert?[renderMenageSection(p,y,m),p.inputMode==='notes'?renderCommissionSection(p,y,m):'',renderForfaitsSection(p,y,m),
-        renderTravauxSection(p,y,m),renderRemboursementSection(p,y,m),renderEncaissementSection(p,y,m),renderBilanTotalSection(p,y,m)].join(''):'');
-  }finally{_bilanClair=false;}
+    activite=[];
+    if(planning)activite.push(['planning','📅','Planning & règlement',`${p.name==='Dominique'?'journées':'nuits'} du mois, espèces ou facture`]);
+    if(autonome)activite.push(['trav','🔧','Travaux / activité','à l’heure ou au forfait']);
+    if(p.inputMode==='notes')activite.push(['presta','🧾','Prestation client','']);
+    activite.push(['plus','➕','Somme en plus / correction','prime, rectification…']);
+    if(autonome)activite.push(['forfait','📐','Forfait travaux','enveloppe convenue']);
+    activite.push(['depart','📌',actif?'Point de départ':'Ouvrir le compte','solde arrêté à une date']);
+  }else{
+    argent=autonome?[['remb','💳','J’ai payé quelqu’un pour vous','on vous le doit en plus','in'],['enc','💰','J’ai reçu de l’argent pour vous','à déduire de ce qu’on vous doit','out']]:[];
+    activite=[];
+    if(autonome)activite.push(['trav','🔧','Travaux / activité','']);
+    if(p.inputMode==='notes')activite.push(['presta','🧾','Prestation client','']);
+    activite.push(['msg','💬','Une question','']);
+  }
+  const chip=([k,ic,l,s,sens])=>`<button type="button" class="cx-chip${sens?' cxs-'+sens:''}${S.saisie===k?' on':''}" onclick="${k==='planning'?`openM('teamPlanning',null,{pid:'${p.id}'})`:`setSaisie('${k}')`}"><span class="ic">${ic}</span><span class="tx"><span>${l}</span>${s?`<small>${s}</small>`:''}</span></button>`;
+  const chipsHtml=(argent.length?`<div class="cx-grp">💶 L’argent entre ${V.self?'nous':'vous'}</div><div class="cx-chips cx-chips2">${argent.map(chip).join('')}</div>`:'')
+    +`<div class="cx-grp">${isAdmin?'🔧 Activité & réglages':'✍️ Déclarer'}</div><div class="cx-chips">${activite.map(chip).join('')}</div>`;
+  const saisie=S.saisie?renderSaisieCompte(p,cy,cm,S.saisie):'';
+  const leg=`<div class="cx-leg"><span><b style="color:#A32D2D">+</b> augmente ce qu'on ${V.self?'vous':'lui'} doit</span><span><b style="color:#1F7A3D">−</b> le diminue</span><span>✓ validé · ⏳ à valider${isAdmin?' (toucher pour valider)':''}</span>${isAdmin?'<span>💬 ajouter un petit commentaire</span>':''}</div>`;
+  const discussion=renderBilanComments(p,cy,cm);
   const bascule=isAdmin?`<div class="bc-bascule">Présentation des bilans : <strong>compte courant</strong> · <a href="#" onclick="event.preventDefault();if(confirm('Revenir à l\\'ancienne présentation des bilans, pour tout le monde ?'))setBilanPresentation('v1')">revenir à l'ancienne</a></div>`:'';
-  return`<div class="bc">${nav||''}${tete}${chipsHtml}${saisie}${releve}${elec}${discussion}${tous}${details}${bascule}</div>`;
+  return`<div class="bc">${tete}${chipsHtml}${saisie}<div class="cx-comptes" id="bloc-cx">${anHtml}</div>${leg}${discussion}${bascule}</div>`;
+}
+
+/* Libellé d'un mouvement d'argent, lisible des deux côtés. */
+function mvLabel(x,p){
+  const n=(p&&p.name)||'';
+  if(x.sens==='du')return'À régler en plus';
+  if(x.sens==='rendu')return`Rendu par ${n}`;
+  return`Donné à ${n}`;
 }
 function computeCompteCourant(p){
   const dep=compteDepart(p.id);
@@ -3118,10 +3336,10 @@ function computeCompteCourant(p){
     }
   }
   (D.comptesMouvements||[]).filter(x=>x.pid===p.id).forEach(x=>{
-    const signe=(x.sens==='du')?1:-1;
-    lignes.push({date:x.date,ordre:2,type:'mouvement',id:x.id,mode:x.mode,
-      label:(x.sens==='du')?'À lui régler en plus':'Réglé',
-      detail:[compteModeLabel(x.mode),x.note].filter(Boolean).join(' · '),
+    const signe=(x.sens==='du'||x.sens==='rendu')?1:-1;
+    lignes.push({date:x.date,ordre:2,type:'mouvement',id:x.id,mode:x.mode,sens:x.sens,com:x.com||'',
+      label:mvLabel(x,p),
+      detail:[compteModeLabel(x.mode),x.pour||x.note].filter(Boolean).join(' · '),
       montant:signe*Math.abs(+x.montant||0)});
   });
   lignes.sort((a,b)=>(a.date||'').localeCompare(b.date||'')||a.ordre-b.ordre);
@@ -3241,7 +3459,7 @@ function delCompteMouvement(id){
 const REG_POURS=['Solde du mois','Ménage','Gardiennage','Prestations','Travaux','Facture','Avance'];
 function reglementsDuMois(pid,y,m){
   const k=monthKeyOf(y,m);
-  return (D.comptesMouvements||[]).filter(x=>x.pid===pid&&x.sens!=='du'&&(x.date||'').slice(0,7)===k)
+  return (D.comptesMouvements||[]).filter(x=>x.pid===pid&&x.sens!=='du'&&x.sens!=='rendu'&&(x.date||'').slice(0,7)===k)
     .sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.createdAt||0)-(b.createdAt||0));
 }
 function totalReglePour(pid,y,m){
@@ -7087,7 +7305,7 @@ function renderPrestaDetailAdmin(p){
   const inMonth=dateStr=>!!dateStr&&dateStr.startsWith(monthKey);
   const canPrintList=p.inputMode==='garde'||!!p.flatRate;
   const nav=`<div class="cal-header" style="margin-bottom:14px">${monthYearPicker('adminPrestaYear','adminPrestaMonth')}${canPrintList?`<button class="btn btn-sm" onclick="openPrestaPrintList('${p.id}')" title="Liste imprimable des prestations du mois, sans mention de paiement">🖨 Liste imprimable</button>`:''}</div>`;
-  if(bilanClairActif())return`<div style="margin-top:16px">${p.accessMode==='domaine'?renderBilanCompte(p,y,m,nav):renderBilanClair(p,y,m,nav)}</div>`;
+  if(bilanClairActif())return`<div style="margin-top:16px">${suiviFinancier(p)?renderBilanCompte(p,y,m,nav):renderBilanClair(p,y,m,nav)}</div>`;
   const basculeV2=`<div class="bc-bascule" style="margin:0 0 10px">Présentation des bilans : <strong>ancienne</strong> · <a href="#" onclick="event.preventDefault();setBilanPresentation('v2')">passer à la nouvelle</a></div>`;
 
   /* === Forfait ménage (Misha / Sasha / Pascaline) — rendu partagé avec la page perso === */
@@ -8298,7 +8516,7 @@ function buildFullBackupWorkbook(){
   const CC_H=['ID','ID Prestataire','Prestataire','Date','Sens','Montant €','Mode','Pour quoi','Note','Facture du mois'];
   const ccRows=(D.comptesMouvements||[]).map(x=>({
     'ID':x.id,'ID Prestataire':x.pid,'Prestataire':gPre(x.pid).name,'Date':x.date||'',
-    'Sens':x.sens==='du'?'À lui régler en plus':'Réglé','Montant €':x.montant||0,
+    'Sens':x.sens==='du'?'À lui régler en plus':x.sens==='rendu'?'Rendu par lui':'Réglé','Montant €':x.montant||0,
     'Mode':compteModeLabel(x.mode),'Pour quoi':x.pour||'','Note':x.note||'',
     'Facture du mois':x.factureKey||''
   }));
@@ -8504,7 +8722,7 @@ function parseFullBackupWorkbook(wb){
     if(!pid){skipped++;return null;}
     const mode=(String(x['Mode']||'').match(/factur/i)?'facture':String(x['Mode']||'').match(/virement/i)?'virement':String(x['Mode']||'').match(/esp/i)?'especes':'autre');
     return{id:String(x['ID']),pid,date:normDate(x['Date']),montant:numVal(x['Montant €']),
-      sens:/plus/i.test(String(x['Sens']||''))?'du':'verse',mode,pour:x['Pour quoi']||'',
+      sens:/rendu/i.test(String(x['Sens']||''))?'rendu':/plus/i.test(String(x['Sens']||''))?'du':'verse',mode,pour:x['Pour quoi']||'',
       note:x['Note']||'',factureKey:x['Facture du mois']||''};
   }).filter(Boolean);
 
@@ -9831,7 +10049,7 @@ function renderBilanClair(p,y,m,nav){
 
 function renderPrestaMonBilan(p){
   const y=S.prestaBilanYear,m=S.prestaBilanMonth;
-  if(bilanClairActif()){const _nav=`<div class="cal-header" style="margin-bottom:14px">${monthYearPicker('prestaBilanYear','prestaBilanMonth')}</div>`;return p.accessMode==='domaine'?renderBilanCompte(p,y,m,_nav):renderBilanClair(p,y,m,_nav);}
+  if(bilanClairActif()){const _nav=`<div class="cal-header" style="margin-bottom:14px">${monthYearPicker('prestaBilanYear','prestaBilanMonth')}</div>`;return suiviFinancier(p)?renderBilanCompte(p,y,m,_nav):renderBilanClair(p,y,m,_nav);}
   return`<div class="cal-header" style="margin-bottom:14px">${monthYearPicker('prestaBilanYear','prestaBilanMonth')}</div>
   ${renderBilanTotalSection(p,y,m)}
   ${renderReglementsBloc(p,y,m)}
@@ -10066,7 +10284,7 @@ function renderPrestaDominique(p){
   // Plus d'onglet « Dernières modifs » pour Dominique : il ne reçoit que les mises à jour de son
   // propre planning, via la bannière de notifications en haut (prestaVisibleLog, régime ownOnly).
   if(tab==='planning'&&bilanClairActif()){
-    content=renderBilanClair(p,S.prestaBilanYear,S.prestaBilanMonth,`<div class="cal-header" style="margin-bottom:14px">${monthYearPicker('prestaBilanYear','prestaBilanMonth')}</div>`);
+    content=renderBilanCompte(p,S.prestaBilanYear,S.prestaBilanMonth,'');
   } else if(tab==='planning'){
     const y=S.prestaBilanYear,m=S.prestaBilanMonth;
     const inMonth=x=>{const[ry,rm]=x.date.split('-').map(Number);return ry===y&&rm===(m+1);};
@@ -10161,7 +10379,7 @@ function renderPrestaGardePersonnel(p){
     // Pas de "Bilan total" séparé pour Sébastien/Mathilde : ils n'ont que du gardiennage, dont
     // le total est déjà dans la section Gardiennage juste en dessous — un second total ferait
     // doublon.
-    content=bilanClairActif()?renderBilanClair(p,y,m,`<div class="cal-header" style="margin-bottom:14px">${monthYearPicker('prestaBilanYear','prestaBilanMonth')}</div>`)
+    content=bilanClairActif()?renderBilanCompte(p,y,m,'')
     :`<div class="cal-header" style="margin-bottom:14px">${monthYearPicker('prestaBilanYear','prestaBilanMonth')}</div>
     ${renderBilanComments(p,y,m)}
     ${renderGardeSection(p,y,m)}`;
