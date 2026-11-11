@@ -569,6 +569,131 @@ span.tp-st{cursor:default}
 .cx-leg{font-size:10.5px;color:#8a857c;display:flex;flex-wrap:wrap;gap:4px 12px;margin:-4px 2px 12px}
 @media(max-width:520px){.cx-big{font-size:22px}.cx-chip{font-size:12px;padding:8px}.cx-d{min-width:38px}}
 
+/* ══ CONTRASTE RENFORCÉ (11/11) — bilans, onglets, plannings équipe ══ */
+/* Compte courant : textes plus sombres, montants plus gros, mois ouvert bien marqué */
+.cx-head{border:2px solid #0C447C}
+.cx-ph{font-size:15px;font-weight:700}
+.cx-sub{color:#3f3b35;font-size:11.5px}
+.cx-sub b{color:#1f1d1a}
+.cx-dep-lk{color:#0C447C;font-weight:700;text-decoration:none;border-bottom:1px dashed #0C447C}
+.cx-an-i{opacity:1}
+.cx-mo{font-size:13.5px;color:#1f1d1a;border-bottom:1px solid #d9d4ca;padding:9px 12px}
+.cx-mo.vide{color:#7a756c}
+.cx-mo-i{color:#4a4640}
+.cx-mo.cur{background:#FFF3D6}
+.cx-mo.open{background:#0C447C;color:#fff;border-bottom-color:#0C447C}
+.cx-mo.open .cx-mo-n,.cx-mo.open .cx-mo-i{color:#fff}
+.cx-mo.open .cx-mo-n em{background:#FFD98A;color:#5a3c00}
+.cx-mo.open .cx-mo-s{background:#fff;border-radius:6px;padding:1px 7px}
+.cx-mo-mv i{border-radius:5px;padding:0 5px;font-weight:700}
+.cx-mo-mv i.p{background:#FBE4E2;color:#B3261E}.cx-mo-mv i.n{background:#DFF1E4;color:#146C2E}
+.cx-mo-body{border-left:4px solid #0C447C;border-bottom:3px solid #0C447C;background:#fff}
+.cx-l{border-bottom:1px solid #e6e2da;border-left:4px solid transparent;padding:8px 10px 8px 7px;align-items:center}
+.cx-l:nth-of-type(even){background:#FAF9F6}
+.cx-d{background:#3f3b35;color:#fff;font-size:10.5px;font-weight:700;margin-top:0}
+.cx-t{color:#1f1d1a;font-size:13px;font-weight:700}
+.cx-t small{color:#57524a;font-size:11px;font-weight:500}
+.cx-m{font-size:14.5px;font-weight:800}
+.cx-m small{color:#6b665e;font-weight:600}
+.cx-m.p{color:#B3261E}.cx-m.n{color:#146C2E}
+.cx-l.rep{background:#EEF1F5}
+/* Liseré coloré = nature de la ligne */
+.cx-k-menage{border-left-color:#1E7A6E}.cx-k-presta{border-left-color:#B07D00}.cx-k-trav{border-left-color:#8B4A1F}
+.cx-k-garde,.cx-k-gardeS,.cx-k-forfait{border-left-color:#534AB7}.cx-k-jard{border-left-color:#3F6212}
+.cx-k-elec{border-left-color:#D2720A}.cx-k-remb{border-left-color:#0C447C}.cx-k-enc{border-left-color:#8C3A3A}
+.cx-k-mv-out{border-left-color:#146C2E;background:#F3FAF5!important}.cx-k-mv-plus,.cx-k-mv-in{border-left-color:#B3261E}
+/* Montant modifiable */
+.cx-m-clk{cursor:pointer}
+.cx-m-clk .cx-mv{border-bottom:1.5px dashed currentColor;padding-bottom:1px}
+.cx-m-clk:hover .cx-mv{background:#FFF6D6;border-radius:4px}
+.cx-pen{font-style:normal;font-size:10px;margin-left:3px;opacity:.65}
+.cx-m-ed{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.cx-ed-row{display:flex;align-items:center;gap:3px}
+.cx-ed-row b{font-size:13px;color:#1f1d1a}
+.cx-m-ed input{width:96px!important;text-align:right;font-size:15px!important;font-weight:800;padding:4px 7px!important;border:2px solid #0C447C!important;border-radius:7px;background:#FFFDF5}
+.cx-ed-act{display:flex;gap:4px}
+.cx-ed-act button{border:none;border-radius:6px;padding:3px 10px;font-size:12px;font-weight:800;cursor:pointer;background:#E4E1DA;color:#3f3b35}
+.cx-ed-act button.ok{background:#146C2E;color:#fff}
+.cx-dur{display:block;margin-top:4px;font-size:12px!important;padding:2px 5px!important;width:auto!important;border:1.5px solid #534AB7!important;border-radius:6px;color:#3C3489;font-weight:700;background:#F4F2FD}
+/* Barre « + Ajouter en <mois> » */
+.cx-add{padding:9px 10px 10px;background:#E8F0FA;border-bottom:2px solid #0C447C}
+.cx-add-t{font-size:11px;font-weight:800;color:#0C447C;text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px}
+.cx-add-c{display:flex;flex-wrap:wrap;gap:6px}
+.cx-ab{display:inline-flex;align-items:center;gap:5px;border:1.5px solid #0C447C;background:#fff;color:#0C447C;border-radius:18px;padding:6px 11px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;line-height:1.1}
+.cx-ab.out{border-color:#146C2E;color:#146C2E}.cx-ab.in{border-color:#B3261E;color:#B3261E}
+.cx-ab:hover{filter:brightness(.96)}
+.cx-ab.on{background:#0C447C;color:#fff}.cx-ab.out.on{background:#146C2E;color:#fff}.cx-ab.in.on{background:#B3261E;color:#fff}
+.cx-saisie-wrap{padding:8px 8px 0;background:#E8F0FA}
+.cx-saisie-wrap .cx-saisie{margin-bottom:8px;background:#fff;border-width:2px}
+.cx-saisie-m{font-style:normal;background:#0C447C;color:#fff;border-radius:5px;padding:1px 7px;font-size:11.5px;margin-left:6px;white-space:nowrap}
+.cx-rec{color:#3f3b35;font-size:11.5px}
+.cx-rec .r-p b{color:#B3261E}.cx-rec .r-n b{color:#146C2E}
+.cx-f{font-size:13.5px}
+.cx-outils .cx-astuce{font-size:11px;color:#6b665e;align-self:center;margin-left:auto}
+.cx-leg{color:#4a4640}
+.cx-empty{color:#57524a}
+@media(max-width:520px){.cx-ab{font-size:12px;padding:6px 9px}.cx-m{font-size:13.5px}.cx-outils .cx-astuce{display:none}}
+/* Onglets du suivi des bilans */
+.tabs-bilan{background:#dcd8d0}
+.tabs-bilan .tab{color:#2e2b27;font-weight:600}
+.tabs-bilan .tab.active{background:#0C447C;color:#fff;border-color:#0C447C;font-weight:800}
+.tabs-bilan .tab.active .tab-cc{background:#fff;border-radius:8px;padding:0 6px}
+.tabs-bilan .tab-cc{font-size:11.5px;font-weight:800}
+.bx-annuel{margin:12px 0 4px;background:#fff;border:1px solid #d9d4ca;border-radius:10px;padding:0 10px}
+.bx-annuel>summary{cursor:pointer;padding:9px 2px;font-size:12.5px;font-weight:700;color:#3f3b35}
+.bx-annuel[open]>summary{border-bottom:1px solid #e6e2da;margin-bottom:8px}
+/* Planning équipe */
+.tp-who{display:flex;align-items:center;gap:10px;color:#fff;border-radius:12px;padding:10px 12px;margin:0 0 8px}
+.tp-who b{display:block;font-size:17px;line-height:1.15}
+.tp-who small{display:block;font-size:12px;opacity:.95;font-weight:600}
+.tp-av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0}
+.tp-who-t{margin-left:auto;text-align:right;font-size:12px;font-weight:600;line-height:1.2}
+.tp-who-t b{font-size:17px}
+.tp-tarif{color:#3f3b35;font-weight:600}
+.tp-leg{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin:2px 0 8px}
+.tp-leg-d{color:#fff;font-size:11px;font-weight:800;border-radius:12px;padding:2px 9px}
+.tp-leg-t{font-size:11px;color:#3f3b35;margin-left:4px}
+.tp-aide{color:#3f3b35}
+.tp-dow{color:#1f1d1a;font-size:11px}
+.tp-cell{border:1.5px solid #cfcac0;background:#fff;min-height:56px}
+.tp-cell.tp-we{background:#F1EEE7}
+.tp-cell.tp-pris{border-width:2px}
+.tp-cell.tp-auj{box-shadow:0 0 0 2px #993556}
+.tp-n{color:#1f1d1a;font-weight:800;font-size:11.5px}
+.tp-bs{gap:3px}
+.tp-bx{display:inline-flex;align-items:center;gap:2px;color:#fff;border-radius:6px;padding:2px 5px;font-size:12px;font-weight:800;line-height:1.1;white-space:nowrap;max-width:100%;overflow:hidden}
+.tp-bx .tp-w{display:none}
+.tp-bx .tp-md{font-style:normal;font-size:10px}
+.tp-ok2{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:50%;background:#2DB357;color:#fff;font-style:normal;font-size:9px;font-weight:900;margin-left:1px}
+.tp-lock2{outline:1.5px dashed rgba(255,255,255,.8);outline-offset:-3px}
+.tp-sec{color:#1f1d1a;font-size:12px}
+.tp-l{font-size:13px;color:#1f1d1a;border-bottom:1px solid #e0dcd3;padding:8px 6px}
+.tp-l:nth-child(even){background:#FAF9F6}
+.tp-l.ok{background:#EAF6EE}
+.tp-d{font-weight:800}
+.tp-domf{color:#fff;font-size:11px;font-weight:800;border-radius:12px;padding:2px 9px;white-space:nowrap}
+.tp-m{font-size:14px;font-weight:800}
+.tp-st{font-size:11.5px;padding:3px 9px}
+.tp-st.on{background:#146C2E;color:#fff}
+.tp-st.off{background:#B3261E;color:#fff;border-color:#B3261E}
+.tp-st.fac{background:#8A6400;color:#fff}
+.tp-seg button{opacity:.35}
+.tp-seg button.sel{background:#0C447C;color:#fff;opacity:1}
+.tp-reg{border:2px solid #d9d4ca}
+.tp-reg-s{color:#3f3b35}
+/* Onglet Équipe : cartes d'accès aux plannings */
+.tm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}
+.tm-card{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid #d9d4ca;border-left:6px solid #888;border-radius:10px;padding:9px 11px;font:inherit;text-align:left;cursor:pointer;color:#1f1d1a}
+.tm-card:hover{background:#FAF8F4}
+.tm-av{width:34px;height:34px;border-radius:50%;color:#fff;font-weight:800;font-size:12.5px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tm-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.tm-tx b{font-size:14.5px}
+.tm-tx small{font-size:11.5px;color:#3f3b35;font-weight:600}
+.tm-ds{display:flex;flex-wrap:wrap;gap:3px;margin-top:2px}
+.tm-d{color:#fff;font-size:10px;font-weight:800;border-radius:10px;padding:1px 7px}
+.tm-st{flex-shrink:0;border-radius:8px;padding:4px 9px;font-weight:800;font-size:13px;text-align:center;line-height:1.1;white-space:nowrap}
+.tm-st small{display:block;font-size:9.5px;font-weight:700}
+.tm-st.ko{background:#B3261E;color:#fff}.tm-st.ok{background:#146C2E;color:#fff}.tm-st.nul{background:#ECEAE5;color:#6b665e}
 .ttc-tag{font-size:.7em;font-weight:600;margin-left:3px;opacity:.7;letter-spacing:.02em}.ht-sub{font-size:max(9.5px,.72em);font-weight:400;color:#8a857b;margin-left:5px;white-space:nowrap}.ht-hint{font-size:10.5px;color:#8a857b;margin-top:3px;min-height:12px}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -580,7 +705,7 @@ span.tp-st{cursor:default}
 /* Numéro de version, affiché en haut de l'écran. Sert à répondre en une seconde à la seule
    question qui compte quand « ça marche chez moi mais pas chez elle » : les deux téléphones
    font-ils bien tourner la MÊME version ? */
-const APP_VERSION='2026-10-08-a';
+const APP_VERSION='2026-11-11-a';
 const SK='domnoрm_prod_v1';
 const SUPA_URL='https://hdtltrnabrgibkcvubzd.supabase.co';
 const SUPA_KEY='sb_publishable_zvpg0YOHegxqXJxbEKhSbQ_3oLwbrr1';
@@ -2075,10 +2200,19 @@ function commissionSelectHtml(id,current){
     ${known?'':`<option value="${cur}" selected>Commission ${cur}%</option>`}
   </select>`;
 }
-function renderAddPrestaLineForm(p){
+function renderAddPrestaLineForm(p,y,m){
   const doms=p.domaines||[];
-  const resas=D.reservations.filter(r=>r.status!=='annulé'&&(doms.length===0||doms.includes(r.domaine))).sort((a,b)=>(b.dateArrivee||'').localeCompare(a.dateArrivee||'')).slice(0,80);
-  const opts=resas.map(r=>`<option value="${r.id}">${fmt(r.dateArrivee)} — ${(displayClientName(r)||r.client||gDom(r.domaine).name).replace(/"/g,'&quot;')}</option>`).join('');
+  let resas=D.reservations.filter(r=>r.status!=='annulé'&&(doms.length===0||doms.includes(r.domaine))).sort((a,b)=>(b.dateArrivee||'').localeCompare(a.dateArrivee||'')).slice(0,80);
+  /* Ouvert depuis un mois du compte courant : les réservations de CE mois d'abord (la
+     prestation se compte au mois d'arrivée), les autres ensuite. */
+  const mk=(y!==undefined&&m!==undefined)?monthKeyOf(y,m):null;
+  const opt=r=>`<option value="${r.id}">${fmt(r.dateArrivee)} — ${(displayClientName(r)||r.client||gDom(r.domaine).name).replace(/"/g,'&quot;')}</option>`;
+  let opts;
+  if(mk){
+    const du=resas.filter(r=>(r.dateArrivee||r.date||'').slice(0,7)===mk).sort((a,b)=>(a.dateArrivee||'').localeCompare(b.dateArrivee||''));
+    const autres=resas.filter(r=>!du.includes(r));
+    opts=(du.length?`<optgroup label="${MONTHS_FR[m]} ${y}">${du.map(opt).join('')}</optgroup>`:'')+(autres.length?`<optgroup label="Autres mois">${autres.map(opt).join('')}</optgroup>`:'');
+  }else opts=resas.map(opt).join('');
   const vOpts=viaOptions(p.id).map(([v,lbl])=>`<option value="${v}">${lbl}</option>`).join('');
   return`<div style="background:#f5f4f1;border-radius:8px;padding:8px;margin-top:8px;display:flex;flex-direction:column;gap:6px">
     <select id="apl-resa-${p.id}" style="font-size:12.5px;padding:5px 6px">${opts||'<option value="">Aucune réservation disponible</option>'}</select>
@@ -2112,7 +2246,7 @@ function submitAddPrestaLine(pid){
   const p=gPre(pid);
   logActivity('prestation',r.domaine,`Prestation ajoutée : ${label||'—'}${montant?' · '+money(montant):''} — ${p.name} (${displayClientName(r)||'—'})`,[pid],false,rid);
   saveD();
-  S.addPrestaLineOpen=null;S.saisie=null;
+  S.addPrestaLineOpen=null;S.saisie=null;S.saisieKey=null;
   showMsg('Prestation ajoutée ✓');
   render();
 }
@@ -2267,6 +2401,25 @@ function addAvanceeForfait(fid){
     status:'en_attente',createdAt:Date.now()});
   logActivity('prestation',f.domaine,`Avancée sur forfait — ${gPre(f.pid).name} : ${f.titre} ${money(montant)} au ${fmt(date)}`,[f.pid],true);
   S.declOuvert=null;saveD();showMsg('Avancée enregistrée, en attente de validation ✓');render();
+}
+/* Avancée sur forfait saisie depuis le mois ouvert du compte courant (11/11). */
+function addAvanceeForfaitMois(pid){
+  const g=id=>(document.getElementById(id)||{}).value;
+  const fid=g('avf-f-'+pid);
+  const f=(D.forfaits||[]).find(x=>x.id===fid);
+  if(!f){showMsgSansPerdre('Choisis le forfait ⚠️');return;}
+  const date=g('avf-date-'+pid),montant=parseFloat(g('avf-montant-'+pid))||0,note=(g('avf-note-'+pid)||'').trim();
+  const manque=[];if(!date)manque.push('la date');if(!montant)manque.push('le montant');
+  if(manque.length){showMsgSansPerdre('Il manque '+manque.join(' et ')+' ⚠️');return;}
+  const c=computeForfait(f);
+  if(montant>c.reste+0.005&&!confirm(`Le forfait « ${f.titre} » n'a plus que ${money(c.reste)} de disponible. Déclarer quand même ${money(montant)} ?`))return;
+  if(!D.travauxSchedule)D.travauxSchedule=[];
+  const adm=S.view==='admin';
+  D.travauxSchedule.push({id:gid(),pid:f.pid,domaine:f.domaine,date,type:'travaux',mode:'forfait',
+    heures:null,montant:Math.round(montant*100)/100,note:note||f.titre,forfaitId:f.id,
+    status:adm?'validé':'en_attente',validatedBy:adm&&S.admin?S.admin.name:undefined,validatedAt:adm?Date.now():undefined,createdAt:Date.now()});
+  logActivity('prestation',f.domaine,`Avancée sur forfait — ${gPre(f.pid).name} : ${f.titre} ${money(montant)} au ${fmt(date)}`,[f.pid],true);
+  S.saisie=null;S.saisieKey=null;saveD();showMsg(adm?'Avancée enregistrée ✓':'Avancée enregistrée, en attente de validation ✓');render();
 }
 function renderForfaitsSection(p,y,m){
   if(!suiviFinancier(p))return'';
@@ -2932,14 +3085,29 @@ function ledgerMois(p,y,m,Cc){
   const r2=v=>Math.round(v*100)/100;
   return{key,report:r2(report),lignes,fin:r2(s),dep,actif,auj,fait:r2(fait),deduit:r2(deduit),regle:r2(regle),plus:r2(plus)};
 }
-function setSaisie(k){
+/* 11/11 — David : « j'ouvre octobre, j'ouvre novembre et je peux à peu près tout faire ; ce
+   que je crée doit arriver dans le mois en question ». La saisie est donc rattachée à un MOIS
+   (S.saisieKey = 'AAAA-MM') et s'ouvre dans ce mois-là, date pré-remplie dans ce mois. */
+function setSaisie(k,key){
   if(k==='msg'){
     setTimeout(()=>{const e=document.getElementById('bloc-comments');if(e){e.scrollIntoView({behavior:'smooth',block:'start'});const i=e.querySelector('input');if(i)i.focus();}},30);
     return;
   }
-  S.saisie=(S.saisie===k)?null:k;
+  const meme=S.saisie===k&&(S.saisieKey||null)===(key||null);
+  S.saisie=meme?null:k;
+  S.saisieKey=meme?null:(key||null);
   S.addPrestaLineOpen=null;
   render();
+  if(!meme&&key)setTimeout(()=>{const e=document.getElementById('cx-saisie');if(e)e.scrollIntoView({behavior:'smooth',block:'nearest'});},40);
+}
+/* Date proposée dans un mois donné : aujourd'hui pour le mois en cours, le dernier jour pour
+   un mois passé (un règlement d'octobre saisi en novembre tombe au 31/10), le 1er pour un mois
+   à venir. */
+function cxDateMois(y,m){
+  const n=new Date(),cy=n.getFullYear(),cm=n.getMonth();
+  if(y===cy&&m===cm)return dstr(n);
+  if(y<cy||(y===cy&&m<cm))return finDeMois(y,m);
+  return`${y}-${String(m+1).padStart(2,'0')}-01`;
 }
 function toggleCx(k){S[k]=!S[k];render();}
 function ccBadge(valide,js){
@@ -2984,18 +3152,98 @@ function cxComBtn(l,p){
   if(!args)return'';
   return`<button class="cx-cb" title="Petit commentaire" onclick="event.stopPropagation();cxEditCom('${p.id}',${args})">💬</button>`;
 }
+/* ── Montants modifiables directement sur la ligne (11/11) ──
+   David : « j'ai besoin d'avoir plus la main sur les montants, pouvoir les changer moi, mois
+   par mois ». On touche le montant, on tape, Entrée : c'est enregistré et journalisé
+   (avant → après). Seul ce qui a un montant libre est modifiable ; une nuit de gardiennage
+   se change par sa durée (longue / courte), l'électricité par l'index. */
+function cxEditable(l,p){
+  const r=l.ref||{};
+  if(l.type==='mouvement'){const x=(D.comptesMouvements||[]).find(v=>v.id===l.id);return x?{key:`mv|${x.id}|`,val:Math.abs(+x.montant||0),lbl:'montant'}:null;}
+  if(l.type!=='activite')return null;
+  switch(r.k){
+    case'menage':{const rr=(D.reservations||[]).find(x=>x.id===r.rid);const mi=rr&&getMenageInfo(rr);return mi?{key:`menage|${r.rid}|`,val:mi.montant||0,lbl:'ménage'}:null;}
+    case'presta':{const rr=(D.reservations||[]).find(x=>x.id===r.rid);const ln=rr&&rr.prestaLines&&rr.prestaLines[p.id]?rr.prestaLines[p.id].find(z=>z.id===r.lid):null;return ln?{key:`presta|${r.rid}|${r.lid}`,val:+ln.montant||0,lbl:'montant client'}:null;}
+    case'trav':{const x=(D.travauxSchedule||[]).find(v=>v.id===r.id);return x?{key:`trav|${x.id}|`,val:+x.montant||0,lbl:'montant'}:null;}
+    case'remb':{const x=(D.remboursements||[]).find(v=>v.id===r.id);return x?{key:`remb|${x.id}|`,val:+x.montant||0,lbl:'payé'}:null;}
+    case'enc':{const x=(D.encaissements||[]).find(v=>v.id===r.id);return x?{key:`enc|${x.id}|`,val:+x.montant||0,lbl:'reçu (brut)'}:null;}
+    case'jard':{const x=(D.dominiqueSchedule||[]).find(v=>v.id===r.id);return x?{key:`jard|${x.id}|`,val:+x.montant||0,lbl:'journée'}:null;}
+  }
+  return null;
+}
+function cxEditOuvrir(key){
+  S.cxEdit=key;render();
+  setTimeout(()=>{const i=document.getElementById('cx-ed-in');if(i){i.focus();try{i.select();}catch(e){}}},30);
+}
+function cxEditFermer(){S.cxEdit=null;render();}
+function cxSetMontant(pid,key,val){
+  if(S.cxEdit!==key)return;          // déjà traité (Entrée puis perte du focus)
+  const[k,a,b]=key.split('|');
+  let v=parseFloat(String(val).replace(',','.'));
+  if(isNaN(v)){showMsgSansPerdre('Montant non reconnu ⚠️');return;}
+  v=Math.round(Math.abs(v)*100)/100;
+  const p=gPre(pid),now=Date.now();
+  let o=null,old=null,quoi='',dom=(p.domaines||[])[0]||null,rid=null,date='';
+  if(k==='menage'){
+    const r=(D.reservations||[]).find(x=>x.id===a);if(!r)return;
+    const mi=getMenageInfo(r);old=mi?mi.montant:0;r.menageMontant=v;r.updatedAt=now;r.fieldsUpdatedAt=now;
+    quoi=`Ménage ${displayClientName(r)||''}`.trim();dom=r.domaine;rid=r.id;date=menageJour(r,p)||r.dateArrivee;
+  }else if(k==='presta'){
+    const r=(D.reservations||[]).find(x=>x.id===a);const ln=r&&r.prestaLines&&r.prestaLines[pid]?r.prestaLines[pid].find(z=>z.id===b):null;if(!ln)return;
+    old=+ln.montant||0;ln.montant=v;r.updatedAt=now;r.fieldsUpdatedAt=now;
+    quoi=`Prestation ${ln.label||''}`.trim();dom=r.domaine;rid=r.id;date=r.dateArrivee;
+  }else{
+    const tab={mv:'comptesMouvements',trav:'travauxSchedule',remb:'remboursements',enc:'encaissements',jard:'dominiqueSchedule'}[k];
+    o=(D[tab]||[]).find(x=>x.id===a);if(!o)return;
+    old=Math.abs(+o.montant||0);
+    o.montant=v;o.updatedAt=now;
+    if(k==='trav'&&o.mode==='heure'){o.mode='forfait';}
+    quoi={mv:'Mouvement de compte',trav:o.forfaitId?'Avancée sur forfait':'Travaux',remb:'Payé pour notre compte',enc:'Reçu pour notre compte',jard:'Journée de jardinage'}[k];
+    if(o.domaine)dom=o.domaine;date=o.date;
+  }
+  S.cxEdit=null;
+  if(Math.abs((old||0)-v)<0.005){render();return;}
+  logActivity('prestation',dom,`Montant modifié — ${p.name} · ${quoi}${date?' ('+fmt(date)+')':''} : ${money(old||0)} → ${money(v)}`,[pid],false,rid);
+  saveD();showMsg(`Montant modifié : ${money(old||0)} → ${money(v)} ✓`);render();
+}
+/* Durée d'une nuit de gardiennage, changée directement depuis le compte courant. */
+function cxDureeSel(l,p){
+  const r=l.ref||{};
+  if(r.k!=='garde'&&r.k!=='gardeS')return'';
+  const cur=/courte/.test(l.label)?'courte':'longue';
+  const call=r.k==='garde'?`setGardeNightDuree('${r.rid}','${p.id}','${r.date}',this.value)`:`setGardeScheduleDuree('${r.id}',this.value)`;
+  return`<select class="cx-dur" onclick="event.stopPropagation()" onchange="${call}"><option value="longue"${cur==='longue'?' selected':''}>Longue ${money(gardeRate('longue'))}</option><option value="courte"${cur==='courte'?' selected':''}>Courte ${money(gardeRate('courte'))}</option></select>`;
+}
+function cxKind(l){
+  if(l.type==='mouvement')return l.sens==='rendu'?'mv-in':l.montant>0?'mv-plus':'mv-out';
+  return(l.ref&&l.ref.k)||l.type||'x';
+}
 function ccLigneHtml(l,p,isAdmin,auj){
   const r=l.ref||{};
   const futur=l.date&&l.date>auj;
   const v=l.montant,cls=v>0.005?'p':v<-0.005?'n':'z';
   const lien=r.rid?(isAdmin?`openM('editResa','${r.rid}')`:`selectAndGoPrestaCal('${r.rid}')`):'';
   const esc=t=>String(t||'').replace(/</g,'&lt;');
-  return`<div class="cx-l${futur?' fut':''}">
+  const ed=isAdmin?cxEditable(l,p):null;
+  let montantHtml;
+  if(ed&&S.cxEdit===ed.key){
+    const k=ed.key.replace(/'/g,"\\'");
+    montantHtml=`<span class="cx-m cx-m-ed" onclick="event.stopPropagation()">
+      <span class="cx-ed-row"><input type="number" step="0.01" inputmode="decimal" id="cx-ed-in" value="${ed.val}"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();cxSetMontant('${p.id}','${k}',this.value);}else if(event.key==='Escape'){cxEditFermer();}"
+        onchange="cxSetMontant('${p.id}','${k}',this.value)"><b>€</b></span>
+      <span class="cx-ed-act"><button class="ok" onmousedown="event.preventDefault()" onclick="cxSetMontant('${p.id}','${k}',document.getElementById('cx-ed-in').value)">✓</button><button onmousedown="event.preventDefault()" onclick="cxEditFermer()">✕</button></span>
+      <small>${ed.lbl}</small></span>`;
+  }else{
+    const clic=ed?` cx-m-clk" title="Toucher pour modifier le montant" onclick="event.stopPropagation();cxEditOuvrir('${ed.key.replace(/'/g,"\\'")}')`:'';
+    montantHtml=`<span class="cx-m ${cls}${clic}"><span class="cx-mv">${v>=0?'+':'−'} ${money(Math.abs(v))}${ed?'<i class="cx-pen">✎</i>':''}</span><small>= ${money(l.soldeM)}</small></span>`;
+  }
+  return`<div class="cx-l cx-k-${cxKind(l)}${futur?' fut':''}">
     <span class="cx-d">${ds(l.date)}</span>
     <span class="cx-ic">${ccIcone(l)}</span>
-    <span class="cx-t${lien?' lk':''}"${lien?` onclick="${lien}"`:''}><b>${esc(l.label)}</b>${futur?'<em>prévu</em>':''}${l.detail?`<small>${esc(l.detail)}</small>`:''}</span>
+    <span class="cx-t${lien?' lk':''}"${lien?` onclick="${lien}"`:''}><b>${esc(l.label)}</b>${futur?'<em>prévu</em>':''}${l.detail?`<small>${esc(l.detail)}</small>`:''}${isAdmin?cxDureeSel(l,p):''}</span>
     ${l.com?`<span class="cx-c">${esc(l.com)}</span>`:''}
-    <span class="cx-m ${cls}">${v>=0?'+':'−'} ${money(Math.abs(v))}<small>= ${money(l.soldeM)}</small></span>
+    ${montantHtml}
     <span class="cx-a">${isAdmin?cxComBtn(l,p):''}${ccActions(l,p,isAdmin)}</span>
   </div>`;
 }
@@ -3006,7 +3254,7 @@ function renderSaisieCompte(p,y,m,k){
   const V=bilanVoix(p);
   const defaultDom=(p.domaines||[])[0];
   const domOpts=D.domaines.map(d=>`<option value="${d.id}" ${d.id===defaultDom?'selected':''}>${d.name}</option>`).join('');
-  const jour=dateDefautMois(y,m);
+  const jour=cxDateMois(y,m);
   const btn=(txt,js)=>`<button class="btn btn-primary decl-go" onclick="${js}">${txt}</button>`;
   let titre='',corps='';
   if(k==='trav'){
@@ -3048,14 +3296,14 @@ function renderSaisieCompte(p,y,m,k){
       ${btn('Déclarer',`addEncaissement('${p.id}')`)}`;
   }else if(k==='presta'){
     titre='🧾 Prestation pour un client';
-    corps=renderAddPrestaLineForm(p);
+    corps=renderAddPrestaLineForm(p,y,m);
   }else if(k==='regl'){
     titre=`💶 Je donne de l’argent à ${p.name}`;
     const modeBtn=(v,ic,lbl,sel)=>`<button type="button" class="reg-mode${sel?' sel':''}" onclick="pickRegMode('${p.id}','${v}',this,0,0)"><span class="rm-ic">${ic}</span>${lbl}</button>`;
     corps=`<input type="hidden" id="reg-mode-${p.id}" value="especes">
       <div class="reg-modes" id="reg-modes-${p.id}">${modeBtn('especes','💶','Espèces',true)}${modeBtn('facture','🧾','Facture',false)}${modeBtn('virement','🏦','Virement',false)}${modeBtn('autre','✍️','Autre',false)}</div>
       <div class="decl-g" style="grid-template-columns:1fr 1fr">
-        ${declChamp('Date du règlement',dateFieldHtml(`reg-date-${p.id}`,'width:100%',null,dstr(new Date())))}
+        ${declChamp('Date du règlement',dateFieldHtml(`reg-date-${p.id}`,'width:100%',null,jour))}
         ${declChamp('Montant (€)',`<input type="number" id="reg-montant-${p.id}" step="0.01" placeholder="0">`)}
       </div>
       <div class="decl-g" style="grid-template-columns:1fr">${declChamp('Pour quoi',`<input type="text" id="reg-pour-${p.id}" placeholder="ex. solde d'octobre, ménage…">`)}</div>
@@ -3064,7 +3312,7 @@ function renderSaisieCompte(p,y,m,k){
   }else if(k==='rendu'){
     titre=`↩️ ${p.name} me rend de l’argent`;
     corps=`<div class="decl-g" style="grid-template-columns:1fr 1fr">
-        ${declChamp('Date',dateFieldHtml(`rd-date-${p.id}`,'width:100%',null,dstr(new Date())))}
+        ${declChamp('Date',dateFieldHtml(`rd-date-${p.id}`,'width:100%',null,jour))}
         ${declChamp('Montant rendu (€)',`<input type="number" id="rd-montant-${p.id}" step="0.01" placeholder="0">`)}
         ${declChamp('Comment',`<select id="rd-mode-${p.id}"><option value="especes">💶 Espèces</option><option value="virement">🏦 Virement</option><option value="autre">Autre</option></select>`)}
         ${declChamp('Pour quoi',`<input type="text" id="rd-note-${p.id}" placeholder="ex. trop-perçu, monnaie rendue…">`)}
@@ -3074,7 +3322,7 @@ function renderSaisieCompte(p,y,m,k){
   }else if(k==='plus'){
     titre=`➕ Somme à ajouter au compte de ${p.name}`;
     corps=`<div class="decl-g" style="grid-template-columns:1fr 1fr">
-        ${declChamp('Date',dateFieldHtml(`cc-date-${p.id}`,'width:100%',null,dstr(new Date())))}
+        ${declChamp('Date',dateFieldHtml(`cc-date-${p.id}`,'width:100%',null,jour))}
         ${declChamp('Montant (€)',`<input type="number" id="cc-montant-${p.id}" step="0.01" placeholder="0">`)}
         ${declChamp('Sens',`<select id="cc-sens-${p.id}"><option value="du" selected>À lui régler en plus</option><option value="verse">Je lui ai réglé</option></select>`)}
         ${declChamp('Comment',`<select id="cc-mode-${p.id}">${COMPTE_MODES.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>`)}
@@ -3087,10 +3335,21 @@ function renderSaisieCompte(p,y,m,k){
         ${declChamp('Intitulé',`<input type="text" id="fx-titre-${p.id}" placeholder="ex. peinture et fenêtres">`)}
         ${declChamp('Domaine',`<select id="fx-domaine-${p.id}">${domOpts}</select>`)}
         ${declChamp('Montant convenu (€)',`<input type="number" id="fx-montant-${p.id}" step="0.01" placeholder="0">`)}
-        ${declChamp('Convenu le',dateFieldHtml(`fx-date-${p.id}`,'width:100%',null,dstr(new Date())))}
+        ${declChamp('Convenu le',dateFieldHtml(`fx-date-${p.id}`,'width:100%',null,jour))}
       </div>
       <div style="font-size:11px;color:#8a857c;margin-bottom:8px">Rien n'est dû tant qu'aucune avancée n'est déclarée : ${V.self?'vous déclarez':p.name+' déclare'} chaque avancée dans « Détails » → Forfaits.</div>
       ${btn('Définir le forfait',`addForfait('${p.id}')`)}`;
+  }else if(k==='avf'){
+    const ouverts=forfaitsDe(p.id).map(computeForfait).filter(c=>!c.f.clos);
+    titre='📐 Avancée sur un forfait';
+    corps=ouverts.length?`<div class="decl-g" style="grid-template-columns:1fr 1fr">
+        ${declChamp('Forfait',`<select id="avf-f-${p.id}">${ouverts.map(c=>`<option value="${c.f.id}">${String(c.f.titre).replace(/</g,'&lt;')} — reste ${money(c.reste)}</option>`).join('')}</select>`)}
+        ${declChamp('Date',dateFieldHtml(`avf-date-${p.id}`,'width:100%',null,jour))}
+        ${declChamp('Montant de l’avancée (€)',`<input type="number" id="avf-montant-${p.id}" step="0.01" placeholder="0">`)}
+        ${declChamp('Ce qui a été fait',`<input type="text" id="avf-note-${p.id}" placeholder="facultatif">`)}
+      </div>
+      ${btn('Déclarer l’avancée',`addAvanceeForfaitMois('${p.id}')`)}`
+      :`<div style="font-size:12px;color:#4a4640">Aucun forfait en cours. Crée d'abord le forfait (bouton « Nouveau forfait »).</div>`;
   }else if(k==='depart'){
     const dep=compteDepart(p.id)||{};
     titre='📌 Point de départ du compte courant';
@@ -3103,7 +3362,8 @@ function renderSaisieCompte(p,y,m,k){
       ${btn('Enregistrer le point de départ',`setCompteDepart('${p.id}')`)}`;
   }
   if(!corps)return'';
-  return`<div class="cx-saisie" id="cx-saisie"><div class="cx-saisie-t"><span>${titre}</span><button onclick="setSaisie(null)">✕ Fermer</button></div><div class="decl">${corps}</div></div>`;
+  const quand=k==='depart'?'':` <em class="cx-saisie-m">${MONTHS_FR[m]} ${y}</em>`;
+  return`<div class="cx-saisie" id="cx-saisie"><div class="cx-saisie-t"><span>${titre}${quand}</span><button onclick="setSaisie(null)">✕ Fermer</button></div><div class="decl">${corps}</div></div>`;
 }
 /* ══════════════════════════════════════════════════════════════════════════════════════
    BILAN « COMPTE COURANT » v2 (08/10/2026) — pour tout le monde (Misha, Sacha, Sébastien,
@@ -3184,10 +3444,45 @@ function cxElecLigne(p,y,m,l,isAdmin){
     <span class="cx-a">${l?ccBadge(isElecValide(p.id,key),`toggleElecValide('${p.id}','${key}')`):''}</span>
   </div>`;
 }
+/* La barre « + Ajouter en <mois> », en tête de chaque mois ouvert : tout ce qu'on peut créer,
+   et qui tombe DANS ce mois-là (date proposée dans le mois). */
+function cxActionsMois(p,y,m,key,isAdmin){
+  const planning=(p.inputMode==='garde'||p.name==='Dominique');
+  const autonome=p.accessMode==='domaine'||p.inputMode==='notes';
+  const fOuverts=autonome&&forfaitsDe(p.id).some(f=>!f.clos);
+  const nm=p.name;
+  const A=[];
+  if(isAdmin){
+    A.push(['regl','💶','Réglé à '+nm,'out']);
+    if(planning)A.push(['planning','📅',p.name==='Dominique'?'Journées du mois':'Nuits du mois','']);
+    if(autonome)A.push(['trav','🔧','Travaux / activité','']);
+    if(p.inputMode==='notes')A.push(['presta','🧾','Prestation client','']);
+    if(fOuverts)A.push(['avf','📐','Avancée forfait','']);
+    if(autonome)A.push(['forfait','📐','Nouveau forfait','']);
+    if(autonome)A.push(['remb','💳',nm+' a payé pour nous','in']);
+    if(autonome)A.push(['enc','💰',nm+' a reçu pour nous','out']);
+    A.push(['plus','➕','Prime / correction','in']);
+    A.push(['rendu','↩️',nm+' m’a rendu','in']);
+  }else{
+    if(autonome)A.push(['trav','🔧','Travaux / activité','']);
+    if(p.inputMode==='notes')A.push(['presta','🧾','Prestation client','']);
+    if(fOuverts)A.push(['avf','📐','Avancée forfait','']);
+    if(autonome)A.push(['remb','💳','J’ai payé pour vous','in']);
+    if(autonome)A.push(['enc','💰','J’ai reçu pour vous','out']);
+    A.push(['msg','💬','Une question','']);
+  }
+  const chip=([k,ic,l,sens])=>{
+    const on=S.saisie===k&&S.saisieKey===key;
+    const js=k==='planning'?`S.teamPlanY=${y};S.teamPlanM=${m};openM('teamPlanning',null,{pid:'${p.id}'})`:`setSaisie('${k}','${key}')`;
+    return`<button type="button" class="cx-ab${sens?' '+sens:''}${on?' on':''}" onclick="event.stopPropagation();${js}"><span>${ic}</span>${l}</button>`;
+  };
+  return`<div class="cx-add"><div class="cx-add-t">＋ Ajouter en ${MONTHS_FR[m]} ${y}</div><div class="cx-add-c">${A.map(chip).join('')}</div></div>`;
+}
 function cxMoisDetail(p,y,m,L,isAdmin,V,phrase,teinte){
   const key=L.key;
   const moisNom=MONTHS_FR[m];
-  let html='';
+  let html=cxActionsMois(p,y,m,key,isAdmin);
+  if(S.saisie&&S.saisie!=='depart'&&S.saisieKey===key)html+=`<div class="cx-saisie-wrap">${renderSaisieCompte(p,y,m,S.saisie)}</div>`;
   if(L.actif)html+=`<div class="cx-l rep"><span class="cx-d">report</span><span class="cx-ic">↪</span><span class="cx-t">Solde reporté<small>${phrase(L.report)}</small></span><span class="cx-m ${L.report>0.005?'p':L.report<-0.005?'n':'z'}">${money(L.report)}</span><span class="cx-a"></span></div>`;
   let elecFait=false;
   L.lignes.forEach(l=>{
@@ -3195,15 +3490,15 @@ function cxMoisDetail(p,y,m,L,isAdmin,V,phrase,teinte){
     else html+=ccLigneHtml(l,p,isAdmin,L.auj);
   });
   if(p.electricite&&!elecFait)html+=cxElecLigne(p,y,m,null,isAdmin);
-  if(!L.lignes.length&&!p.electricite)html+=`<div class="cx-empty">Rien en ${moisNom}.</div>`;
+  if(!L.lignes.length&&!p.electricite)html+=`<div class="cx-empty">Rien en ${moisNom} pour l'instant — utilise les boutons ci-dessus.</div>`;
   const F=factureRowHtml(p,y,m,true);
-  html+=`<div class="cx-rec"><span>Fait / ajouté <b style="color:#A32D2D">+ ${money(L.fait+L.plus)}</b></span><span>Déduit <b style="color:#1F7A3D">− ${money(L.deduit)}</b></span><span>Réglé <b style="color:#1F7A3D">− ${money(L.regle)}</b></span></div>`;
+  html+=`<div class="cx-rec"><span class="r-p">Fait / ajouté <b>+ ${money(L.fait+L.plus)}</b></span><span class="r-n">Déduit <b>− ${money(L.deduit)}</b></span><span class="r-n">Réglé <b>− ${money(L.regle)}</b></span></div>`;
   if(isAdmin||F.R.totalFacture)html+=`<div class="cx-fact"><span>🧾 dont facturé</span>${F.champ}<span>€</span><span style="margin-left:auto">${F.badge}</span></div>`;
   html+=`<div class="cx-f"><span>${L.actif?`Solde fin ${moisNom}`:`Bilan de ${moisNom}`} — ${lc1(phrase(L.fin))}</span><span class="v" style="color:${teinte(L.fin)}">${money(Math.abs(L.fin))}</span></div>`;
   const outils=[];
-  if(p.inputMode==='garde'||p.name==='Dominique')outils.push(isAdmin?`<button onclick="S.teamPlanY=${y};S.teamPlanM=${m};openM('teamPlanning',null,{pid:'${p.id}'})">📅 Planning de ${moisNom}</button>`:'');
   if(isAdmin&&(p.inputMode==='garde'||p.flatRate))outils.push(`<button onclick="S.adminPrestaYear=${y};S.adminPrestaMonth=${m};openPrestaPrintList('${p.id}')">🖨 Liste imprimable</button>`);
-  outils.push(`<button onclick="cxToggleDet('${key}')">${S.cxDet===key?'▴ Replier les détails':'🔍 Détails & corrections'}</button>`);
+  outils.push(`<button onclick="cxToggleDet('${key}')">${S.cxDet===key?'▴ Replier les écrans détaillés':'🔍 Écrans détaillés du mois'}</button>`);
+  if(isAdmin)outils.push(`<span class="cx-astuce">✎ touche un montant pour le corriger</span>`);
   html+=`<div class="cx-outils">${outils.filter(Boolean).join('')}</div>`;
   if(S.cxDet===key){
     _bilanClair=true;
@@ -3267,6 +3562,7 @@ function renderBilanCompte(p,y0,m0,nav){
   let tete;
   if(actif){
     sub.push(`Point de départ : ${C.dep.sens==='avance'?'avance':'dette'} de <b>${money(Math.abs(C.dep.montant))}</b> au ${fmt(C.dep.date)}`);
+    if(isAdmin)sub.push(`<a href="#" class="cx-dep-lk" onclick="event.preventDefault();setSaisie('depart')">📌 modifier le point de départ</a>`);
     if(C.aVenir.length)sub.push(`Une fois tout le prévu réalisé : <b style="color:${teinte(C.soldeProjete)}">${lc1(phrase(C.soldeProjete))} ${money(Math.abs(C.soldeProjete))}</b>`);
     tete=`<div class="cx-head"><div class="cx-lbl">📒 Compte courant — aujourd'hui</div>
       <div class="cx-h1"><span class="cx-ph" style="color:${teinte(C.solde)}">${phrase(C.solde)}</span><span class="cx-big" style="color:${teinte(C.solde)}">${money(Math.abs(C.solde))}</span></div>`;
@@ -3279,36 +3575,10 @@ function renderBilanCompte(p,y0,m0,nav){
   const eng=resteEngage(p.id);
   if(eng)sub.push(`📐 <b>${money(eng)}</b> de forfaits convenus pas encore réalisés`);
   tete+=`<div class="cx-sub">${sub.map(x=>`<span>${x}</span>`).join('')}</div></div>`;
-  /* ── Les boutons : d'abord l'argent (qui donne quoi à qui), puis l'activité ── */
-  const planning=(p.inputMode==='garde'||p.name==='Dominique');
-  const autonome=p.accessMode==='domaine'||p.inputMode==='notes';
-  const nm=p.name;
-  let argent,activite;
-  if(isAdmin){
-    argent=[['regl','💶','Je lui donne de l’argent','espèces, virement, facture — on lui doit moins','out']];
-    argent.push(['rendu','↩️',`${nm} me rend de l’argent`,'remboursement, trop-perçu — on lui doit plus','in']);
-    if(autonome){
-      argent.push(['remb','💳',`${nm} a payé quelqu’un pour nous`,'artisan, courses, facture — on lui doit plus','in']);
-      argent.push(['enc','💰',`${nm} a reçu de l’argent pour nous`,'client, acompte — on lui doit moins','out']);
-    }
-    activite=[];
-    if(planning)activite.push(['planning','📅','Planning & règlement',`${p.name==='Dominique'?'journées':'nuits'} du mois, espèces ou facture`]);
-    if(autonome)activite.push(['trav','🔧','Travaux / activité','à l’heure ou au forfait']);
-    if(p.inputMode==='notes')activite.push(['presta','🧾','Prestation client','']);
-    activite.push(['plus','➕','Somme en plus / correction','prime, rectification…']);
-    if(autonome)activite.push(['forfait','📐','Forfait travaux','enveloppe convenue']);
-    activite.push(['depart','📌',actif?'Point de départ':'Ouvrir le compte','solde arrêté à une date']);
-  }else{
-    argent=autonome?[['remb','💳','J’ai payé quelqu’un pour vous','on vous le doit en plus','in'],['enc','💰','J’ai reçu de l’argent pour vous','à déduire de ce qu’on vous doit','out']]:[];
-    activite=[];
-    if(autonome)activite.push(['trav','🔧','Travaux / activité','']);
-    if(p.inputMode==='notes')activite.push(['presta','🧾','Prestation client','']);
-    activite.push(['msg','💬','Une question','']);
-  }
-  const chip=([k,ic,l,s,sens])=>`<button type="button" class="cx-chip${sens?' cxs-'+sens:''}${S.saisie===k?' on':''}" onclick="${k==='planning'?`openM('teamPlanning',null,{pid:'${p.id}'})`:`setSaisie('${k}')`}"><span class="ic">${ic}</span><span class="tx"><span>${l}</span>${s?`<small>${s}</small>`:''}</span></button>`;
-  const chipsHtml=(argent.length?`<div class="cx-grp">💶 L’argent entre ${V.self?'nous':'vous'}</div><div class="cx-chips cx-chips2">${argent.map(chip).join('')}</div>`:'')
-    +`<div class="cx-grp">${isAdmin?'🔧 Activité & réglages':'✍️ Déclarer'}</div><div class="cx-chips">${activite.map(chip).join('')}</div>`;
-  const saisie=S.saisie?renderSaisieCompte(p,cy,cm,S.saisie):'';
+  /* 11/11 — plus de grille de boutons ici : tout se crée DANS le mois ouvert (barre
+     « + Ajouter en … »). Seul le point de départ reste en tête, c'est un réglage du compte. */
+  const saisie=(S.saisie==='depart')?renderSaisieCompte(p,cy,cm,'depart'):'';
+  const chipsHtml='';
   const leg=`<div class="cx-leg"><span><b style="color:#A32D2D">+</b> augmente ce qu'on ${V.self?'vous':'lui'} doit</span><span><b style="color:#1F7A3D">−</b> le diminue</span><span>✓ validé · ⏳ à valider${isAdmin?' (toucher pour valider)':''}</span>${isAdmin?'<span>💬 ajouter un petit commentaire</span>':''}</div>`;
   const discussion=renderBilanComments(p,cy,cm);
   const bascule=isAdmin?`<div class="bc-bascule">Présentation des bilans : <strong>compte courant</strong> · <a href="#" onclick="event.preventDefault();if(confirm('Revenir à l\\'ancienne présentation des bilans, pour tout le monde ?'))setBilanPresentation('v1')">revenir à l'ancienne</a></div>`:'';
@@ -6949,7 +7219,7 @@ function renderBilan(){
   // Dominique (jardinage) apparaît au même titre que les autres prestataires suivis financièrement.
   const bilanPrestas=D.prestataires.filter(p=>p.forfaitMensuel||p.inputMode==='notes'||p.flatRate||p.inputMode==='garde'||p.name==='Dominique');
   const subTab=S.bilanSubTab||'general';
-  const tabsHtml=`<div class="tabs" style="margin-bottom:10px">
+  const tabsHtml=`<div class="tabs tabs-bilan" style="margin-bottom:10px">
     <button class="tab${subTab==='general'?' active':''}" onclick="setBilanSubTab('general')"><span class="tab-ic">📊</span><span class="tab-lbl">Général</span></button>
     ${/* Pour Misha et Sacha, l'initiale n'apprenait rien : à sa place, le solde du compte
           courant à jour, pour qu'on sache où on en est avec eux sans ouvrir l'onglet. */
@@ -6963,7 +7233,14 @@ function renderBilan(){
   </div>`;
   if(subTab!=='general'){
     const p=D.prestataires.find(x=>x.id===subTab);
-    if(p)return tabsHtml+`<div style="margin-top:14px">${renderBilanAnnuelPresta(p,S.adminPrestaYear||new Date().getFullYear())}</div>`+renderPrestaDetailAdmin(p);
+    if(p){
+      /* Avec le compte courant, l'année se lit déjà dans le compte (2026 ▸ mois) : le récap
+         annuel par poste reste disponible mais replié, pour alléger la page (11/11). */
+      const yA=S.adminPrestaYear||new Date().getFullYear();
+      const annuel=renderBilanAnnuelPresta(p,yA);
+      const replie=bilanClairActif()&&suiviFinancier(p);
+      return tabsHtml+(replie?`<details class="bx-annuel"><summary>📅 Récap ${yA} par poste — ${p.name}</summary>${annuel}</details>`:`<div style="margin-top:14px">${annuel}</div>`)+renderPrestaDetailAdmin(p);
+    }
   }
   return tabsHtml+renderBilanGeneral();
 }
@@ -7238,8 +7515,21 @@ function renderPrestaList(){
     return`<div style="background:#fff;border:1px solid #e5e3de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:14px">
       <div class="sec-hdr"><h2>🗓 Plannings équipe — accès direct</h2></div>
       <div style="font-size:11px;color:#9a958c;margin-bottom:9px;line-height:1.35">Un clic sur une personne : son calendrier du mois, la liste des interventions et le règlement (💶 espèces ou 🧾 facture) au même endroit.</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${team.map(p=>`<button class="btn" style="padding:9px 14px;font-size:13px" onclick="openM('teamPlanning',null,{pid:'${p.id}'})">${p.name==='Dominique'?'🌱':'🛡'} ${p.name} <span style="color:#888;font-size:11px">· ${(()=>{const n=new Date();const L=planLignes(p,n.getFullYear(),n.getMonth());const rf=reglementFacture(p.id,n.getFullYear(),n.getMonth());const reste=L.filter(l=>l.mode==='facture'?!rf:!(l.paid||l.reg)).reduce((a,l)=>a+l.montant,0);return `${L.length} ce mois${reste>0.005?` · <b style="color:#A32D2D">${money(reste)} à régler</b>`:L.length?' · <b style="color:#1F7A3D">à jour ✓</b>':''}`;})()}</span></button>`).join('')}
+      <div class="tm-grid">
+        ${team.map(p=>{
+          /* 11/11 — une carte par personne : couleur propre, ce qu'elle fait, combien ce mois-ci,
+             et l'état du règlement en pastille pleine (rouge = à régler, vert = à jour). */
+          const n=new Date(),y0=n.getFullYear(),m0=n.getMonth();
+          const L=planLignes(p,y0,m0);const rf=reglementFacture(p.id,y0,m0);
+          const reste=Math.round(L.filter(l=>l.mode==='facture'?!rf:!(l.paid||l.reg)).reduce((a,l)=>a+l.montant,0)*100)/100;
+          const tot=Math.round(L.reduce((a,l)=>a+l.montant,0)*100)/100;
+          const c=prestaCouleur(p),dom=p.name==='Dominique';
+          const doms=[...new Set(L.map(l=>l.domaine))].map(id=>{const d=gDom(id);return`<span class="tm-d" style="background:${AVT[(d.color||0)%5]}">${d.name}</span>`;}).join('');
+          return`<button class="tm-card" style="border-left-color:${c.fort}" onclick="openM('teamPlanning',null,{pid:'${p.id}'})">
+            <span class="tm-av" style="background:${c.fort}">${initials(p.name)}</span>
+            <span class="tm-tx"><b>${p.name}</b><small>${dom?'🌱 Jardinage':'🛡 Gardiennage'} · ${MONTHS_FR[m0]} : ${L.length} ${dom?'journée':'nuit'}${L.length>1?'s':''} · ${money(tot)}</small>${doms?`<span class="tm-ds">${doms}</span>`:''}</span>
+            <span class="tm-st ${reste>0.005?'ko':L.length?'ok':'nul'}">${reste>0.005?`${money(reste)}<small>à régler</small>`:L.length?'à jour ✓':'—'}</span>
+          </button>`;}).join('')}
       </div>
     </div>`;
   })()}
@@ -11515,6 +11805,13 @@ function planFactureReglee(pid){
   L.forEach(l=>{l.o.paid=true;planTouch(l.o);});
   toggleFacturePayee(pid,y,m);
 }
+/* Couleur propre à chaque personne de l'équipe (même logique que les avatars de la liste). */
+const EQUIPE_FORT=['#7A2E4D','#8A6400','#2F6B1F','#4B3FA8','#0C5A8C','#A3461A','#1E7A6E','#8C2F6B'];
+const EQUIPE_DOUX=['#F4D3DF','#F6E6B5','#D3EBC6','#DCD8F8','#CFE4F4','#F6D9C9','#CDEDE7','#F1D2E6'];
+function prestaCouleur(p){
+  const i=Math.max(0,(D.prestataires||[]).findIndex(x=>x.id===p.id))%EQUIPE_FORT.length;
+  return{fort:EQUIPE_FORT[i],doux:EQUIPE_DOUX[i]};
+}
 function renderTeamPlanningModal(){
   const pid=S.modal.pid;
   const p=gPre(pid);
@@ -11539,14 +11836,21 @@ function renderTeamPlanningModal(){
     if(!dt)return'<div class="tp-cell tp-vide"></div>';
     const list=byDate[dt]||[];
     const isToday=dt===todayStr,isWe=[5,6].includes((new Date(dt+'T12:00:00').getDay()+6)%7);
+    /* 11/11 — contraste : pastille PLEINE à la couleur du domaine, texte blanc ; dessous le
+       mode (💶 / 🧾) et une coche verte quand c'est réglé. On lit d'un coup d'œil où, quoi,
+       comment. */
     const badges=list.map(e=>{
-      const dom=gDom(e.domaine);
-      const txt=isDominique?'🌱':(e.duree==='courte'?'C':'L');
-      const ok=ligneReglee(e)?'<i class="tp-ok">✓</i>':'';
-      if(e.locked)return`<span class="pill ${PILL[dom.color||0]} tp-b tp-lock" title="Lié à la réservation de ${e.cli} — cliquer pour l'ouvrir" onclick="event.stopPropagation();openM('editResa','${e.rid}')">🔒${txt}${ok}</span>`;
-      return`<span class="pill ${PILL[dom.color||0]} tp-b">${txt}<small>${e.mode==='facture'?'🧾':'💶'}</small>${ok}</span>`;
+      const dom=gDom(e.domaine),fort=AVT[(dom.color||0)%5];
+      const court=isDominique?'🌱':(e.duree==='courte'?'C':'L');
+      const long=isDominique?'🌱 Jardin':(e.duree==='courte'?'Courte':'Longue');
+      const ok=ligneReglee(e)?'<i class="tp-ok2">✓</i>':'';
+      const mode=`<i class="tp-md">${e.mode==='facture'?'🧾':'💶'}</i>`;
+      if(e.locked)return`<span class="tp-bx tp-lock2" style="background:${fort}" title="${dom.name} — lié à la réservation de ${e.cli} — cliquer pour l'ouvrir" onclick="event.stopPropagation();openM('editResa','${e.rid}')"><b class="tp-s">🔒${court}</b><b class="tp-w">🔒 ${long}</b>${mode}${ok}</span>`;
+      return`<span class="tp-bx" style="background:${fort}" title="${dom.name} — ${long}"><b class="tp-s">${court}</b><b class="tp-w">${long}</b>${mode}${ok}</span>`;
     }).join('');
-    return`<div class="tp-cell${list.length?' tp-pris':''}${isToday?' tp-auj':''}${isWe?' tp-we':''}" onclick="teamPlanDayClick('${pid}','${dt}')"><span class="tp-n">${parseInt(dt.slice(8),10)}</span><span class="tp-bs">${badges}</span></div>`;
+    const d0=list.length?gDom(list[0].domaine):null;
+    const teinte=d0?` style="background:${AVB[(d0.color||0)%5]};border-color:${AVT[(d0.color||0)%5]}"`:'';
+    return`<div class="tp-cell${list.length?' tp-pris':''}${isToday?' tp-auj':''}${isWe?' tp-we':''}"${teinte} onclick="teamPlanDayClick('${pid}','${dt}')"><span class="tp-n">${parseInt(dt.slice(8),10)}</span><span class="tp-bs">${badges}</span></div>`;
   };
   const weeks=[];for(let i=0;i<cells.length;i+=7)weeks.push(cells.slice(i,i+7));
   /* Totaux du mois */
@@ -11590,7 +11894,7 @@ function renderTeamPlanningModal(){
   const lignesHtml=L.length===0?`<div class="empty" style="margin:6px 0">Aucune ${unite} ce mois-ci — clique sur un jour du calendrier.</div>`
     :L.map(l=>{const dom=gDom(l.domaine);return`<div class="tp-l${ligneReglee(l)?' ok':''}">
       <span class="tp-d">${dn(l.date)} ${ds(l.date)}</span>
-      <span class="pill ${PILL[dom.color||0]} tp-dom">${dom.name}</span>
+      <span class="tp-domf" style="background:${AVT[(dom.color||0)%5]}">${dom.name}</span>
       ${dureeSel(l)}
       <span class="tp-m">${money(l.montant)}</span>
       ${isAdmin?modeSeg(l):`<span class="tp-mode">${l.mode==='facture'?'🧾':'💶'}</span>`}
@@ -11611,12 +11915,15 @@ function renderTeamPlanningModal(){
       ${espReste>0.005?`<div class="tp-reg-a"><label class="tp-date">Payé le ${dateFieldHtml('tp-date','',null,todayStr)}</label>
         <button class="btn btn-sm btn-primary" style="background:#1F7A3D;border-color:#1F7A3D" onclick="planPayerTout('${pid}')">💶 Payer les ${money(espReste)} restants</button></div>`:''}
     </div>`;
-  return`<h3>${isDominique?'🌱':'🛡'} Planning de ${p.name||'—'}</h3>
+  const coul=prestaCouleur(p);
+  const legende=`<div class="tp-leg">${D.domaines.map(d=>`<span class="tp-leg-d" style="background:${AVT[(d.color||0)%5]}">${d.name}</span>`).join('')}
+    <span class="tp-leg-t">${isDominique?'🌱 journée':'<b>L</b> longue · <b>C</b> courte'} · 💶 espèces · 🧾 facture · <i class="tp-ok2">✓</i> réglé</span></div>`;
+  return`<div class="tp-who" style="background:${coul.fort}"><span class="tp-av" style="background:${coul.doux};color:${coul.fort}">${initials(p.name||'?')}</span><span><b>${p.name||'—'}</b><small>${isDominique?'🌱 Jardinage':'🛡 Gardiennage'} — ${MONTHS_FR[m]} ${y}</small></span><span class="tp-who-t">${L.length} ${unite}${L.length>1?'s':''}<b>${money(total)}</b></span></div>
   <div class="tp-tarif">Tarif : ${tarif}</div>
   ${S.tpMsg?`<div class="alert alert-ok" style="margin:6px 0">${S.tpMsg}</div>`:''}
   ${isAdmin?`<div class="tp-opts">
     <div><div class="tp-lbl">Domaine des nouvelles ${unite}s</div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap">${D.domaines.map(d=>`<span class="pill ${PILL[d.color||0]}" onclick="teamPlanSetDom('${d.id}')" style="cursor:pointer;padding:4px 10px;${S.teamPlanDom===d.id?'outline:2px solid #993556;outline-offset:1px;font-weight:800':'opacity:.5'}">${d.name}</span>`).join('')}</div></div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">${D.domaines.map(d=>{const f=AVT[(d.color||0)%5],c=AVB[(d.color||0)%5],on=S.teamPlanDom===d.id;return`<span onclick="teamPlanSetDom('${d.id}')" style="cursor:pointer;padding:4px 11px;border-radius:14px;font-size:12px;font-weight:800;border:2px solid ${f};${on?`background:${f};color:#fff;box-shadow:0 0 0 2px #fff,0 0 0 4px ${f}`:`background:${c};color:${f}`}">${on?'✓ ':''}${d.name}</span>`;}).join('')}</div></div>
     <div><div class="tp-lbl">Payé habituellement</div>
       <span class="tp-seg big"><button class="${modeDef==='especes'?'sel':''}" onclick="planSetModeDefaut('${pid}','especes')">💶 Espèces</button><button class="${modeDef==='facture'?'sel':''}" onclick="planSetModeDefaut('${pid}','facture')">🧾 Facture</button></span></div>
   </div>`:''}
@@ -11626,6 +11933,7 @@ function renderTeamPlanningModal(){
     <button class="btn btn-sm" onclick="teamPlanNav(1)">›</button>
   </div>
   ${isAdmin?`<div class="tp-aide">${aide}</div>`:''}
+  ${legende}
   <div class="tp-grid">${['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(d2=>`<div class="tp-dow">${d2}</div>`).join('')}${weeks.map(w=>w.map(cellHtml).join('')).join('')}</div>
   <div class="tp-sec">Le mois en détail</div>
   <div class="tp-ls">${lignesHtml}</div>
