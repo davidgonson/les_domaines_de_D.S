@@ -89,7 +89,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .form-section-title{font-size:10.5px;color:#993556;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .form-section-title::before{content:'';width:4px;height:13px;background:#993556;border-radius:2px;display:inline-block}
 .pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
-.p0{background:#FBEAF0;color:#72243E}.p1{background:#FFF8E6;color:#7A5800}.p2{background:#EAF3DE;color:#27500A}.p3{background:#EEEDFE;color:#3C3489}.p4{background:#E6F1FB;color:#0C447C}
+.p0{background:#FBEAF0;color:#72243E}.p1{background:#FFF8E6;color:#7A5800}.p2{background:#EAF3DE;color:#27500A}.p3{background:#EEEDFE;color:#3C3489}.p4{background:#E6F1FB;color:#0C447C}.p5{background:#DDF1FC;color:#0B5A86}
 .status{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
 .s-confirmé{background:#EAF3DE;color:#27500A}.s-option{background:#FAEEDA;color:#633806}.s-annulé{background:#FCEBEB;color:#791F1F}
 .pay-full{background:#EAF3DE;color:#27500A;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:500}
@@ -320,6 +320,8 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .b3l{background:#EEEDFE;color:#534AB7;border:1px dashed #CECBF6}
 .b4f{background:#B5D4F4;color:#0C447C}
 .b4l{background:#E6F1FB;color:#185FA5;border:1px dashed #B5D4F4}
+.b5f{background:#3BA9E6;color:#fff}
+.b5l{background:#DDF1FC;color:#1C7FB8;border:1px dashed #8FD0F3}
 .leg{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:7px;align-items:center}
 .leg-item{display:flex;align-items:center;gap:4px;font-size:11px;color:#555}
 .leg-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
@@ -705,7 +707,7 @@ span.tp-st{cursor:default}
 /* Numéro de version, affiché en haut de l'écran. Sert à répondre en une seconde à la seule
    question qui compte quand « ça marche chez moi mais pas chez elle » : les deux téléphones
    font-ils bien tourner la MÊME version ? */
-const APP_VERSION='2026-11-11-a';
+const APP_VERSION='2026-11-20-c';
 const SK='domnoрm_prod_v1';
 const SUPA_URL='https://hdtltrnabrgibkcvubzd.supabase.co';
 const SUPA_KEY='sb_publishable_zvpg0YOHegxqXJxbEKhSbQ_3oLwbrr1';
@@ -925,7 +927,7 @@ const DOMAIN_LOGOS={
 };
 const SIGNATURE_GONSON='data:image/png;base64,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';
 
-const PILL=['p0','p1','p2','p3','p4'];
+const PILL=['p0','p1','p2','p3','p4','p5'];
 const MONTHS_FR=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 const PRESTA_CATS=['Animation','Traiteur','Décoration','Logistique','Autre'];
 const EVENT_TYPES=['Mariage','Anniversaire','Séminaire','Famille / Amis','EVJF / EVG','Airbnb','Abritel','Booking','GDC','Home Exchange','Déjeuner / Dîner','Perso','Gratuit','Autre'];
@@ -933,13 +935,16 @@ const EVENT_TYPES=['Mariage','Anniversaire','Séminaire','Famille / Amis','EVJF 
    'Perso' = séjour pour nous (David/Svitlana) — spécificité : le ménage reste prévu,
    mais son montant est saisi à la main à CHAQUE fois, jamais pré-rempli. */
 const FREE_EVT=v=>v==='Gratuit'||v==='Perso';
+/* Domaines « gîte » : Les Lions (d3) et le Loft (d4) — mêmes règles : adultes/enfants,
+   arrhes 1 000 € (Loft : 500 €), dépôt 1 500 € (Loft : 1 000 €), caution avant l'arrivée, pas de fêtes. */
+const estGite=d=>d==='d3'||d==='d4';
 const DOMINIQUE_RATES={d1:120,d2:150,d3:120};
 /* À partir du 1er novembre 2026, une journée de Dominique vaut 135 €, quel que soit le domaine. */
 const DOMINIQUE_TARIF_UNIQUE=135,DOMINIQUE_TARIF_UNIQUE_DEBUT='2026-11-01';
 function dominiqueRate(domaine,date){return(date&&date>=DOMINIQUE_TARIF_UNIQUE_DEBUT)?DOMINIQUE_TARIF_UNIQUE:(DOMINIQUE_RATES[domaine]||0);}
-const LEG_BG=['#F4C0D1','#F5D98B','#C0DD97','#CECBF6','#B5D4F4'];
-const BAND_FULL=['b0f','b1f','b2f','b3f','b4f'];
-const BAND_LIGHT=['b0l','b1l','b2l','b3l','b4l'];
+const LEG_BG=['#F4C0D1','#F5D98B','#C0DD97','#CECBF6','#B5D4F4','#8FD0F3'];
+const BAND_FULL=['b0f','b1f','b2f','b3f','b4f','b5f'];
+const BAND_LIGHT=['b0l','b1l','b2l','b3l','b4l','b5l'];
 const MAX_SLOTS=5;
 
 const CONTRACT_DATA={
@@ -1385,6 +1390,29 @@ const CONTRACT_DATA={
     ]
   }
 };
+/* Contrat du Loft : mêmes conditions que Les Lions (caution avant l'arrivée, fêtes interdites,
+   clauses, ménage et linge inclus), mais rien de ce qui décrit la maison de Fauguernon. Le nom
+   suit celui du domaine (renommage pris en compte). Pas de logo pour l'instant. Pas de règlement
+   intérieur annexé tant que celui du Loft n'est pas fourni (celui des Lions parle de sa piscine,
+   de ses 15 personnes, de son parking de 7 véhicules…). Les champs [À COMPLÉTER] sont visibles
+   exprès dans le contrat généré, pour ne pas en envoyer un incomplet sans s'en apercevoir. */
+function contractData(domId){
+  if(CONTRACT_DATA[domId])return CONTRACT_DATA[domId];
+  if(domId==='d4'){
+    const nom=((D.domaines||[]).find(d=>d.id==='d4')||{}).name||'Loft by D.S';
+    return Object.assign({},CONTRACT_DATA.d3,{
+      nomDomaine:nom,
+      email:'[email À COMPLÉTER]',
+      siteWeb:'[site internet À COMPLÉTER]',
+      adresseSite:'[adresse À COMPLÉTER]',
+      couleur:'#1C7FB8',couleurClaire:'#DDF1FC',
+      description:['[Description du logement À COMPLÉTER : surface, pièces, chambres, capacité légale maximale.]'],
+      equipements:'les installations intérieures et extérieures du logement',
+      logo:null,entete:null,reglement:[],reglementPages:null
+    });
+  }
+  return CONTRACT_DATA.d1;
+}
 const DEF={
   domaines:[
     {id:'d1',name:'La Désirée',color:0},
@@ -1397,8 +1425,7 @@ const DEF={
     {id:'p3',name:'Pascaline',role:'Ménage',tel:'',domaines:['d3'],accessMode:'calendrierSeul',inputMode:'notes',noteRows:2,flatRate:250,token:'tok_pascaline_lns3'},
     {id:'p4',name:'Dominique',role:'Jardinage',tel:'',domaines:['d1','d2','d3'],accessMode:'occupation',inputMode:'none',token:'tok_dominique_jrd4'},
     {id:'p5',name:'Sébastien',role:'Sécurité',tel:'',domaines:['d1'],accessMode:'manuel',inputMode:'garde',token:'tok_sebastien_sec5'},
-    {id:'p6',name:'Mathilde',role:'Sécurité',tel:'',domaines:['d2'],accessMode:'manuel',inputMode:'garde',token:'tok_mathilde_sec6'},
-    {id:'p7',name:'Yana',role:'Assistante',tel:'',domaines:['d1','d2','d3'],accessMode:'readonly_nofinance',voitFinance:true,token:'tok_iana_coord7'}
+    {id:'p6',name:'Mathilde',role:'Sécurité',tel:'',domaines:['d2'],accessMode:'manuel',inputMode:'garde',token:'tok_mathilde_sec6'}
   ],
   visites:[],
   activityLog:[],
@@ -1419,6 +1446,18 @@ const _sansAccent=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u03
 function estMisha(p){return !!p&&(p.id==='p1'||/^mi[cs]ha$/.test(_sansAccent(p.name)));}
 function estSacha(p){return !!p&&(p.id==='p2'||/^sa[cs]ha$/.test(_sansAccent(p.name)));}
 function runMigrations(){
+  /* 20/11/2026 : 4e lieu, géré par David et Svitlana seuls — invisible des prestataires.
+     Nom provisoire, modifiable dans Paramètres → Domaines. Jamais recréé s'il a été supprimé. */
+  /* 20/11/2026 : Yana n'intervient plus — fiche supprimée pour de bon (marquée supprimée, pour
+     qu'aucun autre appareil ne la fasse revenir à la synchro), et retirée des réservations. */
+  (D.prestataires||[]).filter(p=>p&&(p.id==='p7'||/^[iy]ana$/.test(_sansAccent(p.name)))).forEach(p=>{
+    D.prestataires=D.prestataires.filter(x=>x.id!==p.id);
+    (D.reservations||[]).forEach(r=>{if((r.prestataires||[]).includes(p.id))r.prestataires=r.prestataires.filter(x=>x!==p.id);});
+    markDeleted('presta',p.id);
+  });
+  if(!D.domaines)D.domaines=[];
+  if(!D.domaines.some(d=>d.id==='d4')&&!((D.deletedIds&&D.deletedIds.domaine)||[]).includes('d4'))
+    D.domaines.push({id:'d4',name:'Loft by D.S',color:5,adminOnly:true,createdAt:Date.now(),updatedAt:Date.now()});
   (D.dominiqueSchedule||[]).forEach(x=>{if(x&&x.date&&x.date>=DOMINIQUE_TARIF_UNIQUE_DEBUT&&x.montant!==DOMINIQUE_TARIF_UNIQUE)x.montant=DOMINIQUE_TARIF_UNIQUE;});
   /* 23/09 : nouveaux codes — David 1978, Svitlana 1982 (l'ancien 1984 a circulé). Le marqueur pinV voyage
      avec la fiche admin : la migration ne s'applique qu'une fois et n'écrase jamais un code changé
@@ -1519,7 +1558,7 @@ function runMigrations(){
     /* Nom de sa structure, pour pouvoir la nommer à l'écran (encaissements via Ozarko). */
     if(estMisha(p)&&!p.structure)p.structure='Ozarko';
     if(p.name==='Pascaline'){p.accessMode='calendrierSeul';if(p.flatRate===undefined)p.flatRate=250;}
-    if(p.name==='Yana'){p.accessMode='readonly_nofinance';p.voitFinance=true;}
+
     if((estMisha(p)||estSacha(p))&&p.forfaitMensuel===undefined)p.forfaitMensuel=400;
     if(estMisha(p)&&p.electricite===undefined)p.electricite=true;
   });
@@ -1570,7 +1609,7 @@ const TRAVAUX_RATE=12; // € de l'heure pour les travaux hors réservation (Mis
    automatiquement ce qui a réellement changé. Aucune saisie ne peut donc être oubliée. */
 const CHAMPS_HORS_EMPREINTE=['updatedAt','lastChange','lastChangeBy','fieldsUpdatedAt'];
 const NESTED_RESA=['commentaires','paiements','prestaLines'];
-const LISTES_SUIVIES=[['reservations',NESTED_RESA],['visites',null],['travauxSchedule',null],
+const LISTES_SUIVIES=[['domaines',null],['prestataires',null],['reservations',NESTED_RESA],['visites',null],['travauxSchedule',null],
   ['remboursements',null],['encaissements',null],['comptesMouvements',null],['factures',null],['gardeSchedule',null],['dominiqueSchedule',null],
   ['bilanComments',null],['messages',null],['forfaits',null]];
 function empreinteItem(x,nested){
@@ -1799,6 +1838,16 @@ function mergeRemoteSnapshot(remote){
   merged.elecValide=mergeFlatMap(remote.elecValide,D.elecValide);
   merged.bilanComments=mergeById(remote.bilanComments,D.bilanComments,del('bilanComment'));
   if(remote.admins||D.admins)merged.admins=mergeById(remote.admins,D.admins,[]);
+  /* Domaines : fusion fiche par fiche, la modification la plus récente gagne. Avant, la liste du
+     serveur remplaçait purement et simplement la nôtre : un domaine ajouté ou renommé ici
+     disparaissait au premier enregistrement. L'ordre du serveur est gardé (il fixe la ligne de
+     chaque domaine dans le calendrier), les nouveaux viennent à la suite. */
+  if(remote.domaines||D.domaines)merged.domaines=mergeById(remote.domaines,D.domaines,del('domaine'));
+  /* Fiches prestataires : même principe. Avant, la liste du serveur remplaçait la nôtre en bloc —
+     une fiche modifiée ici pouvait être écrasée par celle d'un appareil pas encore à jour. Aucune
+     fiche n'est jamais perdue : seules les suppressions explicites (delPresta) retirent une fiche.
+     L'ordre du serveur est gardé, les fiches nouvelles viennent à la suite. */
+  if(remote.prestataires||D.prestataires)merged.prestataires=mergeById(remote.prestataires,D.prestataires,del('presta'));
   if(remote.codesAcces||D.codesAcces)merged.codesAcces=mergeCodesAcces(remote.codesAcces,D.codesAcces);
   const _bp=plusRecentReglage(remote.bilanPresentation,D.bilanPresentation);if(_bp)merged.bilanPresentation=_bp;
   /* activityLog ("Dernières modifications") n'était fusionné nulle part : Object.assign({},remote)
@@ -1814,6 +1863,7 @@ function mergeRemoteSnapshot(remote){
   return merged;
 }
 async function saveD(){
+  if(_DREEL){setTimeout(saveD,0);return;} // écran prestataire en cours de dessin : on enregistre la vraie donnée juste après
   /* 1) On sécurise d'abord sur l'appareil : à partir d'ici, même si l'app est fermée, si le
         téléphone redémarre ou si le réseau ne revient que dans deux heures, la saisie est gardée
         et repartira toute seule. 2) On marque « en attente » tant que le serveur n'a pas
@@ -2074,6 +2124,7 @@ function getMenageInfo(r){
   if(r.domaine==='d1')info={pid:'p1',name:'Misha',montant:isRepasSeul?100:(isMariage?500:450)};
   else if(r.domaine==='d2'){const n=r.nbPersonnes||r.nbSoiree||0;info={pid:'p2',name:'Sasha',montant:isRepasSeul?100:(n>=40?500:400)};}
   else if(r.domaine==='d3')info={pid:'p3',name:'Pascaline',montant:250};
+  else if(r.domaine==='d4')info={pid:'menage_d4',name:'Ménage '+((D.domaines||[]).find(d=>d.id==='d4')||{name:'Loft'}).name,montant:250}; // pas encore d'intervenant attitré
   if(!info)return null;
   /* Le nom affiché doit être celui de la FICHE, pas celui écrit en dur ici : si la fiche
      s'appelle « Sacha », l'écran ne doit pas afficher « Sasha ». */
@@ -4862,8 +4913,8 @@ function renderBilanTotalSection(p,y,m){
 }
 function payBadge(r){const s=payStatus(r),t=totPay(r),m=r.montant||0;if(s==='full')return'<span class="pay-full">Soldé ✓</span>';if(s==='part')return`<span class="pay-part">${money(t)} / ${money(m)} <span class="ttc-tag" style="margin-left:0">TTC</span></span>`;return`<span class="pay-none">${money(t)} / ${money(m)} <span class="ttc-tag" style="margin-left:0">TTC</span></span>`;}
 function initials(n){return n.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);}
-const AVB=['#F4C0D1','#F5D98B','#C0DD97','#CECBF6','#B5D4F4'];
-const AVT=['#72243E','#7A5800','#27500A','#3C3489','#0C447C'];
+const AVB=['#F4C0D1','#F5D98B','#C0DD97','#CECBF6','#B5D4F4','#8FD0F3'];
+const AVT=['#72243E','#7A5800','#27500A','#3C3489','#0C447C','#0B5A86'];
 
 function easter(y){const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),mo=Math.floor((h+l-7*m+114)/31),dy=((h+l-7*m+114)%31)+1;return new Date(y,mo-1,dy);}
 function getFeries(y){
@@ -5236,7 +5287,7 @@ function nbFieldsHtml(domaine,r){
       <div class="field"><label>🥂 Nb d'invités</label><input type="number" id="m-nbs" style="padding:3.5px 7px;font-size:12px" value="${r.nbSoiree||r.nbPersonnes||''}" placeholder="0" min="0"></div>
     </div><input type="hidden" id="m-nbp" value="0">`;
   }
-  if(domaine==='d3'){
+  if(estGite(domaine)){
     return`<div class="g2" style="margin-bottom:4px">
       <div class="field"><label>🧑 Nombre d'adultes</label><input type="number" id="m-adultes" style="padding:3.5px 7px;font-size:12px" value="${r.nbAdultes||''}" placeholder="0" min="0"></div>
       <div class="field"><label>🧒 Nombre d'enfants</label><input type="number" id="m-enfants" style="padding:3.5px 7px;font-size:12px" value="${r.nbEnfants||''}" placeholder="0" min="0"></div>
@@ -5296,7 +5347,8 @@ function pickTypeClient(el){
 }
 function computeDefaultArrhes(domaine,typeEvenement,dateArrivee,dateDepart,montant){
   if(domaine==='d1'||domaine==='d2')return 2000;
-  if(domaine==='d3')return 1000;
+  if(domaine==='d4')return 500;
+  if(estGite(domaine))return 1000;
   return Math.round((montant||0)*0.3/50)*50;
 }
 function refreshDefaultArrhes(){
@@ -5311,7 +5363,7 @@ function refreshDefaultArrhes(){
   arrhesEl.value=computeDefaultArrhes(domaine,typeEvenement,dateArrivee,dateDepart,montant);
 }
 function computeDefaultDepot(domaine){
-  return domaine==='d3'?1500:3000;
+  return domaine==='d4'?1000:estGite(domaine)?1500:3000;
 }
 function refreshDefaultDepot(){
   const depotEl=document.getElementById('m-depot');
@@ -5538,7 +5590,35 @@ function showMsgSansPerdre(m){
   S.msg=m;rendreEnGardantLaSaisie();
   setTimeout(()=>{S.msg=null;rendreEnGardantLaSaisie();},3500);
 }
-function render(_fond){const r=document.getElementById('root');CAL_DOMAIN_FILTER=(S.view==='presta'&&S.presta&&(S.presta.accessMode==='calendrierSeul'||S.presta.accessMode==='occupation'))?(S.presta.domaines||null):null;STRIP_BAND_INFO=(S.view==='presta'&&S.presta&&S.presta.accessMode==='occupation');HIDE_EVENT_TYPE=(S.view==='presta'&&S.presta&&S.presta.accessMode==='calendrierSeul');
+/* === DOMAINES PRIVÉS (adminOnly) ===
+   Un domaine marqué « privé » n'existe pas pour les prestataires : le temps de dessiner leur
+   écran, on remplace D par une copie filtrée (domaine, réservations, visites, plannings,
+   journal…), puis on remet la vraie donnée. Toute saisie faite pendant ce temps porte sur les
+   mêmes objets ; un enregistrement demandé pendant ce temps est reporté juste après (jamais
+   la copie filtrée n'est enregistrée). */
+let _DREEL=null;
+function domainesPrives(){return(_DREEL||D).domaines.filter(d=>d&&d.adminOnly).map(d=>d.id);}
+function vuePrestataire(d,priv){
+  const cache=new Set(priv);
+  const v=Object.assign({},d);
+  Object.keys(d).forEach(k=>{
+    const a=d[k];
+    if(Array.isArray(a)&&a.some(x=>x&&typeof x==='object'&&('domaine' in x)))v[k]=a.filter(x=>!(x&&cache.has(x.domaine)));
+  });
+  v.domaines=(d.domaines||[]).filter(x=>!cache.has(x.id));
+  const resasCachees=new Set((d.reservations||[]).filter(r=>cache.has(r.domaine)).map(r=>r.id));
+  if(v.activityLog)v.activityLog=v.activityLog.filter(it=>!(it&&it.rid&&resasCachees.has(it.rid)));
+  return v;
+}
+function avecVuePrestataire(fn){
+  if(S.view!=='presta'||_DREEL)return fn();
+  const priv=domainesPrives();
+  if(!priv.length)return fn();
+  _DREEL=D;D=vuePrestataire(D,priv);
+  try{return fn();}finally{D=_DREEL;_DREEL=null;}
+}
+function render(_fond){return avecVuePrestataire(()=>_renderBrut(_fond));}
+function _renderBrut(_fond){const r=document.getElementById('root');CAL_DOMAIN_FILTER=(S.view==='presta'&&S.presta&&(S.presta.accessMode==='calendrierSeul'||S.presta.accessMode==='occupation'))?(S.presta.domaines||null):null;STRIP_BAND_INFO=(S.view==='presta'&&S.presta&&S.presta.accessMode==='occupation');HIDE_EVENT_TYPE=(S.view==='presta'&&S.presta&&S.presta.accessMode==='calendrierSeul');
   /* Préserve le focus d'un champ texte/nombre en cours de saisie à travers le re-rendu complet
      du DOM (générique par id, pas juste "search-input" — sert aussi bien au champ de recherche
      du planning qu'à n'importe quel futur champ identifié). Et surtout : préserve la position de
@@ -5598,18 +5678,19 @@ function adjustCalGridHeight(){
   // Tout le monde a désormais un affichage sur une seule ligne (David, Svitlana, prestataires) :
   // plus besoin de distinguer qui a besoin de plus de place. On applique le même réglage compact
   // à tous, pour que le mois entier tienne toujours sur un seul écran, ordinateur comme iPhone.
-  const absFloor=isMobile?62:72;
-  const cellCap=isMobile?9999:94;
+  const nbLignesDom=Math.max(3,(D.domaines||[]).length);
+  const offset=isMobile?21:22;
+  const pitchMin=isMobile?13:12;
+  const absFloor=Math.max(isMobile?62:72,offset+nbLignesDom*pitchMin+2);
+  const cellCap=Math.max(isMobile?9999:94,absFloor);
   let cellH=Math.floor(available/numRows);
   if(cellH<absFloor)cellH=absFloor;
   if(cellH>cellCap)cellH=cellCap;
   cells.forEach(c=>{c.style.minHeight=cellH+'px';});
   // Densité des bandes déduite de la hauteur de case réellement obtenue.
-  const offset=isMobile?21:22;
-  let pitch=(cellH-offset)/3;
+  let pitch=(cellH-offset)/nbLignesDom;
   // Le plancher de pitch est calé sur absFloor : 3×pitchMin+offset ne dépasse jamais absFloor,
   // donc jamais de débordement des 3 bandes de domaines, quelle que soit la taille d'écran.
-  const pitchMin=isMobile?13:12;
   if(pitch<pitchMin)pitch=pitchMin;
   // Plafond aussi : sur un mois très aéré (4 semaines), on évite des bandes démesurément
   // grandes qui dénatureraient la mise en page — on garde un rendu propre et cohérent.
@@ -5966,7 +6047,7 @@ function injectBands(){
       if(b.nameTxt){
         const isPrestaView=S.view==='presta';
         // Anneau acompte — admin seulement
-        const DOT_COLORS=['#72243E','#7A5800','#27500A','#3C3489','#0C447C'];
+        const DOT_COLORS=['#72243E','#7A5800','#27500A','#3C3489','#0C447C','#0B5A86'];
         const dotColor=DOT_COLORS[b.colorIdx||0];
         const dotHtml=(!isPrestaView&&b.isPartPaid)?`<svg width="12" height="12" viewBox="0 0 12 12" style="display:inline-block;vertical-align:middle;margin-right:3px;flex-shrink:0"><circle cx="6" cy="6" r="5.5" fill="${dotColor}"/><circle cx="6" cy="6" r="3" fill="white"/></svg>`:'';
         // Payé intégralement — badge € fond rouge (admin seulement)
@@ -6100,7 +6181,7 @@ function injectVisiteMarkers(){
   const _pitchV=_gV.pitch,_offV=_gV.off;
   const markerD=_gV.d;   // même diamètre que celui réservé par injectBands
   const gap=_gV.gap;
-  const bgColors=['#FF5CA6','#FFB300','#43CB60','#6B64C8','#3A7AB8'];
+  const bgColors=['#FF5CA6','#FFB300','#43CB60','#6B64C8','#3A7AB8','#3BA9E6'];
   /* On regroupe les visites par jour + domaine : plutôt que de les placer sous leur heure réelle
      (ce qui les fait se chevaucher si les heures sont proches), on les centre en groupe dans la
      case et on les répartit régulièrement de part et d'autre du centre. Peu importe qu'un rond
@@ -6307,7 +6388,7 @@ function renderCalendrier(){
     _domDay[x.date]={l:_DL[dc<3?dc:0],s:_DS[dc<3?dc:0]};
   });
   const gardeByDate={};
-  const GARDE_COLORS=['#FF5CA6','#FFB300','#43CB60','#6B64C8','#3A7AB8'];
+  const GARDE_COLORS=['#FF5CA6','#FFB300','#43CB60','#6B64C8','#3A7AB8','#3BA9E6'];
   // GC/GL visibles : David et Svitlana (admin) + Misha/Sacha (accès complet, "domaine") pour
   // chacun des domaines qui LEUR sont associés (p.domaines) — Misha et Sacha se remplacent l'un
   // l'autre selon les besoins, donc voient le gardiennage sur les deux domaines, pas seulement
@@ -7801,14 +7882,14 @@ function renderExport(){
   ${renderRestoreSection()}`;
 }
 function buildContractSections(r){
-  const cd=CONTRACT_DATA[r.domaine]||CONTRACT_DATA.d1;
+  const cd=contractData(r.domaine);
   const dom=gDom(r.domaine);
   const isJ=r.dateArrivee===r.dateDepart;
   const montant=r.montant||0;
-  const arrhesFixe=r.arrhes||(r.domaine==='d3'?1000:2000);
+  const arrhesFixe=r.arrhes||(r.domaine==='d4'?500:estGite(r.domaine)?1000:2000);
   const arrhes=arrhesFixe;
   const solde=montant-arrhes;
-  const depot=r.depotGarantie||(r.domaine==='d3'?1500:3000);
+  const depot=r.depotGarantie||(r.domaine==='d4'?1000:estGite(r.domaine)?1500:3000);
   const inclusTxt=cd.inclus.join(', ');
   const nom1Complet=[r.prenom1,r.nom1].filter(Boolean).join(' ')||r.client||'—';
   const nom2Complet=[r.prenom2,r.nom2].filter(Boolean).join(' ');
@@ -7907,7 +7988,7 @@ function buildContractSections(r){
       '9.4. Le Bailleur pourra contester l\u2019état des lieux de sortie dans un délai courant jusqu\u2019à l\u2019arrivée du locataire suivant, sans excéder 48 heures.'
     ]},
     {h:'10. OBLIGATIONS DU PRENEUR',p:[
-      '10.1. Le Preneur s\u2019engage à faire un usage paisible du logement loué, à l\u2019entretenir et à **le restituer en bon état de propreté**. Il devra respecter le voisinage ainsi que **le règlement intérieur annexé au présent contrat**.',
+      '10.1. Le Preneur s\u2019engage à faire un usage paisible du logement loué, à l\u2019entretenir et à **le restituer en bon état de propreté**. Il devra respecter le voisinage'+((cd.reglement&&cd.reglement.length)?' ainsi que **le règlement intérieur annexé au présent contrat**':'')+'.',
       '10.2. Il s\u2019engage à utiliser de manière normale et raisonnable les équipements de confort (chauffage, climatisation, eau, etc.) ainsi que les appareils mis à sa disposition (électroménager, multimédia, cuisine, etc.). **Tous les meubles et équipements sportifs devront être remis en place avant son départ.**',
       '10.3. Il est strictement interdit au Preneur de reproduire les clés fournies par le Bailleur. Il devra informer ce dernier dans les plus brefs délais de toute panne, dommage, incident ou dysfonctionnement constaté. Le Preneur est responsable de l\u2019utilisation de l\u2019accès internet mis à sa disposition pendant la durée de la location.',
       ...cd.clausesSpecifiques,
@@ -7951,11 +8032,11 @@ function buildContractSections(r){
       '15.2. Toutefois, en cas de litige, seul le tribunal compétent du domicile du Bailleur sera compétent.',
       '15.3. Le présent contrat est régi par la loi française.'
     ]},
-    {h:'16. RÈGLEMENT INTÉRIEUR — ANNEXE AU CONTRAT',p:[
+    ...((cd.reglement&&cd.reglement.length)?[{h:'16. RÈGLEMENT INTÉRIEUR — ANNEXE AU CONTRAT',p:[
       `16.1. Le règlement intérieur du ${cd.nomDomaine}, joint en annexe au présent contrat, en fait partie intégrante.`,
       '16.2. La signature du présent contrat vaut reconnaissance par le Preneur de la prise de connaissance et de l\u2019acceptation du règlement intérieur annexé.',
       '16.3. En cas de divergence entre une clause du présent contrat et une disposition du règlement intérieur, les dispositions du règlement intérieur prévalent.'
-    ]},
+    ]}]:[]),
     {h:null,p:[
       'Réalisé en 2 exemplaires.',
       '',
@@ -7973,7 +8054,7 @@ function buildContractSections(r){
 }
 
 function buildAnnexSections(r){
-  const cd=CONTRACT_DATA[r.domaine]||CONTRACT_DATA.d1;
+  const cd=contractData(r.domaine);
   return(cd.reglement||[]).map(s=>({h:s.h,p:s.p}));
 }
 
@@ -8150,6 +8231,9 @@ function generateContractHtml(r){
     ${r.domaine==='d3'?`
     .grad-bg{background:linear-gradient(135deg,#555 0%,#888 20%,#bbb 40%,#e0e0e0 50%,#aaa 65%,#777 80%,#555 100%)}
     `:''}
+    ${r.domaine==='d4'?`
+    .grad-bg{background:linear-gradient(135deg,#0B5A86 0%,#1C7FB8 25%,#3BA9E6 45%,#8FD0F3 55%,#2E95D0 75%,#0E6597 100%)}
+    `:''}
 
     /* ── EN-TÊTE CONTRAT ── */
     .contract-header{text-align:center;padding-bottom:20px;margin-bottom:28px}
@@ -8297,7 +8381,7 @@ function downloadContractPdf(rid){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
   // Figer la date du contrat à la première génération
   if(!r.contratDate){r.contratDate=dstr(new Date());saveD();}
-  const cd=CONTRACT_DATA[r.domaine]||CONTRACT_DATA.d1;
+  const cd=contractData(r.domaine);
   const html=generateContractHtml(r);
   const baseName=contractFileName(r,cd,'pdf').replace(/\.pdf$/,'');
   // Ouvrir la visionneuse
@@ -8581,6 +8665,8 @@ async function downloadContractDocx(rid){
     sections:[
       /* Le contrat : A4 portrait. */
       {properties:{page:{size:{width:11906,height:16838},margin:{top:1080,right:1080,bottom:1080,left:1080}}},children},
+      /* Pas de règlement intérieur pour ce domaine (ex. Loft, en attente du sien) : pas d'annexe. */
+      ...(buildAnnexSections(r).length?[
       /* L'en-tête de l'annexe : même feuille paysage, mais sur une seule colonne. */
       {properties:{
         page:{size:{width:11906,height:16838,orientation:'landscape'},margin:{top:560,right:620,bottom:560,left:620}}
@@ -8596,6 +8682,7 @@ async function downloadContractDocx(rid){
         page:{size:{width:11906,height:16838,orientation:'landscape'},margin:{top:560,right:620,bottom:560,left:620}},
         column:{count:3,space:340,separate:false}
       },children:annexe}
+      ]:[])
     ]
   });
   const blob=await Packer.toBlob(doc);
@@ -8613,6 +8700,7 @@ async function downloadContractDocx(rid){
 
 
 function exportExcel(sortMode){
+  if(S.view==='presta'&&!_DREEL&&domainesPrives().length)return avecVuePrestataire(()=>exportExcel(sortMode)); // jamais les domaines privés dans un export prestataire
   if(typeof XLSX==='undefined'){alert("La librairie Excel ne s'est pas chargée (connexion internet nécessaire). Réessaie dans quelques secondes.");return;}
   let sorted=[...D.reservations];
   if(sortMode==='modif'){
@@ -8896,6 +8984,7 @@ function buildFullBackupWorkbook(){
   return wb;
 }
 function exportSauvegardeComplete(){
+  if(S.view==='presta'&&!_DREEL&&domainesPrives().length)return avecVuePrestataire(()=>exportSauvegardeComplete()); // jamais les domaines privés dans un export prestataire
   if(typeof XLSX==='undefined'){alert("La librairie Excel ne s'est pas chargée (connexion internet nécessaire). Réessaie dans quelques secondes.");return;}
   const wb=buildFullBackupWorkbook();
   const today=dstr(new Date());
@@ -9566,6 +9655,7 @@ function renderDomaineList(){
       ${DOMAIN_LOGOS[d.id]?`<img src="${DOMAIN_LOGOS[d.id]}" alt="" style="width:42px;height:42px;object-fit:contain;flex-shrink:0">`:`<div style="width:42px;height:42px;border-radius:8px;background:#f5f4f1;display:flex;align-items:center;justify-content:center;font-size:11px;color:#aaa;flex-shrink:0">—</div>`}
       <span class="pill ${PILL[d.color||0]}" style="font-size:13px;padding:5px 14px">${d.name}</span>
       <span style="flex:1;font-size:13px;color:#888">${D.reservations.filter(r=>r.domaine===d.id).length} réservation(s)</span>
+      ${d.adminOnly?'<span class="pill p5" style="font-size:10.5px">🔒 Privé</span>':''}
       <button class="btn btn-xs" onclick="openM('editDomaine','${d.id}')">Modifier</button>
       <button class="btn btn-xs btn-danger" onclick="delDomaine('${d.id}')">✕</button>
     </div>`).join('')}
@@ -10103,9 +10193,10 @@ function renderModalContent(){
   }
   if(type==='newDomaine'||type==='editDomaine'){
     const d=type==='editDomaine'?D.domaines.find(x=>x.id===id)||{}:{};
-    const cO=[0,1,2,3,4].map(c=>`<option value="${c}" ${(d.color||0)===c?'selected':''}>${['🌸 Rose (La Désirée)','✨ Or (Les Déesses)','🌿 Vert (Les Lions)','💜 Violet','💙 Bleu'][c]}</option>`).join('');
+    const cO=[0,1,2,3,4,5].map(c=>`<option value="${c}" ${(d.color||0)===c?'selected':''}>${['🌸 Rose (La Désirée)','✨ Or (Les Déesses)','🌿 Vert (Les Lions)','💜 Violet','💙 Bleu','🩵 Bleu ciel (Loft)'][c]}</option>`).join('');
     return`<h3>${type==='newDomaine'?'➕ Nouveau domaine':'✏️ Modifier — '+d.name}</h3>
     <div class="g2" style="margin-bottom:12px"><div class="field"><label>Nom du domaine</label><input type="text" id="m-dname" value="${d.name||''}"></div><div class="field"><label>Couleur</label><select id="m-dcolor">${cO}</select></div></div>
+    <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:14px;font-size:13px;cursor:pointer"><input type="checkbox" id="m-dprive" ${d.adminOnly?'checked':''} style="margin-top:2px"><span><strong>🔒 Privé — David &amp; Svitlana uniquement</strong><br><span style="font-size:11.5px;color:#888">Aucun prestataire ne voit ce domaine : ni ses réservations, ni ses visites, ni ses modifications.</span></span></label>
     <div class="modal-actions"><button class="btn" onclick="closeM()">Annuler</button><button class="btn btn-primary" onclick="saveDomaine('${id||''}')">Enregistrer</button></div>`;
   }
   return'';
@@ -11335,7 +11426,7 @@ function saveResaCore(id){
   if(!dateDepart&&typeEvenement==='Déjeuner / Dîner')dateDepart=dateArrivee;
   const elAdultes=document.getElementById('m-adultes'),elEnfants=document.getElementById('m-enfants');
   let nbPersonnes,nbSoiree,nbAdultes=0,nbEnfants=0;
-  if(domaine==='d3'&&elAdultes){
+  if(estGite(domaine)&&elAdultes){
     nbAdultes=parseInt(elAdultes.value)||0;nbEnfants=parseInt((elEnfants&&elEnfants.value))||0;
     nbPersonnes=nbAdultes+nbEnfants;nbSoiree=nbPersonnes;
   } else {
@@ -11615,7 +11706,7 @@ function savePresta(id){
   else D.prestataires.push({id:gid(),name,role,tel,email,domaines,accessMode,menageMoisSur,menageMoisManuel:true,token:'tok_'+name.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'')+'_'+Math.random().toString(36).slice(2,7)});
   saveD();S.modal=null;showMsg('Prestataire enregistré ✓');
 }
-function delPresta(id){if(!confirm('Supprimer ce prestataire ?'))return;D.prestataires=D.prestataires.filter(x=>x.id!==id);D.reservations.forEach(r=>{r.prestataires=(r.prestataires||[]).filter(p=>p!==id);});saveD();render();}
+function delPresta(id){if(!confirm('Supprimer ce prestataire ?'))return;D.prestataires=D.prestataires.filter(x=>x.id!==id);markDeleted('presta',id);D.reservations.forEach(r=>{r.prestataires=(r.prestataires||[]).filter(p=>p!==id);});saveD();render();}
 function updAdminEmail(aid,val){
   const v=(val||'').trim();
   if(v&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){alert('Adresse email invalide.');render();return;}
@@ -12136,8 +12227,8 @@ function delGardeNight(rid,pid,date){
   logActivity('supprimée',r.domaine,`Nuit de gardiennage supprimée — ${p.name} (${fmt(date)})`,[pid],false,rid);
   saveD();render();
 }
-function saveDomaine(id){const name=document.getElementById('m-dname').value.trim(),color=parseInt(document.getElementById('m-dcolor').value);if(!name){alert('Le nom est obligatoire.');return;}if(id){const d=D.domaines.find(x=>x.id===id);Object.assign(d,{name,color});}else D.domaines.push({id:gid(),name,color});saveD();S.modal=null;showMsg('Domaine enregistré ✓');}
-function delDomaine(id){if(!confirm('Supprimer ce domaine ?'))return;D.domaines=D.domaines.filter(x=>x.id!==id);saveD();render();}
+function saveDomaine(id){const name=document.getElementById('m-dname').value.trim(),color=parseInt(document.getElementById('m-dcolor').value),adminOnly=!!(document.getElementById('m-dprive')||{}).checked;if(!name){alert('Le nom est obligatoire.');return;}if(id){const d=D.domaines.find(x=>x.id===id);const avant=d.name;Object.assign(d,{name,color,adminOnly,updatedAt:Date.now()});if(avant&&avant!==name)logActivity('modifiée',id,`Domaine renommé : ${avant} → ${name}`,[],true);}else D.domaines.push({id:gid(),name,color,adminOnly,createdAt:Date.now(),updatedAt:Date.now()});saveD();S.modal=null;showMsg('Domaine enregistré ✓');}
+function delDomaine(id){if(!confirm('Supprimer ce domaine ?'))return;D.domaines=D.domaines.filter(x=>x.id!==id);markDeleted('domaine',id);saveD();render();}
 
 document.addEventListener('keydown',e=>{if(e.key==='Enter'){const el=document.getElementById('pin-in');if(el&&document.activeElement===el)doLogin();}});
 document.addEventListener('keydown',e=>{
@@ -12152,7 +12243,7 @@ document.addEventListener('keydown',e=>{
     }
   }
 });
-window.addEventListener('resize',()=>{adjustCalGridHeight();injectBands();});
+window.addEventListener('resize',()=>{avecVuePrestataire(()=>{adjustCalGridHeight();injectBands();});});
 async function initApp(){
   const remote=await fetchRemoteD();
   if(remote){
