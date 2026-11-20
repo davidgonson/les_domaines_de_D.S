@@ -707,7 +707,7 @@ span.tp-st{cursor:default}
 /* Numéro de version, affiché en haut de l'écran. Sert à répondre en une seconde à la seule
    question qui compte quand « ça marche chez moi mais pas chez elle » : les deux téléphones
    font-ils bien tourner la MÊME version ? */
-const APP_VERSION='2026-11-20-d';
+const APP_VERSION='2026-11-20-i';
 const SK='domnoрm_prod_v1';
 const SUPA_URL='https://hdtltrnabrgibkcvubzd.supabase.co';
 const SUPA_KEY='sb_publishable_zvpg0YOHegxqXJxbEKhSbQ_3oLwbrr1';
@@ -1396,18 +1396,26 @@ const CONTRACT_DATA={
    intérieur annexé tant que celui du Loft n'est pas fourni (celui des Lions parle de sa piscine,
    de ses 15 personnes, de son parking de 7 véhicules…). Les champs [À COMPLÉTER] sont visibles
    exprès dans le contrat généré, pour ne pas en envoyer un incomplet sans s'en apercevoir. */
-function contractData(domId){
+function contractData(domId,r){
   if(CONTRACT_DATA[domId])return CONTRACT_DATA[domId];
   if(domId==='d4'){
     const nom=((D.domaines||[]).find(d=>d.id==='d4')||{}).name||'Loft & Sea';
+    /* L'espace bien-être (sauna / spa) ouvre le 1er mars 2027 : il n'apparaît que dans les contrats
+       des séjours qui commencent à partir du 1er mars 2027 — jamais promis avant. */
+    const bienEtre=!!(r&&(r.dateArrivee||r.date||'')>='2027-03-01');
     return Object.assign({},CONTRACT_DATA.d3,{
       nomDomaine:nom,
-      email:'[email À COMPLÉTER]',
-      siteWeb:'[site internet À COMPLÉTER]',
-      adresseSite:'[adresse À COMPLÉTER]',
+      email:'loft.n.sea@gmail.com',
+      siteWeb:'', // pas de site internet
+      adresseSite:'28, rue du Docteur Lainé, 14800 Touques',
       couleur:'#1C7FB8',couleurClaire:'#DDF1FC',
-      description:['[Description du logement À COMPLÉTER : surface, pièces, chambres, capacité légale maximale.]'],
-      equipements:'les installations intérieures et extérieures du logement',
+      description:[
+        'Loft d\u2019une surface de 250 m² comprenant : salle à manger cathédrale avec cheminée, immense salon avec sono, grand espace jeux et cinéma avec 2 canapés convertibles 2 places, cuisine équipée, 4 chambres (une chambre avec un lit double et un lit simple, trois chambres avec un lit double), 3 salles de bains et 3 WC (capacité légale maximale : 13 personnes).',
+        'Terrasse sur pilotis.',
+        ...(bienEtre?['Espace bien-être (sauna / spa).']:[]),
+        'Jardin et parking.'
+      ],
+      equipements:(bienEtre?'le sauna, le spa, ':'')+'la sono, l\u2019espace jeux et cinéma ainsi que les installations intérieures et extérieures du Loft',
       logo:null,entete:null,reglement:[],reglementPages:null
     });
   }
@@ -7884,7 +7892,7 @@ function renderExport(){
   ${renderRestoreSection()}`;
 }
 function buildContractSections(r){
-  const cd=contractData(r.domaine);
+  const cd=contractData(r.domaine,r);
   const dom=gDom(r.domaine);
   const isJ=r.dateArrivee===r.dateDepart;
   const montant=r.montant||0;
@@ -7949,7 +7957,7 @@ function buildContractSections(r){
     {h:'2. DESCRIPTION DU SITE LOUÉ',p:[
       `2.1. ${cd.nomDomaine}, situé au ${cd.adresseSite}`,
       ...cd.description,
-      `Site internet : ${cd.siteWeb}`
+      ...(cd.siteWeb?[`Site internet : ${cd.siteWeb}`]:[])
     ]},
     {h:'3. PÉRIODE DE LOCATION',p:[
       '3.1. Le Bailleur loue au Preneur le logement saisonnier',
@@ -8056,7 +8064,7 @@ function buildContractSections(r){
 }
 
 function buildAnnexSections(r){
-  const cd=contractData(r.domaine);
+  const cd=contractData(r.domaine,r);
   return(cd.reglement||[]).map(s=>({h:s.h,p:s.p}));
 }
 
@@ -8371,7 +8379,7 @@ function generateContractHtml(r){
       qui y figurent, qui sont dès lors opposables au Preneur et à toutes les personnes qu'il accueille.
     </div>`:''}
 
-  <div class="footer-note">${cd.nomDomaine} &nbsp;·&nbsp; ${cd.siteWeb} &nbsp;·&nbsp; ${cd.email}</div>
+  <div class="footer-note">${cd.nomDomaine}${cd.siteWeb?` &nbsp;·&nbsp; ${cd.siteWeb}`:''} &nbsp;·&nbsp; ${cd.email}</div>
   <div class="filigrane-ds"><svg width="42" height="26" viewBox="0 0 42 26" xmlns="http://www.w3.org/2000/svg"><path d="M3 4 L3 22 L8 22 Q15 22 15 13 Q15 4 8 4 Z" fill="none" stroke="#222" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M38 8 Q35 4 30 4 Q23 4 23 13 Q23 22 30 22 Q36 22 38 18 L38 13 L32 13" fill="none" stroke="#222" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 25 Q10 22 21 24 Q32 26 41 23" fill="none" stroke="#222" stroke-width="0.9" stroke-linecap="round"/></svg></div>
   </div><!-- /zone-contrat -->
   <div class="zone-annexe">${annexeA4}</div>
@@ -8383,7 +8391,7 @@ function downloadContractPdf(rid){
   const r=D.reservations.find(x=>x.id===rid);if(!r)return;
   // Figer la date du contrat à la première génération
   if(!r.contratDate){r.contratDate=dstr(new Date());saveD();}
-  const cd=contractData(r.domaine);
+  const cd=contractData(r.domaine,r);
   const html=generateContractHtml(r);
   const baseName=contractFileName(r,cd,'pdf').replace(/\.pdf$/,'');
   // Ouvrir la visionneuse
