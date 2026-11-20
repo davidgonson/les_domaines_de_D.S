@@ -89,7 +89,7 @@ input[type=date]::-webkit-calendar-picker-indicator{display:none}
 .form-section-title{font-size:10.5px;color:#993556;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .form-section-title::before{content:'';width:4px;height:13px;background:#993556;border-radius:2px;display:inline-block}
 .pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
-.p0{background:#FBEAF0;color:#72243E}.p1{background:#FFF8E6;color:#7A5800}.p2{background:#EAF3DE;color:#27500A}.p3{background:#EEEDFE;color:#3C3489}.p4{background:#E6F1FB;color:#0C447C}.p5{background:#DDF1FC;color:#0B5A86}
+.p0{background:#FBEAF0;color:#72243E}.p1{background:#FFF8E6;color:#7A5800}.p2{background:#EAF3DE;color:#27500A}.p3{background:#EEEDFE;color:#3C3489}.p4{background:#E6F1FB;color:#0C447C}.p5{background:#DDF1FC;color:#083F63}
 .status{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
 .s-confirmé{background:#EAF3DE;color:#27500A}.s-option{background:#FAEEDA;color:#633806}.s-annulé{background:#FCEBEB;color:#791F1F}
 .pay-full{background:#EAF3DE;color:#27500A;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:500}
@@ -707,7 +707,7 @@ span.tp-st{cursor:default}
 /* Numéro de version, affiché en haut de l'écran. Sert à répondre en une seconde à la seule
    question qui compte quand « ça marche chez moi mais pas chez elle » : les deux téléphones
    font-ils bien tourner la MÊME version ? */
-const APP_VERSION='2026-11-20-c';
+const APP_VERSION='2026-11-20-d';
 const SK='domnoрm_prod_v1';
 const SUPA_URL='https://hdtltrnabrgibkcvubzd.supabase.co';
 const SUPA_KEY='sb_publishable_zvpg0YOHegxqXJxbEKhSbQ_3oLwbrr1';
@@ -1399,7 +1399,7 @@ const CONTRACT_DATA={
 function contractData(domId){
   if(CONTRACT_DATA[domId])return CONTRACT_DATA[domId];
   if(domId==='d4'){
-    const nom=((D.domaines||[]).find(d=>d.id==='d4')||{}).name||'Loft by D.S';
+    const nom=((D.domaines||[]).find(d=>d.id==='d4')||{}).name||'Loft & Sea';
     return Object.assign({},CONTRACT_DATA.d3,{
       nomDomaine:nom,
       email:'[email À COMPLÉTER]',
@@ -1457,7 +1457,9 @@ function runMigrations(){
   });
   if(!D.domaines)D.domaines=[];
   if(!D.domaines.some(d=>d.id==='d4')&&!((D.deletedIds&&D.deletedIds.domaine)||[]).includes('d4'))
-    D.domaines.push({id:'d4',name:'Loft by D.S',color:5,adminOnly:true,createdAt:Date.now(),updatedAt:Date.now()});
+    D.domaines.push({id:'d4',name:'Loft & Sea',color:5,adminOnly:true,createdAt:Date.now(),updatedAt:Date.now()});
+  /* 20/11/2026 : le nom provisoire « Loft by D.S » devient « Loft & Sea » (un nom choisi ensuite à la main n'est pas touché). */
+  {const _l=(D.domaines||[]).find(d=>d.id==='d4');if(_l&&_l.name==='Loft by D.S'){_l.name='Loft & Sea';_l.updatedAt=Date.now();}}
   (D.dominiqueSchedule||[]).forEach(x=>{if(x&&x.date&&x.date>=DOMINIQUE_TARIF_UNIQUE_DEBUT&&x.montant!==DOMINIQUE_TARIF_UNIQUE)x.montant=DOMINIQUE_TARIF_UNIQUE;});
   /* 23/09 : nouveaux codes — David 1978, Svitlana 1982 (l'ancien 1984 a circulé). Le marqueur pinV voyage
      avec la fiche admin : la migration ne s'applique qu'une fois et n'écrase jamais un code changé
@@ -4914,7 +4916,7 @@ function renderBilanTotalSection(p,y,m){
 function payBadge(r){const s=payStatus(r),t=totPay(r),m=r.montant||0;if(s==='full')return'<span class="pay-full">Soldé ✓</span>';if(s==='part')return`<span class="pay-part">${money(t)} / ${money(m)} <span class="ttc-tag" style="margin-left:0">TTC</span></span>`;return`<span class="pay-none">${money(t)} / ${money(m)} <span class="ttc-tag" style="margin-left:0">TTC</span></span>`;}
 function initials(n){return n.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);}
 const AVB=['#F4C0D1','#F5D98B','#C0DD97','#CECBF6','#B5D4F4','#8FD0F3'];
-const AVT=['#72243E','#7A5800','#27500A','#3C3489','#0C447C','#0B5A86'];
+const AVT=['#72243E','#7A5800','#27500A','#3C3489','#0C447C','#083F63'];
 
 function easter(y){const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),mo=Math.floor((h+l-7*m+114)/31),dy=((h+l-7*m+114)%31)+1;return new Date(y,mo-1,dy);}
 function getFeries(y){
@@ -6047,7 +6049,7 @@ function injectBands(){
       if(b.nameTxt){
         const isPrestaView=S.view==='presta';
         // Anneau acompte — admin seulement
-        const DOT_COLORS=['#72243E','#7A5800','#27500A','#3C3489','#0C447C','#0B5A86'];
+        const DOT_COLORS=['#72243E','#7A5800','#27500A','#3C3489','#0C447C','#083F63'];
         const dotColor=DOT_COLORS[b.colorIdx||0];
         const dotHtml=(!isPrestaView&&b.isPartPaid)?`<svg width="12" height="12" viewBox="0 0 12 12" style="display:inline-block;vertical-align:middle;margin-right:3px;flex-shrink:0"><circle cx="6" cy="6" r="5.5" fill="${dotColor}"/><circle cx="6" cy="6" r="3" fill="white"/></svg>`:'';
         // Payé intégralement — badge € fond rouge (admin seulement)
@@ -8232,7 +8234,7 @@ function generateContractHtml(r){
     .grad-bg{background:linear-gradient(135deg,#555 0%,#888 20%,#bbb 40%,#e0e0e0 50%,#aaa 65%,#777 80%,#555 100%)}
     `:''}
     ${r.domaine==='d4'?`
-    .grad-bg{background:linear-gradient(135deg,#0B5A86 0%,#1C7FB8 25%,#3BA9E6 45%,#8FD0F3 55%,#2E95D0 75%,#0E6597 100%)}
+    .grad-bg{background:linear-gradient(135deg,#083F63 0%,#1C7FB8 25%,#3BA9E6 45%,#8FD0F3 55%,#2E95D0 75%,#0E6597 100%)}
     `:''}
 
     /* ── EN-TÊTE CONTRAT ── */
@@ -10193,7 +10195,7 @@ function renderModalContent(){
   }
   if(type==='newDomaine'||type==='editDomaine'){
     const d=type==='editDomaine'?D.domaines.find(x=>x.id===id)||{}:{};
-    const cO=[0,1,2,3,4,5].map(c=>`<option value="${c}" ${(d.color||0)===c?'selected':''}>${['🌸 Rose (La Désirée)','✨ Or (Les Déesses)','🌿 Vert (Les Lions)','💜 Violet','💙 Bleu','🩵 Bleu ciel (Loft)'][c]}</option>`).join('');
+    const cO=[0,1,2,3,4,5].map(c=>`<option value="${c}" ${(d.color||0)===c?'selected':''}>${['🌸 Rose (La Désirée)','✨ Or (Les Déesses)','🌿 Vert (Les Lions)','💜 Violet','💙 Bleu','🩵 Bleu ciel (Loft & Sea)'][c]}</option>`).join('');
     return`<h3>${type==='newDomaine'?'➕ Nouveau domaine':'✏️ Modifier — '+d.name}</h3>
     <div class="g2" style="margin-bottom:12px"><div class="field"><label>Nom du domaine</label><input type="text" id="m-dname" value="${d.name||''}"></div><div class="field"><label>Couleur</label><select id="m-dcolor">${cO}</select></div></div>
     <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:14px;font-size:13px;cursor:pointer"><input type="checkbox" id="m-dprive" ${d.adminOnly?'checked':''} style="margin-top:2px"><span><strong>🔒 Privé — David &amp; Svitlana uniquement</strong><br><span style="font-size:11.5px;color:#888">Aucun prestataire ne voit ce domaine : ni ses réservations, ni ses visites, ni ses modifications.</span></span></label>
